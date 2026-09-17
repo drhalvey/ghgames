@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Frondi Clicker — George's Arcade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--choc:#5c3320;--choc-d:#381c0f;--choc-l:#804a29;--gold:#fac94d;--red:#c71a28;--text:#fff4ea;--soft:#c9ad9a;--card:rgba(255,255,255,.07)}
+body{font-family:'Nunito',system-ui,sans-serif;color:var(--text);min-height:100vh;padding:14px;
+  background:radial-gradient(circle at 30% 20%,rgba(255,150,60,.14),transparent 45%),linear-gradient(180deg,#291409,#120704);
+  -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+a.back{color:var(--soft);text-decoration:none;font-weight:700;font-size:.9rem}
+.wrap{max-width:1040px;margin:0 auto}
+h1{font-family:'Baloo 2',cursive;font-weight:800;font-size:clamp(30px,6vw,44px);line-height:1.1;margin:6px 0 10px;
+  background:linear-gradient(90deg,var(--gold),#ff9a3c);-webkit-background-clip:text;background-clip:text;color:transparent}
+.layout{display:grid;grid-template-columns:1fr 420px;gap:16px}
+@media(max-width:820px){.layout{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:16px}
+.center{text-align:center}
+.banner{display:inline-flex;align-items:center;gap:8px;border-radius:30px;padding:6px 14px;font-weight:800;font-size:.9rem}
+.banner.idle{background:rgba(255,255,255,.08);color:var(--soft);font-size:.8rem}
+.banner.live{background:linear-gradient(90deg,#ff2a2a,#990080);color:#fff;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{box-shadow:0 0 22px rgba(255,40,40,.8);transform:scale(1.03)}}
+.count{font-family:'Baloo 2',cursive;font-weight:800;font-size:clamp(44px,10vw,64px);line-height:1;margin-top:10px;
+  background:linear-gradient(180deg,#ffdc73,#ff8c1a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.soft{color:var(--soft)}
+.rates{display:flex;justify-content:center;gap:18px;font-weight:700;font-size:.95rem;margin-top:6px}
+.rchip{display:inline-block;margin-top:6px;padding:3px 12px;border-radius:20px;background:linear-gradient(90deg,#9333ea,#ec4899);font-size:.8rem;font-weight:800}
+.stage{position:relative;height:360px;display:flex;align-items:center;justify-content:center;touch-action:manipulation;cursor:pointer}
+.glow{position:absolute;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(255,140,40,.3),transparent 70%)}
+.glow.live{background:radial-gradient(circle,rgba(255,40,40,.5),transparent 70%)}
+#bar{width:170px;transform:rotate(-8deg);transition:transform .08s;filter:drop-shadow(0 12px 16px rgba(0,0,0,.5))}
+#bar.squash{transform:rotate(-8deg) scale(.92)}
+.float{position:absolute;pointer-events:none;font-family:'Baloo 2',cursive;font-weight:800;font-size:28px;color:#ffe08a;text-shadow:0 2px 3px #000;animation:fl .85s ease-out forwards;z-index:3}
+.float.live{color:#ff5959;font-size:34px}
+@keyframes fl{to{transform:translate(var(--dx),-110px) scale(1.15);opacity:0}}
+.crumb{position:absolute;width:10px;height:10px;border-radius:2px;background:#6b3d21;pointer-events:none;animation:cr .7s ease-out forwards}
+@keyframes cr{to{transform:translate(var(--dx),var(--dy)) rotate(var(--r));opacity:0}}
+.tabs,.amt{display:flex;gap:4px;background:rgba(255,255,255,.08);border-radius:10px;padding:3px}
+.tabs button,.amt button{flex:1;border:none;background:none;color:var(--soft);font-family:inherit;font-weight:800;padding:7px 4px;border-radius:8px;cursor:pointer;position:relative}
+.tabs button.on,.amt button.on{background:rgba(255,255,255,.18);color:#fff}
+.dot{position:absolute;top:4px;right:8px;width:8px;height:8px;border-radius:50%;background:#ff3b3b}
+.shophead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.shophead h2{font-family:'Baloo 2',cursive;font-size:1.5rem}
+.list{display:flex;flex-direction:column;gap:8px;margin-top:10px;max-height:640px;overflow:auto;padding-right:2px}
+.up{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px;text-align:left;color:var(--text);font-family:inherit;cursor:pointer;width:100%}
+.up:disabled{cursor:default}
+.ico{width:46px;height:46px;flex:none;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;background:linear-gradient(160deg,#ff9f3f,#d9661a)}
+.auto .ico{background:linear-gradient(160deg,#a0683f,#6a4024)}
+.info{flex:1;min-width:0}
+.info b{font-size:.95rem}.own{float:right;font-weight:800;font-size:1.05rem}
+.info small{display:block;color:var(--soft);font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.eff{color:#ffcc66;font-weight:700;font-size:.76rem}
+.mbar{height:4px;background:rgba(255,255,255,.12);border-radius:2px;margin-top:4px;overflow:hidden}.mbar i{display:block;height:100%;background:#ff9a3c}
+.price{flex:none;min-width:78px;text-align:center;border-radius:12px;padding:8px 6px;font-weight:800;background:#1f9d4c;font-size:.85rem}
+.price small{display:block;font-size:.7rem;opacity:.9}
+.up:disabled .price{background:rgba(255,255,255,.14);color:rgba(255,255,255,.55)}
+.locked{opacity:.55}
+.rb{text-align:center}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.tile{background:var(--card);border-radius:12px;padding:10px}.tile b{display:block;font-size:1.3rem}
+.bigbtn{width:100%;border:none;border-radius:14px;padding:14px;font-family:inherit;font-weight:800;font-size:1.05rem;color:#fff;cursor:pointer;background:linear-gradient(90deg,#9333ea,#ec4899)}
+.bigbtn:disabled{background:rgba(255,255,255,.14);cursor:default}
+.prog{height:8px;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden;margin-top:6px}.prog i{display:block;height:100%;background:#a855f7}
+.rules{text-align:left;font-size:.8rem;color:var(--soft);margin-top:12px;line-height:1.6}
+.row2{display:flex;gap:8px;margin-top:12px}
+.btn{flex:1;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:var(--text);border-radius:10px;padding:10px;font-family:inherit;font-weight:700;cursor:pointer}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#2a170c;border:1px solid var(--gold);padding:10px 18px;border-radius:12px;opacity:0;transition:opacity .3s;z-index:9;font-weight:700}
+#reborn{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;flex-direction:column;z-index:10;text-align:center}
+#reborn h3{font-family:'Baloo 2',cursive;font-size:3rem}
+#lb{margin-top:16px}
+body.w2{background:radial-gradient(1px 1px at 12% 20%,#fff,transparent),radial-gradient(1.5px 1.5px at 70% 12%,#fff,transparent),radial-gradient(1px 1px at 40% 60%,#fff,transparent),radial-gradient(1.5px 1.5px at 85% 75%,#fff,transparent),radial-gradient(1px 1px at 25% 88%,#fff,transparent),radial-gradient(1px 1px at 55% 35%,#fff,transparent),radial-gradient(circle at 30% 20%,rgba(120,80,255,.25),transparent 50%),linear-gradient(180deg,#1a0d42,#07051a);background-attachment:fixed}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">← arcade</a>
+<h1>🍫 Frondi Clicker</h1>
+<div class="layout">
+  <div>
+    <div class="panel center">
+      <div id="abuse"></div>
+      <div class="count" id="count">0</div>
+      <div class="soft">Frondis</div>
+      <div class="rates"><span id="ptap">1 per tap</span><span id="psec">0 per sec</span></div>
+      <div id="rchip"></div>
+      <div class="stage" id="stage">
+        <div class="glow" id="glow"></div>
+        <svg id="bar" viewBox="0 0 100 178" aria-label="Frondi bar">
+          <defs>
+            <linearGradient id="sq" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#804a29"/><stop offset=".5" stop-color="#5c3320"/><stop offset="1" stop-color="#381c0f"/></linearGradient>
+            <linearGradient id="wr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c71a28"/><stop offset="1" stop-color="#850d19"/></linearGradient>
+          </defs>
+          <rect x="0" y="0" width="100" height="178" rx="7" fill="#381c0f"/>
+          <g id="squares"></g>
+          <path id="wrap" fill="url(#wr)"/>
+          <rect x="12" y="104" width="76" height="2.4" rx="1.2" fill="#fac94d"/>
+          <text x="50" y="132" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="18" fill="#fac94d">FRONDI</text>
+          <text x="50" y="146" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="7" fill="#fff">milk chocolate</text>
+          <rect x="12" y="154" width="76" height="2.4" rx="1.2" fill="#fac94d"/>
+        </svg>
+      </div>
+      <div class="soft" style="font-size:.8rem">Tap the bar!</div>
+    </div>
+    <div class="row2">
+      <button class="btn" id="post">🏆 Post my score</button>
+      <button class="btn" id="stats">📊 Stats</button>
+      <button class="btn" id="reset">↺ Reset</button>
+    </div>
+    <div id="lb"></div>
+  </div>
+  <div class="panel">
+    <div class="shophead">
+      <h2>Upgrades</h2>
+      <div class="amt" id="amt"><button data-a="1" class="on">×1</button><button data-a="10">×10</button><button data-a="0">Max</button></div>
+    </div>
+    <div class="tabs" id="tabs"><button data-t="clicker" class="on">Clicker</button><button data-t="automation">Automation</button><button data-t="multi" id="tabmulti" style="display:none">Multi ×</button><button data-t="rebirth">Rebirth</button></div>
+    <div id="shop"></div>
+  </div>
+</div>
+</div>
+<div id="toast"></div>
+<div id="reborn"><div style="font-size:80px">🔄</div><h3>REBORN</h3><p id="rbtext" style="color:#f9a8d4;font-weight:800;font-size:1.2rem"></p><button class="btn" style="flex:none;margin-top:18px;padding:12px 40px" onclick="this.parentNode.style.display='none'">Let's go</button></div>
+
+<script src="leaderboard.js"></script>
+<script>
+(function(){
+// ---- same numbers as the iPhone app ----
+const G=1.15;
+const U=(id,kind,name,blurb,icon,cost,eff)=>({id,kind,name,blurb,icon,cost,eff});
+const CLICK=[
+ U("foil","c","Foil Fingers","Peel faster, snap cleaner.","☝️",15,1),
+ U("gloves","c","Cocoa Gloves","Grip every square.","🧤",120,5),
+ U("caramel","c","Caramel Thumbs","Sticky, but productive.","👍",1300,30),
+ U("nougat","c","Nougat Knuckles","Tap with the whole hand.","👏",14000,160),
+ U("hammer","c","Hazelnut Hammer","Every tap is a smash.","🔨",150000,900),
+ U("golden","c","Golden Wrapper","Taps turn to treasure.","👑",1.8e6,5200),
+ U("truffle","c","Truffle Tapper","Rolled in cocoa, fast as lightning.","⚡",2e7,28000),
+ U("fudge","c","Fudge Fist","Soft centre, hard punch.","✊",2.5e8,150000),
+ U("praline","c","Praline Power Glove","Every finger a factory.","👋",3e9,850000),
+ U("wand","c","Cocoa Wand","Tap, sparkle, Frondis.","🪄",4e10,4.8e6),
+ U("midas","c","Molten Midas Touch","Everything you touch turns to chocolate.","✨",5.5e11,2.7e7),
+ U("infinite","c","Infinite Frondi Finger","One tap to end all taps.","♾️",8e12,1.6e8)];
+const AUTO=[
+ U("nibbler","a","Nibbler","A helper who snaps squares off.","🧑",15,.1),
+ U("farm","a","Cocoa Farm","Beans, beans, beans.","🌱",100,1),
+ U("pot","a","Melting Pot","Always simmering.","🔥",1100,8),
+ U("wrapper","a","Wrapper Machine","Foil in, Frondis out.","⚙️",12000,47),
+ U("factory","a","Frondi Factory","Three shifts a day.","🏭",130000,260),
+ U("planet","a","Cocoa Planet","A whole world of chocolate.","🌍",1.4e6,1400),
+ U("river","a","Chocolate River","Flows day and night.","🌊",2e7,7800),
+ U("station","a","Frondi Space Station","Zero-gravity wrapping.","🛰️",3.3e8,44000),
+ U("galaxy","a","Cocoa Galaxy","Billions of chocolate stars.","🌌",5.1e9,260000),
+ U("timemelt","a","Time-Melting Machine","Makes Frondis yesterday.","⏳",7.5e10,1.6e6),
+ U("portal","a","Frondiverse Portal","Imports bars from other universes.","🌀",1e12,1e7),
+ U("bigbang","a","Chocolate Big Bang","In the beginning, there was cocoa.","💥",1.4e13,6.5e7)];
+const ALL=CLICK.concat(AUTO);
+const MILES=[10,25,50,100,150,200,300,400,500];
+const ABUSE_X=5, ABUSE_HOUR=18, ABUSE_MIN=60;
+const RB_BASE=5e8, RB_GROW=7, RB_X=3;
+const KEY="frondi_save_v1";
+
+let S=load(); let tab="clicker", amt=1;
+
+function blank(){return{frondis:0,total:0,taps:0,owned:{},last:Date.now(),rebirths:0,abuseExtra:0,started:Date.now(),world:1,mults:[]}}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&typeof s.frondis==="number")return Object.assign(blank(),s)}catch(e){}return blank()}
+function save(){S.last=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+const own=u=>S.owned[u.id]||0;
+const boost=n=>Math.pow(2,MILES.filter(m=>n>=m).length);
+const out=(u,n)=>u.eff*n*boost(n);
+const costN=(u,n,k)=>{const f=u.cost*Math.pow(G,n);return Math.ceil(f*(Math.pow(G,k)-1)/(G-1))};
+function maxAff(u,n,m){const f=u.cost*Math.pow(G,n);if(m<f)return 0;let k=Math.max(0,Math.floor(Math.log(m*(G-1)/f+1)/Math.log(G)));while(k>0&&costN(u,n,k)>m)k--;return k}
+const count=u=>amt===0?Math.max(1,maxAff(u,own(u),S.frondis)):amt;
+const price=u=>costN(u,own(u),count(u));
+const revealed=u=>own(u)>0||S.total>=u.cost*.5||u.cost<=15;
+
+function abuseWindow(t){const d=new Date(t);const s=new Date(d);s.setHours(ABUSE_HOUR,0,0,0);const e=s.getTime()+ABUSE_MIN*60000;return(t>=s.getTime()&&t<e)?{start:s.getTime(),end:e}:null}
+function nextAbuse(t){const s=new Date(t);s.setHours(ABUSE_HOUR,0,0,0);if(s.getTime()<=t)s.setDate(s.getDate()+1);return s.getTime()}
+function boostedMs(a,b){let tot=0;const d=new Date(a);d.setHours(0,0,0,0);while(d.getTime()<=b){const s=new Date(d);s.setHours(ABUSE_HOUR,0,0,0);const e=s.getTime()+ABUSE_MIN*60000;const x=Math.max(a,s.getTime()),y=Math.min(b,e);if(y>x)tot+=y-x;d.setDate(d.getDate()+1)}return tot}
+const rbMult=()=>Math.pow(RB_X,S.rebirths);
+const rbCost=()=>RB_BASE*Math.pow(RB_GROW,S.rebirths);
+const abuseMult=t=>abuseWindow(t)?ABUSE_X:1;
+const W2_REB=3, W2_X=10;
+const MULTS=[
+ {id:"m_double",name:"Double Dip",blurb:"Dunk every Frondi twice.",icon:"2️⃣",cost:1e9,f:2},
+ {id:"m_triple",name:"Triple Truffle",blurb:"Three layers of cocoa.",icon:"3️⃣",cost:5e10,f:3},
+ {id:"m_five",name:"Cocoa Quintuple",blurb:"Five-star chocolate.",icon:"5️⃣",cost:5e12,f:5},
+ {id:"m_ten",name:"Mega Melt",blurb:"Everything melts into more.",icon:"🔥",cost:1e15,f:10},
+ {id:"m_25",name:"Frondi Overdrive",blurb:"Maximum chocolate power.",icon:"⚡",cost:5e17,f:25},
+ {id:"m_100",name:"Cosmic Cocoa Core",blurb:"The heart of World 2.",icon:"✨",cost:1e21,f:100}];
+const worldMult=()=>S.world>=2?W2_X:1;
+const boughtMult=()=>MULTS.filter(m=>S.mults.includes(m.id)).reduce((a,m)=>a*m.f,1);
+const permMult=()=>rbMult()*worldMult()*boughtMult();
+const baseTap=()=>1+CLICK.reduce((a,u)=>a+out(u,own(u)),0);
+const baseSec=()=>AUTO.reduce((a,u)=>a+out(u,own(u)),0);
+
+function earn(x,bonus){S.frondis+=x;S.total+=x;S.abuseExtra+=bonus||0}
+
+function fmt(v){if(!isFinite(v))return"∞";if(v<1000){return(v<10&&v!==Math.floor(v))?v.toFixed(1):String(Math.floor(v))}
+  const suf=["","K","M","B","T","Qa","Qi","Sx","Sp","Oc","No","Dc"];let i=0;while(v>=1000&&i<suf.length-1){v/=1000;i++}
+  return v.toFixed(v>=100?0:v>=10?1:2)+suf[i]}
+function clock(ms){const t=Math.max(0,Math.floor(ms/1000));const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return h>0?`${h} h ${m} min`:`${m}:${String(s).padStart(2,"0")}`}
+
+// offline earnings (50% for up to 8 h, 5× for time inside Admin Abuse)
+(function(){const now=Date.now(),away=now-S.last;if(away>60000&&baseSec()>0){const ms=Math.min(away,8*3600000),from=now-ms;const b=boostedMs(from,now);
+  const base=baseSec()*permMult()*ms/1000*.5, bonus=baseSec()*permMult()*b/1000*(ABUSE_X-1)*.5;earn(base+bonus,bonus);
+  setTimeout(()=>toast(`Welcome back! Your factories made ${fmt(base+bonus)} Frondis`+(b>0?" (some during Admin Abuse ×5)":"")),400)}})();
+
+// bar squares + wrapper
+(function(){const g=document.getElementById("squares");let h="";const gap=3.5,w=(100-9-2*gap)/3,hh=(110-9-4*gap)/5;
+  for(let r=0;r<5;r++)for(let c=0;c<3;c++){const x=4.5+c*(w+gap),y=4.5+r*(hh+gap);h+=`<rect x="${x}" y="${y}" width="${w}" height="${hh}" rx="2.5" fill="url(#sq)"/><rect x="${x+3}" y="${y+3}" width="${w-6}" height="${hh-6}" rx="2" fill="#5c3320"/>`}
+  g.innerHTML=h;let p="M0 101";const n=9,st=100/n;for(let i=0;i<n;i++){p+=` L${i*st+st/2} ${i%2?94:90} L${(i+1)*st} 101`}p+=" L100 171 Q100 178 93 178 L7 178 Q0 178 0 171 Z";document.getElementById("wrap").setAttribute("d",p)})();
+
+const $=id=>document.getElementById(id);
+const stage=$("stage"),bar=$("bar");
+stage.addEventListener("pointerdown",e=>{
+  const r=stage.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,now=Date.now();
+  const m=abuseMult(now), gain=baseTap()*permMult()*m;earn(gain,gain-baseTap()*permMult());S.taps++;
+  bar.classList.add("squash");setTimeout(()=>bar.classList.remove("squash"),70);
+  const f=document.createElement("div");f.className="float"+(m>1?" live":"");f.textContent="+"+fmt(gain);f.style.left=(x-20)+"px";f.style.top=(y-20)+"px";f.style.setProperty("--dx",(Math.random()*60-30)+"px");stage.appendChild(f);setTimeout(()=>f.remove(),900);
+  for(let i=0;i<5;i++){const c=document.createElement("div");c.className="crumb";c.style.left=x+"px";c.style.top=y+"px";c.style.setProperty("--dx",(Math.random()*180-90)+"px");c.style.setProperty("--dy",(Math.random()*150-40)+"px");c.style.setProperty("--r",(Math.random()*720-360)+"deg");stage.appendChild(c);setTimeout(()=>c.remove(),750)}
+  if(navigator.vibrate)navigator.vibrate(8);
+  paintTop();
+});
+
+document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;document.querySelectorAll("#tabs button").forEach(x=>x.classList.toggle("on",x===b));paintShop(true)});
+document.querySelectorAll("#amt button").forEach(b=>b.onclick=()=>{amt=+b.dataset.a;document.querySelectorAll("#amt button").forEach(x=>x.classList.toggle("on",x===b));paintShop(true)});
+
+function buy(id){const u=ALL.find(x=>x.id===id);const k=count(u),c=costN(u,own(u),k);if(S.frondis<c)return;S.frondis-=c;S.owned[id]=own(u)+k;save();paintShop(true);paintTop()}
+function rebirth(){if(S.frondis<rbCost())return;
+  if(!confirm(`Rebirth now?\n\nYou lose all ${fmt(S.frondis)} Frondis and every upgrade. Everything you earn afterwards is ×${fmt(rbMult()*RB_X)}. The next rebirth will need ${fmt(rbCost()*RB_GROW)} Frondis.`))return;
+  S.rebirths++;S.frondis=0;S.owned={};S.mults=[];save();postScore(true);$("reborn").querySelector("h3").textContent="REBORN";$("rbtext").textContent=`Every Frondi now counts ×${fmt(rbMult())}`;$("reborn").style.display="flex";paintShop(true);paintTop()}
+
+function enterW2(){if(S.world>=2||S.rebirths<W2_REB)return;
+  if(!confirm(`Enter World 2?\n\nYou lose all ${fmt(S.frondis)} Frondis and every upgrade. You keep ${S.rebirths} rebirths (×${fmt(rbMult())}) and everything in World 2 is ×${W2_X}.`))return;
+  S.world=2;S.frondis=0;S.owned={};S.mults=[];save();$("rbtext").textContent=`WORLD 2: everything counts ×${W2_X}. New Multi × tab unlocked!`;$("reborn").querySelector("h3").textContent="WORLD 2";$("reborn").style.display="flex";paintShop(true);paintTop()}
+let lastShopKey="";
+function paintShop(force){
+  const el=$("shop");
+  if(tab==="rebirth"){
+    const c=rbCost(),can=S.frondis>=c,p=Math.min(1,S.frondis/c);
+    const key="rb|"+S.rebirths+"|"+can+"|"+Math.floor(p*200);if(!force&&key===lastShopKey)return;lastShopKey=key;
+    el.innerHTML=`<div class="rb" style="margin-top:12px"><div style="font-size:44px">🔄</div><h2 style="font-family:'Baloo 2',cursive">Rebirth</h2>
+     <div class="soft" style="font-size:.9rem">Start again with a permanent Frondi multiplier.</div>
+     <div class="tiles"><div class="tile"><b>${S.rebirths}</b><span class="soft">Rebirths</span></div><div class="tile"><b>×${fmt(rbMult())}</b><span class="soft">Now</span></div><div class="tile"><b style="color:#f472b6">×${fmt(rbMult()*RB_X)}</b><span class="soft">After</span></div></div>
+     <div class="tile" style="text-align:left"><div style="display:flex;justify-content:space-between"><span class="soft">Needs</span><b style="font-size:.95rem;display:inline">${fmt(S.frondis)} / ${fmt(c)} Frondis</b></div><div class="prog"><i style="width:${p*100}%;${can?"background:#22c55e":""}"></i></div></div>
+     <button class="bigbtn" id="rbgo" style="margin-top:12px" ${can?"":"disabled"}>${can?"Rebirth for ×"+fmt(rbMult()*RB_X):"Need "+fmt(c-S.frondis)+" more"}</button>
+     <div class="rules">✅ Keep: your rebirth multiplier and stats<br>❌ Lose: all Frondis and every upgrade (World 2 multipliers too)<br>✖️ Each rebirth triples the multiplier (×3, ×9, ×27...) on taps, automation and time away. It stacks with Admin Abuse and World 2.<br>📈 Each rebirth needs 7× more Frondis than the last: 500M, 3.5B, 24.5B, 171.5B...</div>
+     <div class="tile" style="margin-top:14px;text-align:left"><div style="font-size:1.2rem;font-weight:800">🌏 World 2</div><div class="soft" style="font-size:.8rem">Everything ×${W2_X}, plus Frondi multiplier upgrades</div>
+     ${S.world>=2?`<div style="margin-top:8px;color:#67e8f9;font-weight:800">✔ You are in World 2</div>`:`<div class="prog"><i style="width:${Math.min(S.rebirths,W2_REB)/W2_REB*100}%;background:#22d3ee"></i></div><div class="soft" style="font-size:.8rem;margin-top:4px">Rebirths ${Math.min(S.rebirths,W2_REB)} / ${W2_REB}</div>
+     <button class="bigbtn" id="w2go" style="margin-top:8px;background:linear-gradient(90deg,#06b6d4,#9333ea)" ${S.rebirths>=W2_REB?"":"disabled"}>${S.rebirths>=W2_REB?"Enter World 2":"Rebirth "+W2_REB+" times to unlock"}</button>
+     <div class="soft" style="font-size:.72rem;margin-top:6px">Fresh start: you lose all Frondis and upgrades, and keep your rebirths. There is no going back to World 1.</div>`}</div></div>`;
+    $("rbgo").onclick=rebirth;if($("w2go"))$("w2go").onclick=enterW2;return}
+  if(tab==="multi"){
+    const key="multi|"+S.mults.join(",")+"|"+MULTS.map(m=>S.frondis>=m.cost).join("");if(!force&&key===lastShopKey)return;lastShopKey=key;
+    el.innerHTML=`<div class="soft" style="font-size:.8rem;margin:10px 2px 0">Multipliers bought: ×${fmt(boughtMult())} · World 2 base ×${W2_X}</div><div class="list">`+MULTS.map(m=>{const own=S.mults.includes(m.id),ok=!own&&S.frondis>=m.cost;
+      return`<button class="up" data-m="${m.id}" ${ok?"":"disabled"}><div class="ico" style="background:linear-gradient(160deg,#a855f7,#4f46e5)">${m.icon}</div><div class="info"><b>${m.name}</b><small>${m.blurb}</small><span class="eff" style="color:#c4b5fd">×${fmt(m.f)} all Frondis</span></div><div class="price" style="${own?"background:#7e22ce;color:#fff":""}">${own?"Owned ✔":"<small>Buy</small>"+fmt(m.cost)}</div></button>`}).join("")+`</div><div class="soft" style="font-size:.72rem;margin-top:8px">One-off buys. They stack with each other, the World 2 ×${W2_X}, rebirths and Admin Abuse. Rebirthing resets them along with your other upgrades.</div>`;
+    el.querySelectorAll("button[data-m]").forEach(b=>b.onclick=()=>{const m=MULTS.find(x=>x.id===b.dataset.m);if(S.world<2||S.mults.includes(m.id)||S.frondis<m.cost)return;S.frondis-=m.cost;S.mults.push(m.id);save();paintShop(true);paintTop()});
+    return}
+  const list=tab==="clicker"?CLICK:AUTO;
+  const key=tab+"|"+amt+"|"+list.map(u=>[own(u),revealed(u),S.frondis>=price(u),count(u)].join(",")).join(";");
+  if(!force&&key===lastShopKey)return;lastShopKey=key;
+  el.innerHTML='<div class="list">'+list.map(u=>{
+    if(!revealed(u))return`<div class="up locked"><div class="ico" style="background:rgba(255,255,255,.1)">🔒</div><div class="info"><b>???</b><small>Earn ${fmt(u.cost*.5)} Frondis in total to reveal</small></div></div>`;
+    const n=own(u),k=count(u),pr=price(u),ok=S.frondis>=pr,unit=u.kind==="c"?"per tap":"per sec";const next=MILES.find(m=>m>n);
+    return`<button class="up ${u.kind==="a"?"auto":""}" data-id="${u.id}" ${ok?"":"disabled"}><div class="ico">${u.icon}</div><div class="info"><b>${u.name}</b><span class="own">${n}</span><small>${u.blurb}</small>
+      <span class="eff">+${fmt(u.eff*boost(n+k))} ${unit} each${n>0?" · "+fmt(out(u,n))+" total":""}</span>${next?`<div class="mbar"><i style="width:${n/next*100}%"></i></div><small>×2 boost at ${next}</small>`:""}</div>
+      <div class="price"><small>${k>1?"Buy "+k:"Buy"}</small>${fmt(pr)}</div></button>`}).join("")+"</div>";
+  el.querySelectorAll("button.up").forEach(b=>b.onclick=()=>buy(b.dataset.id));
+}
+
+function paintTop(){
+  const now=Date.now(),w=abuseWindow(now),m=(w?ABUSE_X:1)*permMult();
+  $("count").textContent=fmt(S.frondis);
+  $("ptap").textContent="👆 "+fmt(baseTap()*m)+" per tap";$("psec").textContent="⏱️ "+fmt(baseSec()*m)+" per sec";
+  $("abuse").innerHTML=w?`<span class="banner live">🛡️ ADMIN ABUSE ×${ABUSE_X} · ${clock(w.end-now)} left</span>`:`<span class="banner idle">🛡️ Admin Abuse ×${ABUSE_X} in ${clock(nextAbuse(now)-now)}</span>`;
+  $("glow").className="glow"+(w?" live":"");
+  $("rchip").innerHTML=(S.world>=2?`<span class="rchip" style="background:linear-gradient(90deg,#06b6d4,#9333ea)">🌏 World 2 · ×${fmt(worldMult()*boughtMult())}</span> `:"")+(S.rebirths>0?`<span class="rchip">🔄 Rebirth ${S.rebirths} · ×${fmt(rbMult())}</span>`:"");
+  document.body.classList.toggle("w2",S.world>=2);$("tabmulti").style.display=S.world>=2?"":"none";
+  const rt=document.querySelector('#tabs button[data-t="rebirth"]');const dot=rt.querySelector(".dot");
+  if(S.frondis>=rbCost()&&tab!=="rebirth"){if(!dot)rt.insertAdjacentHTML("beforeend",'<span class="dot"></span>')}else if(dot)dot.remove();
+}
+
+let lastT=Date.now(),sinceSave=0;
+setInterval(()=>{const now=Date.now(),dt=Math.min(1,(now-lastT)/1000);lastT=now;const base=baseSec()*dt;
+  if(base>0){const r=base*permMult(),m=abuseMult(now);earn(r*m,r*m-r)}
+  sinceSave+=dt;if(sinceSave>=5){sinceSave=0;save()}paintTop();paintShop(false)},100);
+window.addEventListener("pagehide",save);document.addEventListener("visibilitychange",()=>{if(document.hidden)save()});
+
+function toast(t){const e=$("toast");e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,3200)}
+function postScore(quiet){if(!window.Leaderboard)return;if(!Leaderboard.getName()){if(!quiet)toast("Pick a nickname in the leaderboard below 👇");return}
+  Leaderboard.submit(S.total);if(!quiet)toast("🏆 Score posted to the leaderboard!")}
+$("post").onclick=()=>postScore(false);
+$("stats").onclick=()=>alert(`Frondis now: ${fmt(S.frondis)}\nEarned all time: ${fmt(S.total)}\nTotal taps: ${S.taps}\nRebirths: ${S.rebirths} (×${fmt(rbMult())})\nWorld: ${S.world>=2?"World 2 (×"+fmt(worldMult()*boughtMult())+")":"World 1"}\nNext rebirth needs: ${fmt(rbCost())}\nExtra from Admin Abuse: ${fmt(S.abuseExtra)}\nUpgrades owned: ${Object.values(S.owned).reduce((a,b)=>a+b,0)}`);
+$("reset").onclick=()=>{if(confirm("Start again from zero? All Frondis, upgrades, rebirths and World 2 will be lost.")){S=blank();save();paintShop(true);paintTop()}};
+
+if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"frondi-clicker",dir:"desc",unit:"Frondis",title:"Frondi Clicker — Frondis earned"});
+paintTop();paintShop(true);
+})();
+</script>
+</body>
+</html>

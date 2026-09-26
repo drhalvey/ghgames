@@ -152,6 +152,14 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.hatch .egg.shake{animation:none}}
 .fast{font-family:var(--body);font-weight:800;font-size:13px;padding:6px 12px;border:2px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;align-self:center}
 .fast[aria-pressed="true"]{background:var(--green);border-color:var(--green-dk);color:#0c2238}
+.chip.name{cursor:pointer;text-align:left;font:inherit;color:inherit}
+.chip.name b{color:#ffd6e8;font-size:18px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip.name:hover,.chip.name:focus-visible{border-color:var(--gold)}
+.namebox{gap:14px}
+.namebox input{font-family:var(--display);font-size:24px;text-align:center;width:min(280px,100%);padding:10px 14px;border-radius:14px;border:3px solid var(--line);background:#0f2740;color:var(--ink);outline:none}
+.namebox input:focus{border-color:var(--gold)}
+.namebox .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.namebox .hint{font-size:12px;color:var(--muted);font-weight:800}
 </style>
 
 </head>
@@ -161,6 +169,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
   <div class="top">
     <h1>Wall Hop Pets</h1>
     <div class="hud">
+      <button class="chip name" id="nameChip" type="button" title="Change your name"><span>Player ✏️</span><b id="hName">Player</b></button>
       <div class="chip wins"><span>Wins</span><b id="hWins">0</b></div>
       <div class="chip multi"><span>Jump multi</span><b id="hMulti">x1</b></div>
       <div class="chip"><span>Jump power</span><b id="hPower">10</b></div>
@@ -727,6 +736,32 @@ function resize(){
 }
 function applyFast(){ const b=$("fastBtn"); b.setAttribute("aria-pressed",FAST); b.textContent="Fast mode: "+(FAST?"on":"off"); resize(); }
 $("fastBtn").onclick = ()=>{ FAST=!FAST; try{ localStorage.setItem(SAVE_KEY+"-fast", FAST?"1":"0"); }catch(e){} applyFast(); };
+// ---------- player name ----------
+// Kept separately from the save so "Reset game" leaves the name alone, and under a
+// shared key so other GH Games can reuse it.
+const NAME_KEY = "ghgames-player-name";
+let NAME = "Player";
+function cleanName(v){ return (v||"").replace(/[^A-Za-z0-9 _\-!?.']/g,"").replace(/\s+/g," ").trim().slice(0,14); }
+try{ NAME = cleanName(localStorage.getItem(NAME_KEY)) || "Player"; if(isRude(NAME)) NAME="Player"; }catch(e){}
+// swear filter: names are squashed to letters only (so "s.h-i t" and "sh1t" are caught) and checked against a blocklist
+const BAD = ["fuck","shit","bitch","cunt","dick","cock","pussy","asshole","arsehole","wanker","twat","bastard","slut","whore","nigg","fag","retard","penis","vagina","boob","tits","porn","sex","damn","crap","piss","bollock","prick","knob","bugger","bloody","hell","kys","rape","nazi","hitler","dildo","cum"];
+function isRude(v){ const t = v.toLowerCase().replace(/[013457@$!]/g, c=>({"0":"o","1":"i","3":"e","4":"a","5":"s","7":"t","@":"a","$":"s","!":"i"}[c])).replace(/[^a-z]/g,""); return BAD.some(w => t.includes(w)); }
+function applyName(){ $("hName").textContent = NAME; }
+function openName(){
+  const box = $("hatchBox"); box.className = "hatch namebox";
+  box.innerHTML = `<h3>What's your name?</h3>
+    <input id="nameIn" maxlength="14" autocomplete="off" spellcheck="false" value="${NAME.replace(/&/g,"&amp;").replace(/"/g,"&quot;")}" aria-label="Your name">
+    <p class="hint" id="nameHint">First name or nickname only. Up to 14 letters. It shows above your character.</p>
+    <div class="row"><button class="buy" id="nameOk">Save</button><button class="small" id="nameCancel">Cancel</button></div>`;
+  $("overlay").hidden = false;
+  const inp = $("nameIn"); inp.focus(); inp.select();
+  const done = ()=>{ const v = cleanName(inp.value); if(isRude(v)){ inp.value=""; inp.placeholder="Pick a kind name"; inp.focus(); $("nameHint").textContent="That name is not allowed. Try another one."; return; } NAME = v || "Player"; try{ localStorage.setItem(NAME_KEY, NAME); }catch(e){} applyName(); closeName(); setMsg(`Hi ${NAME}! Your name is saved.`, "good"); };
+  $("nameOk").onclick = done; $("nameCancel").onclick = closeName;
+  inp.addEventListener("keydown", e=>{ e.stopPropagation(); if(e.key==="Enter"){ e.preventDefault(); done(); } if(e.key==="Escape"){ closeName(); } });
+}
+function closeName(){ $("overlay").hidden = true; $("hatchBox").className = "hatch"; }
+$("nameChip").onclick = openName;
+applyName();
 window.addEventListener("resize", resize);
 const LBLC=[];
 function LBL(i){
@@ -869,6 +904,11 @@ function draw(){
   ctx.fillStyle="#0c2238"; ctx.beginPath(); ctx.arc(-3,-16,2.4,0,7); ctx.arc(9,-16,2.4,0,7); ctx.fill();
   if(G.state==="bonk"){ ctx.fillStyle="#fff"; ctx.font="16px 'Lilita One', sans-serif"; ctx.fillText("✶",16,-38); }
   ctx.restore();
+  // name tag
+  ctx.font="15px 'Lilita One', sans-serif"; ctx.textAlign="center"; ctx.lineWidth=4; ctx.lineJoin="round";
+  ctx.strokeStyle="#0c2238"; ctx.fillStyle="#fff";
+  ctx.strokeText(NAME, px, py - bob - 46); ctx.fillText(NAME, px, py - bob - 46);
+  ctx.textAlign="left";
   // floats
   G.floats.forEach(f=>{
     ctx.globalAlpha = 1 - f.t/1.4; ctx.fillStyle="#ffc93c"; ctx.strokeStyle="#5a3a00"; ctx.lineWidth=4;

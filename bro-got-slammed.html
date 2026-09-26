@@ -140,7 +140,7 @@ canvas{display:block;width:100%;touch-action:none}
       <li><b>Attack:</b> Space or the big round button. <b>Dash:</b> E key or the yellow DASH button.</li>
       <li><b>Pedigreers 🐶</b> jump up and SLAM the ground. Every bro close by gets hit. Big damage, but it takes a moment to charge again.</li>
       <li><b>Bro Got Slammed 😎</b> swing the bat 🏏 in the direction you are moving. Smaller hits, but really quick.</li>
-      <li><b>Pass out:</b> everyone has 150 health. When yours runs out you pass out 💫 and stay down until the next round.</li>
+      <li><b>Pass out:</b> Pedigreers have 150 health and bros have 250. When yours runs out you pass out 💫 and stay down until the next round.</li>
       <li><b>Win:</b> each round lasts 4 minutes. The team with more players still standing at the end wins. Knock out the whole other team and you win straight away. Same number left is a draw.</li>
       <li><b>Wins 🏆:</b> everyone on the winning team gets a win, even if they passed out. Spend wins on damage upgrades below.</li>
     </ul>
@@ -170,7 +170,7 @@ const TEAM_SIZE = 5;
 const R = { ped: 21, bro: 18 };
 const SPEED = { ped: 200, bro: 210, botped: 168, botbro: 176 };
 const DASH_T = 0.28, DASH_X = 2.3, DASH_CD = 3.5, BOT_DASH_CD = 4.5;
-const HP_MAX = 150;
+const HP = { ped: 150, bro: 250 };   // starting health for each team
 // attacks: bat swings in front of a bro, slams hit all around a Pedigreer
 const ATK = {
   bro: { dmg: 6,  cd: 0.5, reach: 58, arc: 1.25, push: 260, stun: 0.18, anim: 0.25, name: "SWING", up: "bat" },
@@ -396,8 +396,9 @@ const other = t => t === "ped" ? "bro" : "ped";
 let E = new Map();
 function mkEnt(id, o) {
   const e = Object.assign({ id, name: "Player", bot: false, team: "bro", side: "bro", x: W / 2, y: H / 2, vx: 0, vy: 0, f: 0,
-    rx: W / 2, ry: H / 2, dashT: 0, dashCd: 0, stun: 0, hp: HP_MAX, out: false, atkCd: 0, swingT: 0, lb: 0, ls: 0,
+    rx: W / 2, ry: H / 2, dashT: 0, dashCd: 0, stun: 0, hp: 150, out: false, atkCd: 0, swingT: 0, lb: 0, ls: 0,
     seen: 0, pref: 1, tgt: null, tgtT: 0, wa: Math.random() * 6.28, say: "", sayT: 0, sayNext: 3 + Math.random() * 8, brave: Math.random() < 0.5 }, o);
+  if (!o || o.hp === undefined) e.hp = HP[e.team] || 150;
   e.rx = e.x; e.ry = e.y;
   E.set(id, e); return e;
 }
@@ -425,7 +426,7 @@ function startRound() {
   while (bros < TEAM_SIZE) { addBot("bro", bi++); bros++; }
   for (const e of E.values()) {
     const [x, y] = spawnIn(spawnArea(e.team), R[e.team]);
-    Object.assign(e, { x, y, rx: x, ry: y, vx: 0, vy: 0, stun: 0, dashT: 0, dashCd: 0, hp: HP_MAX, out: false, atkCd: 0, swingT: 0, f: Math.atan2(H / 2 - y, W / 2 - x) });
+    Object.assign(e, { x, y, rx: x, ry: y, vx: 0, vy: 0, stun: 0, dashT: 0, dashCd: 0, hp: HP[e.team], out: false, atkCd: 0, swingT: 0, f: Math.atan2(H / 2 - y, W / 2 - x) });
   }
   phase = "play"; winner = ""; timeLeft = ROUND_MS; freezeLeft = FREEZE_MS;
   sendState();
@@ -881,7 +882,7 @@ function drawEnt(e, now) {
   const ny = y - r - 12 - lift;
   // health bar
   if (!lying) {
-    const bw = 40, fr = Math.max(0, e.hp) / HP_MAX;
+    const bw = 40, fr = Math.min(1, Math.max(0, e.hp) / HP[e.team]);
     ctx.fillStyle = "rgba(0,0,0,.6)"; rr(ctx, x - bw / 2 - 1, ny - 1, bw + 2, 7, 3); ctx.fill();
     ctx.fillStyle = fr > 0.5 ? "#4fcf6a" : fr > 0.25 ? "#ffc93c" : "#ff5d5d"; rr(ctx, x - bw / 2, ny, bw * fr, 5, 2); ctx.fill();
   }

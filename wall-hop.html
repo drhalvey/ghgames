@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wall Hop Pets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<style>
+html{-webkit-text-size-adjust:100%}
+body{margin:0}
+.home{font-family:var(--body);font-weight:900;color:var(--muted);text-decoration:none;font-size:14px}
+.home:hover,.home:focus-visible{color:var(--gold)}
+:root{
+  color-scheme: dark;
+  --bg:#14304d; --panel:#1d4268; --panel2:#24507d; --line:#3a6a99;
+  --ink:#f3f8ff; --muted:#a9c3de; --gold:#ffc93c; --gold-ink:#5a3a00;
+  --green:#4fcf6a; --green-dk:#2a8f43; --pink:#ff6fa3; --red:#ff5d5d;
+  --display:"Lilita One","Arial Rounded MT Bold","Trebuchet MS",sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{font-family:var(--body);color:var(--ink);padding:16px;padding-block:14px 40px;font-size:15px}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);margin:0;letter-spacing:.5px;line-height:1;
+  color:var(--gold);text-shadow:0 3px 0 #b86f00,0 6px 0 rgba(0,0,0,.25)}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.hud{display:flex;flex-wrap:wrap;gap:8px}
+.chip{contain:layout paint;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:6px 12px;display:flex;flex-direction:column;min-width:96px}
+.chip b{font-family:var(--display);font-weight:400;font-size:22px;font-variant-numeric:tabular-nums;line-height:1.1}
+.chip span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:800}
+.chip.wins b{color:var(--gold)} .chip.multi b{color:#7ff0a0}
+.stage{contain:strict;height:366px;position:relative;border-radius:20px;overflow:hidden;border:3px solid #0c2238;box-shadow:0 6px 0 #0c2238}
+canvas{display:block;width:100%;height:360px;touch-action:manipulation;cursor:pointer}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.meter{contain:layout paint;flex:1 1 260px;position:relative;height:34px;border-radius:17px;border:3px solid #0c2238;
+  background:linear-gradient(90deg,#ff5d5d 0%,#ffb13c 40%,#ffe066 70%,#4fcf6a 88%,#7ff0a0 100%)}
+.needle{position:absolute;left:0;top:-8px;will-change:transform;width:6px;height:44px;margin-left:-3px;background:#fff;border-radius:3px;box-shadow:0 0 0 2px #0c2238}
+.meter-lbl{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-weight:900;font-size:12px;color:#0c2238;letter-spacing:.05em}
+button{font-family:var(--display);font-weight:400;border:0;cursor:pointer;color:#fff;border-radius:14px}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.jump{font-size:26px;padding:12px 34px;background:var(--green);box-shadow:0 5px 0 var(--green-dk);letter-spacing:1px}
+.jump:active{transform:translateY(3px);box-shadow:0 2px 0 var(--green-dk)}
+.jump:disabled{background:#5e7c96;box-shadow:0 5px 0 #3d566d;cursor:default}
+.msg{contain:layout paint;min-height:44px;font-weight:800;color:var(--muted)}
+.msg.good{color:#7ff0a0}.msg.bad{color:#ffb0b0}
+.panel{content-visibility:auto;contain-intrinsic-size:auto 700px;background:var(--panel);border:2px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.panel h2{font-family:var(--display);font-weight:400;font-size:26px;margin:0;letter-spacing:.5px}
+.panel .sub{color:var(--muted);font-weight:700;margin:-8px 0 0;font-size:14px;max-width:65ch}
+.pager{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-weight:800;color:var(--muted)}
+.eggs{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.egg-card{background:var(--panel2);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;border:2px solid transparent}
+.egg-card.locked{opacity:.8}
+.egg-head{display:flex;gap:12px;align-items:center}
+.egg{width:52px;height:66px;border-radius:50% 50% 50% 50% / 60% 60% 42% 42%;border:3px solid rgba(0,0,0,.35);position:relative;flex:none;
+  box-shadow:inset -6px -8px 0 rgba(0,0,0,.18), inset 6px 6px 0 rgba(255,255,255,.3)}
+.egg::before,.egg::after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.55)}
+.egg::before{width:12px;height:10px;left:10px;top:22px}.egg::after{width:8px;height:8px;right:10px;top:38px}
+.egg-title{font-family:var(--display);font-size:22px;line-height:1}
+.egg-cost{font-weight:900;color:var(--gold);font-variant-numeric:tabular-nums}
+.odds{display:flex;flex-direction:column;gap:4px;margin:0;padding:0;list-style:none}
+.odds li{display:grid;grid-template-columns:14px 1fr auto auto;gap:8px;align-items:center;font-size:13px;font-weight:800}
+.dot{width:12px;height:12px;border-radius:50%;border:2px solid rgba(0,0,0,.35)}
+.pct{color:var(--muted);font-variant-numeric:tabular-nums;text-align:right;min-width:36px}
+.mx{color:#7ff0a0;font-variant-numeric:tabular-nums;text-align:right;min-width:52px}
+.buy{background:var(--pink);box-shadow:0 4px 0 #b83f6c;font-size:18px;padding:9px 12px}
+.buy:disabled{background:#5e7c96;box-shadow:0 4px 0 #3d566d;cursor:default}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.slot{background:var(--panel2);border:2px dashed var(--line);border-radius:14px;min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px;text-align:center;font-size:12px;font-weight:800;color:var(--muted)}
+.slot.full{border-style:solid;border-color:#7ff0a0;color:var(--ink);cursor:pointer}
+.inv-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.small{font-size:16px;padding:8px 14px;background:#3b78b5;box-shadow:0 4px 0 #22507e}
+.inv{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.pet-card{background:var(--panel2);border:2px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;cursor:pointer;position:relative;font-weight:800}
+.pet-card.on{border-color:#7ff0a0;background:#245a55}
+.pet-card .nm{font-size:13px;line-height:1.2}
+.pet-card .cnt{position:absolute;top:6px;left:8px;font-family:var(--display);font-size:16px;color:var(--gold)}
+.pet-card .del{position:absolute;top:4px;right:4px;background:transparent;color:var(--muted);font-family:var(--body);font-weight:900;font-size:14px;padding:2px 7px;border-radius:8px}
+.pet-card .del:hover{background:rgba(255,93,93,.25);color:#fff}
+.tag{font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:2px 7px;border-radius:99px;color:#10243a}
+.pet{width:48px;height:44px;border-radius:50% 50% 44% 44%;border:3px solid rgba(0,0,0,.4);position:relative;flex:none}
+.pet .e{position:absolute;top:14px;width:9px;height:11px;background:#fff;border-radius:50%}
+.pet .e::after{content:"";position:absolute;width:5px;height:6px;background:#10243a;border-radius:50%;left:2px;top:3px}
+.pet .e.l{left:10px}.pet .e.r{right:10px}
+.pet .ear{position:absolute;top:-8px;width:13px;height:14px;border-radius:50% 50% 20% 20%;border:3px solid rgba(0,0,0,.4);border-bottom:0}
+.pet .ear.l{left:3px;transform:rotate(-18deg)}.pet .ear.r{right:3px;transform:rotate(18deg)}
+.pet.leg{box-shadow:0 0 12px 4px #ffe066}
+.pet.big{transform:scale(1.8);margin:26px}
+.empty{color:var(--muted);font-weight:700}
+.chip.reb b{color:#ff9be0}
+.chip.wld b{color:#8fe8ff}
+.worlds{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.world{border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px;border:3px solid transparent;color:#fff}
+.world.here{border-color:#ffc93c}
+.world h3{font-family:var(--display);font-weight:400;font-size:24px;margin:0;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.world p{margin:0;font-weight:800;font-size:13px;text-shadow:0 1px 0 rgba(0,0,0,.4)}
+.world .wm{font-family:var(--display);font-size:28px;color:#ffe066;text-shadow:0 2px 0 rgba(0,0,0,.4)}
+.wbtn{background:#2b8fd6;box-shadow:0 4px 0 #1a5f94;font-size:18px;padding:8px 12px}
+.wbtn:disabled{background:#5e7c96;box-shadow:0 4px 0 #3d566d;cursor:default}
+.reb-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.reb-stat{font-family:var(--display);font-size:34px;color:#ff9be0;line-height:1}
+.reb-stat small{display:block;font-family:var(--body);font-weight:800;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.bar{flex:1 1 220px;height:18px;border-radius:9px;background:#0c2238;overflow:hidden;border:2px solid var(--line)}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff6fa3,#ffc93c)}
+.rebbtn{background:#e0529a;box-shadow:0 4px 0 #9a2d66;font-size:20px;padding:10px 18px}
+.rebbtn:disabled{background:#5e7c96;box-shadow:0 4px 0 #3d566d;cursor:default}
+.ladder{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:0;padding:0;list-style:none}
+.ladder li{background:var(--panel2);border-radius:12px;padding:8px 10px;font-weight:800;font-size:13px;display:flex;justify-content:space-between;gap:8px;font-variant-numeric:tabular-nums}
+.ladder li span:last-child{color:#ff9be0}
+.pet.t1{outline:3px solid #7ff0a0;outline-offset:3px}
+.pet.t2{outline:3px solid #6cc4ff;outline-offset:3px;box-shadow:0 0 0 7px rgba(108,196,255,.35)}
+.pet.t3{outline:3px solid #ffd24a;outline-offset:3px;box-shadow:0 0 0 7px rgba(255,210,74,.45)}
+.tier{font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:900;color:#0c2238;background:#7ff0a0;padding:1px 6px;border-radius:99px}
+.tier.t2{background:#6cc4ff}.tier.t3{background:#ffd24a}
+.crafts{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.craft{background:var(--panel2);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.recipe{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;font-family:var(--display);font-size:22px}
+.recipe .pet{transform:scale(.75);margin:-4px}
+.craft-info{font-weight:800;font-size:13px;text-align:center}
+.craft-info b{color:#7ff0a0}
+.craftbtn{background:#9b6cff;box-shadow:0 4px 0 #6440b8;font-size:18px;padding:9px 12px}
+.merge{display:flex;gap:4px}
+.merge .pet{animation:squish .5s ease-in-out infinite alternate}
+@keyframes squish{to{transform:translateX(6px) scale(.85)}}
+[hidden]{display:none!important}
+.overlay{position:fixed;inset:0;background:rgba(6,16,28,.82);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.hatch{background:var(--panel);border:3px solid var(--line);border-radius:24px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:12px;min-width:min(320px,100%);text-align:center}
+.hatch .egg{width:96px;height:122px}
+.hatch .egg.shake{animation:shake .25s ease-in-out infinite}
+@keyframes shake{0%,100%{transform:rotate(-10deg)}50%{transform:rotate(10deg)}}
+.pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;max-height:46vh;overflow-y:auto;width:min(560px,86vw);padding:4px}
+.pick .pet-card{padding:8px}
+.pick .pet-card.sel{border-color:#ffc93c;background:#4a4220;box-shadow:0 0 0 2px #ffc93c}
+.pick .pet-card.vanish{animation:vanish .65s ease-in forwards;pointer-events:none}
+@keyframes vanish{0%{transform:scale(1) rotate(0);opacity:1;filter:none}
+  25%{transform:scale(1.12) rotate(-8deg);background:#fff;filter:brightness(1.6)}
+  100%{transform:scale(0) rotate(200deg);opacity:0;filter:blur(3px)}}
+.pick .pet-card.kept{animation:keep 1.2s ease-in-out infinite alternate;z-index:1}
+@keyframes keep{from{transform:scale(1.05);box-shadow:0 0 0 3px #ffc93c,0 0 14px 4px #ffe066}to{transform:scale(1.16);box-shadow:0 0 0 3px #ffc93c,0 0 30px 12px #ff9be0}}
+.poof{position:absolute;inset:0;pointer-events:none}
+.poof i{position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:50%;background:#fff;animation:spark .6s ease-out forwards}
+@keyframes spark{to{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+@media (prefers-reduced-motion:reduce){.pick .pet-card.vanish{animation-duration:.01s}.pick .pet-card.kept{animation:none}}
+.hatch-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.hatch h3{font-family:var(--display);font-weight:400;font-size:28px;margin:0}
+.hatch p{margin:0;font-weight:800;color:var(--muted)}
+.foot{display:flex;justify-content:flex-end}
+.reset{font-family:var(--body);font-weight:800;font-size:13px;background:transparent;color:var(--muted);border:2px solid var(--line);padding:6px 12px}
+@media (max-width:560px){.slots{grid-template-columns:repeat(2,1fr)} canvas{height:300px} .stage{height:306px}}
+@media (prefers-reduced-motion:reduce){.hatch .egg.shake{animation:none}}
+.fast{font-family:var(--body);font-weight:800;font-size:13px;padding:6px 12px;border:2px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;align-self:center}
+.fast[aria-pressed="true"]{background:var(--green);border-color:var(--green-dk);color:#0c2238}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <a class="home" href="index.html">← GH Games</a>
+  <div class="top">
+    <h1>Wall Hop Pets</h1>
+    <div class="hud">
+      <div class="chip wins"><span>Wins</span><b id="hWins">0</b></div>
+      <div class="chip multi"><span>Jump multi</span><b id="hMulti">x1</b></div>
+      <div class="chip"><span>Jump power</span><b id="hPower">10</b></div>
+      <div class="chip"><span>Best wall</span><b id="hBest">0</b></div>
+      <div class="chip reb"><span>Rebirths</span><b id="hReb">0</b></div>
+      <div class="chip wld"><span id="hWorldName">World 1</span><b id="hWorld">x1</b></div>
+      <button class="fast" id="fastBtn" aria-pressed="false">Fast mode: off</button>
+    </div>
+  </div>
+
+  <div class="stage"><canvas id="cv" aria-label="Game area. Press Jump or Space to run and jump."></canvas></div>
+
+  <div class="controls">
+    <div class="meter" aria-hidden="true"><div class="needle" id="needle"></div><div class="meter-lbl">TIMING</div></div>
+    <button class="jump" id="jumpBtn">JUMP!</button>
+  </div>
+  <div class="msg" id="msg">Stop the needle in the green for a big jump. Each wall you clear pays wins, and taller walls pay more.</div>
+
+  <section class="panel">
+    <h2>Worlds</h2>
+    <p class="sub">Unlock new worlds with wins. Each world has its own eggs, and every world makes your jump and your wins 10 times bigger than the one before. You keep your pets, and you can travel back any time.</p>
+    <div class="worlds" id="worlds"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Rebirth</h2>
+    <p class="sub">At 100B wins you can rebirth. Your wins go back to 0 and all your pets are deleted, except 1 pet you pick to keep. Every rebirth adds +1 to your rebirth multi, which boosts both your jump and the wins you earn. With more wins you get more rebirths at once: every 1,000 times more wins gives about 6.7 times more rebirths (1,000 ÷ 150).</p>
+    <div class="reb-row">
+      <div class="reb-stat" id="rebMulti">x1<small>Jump and wins multi</small></div>
+      <div class="bar" aria-hidden="true"><i id="rebBar"></i></div>
+      <button class="rebbtn" id="rebBtn" disabled>Need 100B wins</button>
+    </div>
+    <ul class="ladder" id="ladder"></ul>
+    <div class="foot"><button class="reset" id="rebResetBtn">Reset rebirths</button></div>
+  </section>
+
+  <section class="panel">
+    <h2 id="shopTitle">Egg Shop</h2>
+    <p class="sub">Spend wins on eggs. Every egg has 5 pets. The rarer the pet (lower %), the bigger its jump multi. Pricier eggs hold stronger pets.</p>
+    <div class="pager" id="eggPager"><button class="small" id="eggPrev">◀ Cheaper</button><span id="eggPage"></span><button class="small" id="eggNext">Pricier ▶</button><button class="small" id="eggJump">Jump to next egg I can't afford</button></div>
+    <div class="eggs" id="eggs"></div>
+  </section>
+
+  <section class="panel">
+    <div class="inv-bar">
+      <h2>Your Pets</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="small" id="bestBtn">Equip best</button><button class="small" id="cleanBtn" style="background:#b8546f;box-shadow:0 4px 0 #7d3149">Delete weak pets</button></div>
+    </div>
+    <p class="sub">Equip up to 4 pets. Their multis add together: jump multi = 1 + your 4 pets. Tap a pet to equip or unequip it.</p>
+    <div class="slots" id="slots"></div>
+    <div class="inv" id="inv"></div>
+    <button class="small" id="invMore" hidden>Show more pets</button>
+    <div class="foot"><button class="reset" id="resetBtn">Reset game</button></div>
+  </section>
+
+  <section class="panel">
+    <div class="inv-bar">
+      <h2>Craft</h2>
+      <button class="small" id="craftAllBtn" style="background:#9b6cff;box-shadow:0 4px 0 #6440b8">Craft all</button>
+    </div>
+    <p class="sub">Put 3 of the same pet in, get 1 pet out with double the jump multi. Crafted pets can be crafted again: Normal, then Big (x2), then Huge (x4), then Mega (x8).</p>
+    <div class="crafts" id="crafts"></div>
+    <button class="small" id="craftMore" hidden>Show more recipes</button>
+  </section>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="hatch" id="hatchBox"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/break_infinity.js@2.0.0/dist/break_infinity.min.js"></script>
+<script>
+(function(){
+const D = x => new Decimal(x);
+const BASE_POWER = 10, MAX_EQUIP = 4;
+const RAR = [
+  {name:"Common",   pct:50, mult:1,   col:"#c9d6e3"},
+  {name:"Uncommon", pct:30, mult:1.45, col:"#7ff0a0"},
+  {name:"Rare",     pct:14, mult:2.3, col:"#6cc4ff"},
+  {name:"Epic",     pct:5,  mult:4, col:"#c792ff"},
+  {name:"Legendary",pct:1,  mult:9,   col:"#ffd24a"}
+];
+const WORLDS = [
+  {name:"Sunny Meadow", mult:1,   unlock:D(0),    sky:["#5fb6ef","#bfe9ff"], hill:"#7fd08a", grass:"#4fcf6a", dirt:"#8a5a33", dirt2:"#7a4d2a", card:"linear-gradient(160deg,#5fb6ef,#4fcf6a)"},
+  {name:"Dream World",  mult:10,  unlock:D("5e114"), sky:["#c78bff","#ffd1ec"], hill:"#f3a6d8", grass:"#ff8fc8", dirt:"#8a4f9a", dirt2:"#743f84", card:"linear-gradient(160deg,#b06cff,#ff8fc8)"},
+  {name:"Cosmic World", mult:100, unlock:D("1e303"), sky:["#0b0a2a","#3a1f6a"], hill:"#2a2560", grass:"#6a5cff", dirt:"#221c4a", dirt2:"#1a153a", card:"linear-gradient(160deg,#0b0a2a,#6a5cff)", stars:true},
+  {name:"Frozen Kingdom", mult:1000,  unlock:D("1e603"), sky:["#7cc4f0","#eaf8ff"], hill:"#d4ecfa", grass:"#f5fbff", dirt:"#5f86a8", dirt2:"#4f7698", card:"linear-gradient(160deg,#2f7fc4,#9fd8ff)"},
+  {name:"Inferno Realm",  mult:10000, unlock:D("1e903"), sky:["#2a0606","#ff7a2a"], hill:"#4a120a", grass:"#ff4f1f", dirt:"#220704", dirt2:"#160402", card:"linear-gradient(160deg,#3a0a0a,#ff4f1f)", stars:true}
+];
+const EGGS = [
+  {name:"Grass Egg",   cost:15,       base:0.5, shell:["#8ee06a","#4fa83a"], pets:[["Pebble Pup","#b9a88f"],["Leafy Hopper","#6fcf5a"],["Clover Cat","#3fae6a"],["Mossy Owl","#7c9b4a"],["Golden Beetle","#ffcf3a"]]},
+  {name:"Sand Egg",    cost:150,      base:2,   shell:["#ffe29a","#d9a74a"], pets:[["Dune Crab","#e8a060"],["Cactus Bun","#7fbf6a"],["Sun Lizard","#f5c542"],["Mirage Fox","#ff9a52"],["Pharaoh Cat","#e6c15a"]]},
+  {name:"Snow Egg",    cost:1500,     base:8,   shell:["#f2fbff","#9fd3ef"], pets:[["Snowball Seal","#e9f3fb"],["Frost Penguin","#5d7fa3"],["Ice Bear","#bfe6f7"],["Aurora Wolf","#79e0d0"],["Crystal Yeti","#a8f0ff"]]},
+  {name:"Lava Egg",    cost:15000,    base:35,  shell:["#ff8a3c","#a8230f"], pets:[["Ember Pig","#ff9a7a"],["Magma Toad","#d9542c"],["Ash Bat","#6b6470"],["Flame Hound","#ff6a2a"],["Volcano Dragon","#ff3b3b"]]},
+  {name:"Space Egg",   cost:150000,   base:160, shell:["#6a5cff","#1b1648"], pets:[["Moon Mouse","#d7d3e8"],["Comet Cat","#8aa8ff"],["Rocket Owl","#ff7a8a"],["Nebula Whale","#9c6bff"],["Galaxy Phoenix","#ff66d4"]]},
+  {name:"Rainbow Egg", cost:1500000,  base:800, shell:["#ff6fa3","#6cc4ff"], pets:[["Prism Pup","#ffb3d1"],["Candy Unicorn","#f7a6ff"],["Spectrum Fox","#ffcf6a"],["Starlight Dragon","#8ff0ff"],["Infinity Cat","#ffffff"]]},
+  {name:"Ocean Egg",   cost:15e6,     base:4000,    shell:["#4fd6e8","#0b5f8a"], pets:[["Bubble Fish","#9ee7ff"],["Coral Crab","#ff7f6e"],["Tide Turtle","#3fbf9f"],["Reef Shark","#6f8fb0"],["Kraken King","#b04fd6"]]},
+  {name:"Candy Egg",   cost:150e6,    base:20000,   shell:["#ffc1e3","#ff5fa8"], pets:[["Gummy Bear","#ff8a8a"],["Lolly Pup","#ffd36e"],["Cupcake Cat","#f7b3ff"],["Donut Dragon","#e0a070"],["Sugar Queen Bee","#fff27a"]]},
+  {name:"Storm Egg",   cost:1.5e9,    base:100000,  shell:["#c9d6e3","#3d4f66"], pets:[["Drizzle Duck","#8fb8d8"],["Cloud Sheep","#f0f4f8"],["Thunder Hawk","#ffd24a"],["Lightning Wolf","#7ad0ff"],["Storm Titan","#9b8cff"]]},
+  {name:"Shadow Egg",  cost:15e9,     base:500000,  shell:["#5b4a7a","#140f22"], pets:[["Shade Rat","#6b6478"],["Night Bat","#4a3f66"],["Ghost Fox","#d9e1ee"],["Void Panther","#3a2a5e"],["Eclipse Dragon","#ff5d8f"]]},
+  {name:"Diamond Egg", cost:150e9,    base:2500000, shell:["#e8fbff","#7fd3f0"], pets:[["Gem Bunny","#c7f1ff"],["Ruby Rooster","#ff4f6d"],["Sapphire Seal","#4f7fff"],["Emerald Tiger","#3fd68a"],["Diamond Dragon","#f2fdff"]]},
+  {name:"Jungle Egg",  cost:1.5e12,   base:12.5e6,  shell:["#7ed957","#1f6b32"], pets:[["Vine Monkey","#a0784a"],["Parrot Pal","#ff5a4f"],["Tree Frog","#5fe07a"],["Jaguar Cub","#f2b544"],["Jungle Guardian","#2fbf71"]]},
+  {name:"Robot Egg",   cost:15e12,    base:60e6,    shell:["#d7dde4","#5b6878"], pets:[["Bolt Bot","#b8c2cc"],["Gear Dog","#c9a45a"],["Laser Cat","#ff4f4f"],["Mech Bear","#6f8196"],["Omega Droid","#4fe3ff"]]},
+  {name:"Toxic Egg",   cost:150e12,   base:300e6,   shell:["#c6ff4a","#3d7a0f"], pets:[["Slime Blob","#9dff5a"],["Glow Snail","#e6ff7a"],["Toxic Toad","#6bd13a"],["Acid Scorpion","#d4ff2a"],["Radioactive Hydra","#39ff14"]]},
+  {name:"Solar Egg",   cost:1.5e15,   base:1.5e9,   shell:["#fff07a","#ff8a1f"], pets:[["Sunspot Chick","#ffe45a"],["Flare Fox","#ff9f3a"],["Solar Lion","#ffc93c"],["Corona Eagle","#ff6a2a"],["Sun King Dragon","#fff3b0"]]},
+  {name:"Mythic Egg",  cost:15e15,    base:7.5e9,   shell:["#ffd6f5","#7a3cff"], pets:[["Pixie Pup","#ffb8ec"],["Griffin Cub","#d9a45a"],["Kitsune","#ff8f5a"],["Leviathan","#3f7fff"],["Mythic Overlord","#c47aff"]]},
+  {name:"Pirate Egg", cost:1.5e+17, base:3.75e+10, shell:["#c98a4a","#4a2a12"], pets:[["Parrot Mate","#3fd06a"],["Peg-Leg Pup","#b89070"],["Cannon Crab","#e0603a"],["Captain Cat","#2f3f6a"],["Phantom Captain","#9fe8e0"]]},
+  {name:"Dino Egg", cost:1.5e+18, base:1.875e+11, shell:["#b8e07a","#5a7a2a"], pets:[["Baby Raptor","#7fbf5a"],["Trike Tot","#d9a45a"],["Stego Pup","#5aa0a0"],["Ptero Glider","#c07a5a"],["Rex Titan","#6a8a3a"]]},
+  {name:"Fairy Egg", cost:1.5e+19, base:9.375e+11, shell:["#ffe0fb","#c47aff"], pets:[["Glow Bug","#fff27a"],["Petal Mouse","#ffb3d1"],["Fairy Fox","#ff9ad5"],["Moonwing Moth","#c9d6ff"],["Fairy Queen Owl","#e8b0ff"]]},
+  {name:"Neon Egg", cost:1.5e+20, base:4.6875e+12, shell:["#2fffd5","#ff2fd0"], pets:[["Neon Newt","#2fff9a"],["Glow Gecko","#d4ff2a"],["Pulse Panda","#ff5fe0"],["Laser Lynx","#2fd5ff"],["Neon Nova Dragon","#ff2f7a"]]},
+  {name:"Steampunk Egg", cost:1.5e+21, base:2.34375e+13, shell:["#e0b060","#6a4a20"], pets:[["Cog Mouse","#a08a6a"],["Brass Beetle","#d9a440"],["Clockwork Owl","#b87a3a"],["Steam Bull","#7a6a5a"],["Gearheart Golem","#ffcf6a"]]},
+  {name:"Ninja Egg", cost:1.5e+22, base:1.17188e+14, shell:["#4a4a5a","#101018"], pets:[["Shadow Frog","#3a4a3a"],["Ninja Pup","#2a2a3a"],["Blade Monkey","#8a8a9a"],["Smoke Tiger","#b0b0c0"],["Master Ninja Crane","#ff4f4f"]]},
+  {name:"Crystal Egg", cost:1.5e+23, base:5.85938e+14, shell:["#f0e0ff","#8a5aff"], pets:[["Quartz Kit","#f5f0ff"],["Amethyst Hare","#b07aff"],["Topaz Toad","#ffc050"],["Opal Stag","#bff0f0"],["Prism Colossus","#ffd6f5"]]},
+  {name:"Lunar Egg", cost:1.5e+24, base:2.92969e+15, shell:["#e8e8f5","#5a5a8a"], pets:[["Crater Bunny","#d0d0e0"],["Star Squid","#9fb0ff"],["Moon Moth","#f0f0c0"],["Eclipse Wolf","#3a3a5a"],["Lunar Empress","#c0c8ff"]]},
+  {name:"Inferno Egg", cost:1.5e+25, base:1.46484e+16, shell:["#ffb03a","#8a0f0f"], pets:[["Cinder Cub","#a05a3a"],["Blaze Boar","#ff7a3a"],["Inferno Hound","#e0301f"],["Pyro Phoenix","#ffa01f"],["Inferno Tyrant","#ff2a0f"]]},
+  {name:"Glacier Egg", cost:1.5e+26, base:7.32422e+16, shell:["#e0fbff","#3fa0d0"], pets:[["Chill Chick","#e8f8ff"],["Glacier Goat","#c0e0f0"],["Blizzard Bear","#f5faff"],["Icicle Wyrm","#8fd8ff"],["Glacier King","#5fc0ff"]]},
+  {name:"Atlantis Egg", cost:1.5e+27, base:3.66211e+17, shell:["#5fffe0","#0f4f7a"], pets:[["Pearl Puffer","#f0f0ff"],["Trident Turtle","#3fb09f"],["Sea Knight Horse","#5f9fff"],["Atlantean Ray","#2fd0d0"],["Tidal Sovereign","#1f7fff"]]},
+  {name:"Cyber Egg", cost:1.5e+28, base:1.83105e+18, shell:["#5fd0ff","#1a2a5a"], pets:[["Pixel Pup","#7affc0"],["Byte Bat","#5a7aff"],["Glitch Cat","#ff5fa0"],["Mainframe Mech","#8a9ab0"],["Cyber Overmind","#2fffff"]]},
+  {name:"Heaven Egg", cost:1.5e+29, base:9.15527e+18, shell:["#ffffff","#ffe07a"], pets:[["Cloud Kitten","#f5f8ff"],["Halo Hamster","#fff0c0"],["Seraph Swan","#ffffff"],["Archangel Lion","#ffe08a"],["Celestial Titan","#fff5d0"]]},
+  {name:"Abyss Egg", cost:1.5e+30, base:4.57764e+19, shell:["#2a3a6a","#05050f"], pets:[["Deep Eel","#2a4a5a"],["Lantern Fish","#ffe05a"],["Abyss Crab","#5a2a4a"],["Void Kraken","#3a1a5a"],["Abyssal Leviathan","#1a5a8a"]]},
+  {name:"Omega Egg", cost:1.5e+31, base:2.28882e+20, shell:["#ff5fa8","#2a0f5a"], pets:[["Alpha Pup","#ffb0d0"],["Beta Bear","#b08aff"],["Gamma Griffin","#5fffb0"],["Delta Dragon","#ff8a2f"],["Omega Supreme","#ffffff"]]}
+];
+EGGS.forEach(g=>{ g.world = 0; g.cost = D(g.cost); });
+(function(){
+  // 50 eggs per world. New eggs are added to the END of the list so saved pets never change identity.
+  const THEMES = [
+    // Sunny Meadow: 19 more (the first 31 are hand-made above)
+    ["Farm","Forest","Swamp","Mountain","Beach","Castle","Viking","Knight","Wizard","Samurai","Safari","Arctic","Canyon","Honey","Mushroom","Ruins","Volcano","Emerald","Titan"],
+    // Dream World: 50
+    ["Cloud","Marshmallow","Bubble","Starlight","Moonbeam","Candyfloss","Jelly","Lullaby","Sparkle","Pillow","Twinkle","Aurora","Dreamy","Glitter","Sugarplum","Snowglobe","Pastel","Stardust","Wish","Daydream",
+     "Sleepy","Cotton","Rosy","Lavender","Honeydew","Butterscotch","Moonlit","Velvet","Feather","Pudding","Blossom","Dewdrop","Lollipop","Mallow","Snuggle","Pixie","Fairyfloss","Cupcake","Peppermint","Caramel",
+     "Sorbet","Gumdrop","Wonder","Dreamcatcher","Nightlight","Carousel","Kaleidoscope","Moonstone","Cloudberry","Sweet Dream"],
+    // Cosmic World: 50
+    ["Quasar","Nebula","Pulsar","Comet","Meteor","Plasma","Gravity","Warp","Photon","Ion","Nova","Supernova","Black Hole","Wormhole","Singularity","Quantum","Dark Matter","Hyperspace","Galactic","Infinity",
+     "Asteroid","Orbit","Eclipse","Solar Flare","Red Giant","White Dwarf","Neutron","Gamma Ray","Cosmic Ray","Magnetar","Starfall","Stellar","Astral","Celestial","Void","Rift","Chrono","Paradox","Dimension","Multiverse",
+     "Omniverse","Zenith","Apex","Eternity","Genesis","Oblivion","Horizon","Event Horizon","Big Bang","Omega Point"]
+  ];
+  const A = [
+    ["Pup","Kitty","Bunny","Chick","Mouse","Piglet","Duckling","Hamster","Lamb","Cub"],
+    ["Fox","Owl","Otter","Koala","Penguin","Deer","Seal","Raccoon","Panda","Squirrel"],
+    ["Wolf","Tiger","Bear","Lion","Hawk","Shark","Lynx","Panther","Stallion","Eagle"],
+    ["Griffin","Unicorn","Wyvern","Pegasus","Serpent","Sphinx","Basilisk","Chimera","Manticore","Kraken"],
+    ["Dragon","Titan","Phoenix","Emperor","Overlord","Guardian","Hydra","Colossus","Monarch","Sovereign"]
+  ];
+  const make = (t,w,k) => {
+    const dark = w===2 || w===4, hue = [120,280,200,190,0][w] + k*(w===3?7:w===4?5:17), h = n => `hsl(${(hue+n)%360},${dark?70:80}%,`;
+    const L1 = dark?"55%)":"78%)", L2 = dark?"22%)":"48%)", LP = dark?"62%)":"70%)";
+    return { name:t+" Egg", world:w, shell:[h(0)+L1, h(30)+L2], pets:A.map((list,i)=>[t+" "+list[(k+i*3)%10], h(i*25)+LP]) };
+  };
+  // keep the saved order: Dream first 20, Cosmic first 20 (already existed), then the new ones
+  const add = [];
+  THEMES[1].slice(0,20).forEach((t,k)=> add.push(make(t,1,k)));
+  THEMES[2].slice(0,20).forEach((t,k)=> add.push(make(t,2,k)));
+  THEMES[0].forEach((t,k)=> add.push(make(t,0,31+k)));
+  THEMES[1].slice(20).forEach((t,k)=> add.push(make(t,1,20+k)));
+  THEMES[2].slice(20).forEach((t,k)=> add.push(make(t,2,20+k)));
+  // 75 more per world (appended last so saved pets keep their identity)
+  const combo = (adj, nouns) => adj.flatMap(a=> nouns.map(n=> a+" "+n));
+  const MORE = [
+    combo(["Golden","Ancient","Royal","Wild","Mystic"], ["Orchard","Meadow","River","Cave","Island","Temple","Desert","Harbour","Valley","Garden","Waterfall","Cliff","Lagoon","Prairie","Glade"]),
+    combo(["Sugar","Silky","Glowing","Starry","Twinkly"], ["Castle","Garden","Lagoon","Meadow","Bakery","Palace","Balloon","Parade","Fountain","Kingdom","Carnival","Teacup","Harp","Lantern","Ribbon"]),
+    combo(["Hyper","Ultra","Mega","Giga","Omni"], ["Star","Galaxy","Planet","Moon","Sun","Cluster","Nebula","Portal","Core","Beacon","Engine","Crystal","Storm","Gate","Throne"])
+  ];
+  MORE.forEach((list,w)=> list.forEach((t,k)=> add.push(make(t,w,50+k))));
+  // worlds 4 and 5: 125 eggs each
+  const NEW = [
+    combo(["Frost","Ice","Snow","Crystal","Polar"], ["Castle","Cave","Peak","Lake","Forest","Harbour","Village","Palace","Glacier","Tundra","Fjord","Den","Throne","Tower","Bridge","Garden","Crown","Shard","Storm","Valley","Market","Temple","Mine","Harp","Star"]),
+    combo(["Ember","Magma","Blaze","Cinder","Infernal"], ["Forge","Pit","Peak","Lake","Forest","Fortress","Village","Palace","Crater","Wasteland","River","Den","Throne","Tower","Bridge","Garden","Crown","Shard","Storm","Valley","Market","Temple","Mine","Drum","Star"])
+  ];
+  NEW.forEach((list,n)=> list.forEach((t,k)=> add.push(make(t,3+n,k))));
+  add.forEach(g=> EGGS.push(g));
+  // prices and strength follow each world's own order: x10 price and x4 pets per egg
+  // (x5 was too strong, x3 too weak; x4 sits in between)
+  const lastHand = EGGS[30];
+  [0,1,2,3,4].forEach(w=>{
+    EGGS.filter(g=>g.world===w).forEach((g,k)=>{
+      const rank = EGGS.filter(x=>x.world < w).length + k; // pets keep climbing across worlds
+      g.base = Decimal.pow(4, rank).mul(0.5);
+      if(w===0 && k<=30) return; // hand-made eggs keep their prices
+      // Sunny Meadow: x10 up to egg 50, then x7 so every egg stays under Dream World's 5SpTg unlock
+      g.cost = w===0 ? (k < 50 ? lastHand.cost.mul(Decimal.pow(10, k-30)) : lastHand.cost.mul(Decimal.pow(10, 19)).mul(Decimal.pow(7, k-49)))
+                     : WORLDS[w].unlock.mul(w===1 ? 3 : 1.5).mul(Decimal.pow(10, k));
+    });
+  });
+  // harder mode: every egg costs 3x
+  EGGS.forEach(g=>{ g.cost = D(g.cost).mul(3); });
+})();
+const PMC = {};
+const petMulti = (e,i) => PMC[e+'-'+i] || (PMC[e+'-'+i] = D(EGGS[e].base).mul(RAR[i].mult));
+const TIERS = ["", "Big", "Huge", "Mega"], MAX_TIER = 3;
+const pm = p => petMulti(p.e,p.i).mul(Math.pow(2, p.t||0));
+const byStrength = (a,b) => pm(b).cmp(pm(a));
+const pname = p => (p.t ? TIERS[p.t]+" " : "") + EGGS[p.e].pets[p.i][0];
+const WH=[], WR=[];
+const wallHeight = i => WH[i] || (WH[i] = Decimal.pow(1.5, i).mul(6).round());
+const wallReward = i => WR[i] || (WR[i] = Decimal.pow(1.7, i).mul(3).ceil());
+
+// ---------- state ----------
+const SAVE_KEY = "wallhop-pets-v1";
+let S = {wins:D(0), pets:[], equipped:[], best:0, nextId:1, reb:D(0), world:0, worlds:1};
+try{ const raw = localStorage.getItem(SAVE_KEY); if(raw){ S = Object.assign(S, JSON.parse(raw)); } }catch(e){}
+S.wins = D(S.wins||0); S.reb = D(S.reb||0);
+if(!S.rebReset1){ S.reb = D(0); S.rebReset1 = true; try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
+function saveNow(){ dirty=false; try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
+let dirty=false; function save(){ dirty=true; }
+setInterval(()=>{ if(dirty) saveNow(); }, 2000);
+window.addEventListener("pagehide", saveNow);
+document.addEventListener("visibilitychange", ()=>{ if(document.hidden) saveNow(); });
+let FAST=false; try{ FAST = localStorage.getItem(SAVE_KEY+"-fast")==="1"; }catch(e){}
+
+// Number names built from the pattern: units + tens + hundreds + thousands.
+// units:     U D T Qa Qi Sx Sp Oc No
+// tens:      Dc Vg Tg Qag Qig Sxg Spg Ocg Nog
+// hundreds:  Ce Du Tr Qd Qn Sc St Og Nn
+// thousands: Mi Bi Ti Qai Qii Sxi Spi Oci Noi Dci
+// e.g. UDcCe, NoNogMi, Bi (1e6003), Dci (1e30003), up to NoNogNnDci
+const NU = ["","U","D","T","Qa","Qi","Sx","Sp","Oc","No"];
+const NT = ["","Dc","Vg","Tg","Qag","Qig","Sxg","Spg","Ocg","Nog"];
+const NH = ["","Ce","Du","Tr","Qd","Qn","Sc","St","Og","Nn"];
+const NK = ["","Mi","Bi","Ti","Qai","Qii","Sxi","Spi","Oci","Noi","Dci"];
+const SMALL = ["K","M","B","T","Qa","Qi","Sx","Sp","Oc","No"];
+const MAX_N = 10999, NAMEC = {};
+function illion(N){ // name for 10^(3N+3)
+  if(N < 10) return SMALL[N];
+  if(NAMEC[N]) return NAMEC[N];
+  return NAMEC[N] = NU[N%10] + NT[Math.floor(N/10)%10] + NH[Math.floor(N/100)%10] + NK[Math.floor(N/1000)];
+}
+const fmt = n => {
+  if(typeof n === "number" && !isFinite(n)) return "MAX";
+  const d = n instanceof Decimal ? n : D(n);
+  if(d.lt(1000)) return (Math.round(d.toNumber()*100)/100).toString();
+  const lg = d.log10();
+  let i = Math.floor(lg/3 + 1e-9) - 1;
+  if(i > MAX_N) return String(+d.mantissa.toFixed(2)) + "e" + d.exponent;
+  let v = d.div(Decimal.pow(10, (i+1)*3)).toNumber();
+  let t = +(v>=100? v.toFixed(0) : v>=10 ? v.toFixed(1) : v.toFixed(2));
+  if(t >= 1000 && i < MAX_N){ i++; v/=1000; t = +(v>=100? v.toFixed(0) : v>=10 ? v.toFixed(1) : v.toFixed(2)); }
+  return String(t) + illion(i);
+};
+const totalMulti = () => S.equipped.reduce((s,id)=>{ const p=S.pets.find(x=>x.id===id); return p ? s.add(pm(p)) : s; }, D(1));
+const rebMulti = () => S.reb.add(1);
+const worldMulti = () => WORLDS[S.world||0].mult;
+const jumpPower = () => rebMulti().mul(totalMulti()).mul(BASE_POWER * worldMulti());
+// Rebirths: 100B wins = 1. Every x1000 more wins gives 1000/150 = about 6.7x more rebirths.
+const REB_MIN = 1e11, REB_EXP = Math.log(1000/150)/Math.log(1000);
+const rebirthsFor = w => { w = D(w); return w.lt(REB_MIN) ? D(0) : w.div(REB_MIN).pow(REB_EXP).add(1e-9).floor(); };
+const winsFor = n => D(n).pow(1/REB_EXP).mul(REB_MIN);
+
+// ---------- DOM ----------
+const $ = id => document.getElementById(id);
+const cv = $("cv"), ctx = cv.getContext("2d");
+const needle = $("needle"), jumpBtn = $("jumpBtn"), msg = $("msg");
+
+function petHTML(e,i,big,t){
+  const col = EGGS[e].pets[i][1];
+  return `<div class="pet${i===4?' leg':''}${big?' big':''}${t?' t'+t:''}" style="background:${col}">
+    <div class="ear l" style="background:${col}"></div><div class="ear r" style="background:${col}"></div>
+    <div class="e l"></div><div class="e r"></div></div>`;
+}
+function setMsg(t,cls){ msg.textContent=t; msg.className="msg"+(cls?" "+cls:""); }
+
+const HUDC = {};
+function setTxt(id,v){ if(id==="rebMulti"){ const m="x"+fmt(rebMulti()); if(HUDC.rm!==m){ HUDC.rm=m; $("rebMulti").innerHTML=m+"<small>Jump and wins multi</small>"; } return; } if(HUDC[id]!==v){ HUDC[id]=v; $(id).textContent=v; } }
+let BUYS=[];
+function renderHUD(){
+  setTxt("hWins", fmt(S.wins)); setTxt("hMulti", "x"+fmt(totalMulti()));
+  setTxt("hPower", fmt(jumpPower())); setTxt("hBest", String(S.best)); setTxt("hReb", fmt(S.reb));
+  setTxt("rebMulti", ""); // placeholder cache key
+  const n = rebirthsFor(S.wins);
+  const has = n.gt(0), btn = $("rebBtn"), bt = rebArmed ? "Pick a pet to keep" : (has ? "Rebirth for +"+fmt(n) : "Need 100B wins");
+  if(btn.textContent!==bt) btn.textContent = bt; if(btn.disabled!==!has) btn.disabled = !has;
+  // progress bar measured on a log scale so it works for any size of number
+  const lg = x => x.gt(0) ? x.log10() : 0;
+  const target = winsFor(n.add(1)), prev = has ? winsFor(n) : D(REB_MIN).div(1e6);
+  const pct = Math.max(0, Math.min(100, (lg(S.wins)-lg(prev))/(lg(target)-lg(prev))*100)) || 0;
+  const bw = pct.toFixed(1)+"%"; if(HUDC.bar!==bw){ HUDC.bar=bw; $("rebBar").style.width=bw; }
+  BUYS.forEach(b=>{ const d = S.wins.lt(EGGS[+b.dataset.e].cost); if(b.disabled!==d) b.disabled=d; });
+  const nw = WORLDS[S.worlds||1]; const can = !!nw && S.wins.gte(nw.unlock);
+  if(typeof lastWorldAfford!=="undefined" && can!==lastWorldAfford){ lastWorldAfford=can; renderWorlds(); }
+}
+const PAGE = 12; let eggPage = -1;
+function worldEggs(){ const w=S.world||0; const out=[]; EGGS.forEach((g,e)=>{ if(g.world===w) out.push(e); }); return out; }
+function firstUnaffordablePage(){ const list=worldEggs(); const k=list.findIndex(e=> S.wins.lt(EGGS[e].cost)); return Math.floor(Math.max(0, k<0 ? list.length-1 : k-2)/PAGE); }
+function renderEggs(){
+  $("shopTitle").textContent = "Egg Shop: "+WORLDS[S.world||0].name;
+  const list = worldEggs(), pages = Math.ceil(list.length/PAGE);
+  if(eggPage < 0 || eggPage >= pages) eggPage = firstUnaffordablePage();
+  $("eggPage").textContent = "Eggs "+(eggPage*PAGE+1)+" to "+Math.min(list.length,(eggPage+1)*PAGE)+" of "+list.length;
+  $("eggPrev").disabled = eggPage===0; $("eggNext").disabled = eggPage>=pages-1;
+  $("eggs").innerHTML = list.slice(eggPage*PAGE, (eggPage+1)*PAGE).map(e=>{ const g=EGGS[e]; return `
+    <div class="egg-card">
+      <div class="egg-head">
+        <div class="egg" style="background:linear-gradient(160deg,${g.shell[0]},${g.shell[1]})"></div>
+        <div><div class="egg-title">${g.name}</div><div class="egg-cost">${fmt(g.cost)} wins</div></div>
+      </div>
+      <ul class="odds">${g.pets.map((p,i)=>`<li><span class="dot" style="background:${p[1]}"></span><span>${p[0]}</span><span class="pct">${RAR[i].pct}%</span><span class="mx">+${fmt(petMulti(e,i))}</span></li>`).join("")}</ul>
+      <button class="buy" data-e="${e}">Hatch for ${fmt(g.cost)}</button>
+    </div>`; }).join("");
+  BUYS = [...document.querySelectorAll(".buy")]; BUYS.forEach(b=> b.onclick = ()=> hatch(+b.dataset.e));
+  renderHUD();
+}
+$("invMore").onclick = ()=>{ invLimit += 36; buildPets(); };
+$("craftMore").onclick = ()=>{ craftLimit += 12; renderCraft(); };
+$("eggPrev").onclick = ()=>{ eggPage=Math.max(0,eggPage-1); renderEggs(); };
+$("eggNext").onclick = ()=>{ eggPage++; renderEggs(); };
+$("eggJump").onclick = ()=>{ eggPage = firstUnaffordablePage(); renderEggs(); };
+let petsQueued=false, invLimit=36, craftLimit=12;
+function renderPets(){ refreshEQ(); renderHUD(); if(petsQueued) return; petsQueued=true; requestAnimationFrame(()=>{ petsQueued=false; buildPets(); }); }
+function buildPets(){
+  refreshEQ();
+  const slots = [];
+  for(let k=0;k<MAX_EQUIP;k++){
+    const p = S.pets.find(x=>x.id===S.equipped[k]);
+    slots.push(p ? `<div class="slot full" data-id="${p.id}">${petHTML(p.e,p.i,false,p.t)}<div>${pname(p)}</div><div style="color:#7ff0a0">+${fmt(pm(p))}</div></div>`
+                 : `<div class="slot">Empty slot</div>`);
+  }
+  $("slots").innerHTML = slots.join("");
+  document.querySelectorAll(".slot.full").forEach(s=> s.onclick = ()=> toggle(+s.dataset.id));
+  const stacks = {};
+  S.pets.forEach(p=>{ const k=keyOf(p); (stacks[k]=stacks[k]||{p, all:[], eq:0}).all.push(p); if(S.equipped.includes(p.id)) stacks[k].eq++; });
+  const sorted = Object.values(stacks).sort((a,b)=> byStrength(a.p,b.p));
+  const shown = sorted.slice(0, invLimit);
+  $("invMore").hidden = sorted.length <= invLimit; $("invMore").textContent = "Show more pets ("+(sorted.length-shown.length)+" more kinds)";
+  $("inv").innerHTML = shown.length ? shown.map(st=>{
+    const p = st.p, n = st.all.length, free = n - st.eq, on = st.eq>0, r = RAR[p.i];
+    const spare = st.all.find(x=>!S.equipped.includes(x.id));
+    return `<div class="pet-card${on?' on':''}" data-k="${keyOf(p)}" tabindex="0" role="button">
+      ${n>1?`<span class="cnt">x${n}</span>`:''}
+      ${spare?`<button class="del" data-del="${spare.id}" aria-label="Delete one">×</button>`:''}
+      ${petHTML(p.e,p.i,false,p.t)}<div class="nm">${pname(p)}</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center"><span class="tag" style="background:${r.col}">${r.name}</span>${p.t?`<span class="tier t${p.t}">${TIERS[p.t]} x${Math.pow(2,p.t)}</span>`:''}</div>
+      <div style="color:#7ff0a0">+${fmt(pm(p))} multi</div>
+      <div style="font-size:11px;color:var(--muted)">${st.eq?st.eq+' equipped':''}${st.eq&&free?' · ':''}${free?'Tap to equip':''}</div></div>`;
+  }).join("") : `<p class="empty">No pets yet. Clear some walls, then hatch a Grass Egg for 45 wins.</p>`;
+  document.querySelectorAll(".pet-card").forEach(c=>{
+    const go = ()=>{
+      const k=c.dataset.k, group=S.pets.filter(p=>keyOf(p)===k), spare=group.find(p=>!S.equipped.includes(p.id));
+      if(spare) toggle(spare.id); else toggle(group[0].id);
+    };
+    c.onclick = ev => { if(ev.target.dataset.del) return; go(); };
+    c.onkeydown = ev => { if(ev.key==="Enter") go(); };
+  });
+  document.querySelectorAll("[data-del]").forEach(b=> b.onclick = ev => {
+    ev.stopPropagation(); const id=+b.dataset.del; S.pets = S.pets.filter(p=>p.id!==id); save(); renderPets();
+  });
+  renderCraft();
+  renderHUD();
+}
+let EQ=[]; function refreshEQ(){ EQ = S.equipped.map(id=>S.pets.find(x=>x.id===id)).filter(Boolean); }
+function toggle(id){
+  const k = S.equipped.indexOf(id);
+  if(k>=0) S.equipped.splice(k,1);
+  else if(S.equipped.length < MAX_EQUIP) S.equipped.push(id);
+  else { setMsg("You can only equip 4 pets. Unequip one first, or press Equip best.","bad"); return; }
+  save(); renderPets();
+}
+$("bestBtn").onclick = ()=>{
+  S.equipped = [...S.pets].sort(byStrength).slice(0,MAX_EQUIP).map(p=>p.id);
+  save(); renderPets(); setMsg("Best pets equipped. Jump multi is now x"+fmt(totalMulti())+".","good");
+};
+// ---------- crafting ----------
+const keyOf = p => p.e+"-"+p.i+"-"+(p.t||0);
+function craftGroups(){
+  const m = {};
+  S.pets.forEach(p=>{ if((p.t||0) >= MAX_TIER) return; (m[keyOf(p)] = m[keyOf(p)] || []).push(p); });
+  return Object.entries(m).filter(([k,v])=>v.length>=3).map(([k,v])=>({k, pets:v}))
+    .sort((a,b)=> byStrength(a.pets[0],b.pets[0]));
+}
+function doCraft(k){
+  const group = S.pets.filter(p=>keyOf(p)===k);
+  if(group.length < 3) return null;
+  group.sort((a,b)=> (S.equipped.includes(a.id)?1:0) - (S.equipped.includes(b.id)?1:0)); // use unequipped pets first
+  const used = group.slice(0,3), ids = new Set(used.map(p=>p.id));
+  const out = {id:S.nextId++, e:used[0].e, i:used[0].i, t:(used[0].t||0)+1};
+  S.pets = S.pets.filter(p=>!ids.has(p.id)); S.pets.push(out);
+  const slot = S.equipped.findIndex(id=>ids.has(id));
+  S.equipped = S.equipped.map((id,n)=> n===slot ? out.id : id).filter(id=> id===out.id || !ids.has(id));
+  return out;
+}
+function renderCraft(){
+  const g = craftGroups();
+  $("craftAllBtn").disabled = !g.length;
+  $("craftMore").hidden = g.length <= craftLimit; $("craftMore").textContent = "Show more recipes ("+(g.length-craftLimit)+" more)";
+  $("crafts").innerHTML = g.length ? g.slice(0,craftLimit).map(({k,pets})=>{
+    const p = pets[0], nt = (p.t||0)+1, np = {e:p.e,i:p.i,t:nt};
+    const pet = petHTML(p.e,p.i,false,p.t);
+    return `<div class="craft">
+      <div class="recipe">${pet}${pet}${pet}<span>→</span>${petHTML(p.e,p.i,false,nt)}</div>
+      <div class="craft-info">3 × ${pname(p)} (+${fmt(pm(p))} each)<br>makes 1 × ${pname(np)} <b>+${fmt(pm(np))}</b><br><span style="color:var(--muted)">You have ${pets.length}</span></div>
+      <button class="craftbtn" data-k="${k}">Craft</button></div>`;
+  }).join("") : `<p class="empty">Nothing to craft yet. Get 3 of the same pet (same name and same size) and it shows up here.</p>`;
+  document.querySelectorAll(".craftbtn").forEach(b=> b.onclick = ()=> craftOne(b.dataset.k));
+}
+function craftOne(k){
+  const src = S.pets.find(p=>keyOf(p)===k); if(!src) return;
+  const box = $("hatchBox"); $("overlay").hidden = false;
+  const ph = petHTML(src.e,src.i,false,src.t);
+  box.innerHTML = `<h3>Crafting...</h3><div class="merge">${ph}${ph}${ph}</div><p>3 × ${pname(src)}</p>`;
+  setTimeout(()=>{
+    const out = doCraft(k); if(!out){ closeHatch(); return; }
+    save(); renderPets();
+    const again = craftGroups().some(g=>g.k===k);
+    box.innerHTML = `<span class="tier t${out.t}">${TIERS[out.t]} x${Math.pow(2,out.t)}</span>${petHTML(out.e,out.i,true,out.t)}
+      <h3>${pname(out)}</h3><p>+${fmt(pm(out))} jump multi${S.equipped.includes(out.id)?' · equipped':''}</p>
+      ${again?`<button class="craftbtn" id="craftAgain">Craft another</button>`:''}
+      <button class="small" id="okBtn">Nice!</button>`;
+    $("okBtn").onclick = closeHatch; if(again) $("craftAgain").onclick = ()=> craftOne(k);
+    $("okBtn").focus();
+  }, 1000);
+}
+$("craftAllBtn").onclick = ()=>{
+  let made = 0, g;
+  while((g = craftGroups()).length){ doCraft(g[g.length-1].k); made++; } // weakest first, so new ones can chain up
+  save(); renderPets(); setMsg(made ? "Crafted "+made+" time"+(made===1?"":"s")+". Press Equip best to use your new pets." : "Nothing to craft yet.", made?"good":"");
+};
+
+// ---------- rebirth ----------
+let rebArmed=false;
+$("ladder").innerHTML = [1e11,1e14,1e17,1e20,1e30,"1e60","1e114","1e303","1e603","1e903"].map(w=>D(w)).map(w=>`<li><span>${fmt(w)} wins</span><span>+${fmt(rebirthsFor(w))} rebirths</span></li>`).join("");
+$("rebBtn").onclick = ()=>{
+  const n = rebirthsFor(S.wins); if(!n.gt(0)) return;
+  if(G.state!=="idle"){ setMsg("Finish your run first, then rebirth."); return; }
+  const box = $("hatchBox"); $("overlay").hidden = false;
+  // one card per kind of pet, strongest first (top 60 so the list stays quick)
+  const seen = new Set(), kinds = [];
+  [...S.pets].sort(byStrength).forEach(p=>{ const k=keyOf(p); if(!seen.has(k)){ seen.add(k); kinds.push(p); } });
+  const list = kinds.slice(0,60);
+  let chosen = null;
+  box.innerHTML = `<h3>Rebirth for +${fmt(n)}</h3>
+    <p>Your wins go to 0 and <b>all your pets are deleted except 1</b>.${list.length?' Pick the pet to keep:':''}</p>
+    ${list.length ? `<div class="pick">${list.map(p=>`<div class="pet-card" data-id="${p.id}" tabindex="0" role="button">${petHTML(p.e,p.i,false,p.t)}<div class="nm">${pname(p)}</div><div style="color:#7ff0a0">+${fmt(pm(p))}</div></div>`).join("")}</div>` : `<p>You have no pets, so nothing is lost.</p>`}
+    <div class="hatch-row"><button class="rebbtn" id="rebGo" ${list.length?'disabled':''}>${list.length?'Pick a pet first':'Rebirth'}</button><button class="small" id="rebCancel">Cancel</button></div>`;
+  box.querySelectorAll(".pick .pet-card").forEach(c=>{
+    const choose = ()=>{
+      box.querySelectorAll(".pick .pet-card").forEach(x=>x.classList.remove("sel")); c.classList.add("sel");
+      chosen = S.pets.find(p=>p.id===+c.dataset.id);
+      $("rebGo").disabled = false; $("rebGo").textContent = "Rebirth and keep " + pname(chosen);
+    };
+    c.onclick = choose; c.onkeydown = ev=>{ if(ev.key==="Enter") choose(); };
+  });
+  $("rebCancel").onclick = closeHatch;
+  $("rebGo").onclick = ()=>{
+    if(list.length && !chosen) return;
+    // animation: every other pet poofs away one after another, the kept pet glows
+    const cards = [...box.querySelectorAll(".pick .pet-card")];
+    const others = cards.filter(c=> !c.classList.contains("sel"));
+    let wait = 0;
+    if(cards.length){
+      box.querySelector("h3").textContent = "Rebirthing...";
+      box.querySelector("p").textContent = chosen ? "Say goodbye to your pets. Only "+pname(chosen)+" stays!" : "";
+      $("rebGo").disabled = true; $("rebCancel").disabled = true; box.querySelector(".hatch-row").style.visibility = "hidden";
+      box.querySelector(".pick").style.overflow = "hidden";
+      const kept = cards.find(c=> c.classList.contains("sel"));
+      if(kept){ kept.classList.add("kept"); kept.scrollIntoView({block:"nearest"}); }
+      const step = Math.min(90, 1500 / Math.max(1, others.length));
+      others.forEach((c,k)=>{
+        const d = k*step;
+        c.style.position = "relative";
+        c.style.animationDelay = d+"ms"; c.classList.add("vanish");
+        setTimeout(()=>{
+          const poof = document.createElement("div"); poof.className = "poof";
+          poof.innerHTML = Array.from({length:8},(_,j)=>{ const a=j/8*Math.PI*2; return `<i style="--dx:${Math.cos(a)*38}px;--dy:${Math.sin(a)*38}px;background:${j%2?'#ffe066':'#fff'}"></i>`; }).join("");
+          c.appendChild(poof);
+        }, d+150);
+      });
+      wait = others.length*step + 900 + (kept ? 700 : 0);
+    }
+    setTimeout(()=> finishRebirth(), wait);
+  };
+  function finishRebirth(){
+    const lost = S.pets.length - (chosen?1:0);
+    S.reb = S.reb.add(n); S.wins = D(0); LBLC.length=0;
+    S.pets = chosen ? [chosen] : []; S.equipped = chosen ? [chosen.id] : [];
+    save(); renderPets();
+    box.innerHTML = `<h3>Rebirth!</h3><div class="reb-stat">+${fmt(n)}<small>rebirths</small></div>
+      <p>You now have ${fmt(S.reb)} rebirths. Your jump and every win you earn are now x${fmt(rebMulti())}.</p>
+      <p>${chosen ? 'You kept '+pname(chosen)+'. ' : ''}${lost} pet${lost===1?'':'s'} deleted.</p>
+      <button class="small" id="okBtn">Let's go!</button>`;
+    $("okBtn").onclick = closeHatch; $("okBtn").focus();
+  }
+};
+
+// ---------- worlds ----------
+function renderWorlds(){
+  $("worlds").innerHTML = WORLDS.map((w,i)=>{
+    const open = i < (S.worlds||1), here = i===(S.world||0), next = i===(S.worlds||1);
+    const btn = here ? `<button class="wbtn" disabled>You are here</button>`
+      : open ? `<button class="wbtn" data-go="${i}">Travel here</button>`
+      : next ? `<button class="wbtn" data-buy="${i}" ${S.wins.lt(w.unlock)?'disabled':''}>Unlock for ${fmt(w.unlock)}</button>`
+      : `<button class="wbtn" disabled>Unlock ${WORLDS[i-1].name} first</button>`;
+    const n = EGGS.filter(g=>g.world===i).length;
+    return `<div class="world${here?' here':''}" style="background:${w.card}"><h3>${w.name}</h3>
+      <div class="wm">x${fmt(w.mult)}</div><p>Jump and wins multi · ${n} eggs</p>${btn}</div>`;
+  }).join("");
+  document.querySelectorAll("[data-go]").forEach(b=> b.onclick = ()=> travel(+b.dataset.go));
+  document.querySelectorAll("[data-buy]").forEach(b=> b.onclick = ()=>{
+    const i=+b.dataset.buy, w=WORLDS[i]; if(S.wins.lt(w.unlock)) return;
+    S.wins = S.wins.sub(w.unlock); S.worlds = i+1; save(); travel(i);
+    setMsg("You unlocked "+w.name+"! Everything is now x"+fmt(w.mult)+".","good");
+  });
+}
+function travel(i){
+  if(G.state!=="idle"){ setMsg("Finish your run first, then travel."); return; }
+  S.world = i; eggPage = -1; save(); applyWorld(); renderEggs(); renderPets();
+}
+function applyWorld(){ LBLC.length=0; resize(); renderWorlds(); setTxt("hWorldName", WORLDS[S.world||0].name); setTxt("hWorld", "x"+fmt(worldMulti())); }
+let lastWorldAfford = null;
+
+let rebResetArmed=false;
+$("rebResetBtn").onclick = ()=>{
+  const b=$("rebResetBtn");
+  if(!rebResetArmed){ rebResetArmed=true; b.textContent="Tap again to set rebirths to 0"; setTimeout(()=>{rebResetArmed=false;b.textContent="Reset rebirths";},3000); return; }
+  rebResetArmed=false; b.textContent="Reset rebirths";
+  S.reb=D(0); LBLC.length=0; save(); renderHUD(); setMsg("Rebirths reset to 0. Your wins and pets are unchanged.","good");
+};
+
+let cleanArmed=false;
+$("cleanBtn").onclick = ()=>{
+  if(S.pets.length <= 24){ setMsg("You have "+S.pets.length+" pets. Nothing to clean up yet (you can keep 24)."); return; }
+  if(!cleanArmed){ cleanArmed=true; $("cleanBtn").textContent="Tap again to keep your best 24"; setTimeout(()=>{cleanArmed=false;$("cleanBtn").textContent="Delete weak pets";},3000); return; }
+  const keep = new Set([...S.pets].sort(byStrength).slice(0,24).map(p=>p.id));
+  S.equipped.forEach(id=>keep.add(id));
+  const before=S.pets.length; S.pets = S.pets.filter(p=>keep.has(p.id));
+  cleanArmed=false; $("cleanBtn").textContent="Delete weak pets";
+  save(); renderPets(); setMsg("Deleted "+(before-S.pets.length)+" weak pets. Your best 24 are safe.","good");
+};
+let resetArmed = false;
+$("resetBtn").onclick = ()=>{
+  if(!resetArmed){ resetArmed=true; $("resetBtn").textContent="Tap again to wipe everything"; setTimeout(()=>{resetArmed=false;$("resetBtn").textContent="Reset game";},3000); return; }
+  S = {wins:D(0), pets:[], equipped:[], best:0, nextId:1, reb:D(0), world:0, worlds:1}; LBLC.length=0; save(); applyWorld(); renderPets(); resetArmed=false; $("resetBtn").textContent="Reset game";
+};
+
+// ---------- hatching ----------
+function roll(){ let r = Math.random()*100; for(let i=0;i<5;i++){ if(r < RAR[i].pct) return i; r -= RAR[i].pct; } return 0; }
+function hatch(e){
+  const g = EGGS[e]; if(S.wins.lt(g.cost)) return;
+  S.wins = S.wins.sub(g.cost); const i = roll();
+  const pet = {id:S.nextId++, e, i}; S.pets.push(pet);
+  const auto = S.equipped.length < MAX_EQUIP; if(auto) S.equipped.push(pet.id);
+  save(); renderHUD();
+  const box = $("hatchBox"); $("overlay").hidden = false;
+  box.innerHTML = `<h3>${g.name}</h3><div class="egg shake" style="background:linear-gradient(160deg,${g.shell[0]},${g.shell[1]})"></div><p>Hatching...</p>`;
+  setTimeout(()=>{
+    const r = RAR[i];
+    box.innerHTML = `<span class="tag" style="background:${r.col}">${r.name} · ${r.pct}%</span>${petHTML(e,i,true)}
+      <h3>${g.pets[i][0]}</h3><p>+${fmt(petMulti(e,i))} jump multi${auto?' · equipped':''}</p>
+      <button class="buy" id="againBtn" ${S.wins.lt(g.cost)?'disabled':''}>Hatch another (${fmt(g.cost)})</button>
+      <button class="small" id="okBtn">Nice!</button>`;
+    $("okBtn").onclick = closeHatch; $("againBtn").onclick = ()=> hatch(e);
+    $("okBtn").focus(); renderPets();
+  }, 1300);
+}
+function closeHatch(){ $("overlay").hidden = true; }
+$("overlay").onclick = ev => { if(ev.target.id==="overlay") closeHatch(); };
+
+// ---------- game ----------
+let W=0,H=0,DPR=1;
+let SKY=null, meterW=0;
+function resize(){
+  DPR = FAST ? 1 : Math.min(window.devicePixelRatio||1, 1.5);
+  W = cv.clientWidth; H = cv.clientHeight; cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); ctx.setTransform(DPR,0,0,DPR,0,0);
+  const WD = WORLDS[S.world||0]; SKY = ctx.createLinearGradient(0,0,0,H); SKY.addColorStop(0,WD.sky[0]); SKY.addColorStop(1,WD.sky[1]);
+  meterW = needle.parentElement.clientWidth;
+}
+function applyFast(){ const b=$("fastBtn"); b.setAttribute("aria-pressed",FAST); b.textContent="Fast mode: "+(FAST?"on":"off"); resize(); }
+$("fastBtn").onclick = ()=>{ FAST=!FAST; try{ localStorage.setItem(SAVE_KEY+"-fast", FAST?"1":"0"); }catch(e){} applyFast(); };
+window.addEventListener("resize", resize);
+const LBLC=[];
+function LBL(i){
+  if(LBLC[i]) return LBLC[i];
+  const w=THICK+44, h=38, c=document.createElement("canvas"), d=Math.min(window.devicePixelRatio||1,2);
+  c.width=w*d; c.height=h*d; const g=c.getContext("2d"); g.scale(d,d);
+  g.fillStyle="rgba(12,34,56,.85)"; g.beginPath(); g.roundRect ? g.roundRect(0,0,w,h,9) : g.rect(0,0,w,h); g.fill();
+  g.textAlign="center"; g.fillStyle="#fff"; g.font="15px 'Lilita One', sans-serif"; g.fillText("Height "+fmt(wallHeight(i)), w/2, 16);
+  g.fillStyle="#ffc93c"; g.font="13px 'Lilita One', sans-serif"; g.fillText("+"+fmt(wallReward(i).mul(rebMulti()).mul(worldMulti()))+" wins", w/2, 32);
+  return (LBLC[i]={c,w,h});
+}
+const WALL0 = 360, GAP = 250, THICK = 38;
+const wallX = i => WALL0 + i*GAP;
+const wallPix = i => 44 + 17*Math.min(i,40) + 4*Math.max(0,i-40);
+
+let G = {state:"idle", x:60, y:0, next:0, power:0, run:0, jump:null, t:0, bonkT:0, camX:0, camY:0, floats:[], meter:0, dir:1, cleared:0};
+function startRun(){
+  if(G.state!=="idle") return;
+  const timing = 0.35 + 0.65*G.meter;
+  G.power = jumpPower().mul(timing); G.state="running"; G.next=0; G.cleared=0; G.x=60; G.y=0; G.run=0;
+  jumpBtn.disabled = true;
+  setMsg(`Timing ${Math.round(timing*100)}%, so your jump power is ${fmt(G.power)}. Go!`);
+}
+jumpBtn.onclick = startRun;
+cv.addEventListener("pointerdown", startRun);
+window.addEventListener("keydown", e=>{ if(e.code==="Space" && $("overlay").hidden){ e.preventDefault(); startRun(); } });
+
+function update(dt){
+  G.t += dt;
+  if(G.state==="idle"){
+    G.meter += G.dir*dt*1.6; if(G.meter>1){G.meter=1;G.dir=-1;} if(G.meter<0){G.meter=0;G.dir=1;}
+    needle.style.transform = "translateX("+(G.meter*meterW)+"px)";
+  }
+  const speed = 280 + G.next*45 + 3*G.next*G.next;
+  if(G.state==="running"){
+    const wx = wallX(G.next), h = wallHeight(G.next);
+    if(!G.jump){
+      G.x += speed*dt; G.run += dt;
+      if(G.next >= 8 && G.power.gte(h)){
+        // turbo: past wall 8, clear walls in batches so huge jumps don't take forever
+        let got = D(0), k = 0;
+        while(k < 40 && G.power.gte(wallHeight(G.next))){ got = got.add(wallReward(G.next)); G.next++; G.cleared++; k++; }
+        got = got.mul(rebMulti()).mul(worldMulti()); S.wins = S.wins.add(got);
+        if(G.next > S.best) S.best = G.next;
+        G.x = wallX(G.next) - 140; G.y = 0;
+        G.floats.length = 0; G.floats.push({x:wallX(G.next-1)+THICK/2, y:wallPix(G.next-1)+20, t:0, txt:"+"+fmt(got)+" wins"});
+        save(); renderHUD();
+      } else if(G.power.gte(h) && G.x >= wx - 95){
+        G.jump = {x0:G.x, x1:wx+THICK+95, peak:wallPix(G.next)+46, p:0, dur:(wx+THICK+190-G.x)/speed + 0.12};
+      } else if(G.power.lt(h) && G.x >= wx - 26){
+        G.state="bonk"; G.bonkT=0; G.bx=G.x;
+        setMsg(`Bonk! Wall ${G.next+1} is ${fmt(h)} tall and your jump was ${fmt(G.power)}. You cleared ${G.cleared} wall${G.cleared===1?'':'s'}.`, G.cleared? "good":"bad");
+      }
+    } else {
+      const j = G.jump; j.p += dt/j.dur;
+      const p = Math.min(1,j.p);
+      G.x = j.x0 + (j.x1-j.x0)*p; G.y = 4*j.peak*p*(1-p);
+      if(p>=1){
+        G.y=0; G.jump=null;
+        const r = wallReward(G.next).mul(rebMulti()).mul(worldMulti()); S.wins = S.wins.add(r); G.cleared++;
+        if(G.next+1 > S.best) S.best = G.next+1;
+        G.floats.push({x:wallX(G.next)+THICK/2, y:wallPix(G.next)+20, t:0, txt:"+"+fmt(r)+" wins"});
+        G.next++; save(); renderHUD();
+      }
+    }
+  }
+  if(G.state==="bonk"){
+    G.bonkT += dt;
+    const k = Math.min(1,G.bonkT/0.4);
+    G.x = G.bx - 70*k; G.y = Math.max(0, 60*Math.sin(Math.PI*k));
+    if(G.bonkT > 1.5){ G.state="idle"; G.x=60; G.y=0; G.next=0; jumpBtn.disabled=false; }
+  }
+  // camera
+  const tx = Math.max(0, G.x - W*0.32), ty = Math.max(0, G.y + 90 - (H-60)*0.6);
+  G.camX += (tx-G.camX)*Math.min(1,dt*8); G.camY += (ty-G.camY)*Math.min(1,dt*6);
+  if(G.state==="idle"){ G.camX += (0-G.camX)*Math.min(1,dt*6); }
+  G.floats.forEach(f=> f.t+=dt); G.floats = G.floats.filter(f=>f.t<1.4);
+}
+
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function draw(){
+  const GY = H - 54 + G.camY; // screen y of ground
+  const sy = y => GY - y, sx = x => x - G.camX;
+  // sky
+  const WD = WORLDS[S.world||0];
+  ctx.fillStyle=FAST?WD.sky[0]:SKY; ctx.fillRect(0,0,W,H);
+  if(WD.stars && !FAST){ ctx.fillStyle="rgba(255,255,255,.8)"; for(let k=0;k<40;k++){ const x=((k*137 - G.camX*0.05)%W+W)%W, y=(k*53)%(H-80); ctx.fillRect(x,y,2,2); } }
+  if(!FAST){
+  // sun
+  ctx.fillStyle="#fff3b0"; ctx.beginPath(); ctx.arc(W-70, 60+G.camY*0.1, 30, 0, 7); ctx.fill();
+  // clouds
+  ctx.fillStyle="rgba(255,255,255,.9)";
+  for(let c=0;c<6;c++){
+    const cx = ((c*330 - G.camX*0.2) % (W+400) + W+400) % (W+400) - 150, cy = 50 + (c%3)*38 + G.camY*0.3;
+    ctx.beginPath(); ctx.arc(cx,cy,22,0,7); ctx.arc(cx+26,cy-10,26,0,7); ctx.arc(cx+54,cy,20,0,7); ctx.fill();
+  }
+  // hills
+  ctx.fillStyle=WD.hill;
+  for(let hx=-1;hx<8;hx++){
+    const bx = hx*260 - (G.camX*0.45 % 260);
+    ctx.beginPath(); ctx.ellipse(bx+130, GY+20, 170, 90+(hx%2)*30, 0, Math.PI, 0); ctx.fill();
+  }
+  }
+  // ground
+  ctx.fillStyle=WD.grass; ctx.fillRect(0,GY,W,14);
+  ctx.fillStyle=WD.dirt; ctx.fillRect(0,GY+14,W,H);
+  ctx.fillStyle=WD.dirt2;
+  for(let d=0; d<W/40+2; d++){ const dx = d*40 - (G.camX%40); ctx.fillRect(dx, GY+26, 14, 6); }
+  // start pad
+  ctx.fillStyle="#ffc93c"; rr(sx(20),GY-6,90,8,4); ctx.fill();
+  // walls
+  const first = Math.max(0, Math.floor((G.camX - WALL0)/GAP) - 1), last = first + Math.ceil(W/GAP) + 2;
+  for(let i=first;i<=last;i++){
+    const x = sx(wallX(i)), ph = wallPix(i), hue = (200 + i*28) % 360;
+    const done = G.state!=="idle" && i < G.next;
+    ctx.fillStyle = `hsl(${hue},62%,${done?64:52}%)`; rr(x, sy(ph), THICK, ph, 6); ctx.fill();
+    ctx.strokeStyle="rgba(0,0,0,.25)"; ctx.lineWidth=2;
+    ctx.beginPath(); for(let b=18;b<ph;b+=18){ ctx.moveTo(x+3,sy(b)); ctx.lineTo(x+THICK-3,sy(b)); } ctx.stroke();
+    ctx.strokeStyle="rgba(0,0,0,.4)"; ctx.lineWidth=3; rr(x, sy(ph), THICK, ph, 6); ctx.stroke();
+    // label flag
+    const L = LBL(i); ctx.drawImage(L.c, x-22, sy(ph)-44, L.w, L.h);
+  }
+  // player
+  const px = sx(G.x), py = sy(G.y);
+  const bob = (G.state==="running" && !G.jump) ? Math.abs(Math.sin(G.t*16))*4 : 0;
+  // equipped pets trailing
+  EQ.forEach((p,k)=>{
+    const fx = px - 34 - k*24, fy = py - 14 - Math.abs(Math.sin(G.t*6+k))*8 - (G.y*0.6);
+    ctx.fillStyle = EGGS[p.e].pets[p.i][1]; ctx.strokeStyle="rgba(0,0,0,.4)"; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(fx, Math.min(fy, GY-10), 10, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle="#10243a"; ctx.fillRect(fx-4, Math.min(fy,GY-10)-3, 2.5, 3.5); ctx.fillRect(fx+2, Math.min(fy,GY-10)-3, 2.5, 3.5);
+  });
+  ctx.save(); ctx.translate(px, py - bob);
+  if(G.jump) ctx.rotate(Math.min(1,G.jump.p)*Math.PI*2);
+  if(G.state==="bonk") ctx.rotate(-0.4);
+  ctx.fillStyle="#ff6fa3"; ctx.strokeStyle="#0c2238"; ctx.lineWidth=3;
+  rr(-15,-36,30,34,11); ctx.fill(); ctx.stroke();
+  ctx.fillStyle="#ffc93c"; ctx.fillRect(-15,-30,30,6); // headband
+  ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(-5,-17,5,0,7); ctx.arc(7,-17,5,0,7); ctx.fill();
+  ctx.fillStyle="#0c2238"; ctx.beginPath(); ctx.arc(-3,-16,2.4,0,7); ctx.arc(9,-16,2.4,0,7); ctx.fill();
+  if(G.state==="bonk"){ ctx.fillStyle="#fff"; ctx.font="16px 'Lilita One', sans-serif"; ctx.fillText("✶",16,-38); }
+  ctx.restore();
+  // floats
+  G.floats.forEach(f=>{
+    ctx.globalAlpha = 1 - f.t/1.4; ctx.fillStyle="#ffc93c"; ctx.strokeStyle="#5a3a00"; ctx.lineWidth=4;
+    ctx.font="22px 'Lilita One', sans-serif"; ctx.textAlign="center";
+    const y = sy(f.y) - f.t*50 - 40; ctx.strokeText(f.txt, sx(f.x), y); ctx.fillText(f.txt, sx(f.x), y);
+    ctx.globalAlpha = 1;
+  });
+  // power line
+  if(G.state!=="idle"){
+    ctx.fillStyle="rgba(12,34,56,.8)"; rr(10,10,190,30,10); ctx.fill();
+    ctx.fillStyle="#fff"; ctx.font="16px 'Lilita One', sans-serif"; ctx.textAlign="left";
+    ctx.fillText("Jump power "+fmt(G.power), 22, 31);
+  }
+}
+let last = performance.now();
+let lastDraw=0, slowFrames=0, frames=0;
+function loop(now){
+  const raw=(now-last)/1000, dt = Math.min(0.05,raw); last=now; update(dt);
+  const gap = (G.state==="idle" && !G.floats.length) ? 32 : 15;
+  if(now-lastDraw >= gap){ lastDraw=now; draw(); }
+  // auto fast mode: if the game keeps stuttering while running, switch to light graphics for good
+  if(!FAST && G.state==="running" && !document.hidden){
+    frames++; if(raw > 0.034) slowFrames++;
+    if(frames >= 120){
+      if(slowFrames > 30){ FAST=true; try{ localStorage.setItem(SAVE_KEY+"-fast","1"); }catch(e){} applyFast(); setMsg("The game was lagging, so Fast mode is now on. It stays on.","good"); }
+      frames=0; slowFrames=0;
+    }
+  }
+  requestAnimationFrame(loop);
+}
+
+applyFast(); applyWorld(); renderEggs(); renderPets(); requestAnimationFrame(loop);
+if(document.fonts) document.fonts.ready.then(()=>{ LBLC.length=0; });
+})();
+</script>
+
+</body>
+</html>

@@ -11,6 +11,7 @@ ghgames/
   leaderboards.html  all the leaderboards on one page
   site.css        shared look for the homepage and leaderboards page
   favicon.svg     the yellow GH logo
+  account.js      player accounts + online saves (username/password, no email) — see below
   analytics.js    Google Analytics (set GA_ID inside; Frondi Clicker pages do not load it)
   blackhole.html  drag-and-release: fling stars into a black hole
   sparrow.html    flappy-style sparrow, with score + best
@@ -52,10 +53,23 @@ Make a free [GitHub](https://github.com) account, then a new **public** reposito
 1. Build a self-contained game file (one file, plain HTML/JS), touch-friendly for iPad, saved as `<name>.html`.
 2. Put `<script src="analytics.js" defer></script>` under its `<title>` so visits are counted.
 3. In `index.html`, copy an existing `<a class="tile">` block inside the grid and change the link, the SVG cover art, the name, the one-line description and the two tags. Give the newest game the `<span class="badge new">New</span>` badge and take it off the old one.
-4. If it has a leaderboard, add a `<div id="lb-...">` and a `Leaderboard.mount(...)` line to `leaderboards.html`.
-5. Push to GitHub. Live in under a minute.
+4. If it saves progress, add `<script src="account.js" data-game="<name>"></script>` in `<head>` (before the game's code) and add the game's localStorage key(s) to `GAMES` at the top of `account.js`. Players who are logged in then get that game saved online too.
+5. If it has a leaderboard, add a `<div id="lb-...">` and a `Leaderboard.mount(...)` line to `leaderboards.html`.
+6. Push to GitHub. Live in under a minute.
 
 ## House rules (keep it safe)
 
 - Domain and accounts in **Ed's name only**.
 - **No surname, school, suburb, or photos** anywhere on the site. First name and initials only.
+
+## Accounts and online saves
+
+- Players can make an account with just a **username and password** (no email, no real name). Playing without an account still works exactly as before.
+- Each game still saves in the browser. When logged in, `account.js` copies the save to Supabase every 15 seconds and when the page closes, and pulls it down on any other device.
+- If a device has different progress from the online save, the player is asked which one to keep. Best-score games (Click Frenzy, Mega Obby) just keep the better score.
+- Logging out saves everything online, then clears the games off that device so the next player starts fresh.
+- Five wrong passwords lock that account for 10 minutes. At most 5 new accounts per hour from one internet connection.
+- Nicknames on leaderboards and in Wall Hop gifts are still free text and are not tied to accounts.
+- **Frondi Clicker is deliberately left out**: its privacy policy (and the iPhone app) promise no accounts.
+- Resetting a forgotten password (Ed, via the Supabase SQL editor):
+  `update public.accounts set pass_hash = extensions.crypt('NEWPASS', extensions.gen_salt('bf', 8)), failed_logins = 0, locked_until = null where username = 'theirname';`

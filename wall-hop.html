@@ -152,6 +152,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 @media (max-width:560px){.slots{grid-template-columns:repeat(2,1fr)} canvas{height:300px} .stage{height:306px}}
 @media (prefers-reduced-motion:reduce){.hatch .egg.shake{animation:none}}
 .fast{font-family:var(--body);font-weight:800;font-size:13px;padding:6px 12px;border:2px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;align-self:center}
+.jump.stop{background:var(--red);box-shadow:0 5px 0 #a8323a}
 .fast[aria-pressed="true"]{background:var(--green);border-color:var(--green-dk);color:#0c2238}
 .chip.name{cursor:pointer;text-align:left;font:inherit;color:inherit}
 .chip.name b{color:#ffd6e8;font-size:18px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -966,7 +967,7 @@ blockReady = true; checkBlocked(); setInterval(checkBlocked, 20000);
 // ---------- auto update ----------
 // version.txt is changed whenever the game is updated. Open games check it every minute and,
 // when it changes, save and reload between runs so everyone gets the new rules straight away.
-const GAME_VERSION = "2026-09-26b";
+const GAME_VERSION = "2026-09-26c";
 function checkVersion(){
   if(!navigator.onLine) return;
   fetch("version.txt?t=" + Date.now(), {cache:"no-store"}).then(r => r.ok ? r.text() : "").then(v=>{
@@ -1005,12 +1006,22 @@ function startRun(){
   if(BLOCKED){ setMsg("Jumping is switched off for the name "+NAME+".", "bad"); return; }
   const timing = 0.35 + 0.65*G.meter;
   G.power = jumpPower().mul(timing); G.state="running"; G.next=0; G.cleared=0; G.x=60; G.y=0; G.run=0;
-  jumpBtn.disabled = true;
-  setMsg(`Timing ${Math.round(timing*100)}%, so your jump power is ${fmt(G.power)}. Go!`);
+  jumpBtn.disabled = false; jumpBtn.textContent = "STOP"; jumpBtn.classList.add("stop");
+  setMsg(`Timing ${Math.round(timing*100)}%, so your jump power is ${fmt(G.power)}. Go! Press STOP to end the run and keep your wins.`);
 }
-jumpBtn.onclick = startRun;
-cv.addEventListener("pointerdown", startRun);
-window.addEventListener("keydown", e=>{ if(e.code==="Space" && $("overlay").hidden){ e.preventDefault(); startRun(); } });
+// STOP ends a run early: you keep every win from the walls you cleared
+function stopRun(){
+  if(G.state!=="running") return;
+  if(newBest){ newBest=false; postBest(); }
+  G.state="idle"; G.jump=null; G.x=60; G.y=0; G.next=0;
+  resetJumpBtn(); save(); renderHUD();
+  setMsg(`You stopped. You cleared ${G.cleared} wall${G.cleared===1?'':'s'} and kept all your wins.`, "good");
+}
+function resetJumpBtn(){ jumpBtn.textContent = "JUMP!"; jumpBtn.classList.remove("stop"); jumpBtn.disabled = BLOCKED; }
+function jumpOrStop(){ if(G.state==="running") stopRun(); else startRun(); }
+jumpBtn.onclick = jumpOrStop;
+cv.addEventListener("pointerdown", jumpOrStop);
+window.addEventListener("keydown", e=>{ if(e.code==="Space" && $("overlay").hidden){ e.preventDefault(); jumpOrStop(); } });
 
 function update(dt){
   G.t += dt;
@@ -1036,6 +1047,7 @@ function update(dt){
         G.jump = {x0:G.x, x1:wx+THICK+95, peak:wallPix(G.next)+46, p:0, dur:(wx+THICK+190-G.x)/speed + 0.12};
       } else if(G.power.lt(h) && G.x >= wx - 26){
         G.state="bonk"; G.bonkT=0; G.bx=G.x; if(newBest){ newBest=false; postBest(); }
+        jumpBtn.textContent = "JUMP!"; jumpBtn.classList.remove("stop"); jumpBtn.disabled = true;
         setMsg(`Bonk! Wall ${G.next+1} is ${fmt(h)} tall and your jump was ${fmt(G.power)}. You cleared ${G.cleared} wall${G.cleared===1?'':'s'}.`, G.cleared? "good":"bad");
       }
     } else {
@@ -1055,7 +1067,7 @@ function update(dt){
     G.bonkT += dt;
     const k = Math.min(1,G.bonkT/0.4);
     G.x = G.bx - 70*k; G.y = Math.max(0, 60*Math.sin(Math.PI*k));
-    if(G.bonkT > 1.5){ G.state="idle"; G.x=60; G.y=0; G.next=0; jumpBtn.disabled=BLOCKED; }
+    if(G.bonkT > 1.5){ G.state="idle"; G.x=60; G.y=0; G.next=0; resetJumpBtn(); }
   }
   // camera
   const tx = Math.max(0, G.x - W*0.32), ty = Math.max(0, G.y + 90 - (H-60)*0.6);

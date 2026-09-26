@@ -1,0 +1,1134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bro Got Slammed</title>
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="bro-got-slammed"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#16202e; --panel:#1f2d40; --panel2:#2a3c55; --line:#3d5577;
+  --ink:#f2f7ff; --muted:#b4c4dc; --gold:#ffc93c; --ped:#e0703a; --bro:#2fc1ae; --pink:#ff6fa3; --green:#4fcf6a; --red:#ff5d5d;
+  --display:"Lilita One","Arial Rounded MT Bold","Trebuchet MS",sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+html,body{background:var(--bg);margin:0}
+body{font-family:var(--body);color:var(--ink);padding:14px 14px 40px;font-size:15px}
+.wrap{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.home{font-weight:900;color:var(--muted);text-decoration:none;font-size:14px}
+.home:hover{color:var(--gold)}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);margin:0;line-height:1;color:var(--gold);text-shadow:0 3px 0 #b8452f,0 6px 0 rgba(0,0,0,.25)}
+.hud{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:6px 12px;display:flex;flex-direction:column;align-items:flex-start;color:var(--ink);font-family:var(--body)}
+.chip span{font-size:11px;color:var(--muted);font-weight:800}
+.chip b{font-size:17px;font-weight:900}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--gold)}
+.stage{position:relative;border-radius:20px;overflow:hidden;border:3px solid var(--line);background:#111;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;touch-action:none}
+.atk{position:absolute;right:14px;bottom:14px;width:96px;height:96px;border-radius:50%;border:none;font-family:var(--display);font-size:22px;color:#fff;background:radial-gradient(circle at 35% 30%,#ff9ac0,#e0336f);box-shadow:0 6px 0 #8a1c43,0 10px 18px rgba(0,0,0,.4);cursor:pointer;touch-action:none}
+.atk.ped{background:radial-gradient(circle at 35% 30%,#ffb07a,#d4541c);box-shadow:0 6px 0 #7a2c0a,0 10px 18px rgba(0,0,0,.4)}
+.atk.bro{background:radial-gradient(circle at 35% 30%,#7ff0df,#16a08e);box-shadow:0 6px 0 #0b5c52,0 10px 18px rgba(0,0,0,.4)}
+.atk:active{transform:translateY(3px)}
+.atk[disabled]{filter:grayscale(.7) brightness(.75)}
+.atk small,.dash small{display:block;font-family:var(--body);font-size:11px;font-weight:900}
+.dash{position:absolute;right:122px;bottom:20px;min-width:84px;height:70px;border-radius:22px;border:none;font-family:var(--display);font-size:19px;color:#3b2200;background:linear-gradient(#ffe27a,#ffb300);box-shadow:0 6px 0 #a86a00,0 10px 18px rgba(0,0,0,.4);cursor:pointer;touch-action:none;padding:0 12px}
+.dash:active{transform:translateY(3px)}
+.dash[disabled]{filter:grayscale(.8) brightness(.7)}
+.bar{position:absolute;left:10px;top:10px;display:flex;gap:6px}
+.bar button{font-family:var(--body);font-weight:900;font-size:13px;border:none;border-radius:10px;padding:7px 11px;background:rgba(0,0,0,.55);color:#fff;cursor:pointer}
+.bar[hidden],.atk[hidden],.dash[hidden]{display:none}
+.lobby{position:absolute;inset:0;background:linear-gradient(160deg,rgba(22,32,46,.97),rgba(42,60,85,.97));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;overflow:auto;text-align:center}
+.lobby[hidden]{display:none}
+.stage.inlobby canvas{display:none}
+.stage.inlobby .lobby{position:relative;inset:auto;padding:22px 16px}
+.lobby h2{font-family:var(--display);font-weight:400;margin:0;font-size:24px;color:var(--gold)}
+.lobby p{margin:0;color:var(--muted);font-weight:700;max-width:560px}
+.pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;width:100%;max-width:640px}
+.opt{font-family:var(--body);cursor:pointer;border:3px solid var(--line);background:var(--panel);color:var(--ink);border-radius:16px;padding:10px 12px;font-weight:900;font-size:15px}
+.opt .e{display:block;font-size:34px;line-height:1.1}
+.opt small{display:block;color:var(--muted);font-size:11px;font-weight:800}
+.opt.sel{border-color:var(--gold);background:var(--panel2);box-shadow:0 0 0 3px rgba(255,201,60,.25)}
+.opt.ped.sel{border-color:var(--ped)}
+.opt.bro.sel{border-color:var(--bro)}
+.play{font-family:var(--display);font-size:30px;border:none;border-radius:18px;padding:10px 46px;color:#3b2200;background:linear-gradient(#ffd966,#ffb300);box-shadow:0 6px 0 #a86a00;cursor:pointer}
+.play:active{transform:translateY(3px);box-shadow:0 3px 0 #a86a00}
+.msg{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:10px 14px;font-weight:800;min-height:44px}
+.msg.good{border-color:var(--green)}
+.msg.bad{border-color:var(--red)}
+.panel{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:14px 16px}
+.panel h2{font-family:var(--display);font-weight:400;margin:0 0 6px;font-size:24px;color:var(--gold)}
+.sub{color:var(--muted);margin:0 0 10px;font-weight:700}
+.ups{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.up{background:var(--panel2);border:2px solid var(--line);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.up.ped{border-color:var(--ped)}
+.up.bro{border-color:var(--bro)}
+.up h3{margin:0;font-family:var(--display);font-weight:400;font-size:21px}
+.up .lv{font-weight:900;font-size:15px}
+.up .pips{display:flex;gap:4px}
+.up .pips i{flex:1;height:10px;border-radius:5px;background:#10192a}
+.up .pips i.on{background:var(--gold)}
+.up p{margin:0;color:var(--muted);font-weight:700;font-size:13px}
+.buy{font-family:var(--body);font-weight:900;border:none;border-radius:12px;padding:10px 14px;color:#fff;background:var(--pink);cursor:pointer;box-shadow:0 4px 0 #8a1c43;font-size:15px}
+.buy[disabled]{background:#4a5870;box-shadow:0 4px 0 #2a3444;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.small{font-family:var(--body);font-weight:900;border:none;border-radius:12px;padding:9px 14px;color:#fff;background:var(--pink);cursor:pointer;box-shadow:0 4px 0 #8a1c43}
+.small.alt{background:#3d5577;box-shadow:0 4px 0 #1f2d40}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.overlay[hidden]{display:none}
+.box{background:var(--panel);border:3px solid var(--gold);border-radius:20px;padding:18px;max-width:440px;width:100%;display:flex;flex-direction:column;gap:10px}
+.box h3{font-family:var(--display);font-weight:400;margin:0;font-size:26px;color:var(--gold)}
+.box input{font-family:var(--body);font-weight:800;font-size:20px;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:#101a2a;color:var(--ink);outline:none;width:100%}
+.box input:focus{border-color:var(--gold)}
+.hint{color:var(--muted);font-size:13px;margin:0;font-weight:700}
+.help{margin:0;padding-left:18px;color:var(--muted);font-weight:700;line-height:1.5}
+.help b{color:var(--ink)}
+@media (max-width:600px){
+  .atk{width:80px;height:80px;font-size:18px;right:10px;bottom:10px}
+  .dash{right:98px;bottom:14px;height:60px;min-width:72px;font-size:16px}
+  .bar{top:auto;bottom:78px;left:10px}
+  .bar button{font-size:12px;padding:6px 9px}
+}</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="home" href="index.html">← GH Games</a>
+  <div class="top">
+    <h1>Bro Got Slammed</h1>
+    <div class="hud">
+      <button class="chip" id="nameChip" type="button" title="Change your name"><span>Name ✏️</span><b id="hName">Player</b></button>
+      <div class="chip"><span>Wins 🏆</span><b id="hWins">0</b></div>
+      <div class="chip"><span>Bat 🏏</span><b id="hBat">Lv 0</b></div>
+      <div class="chip"><span>Slam 💥</span><b id="hSlam">Lv 0</b></div>
+    </div>
+  </div>
+
+  <div class="stage inlobby" id="stage">
+    <canvas id="cv" aria-label="Game area. Move with arrow keys, WASD or by dragging. Space to attack, E to dash."></canvas>
+    <div class="bar" id="bar" hidden>
+      <button id="menuBtn" type="button">☰ Menu</button>
+      <button id="sideBtn" type="button">Switch team</button>
+    </div>
+    <button class="dash" id="dashBtn" type="button" hidden>DASH<small id="dashLbl">E key</small></button>
+    <button class="atk" id="atkBtn" type="button" hidden><span id="atkTxt">SWING</span><small id="atkLbl">Space</small></button>
+    <div class="lobby" id="lobby">
+      <h2>Pick your team</h2>
+      <div class="pick" id="sidePick">
+        <button class="opt ped" data-side="ped" type="button"><span class="e">🐶</span>Pedigreers<small>Body SLAM the bros. Big hits, slow to charge.</small></button>
+        <button class="opt bro" data-side="bro" type="button"><span class="e">😎</span>Bro Got Slammed<small>Smack the Pedigreers with your bat. Quick hits.</small></button>
+      </div>
+      <h2>Pick a map</h2>
+      <div class="pick" id="mapPick"></div>
+      <button class="play" id="playBtn" type="button">PLAY!</button>
+      <p>Friends who pick the same map play in the same game. Computer players fill any empty spots.</p>
+    </div>
+  </div>
+  <div class="msg" id="msg">Pick a team and a map, then press PLAY. Each round lasts 4 minutes.</div>
+
+  <section class="panel">
+    <h2>How to play</h2>
+    <ul class="help">
+      <li><b>Move:</b> arrow keys or WASD. On a tablet, touch and drag anywhere on the game.</li>
+      <li><b>Attack:</b> Space or the big round button. <b>Dash:</b> E key or the yellow DASH button.</li>
+      <li><b>Pedigreers 🐶</b> jump up and SLAM the ground. Every bro close by gets hit. Big damage, but it takes a moment to charge again.</li>
+      <li><b>Bro Got Slammed 😎</b> swing the bat 🏏 in the direction you are moving. Smaller hits, but really quick.</li>
+      <li><b>Pass out:</b> everyone has 150 health. When yours runs out you pass out 💫 and stay down until the next round.</li>
+      <li><b>Win:</b> each round lasts 4 minutes. The team with more players still standing at the end wins. Knock out the whole other team and you win straight away. Same number left is a draw.</li>
+      <li><b>Wins 🏆:</b> everyone on the winning team gets a win, even if they passed out. Spend wins on damage upgrades below.</li>
+    </ul>
+  </section>
+
+  <section class="panel">
+    <h2>Damage upgrades</h2>
+    <p class="sub">Spend your wins to hit harder. Bat power works when you are a bro, Slam power when you are a Pedigreer. Friends online feel it too.</p>
+    <div class="ups" id="ups"></div>
+  </section>
+
+  <div id="lb"></div>
+</div>
+
+<div class="overlay" id="overlay" hidden><div class="box" id="box"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="leaderboard.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const W = 1600, H = 1000;
+const QS = new URLSearchParams(location.search);
+const ROUND_MS = QS.has("quick") ? 40000 : 240000;   // 4 minutes
+const END_MS = 9000, FREEZE_MS = 3000;
+const TEAM_SIZE = 5;
+const R = { ped: 21, bro: 18 };
+const SPEED = { ped: 200, bro: 210, botped: 168, botbro: 176 };
+const DASH_T = 0.28, DASH_X = 2.3, DASH_CD = 3.5, BOT_DASH_CD = 4.5;
+const HP_MAX = 150;
+// attacks: bat swings in front of a bro, slams hit all around a Pedigreer
+const ATK = {
+  bro: { dmg: 6,  cd: 0.5, reach: 58, arc: 1.25, push: 260, stun: 0.18, anim: 0.25, name: "SWING", up: "bat" },
+  ped: { dmg: 12, cd: 1.3, reach: 44,  arc: 9,   push: 380, stun: 0.4,  anim: 0.35, name: "SLAM",  up: "slam" },
+};
+const BOT_DMG = 0.85, BOT_CD = 1.35;
+// damage upgrades: each level adds 25% damage
+const UP_COST = [1, 2, 3, 4, 5, 7, 9, 12, 15, 20];
+const UP_MAX = UP_COST.length;
+const mult = lv => 1 + 0.25 * lv;
+
+// ---------------- save ----------------
+const SAVE_KEY = "brogotslammed-save";
+let S = { wins: 0, bat: 0, slam: 0, side: "bro", map: "backyard", best: 0, kos: 0 };
+try { const raw = localStorage.getItem(SAVE_KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+
+// ---------------- names (shared with the other GH Games) ----------------
+const NAME_KEY = "ghgames_nick";
+const BAD = ["fuck","shit","bitch","cunt","dick","cock","pussy","asshole","arsehole","wanker","twat","bastard","slut","whore","nigg","fag","retard","penis","vagina","boob","tits","porn","sex","damn","crap","piss","bollock","prick","knob","bugger","bloody","hell","kys","rape","nazi","hitler","dildo","cum"];
+function isRude(v) { const t = (v || "").toLowerCase().replace(/[013457@$!]/g, c => ({"0":"o","1":"i","3":"e","4":"a","5":"s","7":"t","@":"a","$":"s","!":"i"}[c])).replace(/[^a-z]/g, ""); return BAD.some(w => t.includes(w)); }
+function cleanName(v) { return (v || "").replace(/[^A-Za-z0-9 _\-!?.']/g, "").replace(/\s+/g, " ").trim().slice(0, 12); }
+function safeName(v) { const n = cleanName(v); return !n || isRude(n) ? "Player" : n; }
+let NAME = "Player";
+try { NAME = safeName(localStorage.getItem(NAME_KEY)); } catch (e) {}
+const hasName = () => NAME && NAME !== "Player";
+
+// ---------------- maps ----------------
+const MAPS = {
+  backyard: {
+    name: "Backyard", e: "🏡", desc: "Pool, trampoline, BBQ and the shed",
+    ground: "#5fae4a", stripe: "#56a142",
+    solids: [
+      { r: [0, 0, 360, 200], c: "#c98f5a", e: "🏠" },
+      { r: [1360, 50, 190, 150], c: "#8a6a4a", e: "🛖" },
+      { r: [700, 110, 100, 70], c: "#555", e: "🔥" },
+      { r: [220, 400, 260, 40], c: "#2f7a2a", e: "" },
+      { r: [1150, 300, 40, 220], c: "#2f7a2a", e: "" },
+      { r: [760, 830, 300, 40], c: "#2f7a2a", e: "" },
+      { c: [620, 430, 45], col: "#3d8a36", e: "🌳" },
+      { c: [1000, 250, 50], col: "#3d8a36", e: "🌳" },
+      { c: [170, 860, 50], col: "#3d8a36", e: "🌳" },
+      { c: [1480, 880, 45], col: "#3d8a36", e: "🌳" },
+    ],
+    zones: [
+      { k: "slow", r: [960, 520, 380, 220], c: "#3fb6e8", e: "🛟" },
+      { k: "fast", c: [420, 650, 95], col: "#303a48", e: "🤸" },
+    ],
+    deco: [["🦆", 1080, 600], ["🌼", 520, 300], ["🌼", 1300, 420], ["⚽", 900, 700], ["🐕", 250, 300]],
+    kidSpawn: [950, 60, 380, 180], dadSpawn: [60, 520, 260, 220],
+  },
+  supermarket: {
+    name: "Supermarket", e: "🛒", desc: "Aisles, trolleys and a slippery freezer",
+    ground: "#e9e4d8", stripe: "#dcd5c6",
+    solids: [
+      ...[0, 1, 2, 3, 4, 5].flatMap(i => {
+        const cols = ["#d9534f", "#f0ad4e", "#5bc0de", "#5cb85c", "#9b59b6", "#e67e22"], em = ["🥫", "🍞", "🥛", "🧃", "🍫", "🧻"];
+        return [{ r: [250 + i * 190, 190, 60, 240], c: cols[i], e: em[i] }, { r: [250 + i * 190, 520, 60, 260], c: cols[i], e: em[i] }];
+      }),
+      { r: [300, 40, 90, 50], c: "#777", e: "🛒" }, { r: [560, 40, 90, 50], c: "#777", e: "🛒" }, { r: [820, 40, 90, 50], c: "#777", e: "🛒" }, { r: [1080, 40, 90, 50], c: "#777", e: "🛒" },
+      { c: [170, 300, 28], col: "#999", e: "🛒" }, { c: [1330, 890, 28], col: "#999", e: "🛒" }, { c: [760, 900, 28], col: "#999", e: "🛒" },
+    ],
+    zones: [
+      { k: "ice", r: [1420, 160, 170, 680], c: "#bfe9ff", e: "❄️" },
+      { k: "ice", c: [150, 620, 75], col: "#a8d8ff", e: "🧼" },
+    ],
+    deco: [["🍌", 470, 470], ["🍎", 850, 470], ["🧀", 1230, 470], ["🥕", 660, 850]],
+    kidSpawn: [40, 830, 560, 140], dadSpawn: [1180, 30, 200, 120],
+  },
+  playground: {
+    name: "Playground", e: "🛝", desc: "Slides, sandpit, swings and a merry-go-round",
+    ground: "#8fcf62", stripe: "#86c55a",
+    solids: [
+      { r: [600, 620, 230, 26], c: "#b04a3a", e: "" },
+      { r: [1050, 420, 170, 170], c: "#e0a02a", e: "🧗" },
+      { c: [300, 770, 70], col: "#d24d8a", e: "🎠" },
+      { c: [150, 120, 45], col: "#3d8a36", e: "🌳" },
+      { c: [1470, 140, 50], col: "#3d8a36", e: "🌳" },
+      { c: [840, 910, 45], col: "#3d8a36", e: "🌳" },
+      { c: [1360, 900, 24], col: "#6d7b8a", e: "🚰" },
+      { r: [700, 380, 40, 40], c: "#6d4c2b", e: "" },
+    ],
+    zones: [
+      { k: "slow", c: [420, 320, 150], col: "#ecd49a", e: "🏖️" },
+      { k: "fast", r: [880, 190, 320, 70], c: "#ffd23f", e: "🛝" },
+      { k: "fast", r: [1260, 640, 70, 250], c: "#ffd23f", e: "🛝" },
+    ],
+    deco: [["🪁", 1000, 80], ["🐿️", 560, 820], ["🌻", 1500, 520], ["🎈", 240, 480]],
+    kidSpawn: [1220, 250, 330, 200], dadSpawn: [40, 480, 220, 150],
+  },
+  beach: {
+    name: "Beach", e: "🏖️", desc: "Umbrellas, sandcastles, hot sand and waves",
+    ground: "#f2d59b", stripe: "#ecce90",
+    solids: [
+      { c: [300, 250, 52], col: "#ff5d8f", e: "⛱️" },
+      { c: [700, 450, 52], col: "#3fa9f5", e: "⛱️" },
+      { c: [1100, 220, 52], col: "#ffb000", e: "⛱️" },
+      { c: [1350, 560, 52], col: "#8e5cf0", e: "⛱️" },
+      { c: [500, 650, 52], col: "#29c47f", e: "⛱️" },
+      { c: [900, 690, 36], col: "#d9b36a", e: "🏰" },
+      { c: [200, 520, 36], col: "#d9b36a", e: "🏰" },
+      { c: [1240, 380, 36], col: "#d9b36a", e: "🏰" },
+    ],
+    zones: [
+      { k: "slow", r: [0, 830, 1600, 170], c: "#38a6e0", e: "🌊" },
+      { k: "fast", r: [800, 70, 300, 80], c: "#ff9a4a", e: "🔥" },
+      { k: "fast", r: [60, 700, 260, 70], c: "#ff9a4a", e: "🔥" },
+      { k: "ice", c: [1460, 170, 85], col: "#6c8a7a", e: "🪸" },
+    ],
+    deco: [["🐚", 620, 300], ["🦀", 1000, 560], ["🐦", 800, 330], ["🏐", 1450, 700], ["🐚", 1150, 780]],
+    kidSpawn: [1150, 40, 250, 140], dadSpawn: [40, 40, 300, 140],
+  },
+};
+// expand everything into simple shapes for collision
+for (const m of Object.values(MAPS)) {
+  m.S = m.solids.map(s => s.r ? { t: "r", x: s.r[0], y: s.r[1], w: s.r[2], h: s.r[3] } : { t: "c", x: s.c[0], y: s.c[1], r: s.c[2] });
+  m.Z = m.zones.map(z => Object.assign({ k: z.k }, z.r ? { t: "r", x: z.r[0], y: z.r[1], w: z.r[2], h: z.r[3] } : { t: "c", x: z.c[0], y: z.c[1], r: z.c[2] }));
+}
+let MAP = MAPS[S.map] || MAPS.backyard;
+
+const rad = e => e.rad || R[e.team];
+function hitSolid(x, y, r) {
+  if (x < r || y < r || x > W - r || y > H - r) return true;
+  for (const s of MAP.S) {
+    if (s.t === "r") {
+      const cx = Math.max(s.x, Math.min(x, s.x + s.w)), cy = Math.max(s.y, Math.min(y, s.y + s.h));
+      if ((x - cx) ** 2 + (y - cy) ** 2 < r * r) return true;
+    } else if ((x - s.x) ** 2 + (y - s.y) ** 2 < (s.r + r) ** 2) return true;
+  }
+  return false;
+}
+function pushOut(e) {
+  const r = rad(e);
+  for (let pass = 0; pass < 2; pass++) {
+    for (const s of MAP.S) {
+      if (s.t === "r") {
+        const cx = Math.max(s.x, Math.min(e.x, s.x + s.w)), cy = Math.max(s.y, Math.min(e.y, s.y + s.h));
+        const dx = e.x - cx, dy = e.y - cy, d = Math.hypot(dx, dy);
+        if (d < r) {
+          if (d < 0.001) {
+            const L = e.x - s.x, Rt = s.x + s.w - e.x, T = e.y - s.y, B = s.y + s.h - e.y, m = Math.min(L, Rt, T, B);
+            if (m === L) e.x = s.x - r; else if (m === Rt) e.x = s.x + s.w + r; else if (m === T) e.y = s.y - r; else e.y = s.y + s.h + r;
+          } else { e.x = cx + dx / d * r; e.y = cy + dy / d * r; }
+        }
+      } else {
+        const dx = e.x - s.x, dy = e.y - s.y, d = Math.hypot(dx, dy) || 0.001;
+        if (d < s.r + r) { e.x = s.x + dx / d * (s.r + r); e.y = s.y + dy / d * (s.r + r); }
+      }
+    }
+    e.x = Math.max(r, Math.min(W - r, e.x)); e.y = Math.max(r, Math.min(H - r, e.y));
+  }
+}
+function zoneAt(x, y) {
+  let k = null;
+  for (const z of MAP.Z) {
+    const inside = z.t === "r" ? (x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h) : ((x - z.x) ** 2 + (y - z.y) ** 2 <= z.r * z.r);
+    if (inside) k = z.k;
+  }
+  return k;
+}
+function spawnIn(area, r) {
+  for (let i = 0; i < 80; i++) {
+    const x = area[0] + Math.random() * area[2], y = area[1] + Math.random() * area[3];
+    if (!hitSolid(x, y, r + 4)) return [x, y];
+  }
+  for (let i = 0; i < 400; i++) { const x = Math.random() * W, y = Math.random() * H; if (!hitSolid(x, y, r + 4)) return [x, y]; }
+  return [W / 2, H / 2];
+}
+const spawnArea = team => team === "ped" ? MAP.dadSpawn : MAP.kidSpawn;
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const CELL = 40, GW = W / CELL, GH = H / CELL;
+let freeCache = {};
+function freeGrid(r) {
+  const key = MAP.name + r;
+  if (freeCache[key]) return freeCache[key];
+  const g = new Uint8Array(GW * GH);
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) g[y * GW + x] = hitSolid(x * CELL + CELL / 2, y * CELL + CELL / 2, r) ? 0 : 1;
+  return (freeCache[key] = g);
+}
+function clearLine(ax, ay, bx, by, r) {
+  const d = Math.hypot(bx - ax, by - ay), n = Math.ceil(d / 20);
+  for (let i = 1; i <= n; i++) { const t = i / n; if (hitSolid(ax + (bx - ax) * t, ay + (by - ay) * t, r)) return false; }
+  return true;
+}
+function pathAngle(e, tx, ty) {
+  const r = rad(e) - 2;
+  if (clearLine(e.x, e.y, tx, ty, r)) return Math.atan2(ty - e.y, tx - e.x);
+  const g = freeGrid(Math.max(8, r - 6));
+  const cell = (x, y) => Math.max(0, Math.min(GH - 1, Math.floor(y / CELL))) * GW + Math.max(0, Math.min(GW - 1, Math.floor(x / CELL)));
+  const start = cell(e.x, e.y), goal = cell(tx, ty);
+  const prev = new Int32Array(GW * GH).fill(-1); prev[goal] = goal;
+  const q = [goal]; let found = false;
+  for (let qi = 0; qi < q.length; qi++) {
+    const c = q[qi]; if (c === start) { found = true; break; }
+    const cx = c % GW, cy = (c / GW) | 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      if (!dx && !dy) continue;
+      const nx = cx + dx, ny = cy + dy; if (nx < 0 || ny < 0 || nx >= GW || ny >= GH) continue;
+      const n = ny * GW + nx; if (prev[n] !== -1) continue;
+      if (!g[n] && n !== start) continue;
+      if (dx && dy && (!g[cy * GW + nx] || !g[ny * GW + cx])) continue;
+      prev[n] = c; q.push(n);
+    }
+  }
+  if (!found) return Math.atan2(ty - e.y, tx - e.x);
+  let c = prev[start], aim = c;
+  for (let i = 0; i < 6 && c !== goal; i++) { const nx = (c % GW) * CELL + CELL / 2, ny = ((c / GW) | 0) * CELL + CELL / 2; if (clearLine(e.x, e.y, nx, ny, r)) aim = c; else break; c = prev[c]; }
+  return Math.atan2(((aim / GW) | 0) * CELL + CELL / 2 - e.y, (aim % GW) * CELL + CELL / 2 - e.x);
+}
+
+// ---------------- entities ----------------
+const MYID = Math.random().toString(36).slice(2, 10);
+const PED_FACES = ["🐶", "🐶", "🐺", "🐶"], BRO_FACES = ["😎", "😎", "🤠", "😤"];
+const BOT_PEDS = ["Rex", "Buster", "Rocky", "Duke", "Biscuit", "Tank", "Bella", "Max"], BOT_BROS = ["Brody", "Chad", "Kyle", "Mason", "Blake", "Trent", "Jayden", "Tyler"];
+const PED_SAY = ["WOOF!", "Slam time!", "Grrr!", "Body slam!", "Bark bark!", "Here I come!", "Who wants a slam?", "Sit! Stay! SLAM!"];
+const BRO_SAY = ["Bro!", "Batter up!", "Bro, run!", "Home run!", "Easy, bro", "Nice one, bro!", "Get the dogs!", "Brooo!"];
+const BAT_SAY = ["BONK!", "WHACK!", "THWACK!", "HOME RUN!", "BOINK!", "SMACK!"];
+const SLAM_SAY = ["SLAM!", "KABOOM!", "CRUNCH!", "BODY SLAM!", "WOOF!", "SPLAT!"];
+function hash(s) { let h = 7; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
+function face(e) { const h = hash(e.id); return e.team === "ped" ? PED_FACES[h % PED_FACES.length] : BRO_FACES[h % BRO_FACES.length]; }
+const other = t => t === "ped" ? "bro" : "ped";
+
+let E = new Map();
+function mkEnt(id, o) {
+  const e = Object.assign({ id, name: "Player", bot: false, team: "bro", side: "bro", x: W / 2, y: H / 2, vx: 0, vy: 0, f: 0,
+    rx: W / 2, ry: H / 2, dashT: 0, dashCd: 0, stun: 0, hp: HP_MAX, out: false, atkCd: 0, swingT: 0, lb: 0, ls: 0,
+    seen: 0, pref: 1, tgt: null, tgtT: 0, wa: Math.random() * 6.28, say: "", sayT: 0, sayNext: 3 + Math.random() * 8, brave: Math.random() < 0.5 }, o);
+  e.rx = e.x; e.ry = e.y;
+  E.set(id, e); return e;
+}
+const me = () => E.get(MYID);
+const alive = t => [...E.values()].filter(e => e.team === t && !e.out);
+
+// ---------------- game / network state ----------------
+let playing = false, isHost = true, hostId = MYID;
+let phase = "play", round = 0, winner = "", timeLeft = ROUND_MS, freezeLeft = 0, endLeft = 0;
+let lastSt = null;
+let sb = null, ch = null, online = false, joinT = 0, peers = [];
+let myKOs = 0, myDmg = 0, roundScored = true, myRound = -1, myTeamThisRound = "bro";
+
+function setMsg(t, k) { const m = $("msg"); m.textContent = t; m.className = "msg" + (k ? " " + k : ""); }
+
+// ---- host: rounds and bots ----
+function startRound() {
+  round++;
+  for (const [id, e] of E) if (e.bot) E.delete(id);
+  const humans = [...E.values()];
+  humans.forEach(e => { e.team = e.side; });
+  let peds = humans.filter(e => e.team === "ped").length, bros = humans.length - peds;
+  let bi = Math.floor(Math.random() * 20);
+  while (peds < TEAM_SIZE) { addBot("ped", bi++); peds++; }
+  while (bros < TEAM_SIZE) { addBot("bro", bi++); bros++; }
+  for (const e of E.values()) {
+    const [x, y] = spawnIn(spawnArea(e.team), R[e.team]);
+    Object.assign(e, { x, y, rx: x, ry: y, vx: 0, vy: 0, stun: 0, dashT: 0, dashCd: 0, hp: HP_MAX, out: false, atkCd: 0, swingT: 0, f: Math.atan2(H / 2 - y, W / 2 - x) });
+  }
+  phase = "play"; winner = ""; timeLeft = ROUND_MS; freezeLeft = FREEZE_MS;
+  sendState();
+}
+function addBot(team, i) {
+  const list = team === "ped" ? BOT_PEDS : BOT_BROS;
+  const id = "b" + Math.random().toString(36).slice(2, 7);
+  const [x, y] = spawnIn(spawnArea(team), R[team]);
+  return mkEnt(id, { bot: true, team, side: team, name: list[i % list.length] + " 🤖", x, y });
+}
+function hostTick(dt) {
+  if (phase === "play") {
+    timeLeft -= dt * 1000; freezeLeft = Math.max(0, freezeLeft - dt * 1000);
+    for (const e of E.values()) if (e.bot) botThink(e, dt);
+    for (const e of E.values()) if (e.bot) move(e, dt, e.ix, e.iy, e.wantDash);
+    for (const e of E.values()) if (e.bot && e.wantAtk) doAttack(e, e.f);
+    for (const e of E.values()) if (!e.bot && e.id !== MYID) { e.stun = Math.max(0, e.stun - dt); e.atkCd = Math.max(0, e.atkCd - dt); e.swingT = Math.max(0, e.swingT - dt); }
+    const p = alive("ped").length, b = alive("bro").length;
+    if (p === 0 || b === 0) endRound(p === b ? "draw" : p > b ? "ped" : "bro");
+    else if (timeLeft <= 0) endRound(p === b ? "draw" : p > b ? "ped" : "bro");
+  } else {
+    endLeft -= dt * 1000;
+    if (endLeft <= 0) startRound();
+  }
+}
+function angDiff(a, b) { let d = Math.abs(a - b) % (Math.PI * 2); return d > Math.PI ? Math.PI * 2 - d : d; }
+// host only: resolve an attack
+function doAttack(e, f) {
+  if (!e || e.out || phase !== "play" || freezeLeft > 0) return;
+  if (e.atkCd > 0.12) return;                       // small allowance for network lag
+  const A = ATK[e.team];
+  if (typeof f === "number" && isFinite(f)) e.f = f;
+  e.atkCd = A.cd * (e.bot ? BOT_CD : 1); e.swingT = A.anim;
+  const lv = e.team === "bro" ? e.lb : e.ls;
+  const dmg = Math.round(A.dmg * (e.bot ? BOT_DMG : mult(lv)));
+  ev({ t: "sw", a: e.id, k: e.team, x: Math.round(e.x), y: Math.round(e.y), f: +e.f.toFixed(2) });
+  for (const v of E.values()) {
+    if (v.team === e.team || v.out) continue;
+    const d = dist(e, v) - R[v.team];
+    if (d > A.reach + R[e.team]) continue;
+    if (A.arc < 4 && d > 6 && angDiff(Math.atan2(v.y - e.y, v.x - e.x), e.f) > A.arc) continue;
+    if (!clearLine(e.x, e.y, v.x, v.y, 3)) continue;
+    v.hp = Math.max(0, v.hp - dmg);
+    const a = Math.atan2(v.y - e.y, v.x - e.x), kx = Math.round(Math.cos(a) * A.push), ky = Math.round(Math.sin(a) * A.push);
+    if (v.bot) { v.vx += kx; v.vy += ky; v.stun = A.stun; }
+    const say = (e.team === "bro" ? BAT_SAY : SLAM_SAY)[Math.floor(Math.random() * 6)];
+    ev({ t: "hit", a: e.id, v: v.id, d: dmg, h: v.hp, x: Math.round(v.x), y: Math.round(v.y), kx, ky, st: A.stun, m: say });
+    if (v.hp <= 0) { v.out = true; v.vx = v.vy = 0; ev({ t: "ko", a: e.id, v: v.id, x: Math.round(v.x), y: Math.round(v.y) }); }
+  }
+}
+function endRound(w) {
+  phase = "end"; winner = w; endLeft = END_MS; timeLeft = Math.max(0, timeLeft);
+  sendState();
+  finishMyRound();
+}
+function sendState() {
+  if (!online || !ch) return;
+  const e = [...E.values()].map(v => [v.id, v.team === "ped" ? 1 : 0, Math.round(v.x), Math.round(v.y), Math.round(v.vx), Math.round(v.vy), v.bot ? 1 : 0, v.name,
+    v.stun > 0 ? 1 : 0, v.dashT > 0 ? 1 : 0, v.sayT > 0 ? v.say : "", v.out ? 1 : 0, Math.round(v.hp), Math.round(v.f * 100)]);
+  bcast("st", { h: MYID, p: phase, t: Math.round(timeLeft), f: Math.round(freezeLeft), n: Math.round(endLeft), r: round, w: winner, e });
+}
+
+// ---- bots ----
+function steer(e, ang, look) {
+  look = look || 46;
+  const r = rad(e) - 2, offs = [0, 0.45, 0.9, 1.35, 1.8, 2.3, 2.8];
+  for (const o of offs) for (const sgn of [e.pref, -e.pref]) {
+    const a = ang + o * sgn;
+    if (!hitSolid(e.x + Math.cos(a) * look, e.y + Math.sin(a) * look, r) && !hitSolid(e.x + Math.cos(a) * look * 0.5, e.y + Math.sin(a) * look * 0.5, r)) {
+      if (o > 0) e.pref = sgn;
+      return a;
+    }
+    if (o === 0) break;
+  }
+  return ang + Math.PI;
+}
+function bestDir(e, threats) {
+  const r = rad(e), prev = Math.atan2(e.iy || 0, e.ix || 1);
+  let best = -1e9, ba = prev;
+  for (let i = 0; i < 16; i++) {
+    const a = i / 16 * Math.PI * 2, c = Math.cos(a), sn = Math.sin(a);
+    if (hitSolid(e.x + c * 40, e.y + sn * 40, r - 2)) continue;
+    let px = e.x + c * 110, py = e.y + sn * 110, sc = 0;
+    if (hitSolid(px, py, r - 2)) { px = e.x + c * 50; py = e.y + sn * 50; sc -= 120; }
+    let md = 1e9;
+    for (const d of threats) md = Math.min(md, Math.hypot(px - (d.x + d.vx * 0.4), py - (d.y + d.vy * 0.4)));
+    if (threats.length) sc += Math.min(md, 500);
+    const edge = Math.min(px, py, W - px, H - py);
+    if (edge < 160) sc -= (160 - edge) * 1.3;
+    let da = Math.abs(a - prev); if (da > Math.PI) da = 2 * Math.PI - da;
+    sc -= da * 12;
+    if (sc > best) { best = sc; ba = a; }
+  }
+  return ba;
+}
+function botSay(e, list) { e.say = list[Math.floor(Math.random() * list.length)]; e.sayT = 2.2; e.sayNext = 8 + Math.random() * 12; }
+function botThink(e, dt) {
+  e.wantDash = false; e.wantAtk = false;
+  e.ix = e.iy = 0;
+  if (e.out || freezeLeft > 0) return;
+  e.sayNext -= dt;
+  if (e.sayNext <= 0) botSay(e, e.team === "ped" ? PED_SAY : BRO_SAY);
+  const go = a => { e.ix = Math.cos(a); e.iy = Math.sin(a); };
+  const foes = alive(other(e.team));
+  if (!foes.length) return;
+  // run away when hurt (the brave ones never do)
+  if (!e.brave && e.hp < 30) {
+    const near = foes.filter(f => dist(f, e) < 320);
+    if (near.length) { go(bestDir(e, near)); if (dist(near[0], e) < 110 && e.dashCd <= 0) e.wantDash = true; return; }
+  }
+  e.tgtT -= dt;
+  const tg = E.get(e.tgt);
+  if (e.tgtT <= 0 || !tg || tg.out || tg.team === e.team) {
+    let best = null, bd = 1e12;
+    for (const k of foes) { const d = (k.x - e.x) ** 2 + (k.y - e.y) ** 2 + Math.random() * 40000 + (k.hp < 40 ? -30000 : 0); if (d < bd) { bd = d; best = k; } }
+    e.tgt = best ? best.id : null; e.tgtT = 0.8 + Math.random() * 0.6;
+  }
+  const t = E.get(e.tgt);
+  if (!t) { e.wa += (Math.random() - 0.5) * dt * 3; go(steer(e, e.wa)); return; }
+  const d = dist(e, t), A = ATK[e.team];
+  const inReach = d - R[t.team] < A.reach + R[e.team] - 8;
+  if (inReach && e.atkCd <= 0 && clearLine(e.x, e.y, t.x, t.y, 3)) {
+    e.f = Math.atan2(t.y - e.y, t.x - e.x);
+    if (Math.random() < dt * 9) e.wantAtk = true;
+  }
+  if (e.team === "bro" && e.atkCd > 0.15 && d < 70) {
+    // bros step back out of slam range while the bat recharges
+    go(steer(e, Math.atan2(e.y - t.y, e.x - t.x) + (e.pref * 0.6)));
+    return;
+  }
+  e.pathT = (e.pathT || 0) - dt;
+  if (e.pathT <= 0) { e.pathA = pathAngle(e, t.x + t.vx * 0.3, t.y + t.vy * 0.3); e.pathT = 0.3; }
+  if (!inReach || e.team === "ped") go(steer(e, e.pathA));
+  if (e.team === "ped" && d < 160 && d > 80 && e.dashCd <= 0 && e.atkCd < 0.2 && Math.random() < 0.04) e.wantDash = true;
+  if (!e.wantAtk && !(e.ix || e.iy)) { e.ix = Math.cos(e.f) * 0.2; e.iy = Math.sin(e.f) * 0.2; }
+}
+
+// ---- movement (used for me and for bots) ----
+function move(e, dt, ix, iy, dash) {
+  e.dashCd = Math.max(0, e.dashCd - dt); e.dashT = Math.max(0, e.dashT - dt); e.sayT = Math.max(0, e.sayT - dt);
+  e.atkCd = Math.max(0, e.atkCd - dt); e.swingT = Math.max(0, e.swingT - dt);
+  let stunned = false;
+  if (e.stun > 0) { e.stun -= dt; stunned = true; ix = iy = 0; }
+  const frozen = phase !== "play" || freezeLeft > 0 || e.out;
+  if (frozen) { ix = iy = 0; }
+  if (Math.hypot(ix, iy) > 0.15) e.f = Math.atan2(iy, ix);
+  if (dash && e.dashCd <= 0 && !frozen && !stunned && (ix || iy)) { e.dashT = DASH_T; e.dashCd = e.bot ? BOT_DASH_CD : DASH_CD; }
+  const len = Math.hypot(ix, iy); if (len > 1) { ix /= len; iy /= len; }
+  const z = zoneAt(e.x, e.y);
+  let sp = SPEED[(e.bot ? "bot" : "") + e.team];
+  if (z === "slow") sp *= 0.55; else if (z === "fast") sp *= 1.5;
+  if (e.swingT > 0 && e.team === "ped") sp *= 0.3;           // a slam roots you for a moment
+  if (e.dashT > 0) sp *= DASH_X;
+  const acc = z === "ice" ? 1.6 : stunned ? 3 : 14;
+  const k = Math.min(1, dt * acc);
+  e.vx += (ix * sp - e.vx) * k; e.vy += (iy * sp - e.vy) * k;
+  if (frozen && z !== "ice") { e.vx = e.vy = 0; }
+  if (z === "ice") { const v = Math.hypot(e.vx, e.vy), mx = sp * 1.15; if (v > mx && !stunned) { e.vx *= mx / v; e.vy *= mx / v; } }
+  e.x += e.vx * dt; e.y += e.vy * dt;
+  const ox = e.x, oy = e.y;
+  pushOut(e);
+  if (ox !== e.x) e.vx *= z === "ice" ? -0.4 : 0.3;
+  if (oy !== e.y) e.vy *= z === "ice" ? -0.4 : 0.3;
+  e.rx = e.x; e.ry = e.y;
+}
+
+// ---------------- events (host makes them, everyone shows them) ----------------
+const FX = [];
+function ev(p) { onEv(p); bcast("ev", p); }
+function onEv(p) {
+  const name = id => { const x = E.get(id); return x ? x.name : "someone"; };
+  if (p.t === "sw") {
+    const a = E.get(p.a);
+    if (a && p.a !== MYID) { a.swingT = ATK[p.k].anim; a.f = p.f; }
+    if (p.k === "ped") FX.push({ x: p.x, y: p.y, t: 0, ring: true, r: ATK.ped.reach + R.ped });
+  } else if (p.t === "hit") {
+    const v = E.get(p.v); if (v) v.hp = p.h;
+    const bat = E.get(p.a) && E.get(p.a).team === "bro";
+    FX.push({ x: p.x, y: p.y, t: 0, m: p.m, e: bat ? "🏏" : "💥", col: bat ? "#7ff0df" : "#ffb07a" });
+    FX.push({ x: p.x + 18, y: p.y - 10, t: 0, num: "-" + p.d });
+    for (let i = 0; i < 5; i++) FX.push({ x: p.x, y: p.y, t: 0, part: "⭐", vx: (Math.random() - 0.5) * 220, vy: -60 - Math.random() * 160 });
+    if (p.a === MYID) { myDmg += p.d; shake = Math.max(shake, 0.12); }
+    if (p.v === MYID) {
+      const m = me(); if (m) { m.vx += p.kx; m.vy += p.ky; m.stun = p.st; m.hp = p.h; }
+      shake = Math.max(shake, 0.35);
+      if (p.h > 0) setMsg(`${bat ? "🏏" : "💥"} ${name(p.a)} hit you for ${p.d}! You have ${p.h} health left.`, "bad");
+    }
+  } else if (p.t === "ko") {
+    const v = E.get(p.v); if (v) { v.out = true; v.hp = 0; }
+    FX.push({ x: p.x, y: p.y - 20, t: 0, m: "PASSED OUT!", e: "💫", col: "#ffc93c" });
+    if (p.a === MYID) { myKOs++; setMsg(`😆 You knocked out ${name(p.v)}! That's ${myKOs} this round.`, "good"); }
+    if (p.v === MYID) { setMsg(`💫 ${name(p.a)} knocked you out! Stay down and cheer on your team until the next round.`, "bad"); shake = 0.5; }
+  }
+}
+const TEAM_NAME = { ped: "Pedigreers", bro: "Bro Got Slammed" };
+function finishMyRound() {
+  if (roundScored) return; roundScored = true;
+  const M = me(); const t = M ? M.team : myTeamThisRound;
+  let txt;
+  if (winner === "draw") txt = "It's a draw! Nobody gets a win this time.";
+  else if (winner === t) { S.wins += 1; txt = `🏆 ${TEAM_NAME[winner]} win! You got a win. Spend it on damage upgrades.`; }
+  else txt = `${TEAM_NAME[winner] || "The other team"} win this round. Get them next time!`;
+  S.kos += myKOs; if (myKOs > S.best) S.best = myKOs;
+  save(); renderHUD(); renderUps();
+  setMsg(`${txt} You knocked out ${myKOs} and did ${myDmg} damage. Next round starts soon.`, winner === t ? "good" : "");
+  if (window.Leaderboard && hasName() && myKOs > 0) Leaderboard.submit(myKOs);
+}
+
+// ---------------- networking (Supabase Realtime) ----------------
+const SB_URL = "https://bpqaeqswtgtbqrczjcrx.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwcWFlcXN3dGd0YnFyY3pqY3J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzUzOTIsImV4cCI6MjA5NjkxMTM5Mn0.hsEZJ_C4NvySPMb59G9EPPfdJRSNBODbnuo9ij_zxrI";
+function bcast(ev, payload) { if (online && ch) try { ch.send({ type: "broadcast", event: ev, payload }); } catch (e) {} }
+function meta() { return { i: MYID, n: NAME, s: S.side, t: joinT, lb: S.bat, ls: S.slam }; }
+function connect() {
+  disconnect();
+  if (!window.supabase || !navigator.onLine) return;
+  try {
+    if (!sb) sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 40 } } });
+    ch = sb.channel("brogotslammed-" + S.map, { config: { broadcast: { self: false }, presence: { key: MYID } } });
+    ch.on("broadcast", { event: "me" }, m => onMe(m.payload));
+    ch.on("broadcast", { event: "st" }, m => onSt(m.payload));
+    ch.on("broadcast", { event: "ev" }, m => { if (!isHost) onEv(m.payload); });
+    ch.on("broadcast", { event: "act" }, m => { if (isHost) { const e = E.get(m.payload.i); if (e && !e.bot) doAttack(e, m.payload.f); } });
+    ch.on("presence", { event: "sync" }, onSync);
+    ch.subscribe(async status => {
+      if (status === "SUBSCRIBED") { online = true; try { await ch.track(meta()); } catch (e) {} updateOnlineMsg(); }
+      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") { online = false; becomeHost(); }
+    });
+  } catch (e) { online = false; }
+}
+function disconnect() { if (ch) { try { ch.untrack(); sb.removeChannel(ch); } catch (e) {} } ch = null; online = false; peers = []; }
+function onSync() {
+  const st = ch.presenceState();
+  peers = Object.values(st).map(a => a[0]).filter(Boolean);
+  if (!peers.find(p => p.i === MYID)) peers.push(meta());
+  peers.sort((a, b) => (a.t - b.t) || (a.i < b.i ? -1 : 1));
+  const newHost = peers[0].i;
+  const was = isHost;
+  hostId = newHost;
+  if (newHost === MYID) { if (!was) becomeHost(); }
+  else if (was) { isHost = false; for (const [id] of E) if (id !== MYID) E.delete(id); lastSt = null; }
+  if (isHost) syncHumans();
+  updateOnlineMsg();
+}
+const lvl = v => Math.max(0, Math.min(UP_MAX, Math.floor(Number(v) || 0)));
+function syncHumans() {
+  const ids = new Set(peers.map(p => p.i));
+  for (const p of peers) {
+    let e = E.get(p.i);
+    if (!e) {
+      const team = p.s === "ped" ? "ped" : "bro";
+      const [x, y] = spawnIn(spawnArea(team), R[team]);
+      e = mkEnt(p.i, { team, side: team, x, y });
+      // take over a computer player on that team; if they are all out, wait for the next round
+      const bot = [...E.values()].find(b => b.bot && b.team === team && !b.out);
+      if (bot) { E.delete(bot.id); e.hp = bot.hp; } else if (phase === "play") { e.out = true; e.hp = 0; }
+    }
+    e.name = safeName(p.n); e.side = p.s === "ped" ? "ped" : "bro"; e.lb = lvl(p.lb); e.ls = lvl(p.ls);
+  }
+  for (const [id, e] of E) if (!e.bot && !ids.has(id) && id !== MYID) {
+    E.delete(id);
+    if (phase === "play") { const nb = addBot(e.team, Math.floor(Math.random() * 8)); nb.x = e.x; nb.y = e.y; nb.hp = e.hp; nb.out = e.out; }
+  }
+  sendState();
+}
+function becomeHost() {
+  if (isHost && round > 0) return;
+  isHost = true; hostId = MYID;
+  if (lastSt && lastSt.r > 0) {
+    phase = lastSt.p; round = lastSt.r; winner = lastSt.w; timeLeft = lastSt.t; freezeLeft = lastSt.f; endLeft = lastSt.n || END_MS;
+    for (const e of E.values()) if (e.bot) { e.x = e.rx; e.y = e.ry; }
+  } else startRound();
+}
+function onMe(p) {
+  let e = E.get(p.i);
+  if (!e) { if (!isHost) return; e = mkEnt(p.i, { x: p.x, y: p.y }); }
+  if (e.bot) return;
+  e.x = p.x; e.y = p.y; e.vx = p.vx; e.vy = p.vy; e.dashT = p.d ? 0.1 : 0; if (typeof p.f === "number") e.f = p.f; e.seen = performance.now();
+}
+function onSt(p) {
+  if (p.h !== hostId && peers.length) return;
+  if (isHost) { if (p.h === MYID) return; isHost = false; }
+  const newRound = p.r !== round;
+  lastSt = p; phase = p.p; round = p.r; winner = p.w; timeLeft = p.t; freezeLeft = p.f; endLeft = p.n;
+  const ids = new Set();
+  for (const a of p.e) {
+    const [id, team, x, y, vx, vy, bot, name, stun, dash, say, out, hp, f] = a; ids.add(id);
+    let e = E.get(id);
+    if (!e) e = mkEnt(id, { x, y, bot: !!bot });
+    e.team = team ? "ped" : "bro"; e.out = !!out; e.hp = hp;
+    if (id === MYID) {
+      if (newRound) { e.x = e.rx = x; e.y = e.ry = y; e.vx = e.vy = 0; }
+      continue;
+    }
+    e.bot = !!bot; e.name = bot ? String(name).slice(0, 16) : safeName(name); e.f = (f || 0) / 100;
+    if (say && e.say !== say) { e.say = String(say).slice(0, 30); e.sayT = 2.2; }
+    e.stun = stun ? 0.2 : 0; e.dashT = dash ? 0.1 : 0;
+    if (bot || performance.now() - e.seen > 1200) { e.x = x; e.y = y; e.vx = vx; e.vy = vy; e.seen2 = performance.now(); }
+    if (newRound) { e.rx = x; e.ry = y; }
+  }
+  for (const id of [...E.keys()]) if (!ids.has(id) && id !== MYID) E.delete(id);
+  if (phase === "end") finishMyRound();
+}
+function updateOnlineMsg() {
+  if (!playing) return;
+  const n = peers.length || 1;
+  $("onlineLbl").textContent = online ? (n > 1 ? `${n} players online` : "Online, just you so far") : "Offline";
+}
+
+// ---------------- input ----------------
+const keys = {};
+let dashQueued = false, atkQueued = false, atkHeld = false;
+addEventListener("keydown", e => {
+  if (e.target && (e.target.tagName === "INPUT")) return;
+  const k = e.key.toLowerCase();
+  keys[k] = true;
+  if ((k === " " || k === "j") && playing) { atkQueued = true; atkHeld = true; e.preventDefault(); }
+  if ((k === "e" || k === "shift") && playing) { dashQueued = true; e.preventDefault(); }
+  if (playing && ["arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) e.preventDefault();
+});
+addEventListener("keyup", e => { const k = e.key.toLowerCase(); keys[k] = false; if (k === " " || k === "j") atkHeld = false; });
+addEventListener("blur", () => { for (const k in keys) keys[k] = false; atkHeld = false; });
+let joy = null;
+const cv = $("cv");
+cv.addEventListener("pointerdown", e => { if (!playing) return; cv.setPointerCapture(e.pointerId); const r = cv.getBoundingClientRect(); joy = { id: e.pointerId, bx: e.clientX - r.left, by: e.clientY - r.top, x: e.clientX - r.left, y: e.clientY - r.top }; e.preventDefault(); });
+cv.addEventListener("pointermove", e => { if (!joy || e.pointerId !== joy.id) return; const r = cv.getBoundingClientRect(); joy.x = e.clientX - r.left; joy.y = e.clientY - r.top; });
+const endJoy = e => { if (joy && e.pointerId === joy.id) joy = null; };
+cv.addEventListener("pointerup", endJoy); cv.addEventListener("pointercancel", endJoy);
+$("dashBtn").addEventListener("pointerdown", e => { dashQueued = true; e.preventDefault(); e.stopPropagation(); });
+$("atkBtn").addEventListener("pointerdown", e => { atkQueued = true; atkHeld = true; e.preventDefault(); e.stopPropagation(); });
+["pointerup", "pointercancel", "pointerleave"].forEach(t => $("atkBtn").addEventListener(t, () => { atkHeld = false; }));
+function readInput() {
+  let x = 0, y = 0;
+  if (keys["arrowleft"] || keys["a"]) x -= 1; if (keys["arrowright"] || keys["d"]) x += 1;
+  if (keys["arrowup"] || keys["w"]) y -= 1; if (keys["arrowdown"] || keys["s"]) y += 1;
+  if (joy) { const dx = joy.x - joy.bx, dy = joy.y - joy.by, d = Math.hypot(dx, dy); if (d > 8) { const m = Math.min(1, d / 50); x = dx / d * m; y = dy / d * m; } }
+  return [x, y];
+}
+// attacking: aim at the nearest enemy in front if there is one close, otherwise where you are facing
+function aimFor(M) {
+  let best = null, bd = 1e9;
+  for (const v of E.values()) {
+    if (v.team === M.team || v.out) continue;
+    const d = dist(M, v); if (d > 140) continue;
+    const s = d + angDiff(Math.atan2(v.y - M.y, v.x - M.x), M.f) * 60;
+    if (s < bd) { bd = s; best = v; }
+  }
+  return best ? Math.atan2(best.y - M.y, best.x - M.x) : M.f;
+}
+function tryAttack() {
+  const M = me(); if (!M || M.out || phase !== "play" || freezeLeft > 0 || M.atkCd > 0) return;
+  const A = ATK[M.team];
+  const f = M.team === "bro" ? aimFor(M) : M.f;
+  if (isHost) { M.atkCd = 0; doAttack(M, f); return; }
+  M.f = f; M.atkCd = A.cd; M.swingT = A.anim;
+  if (M.team === "ped") FX.push({ x: M.x, y: M.y, t: 0, ring: true, r: A.reach + R.ped });
+  bcast("act", { i: MYID, f: +f.toFixed(2) });
+}
+
+// ---------------- drawing ----------------
+const ctx = cv.getContext("2d");
+let cw = 0, chh = 0, dpr = 1, scale = 1, camX = 0, camY = 0, shake = 0;
+let BG = null;
+function resize() {
+  const st = $("stage"); cw = st.clientWidth;
+  chh = Math.round(cw < 600 ? Math.max(300, Math.min(innerHeight * 0.64, cw * 1.15)) : Math.max(280, Math.min(innerHeight * 0.7, cw * 0.66)));
+  dpr = Math.min(devicePixelRatio || 1, 2);
+  cv.width = Math.round(cw * dpr); cv.height = Math.round(chh * dpr); cv.style.height = chh + "px";
+  const visW = Math.max(560, Math.min(1000, cw * 1.35));
+  scale = cw / visW;
+  if (chh / scale > H) scale = chh / H;
+  if (cw / scale > W) scale = cw / W;
+}
+function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+function emoji(c, e, x, y, size) { if (!e) return; c.fillStyle = "#000"; c.font = `${size}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(e, x, y); }
+function label(c, t, x, y, size, fill, stroke) { c.font = `900 ${size}px Nunito, sans-serif`; c.textAlign = "center"; c.textBaseline = "middle"; c.lineWidth = 3; c.strokeStyle = stroke || "rgba(0,0,0,.6)"; c.strokeText(t, x, y); c.fillStyle = fill || "#fff"; c.fillText(t, x, y); }
+function buildBG() {
+  const k = 1.25, c = document.createElement("canvas"); c.width = W * k; c.height = H * k;
+  const g = c.getContext("2d"); g.scale(k, k);
+  g.fillStyle = MAP.ground; g.fillRect(0, 0, W, H);
+  g.fillStyle = MAP.stripe;
+  if (MAP === MAPS.supermarket) { for (let x = 0; x < W; x += 80) for (let y = 0; y < H; y += 80) if (((x + y) / 80) % 2 === 0) g.fillRect(x, y, 80, 80); }
+  else for (let x = 0; x < W; x += 120) g.fillRect(x, 0, 60, H);
+  // team bases
+  for (const [a, col] of [[MAP.dadSpawn, "rgba(224,112,58,.28)"], [MAP.kidSpawn, "rgba(47,193,174,.28)"]]) { g.fillStyle = col; rr(g, a[0] - 20, a[1] - 20, a[2] + 40, a[3] + 40, 24); g.fill(); }
+  for (const z of MAP.zones) {
+    g.globalAlpha = 0.85; g.fillStyle = z.c || z.col;
+    if (z.r) { rr(g, z.r[0], z.r[1], z.r[2], z.r[3], 18); g.fill(); } else { g.beginPath(); g.arc(z.c[0], z.c[1], z.c[2], 0, 7); g.fill(); }
+    g.globalAlpha = 0.25; g.strokeStyle = "#fff"; g.lineWidth = 4; g.setLineDash([12, 10]);
+    if (z.r) { rr(g, z.r[0] + 4, z.r[1] + 4, z.r[2] - 8, z.r[3] - 8, 14); g.stroke(); } else { g.beginPath(); g.arc(z.c[0], z.c[1], z.c[2] - 6, 0, 7); g.stroke(); }
+    g.setLineDash([]); g.globalAlpha = 0.9;
+    const cx = z.r ? z.r[0] + z.r[2] / 2 : z.c[0], cy = z.r ? z.r[1] + z.r[3] / 2 : z.c[1];
+    if (z.r && z.r[2] > 900) { for (let x = 80; x < W; x += 260) emoji(g, z.e, x, cy, 40); }
+    else if (z.r && z.r[3] > 400) { for (let y = z.r[1] + 60; y < z.r[1] + z.r[3]; y += 160) emoji(g, z.e, cx, y, 36); }
+    else emoji(g, z.e, cx, cy, 40);
+  }
+  g.globalAlpha = 0.8; for (const d of MAP.deco) emoji(g, d[0], d[1], d[2], 30);
+  g.globalAlpha = 1;
+  for (const s of MAP.solids) {
+    g.fillStyle = "rgba(0,0,0,.22)";
+    if (s.r) {
+      rr(g, s.r[0] + 6, s.r[1] + 8, s.r[2], s.r[3], 10); g.fill(); g.fillStyle = s.c; rr(g, s.r[0], s.r[1], s.r[2], s.r[3], 10); g.fill();
+      g.strokeStyle = "rgba(0,0,0,.3)"; g.lineWidth = 3; g.stroke();
+      emoji(g, s.e, s.r[0] + s.r[2] / 2, s.r[1] + s.r[3] / 2, Math.min(56, Math.min(s.r[2], s.r[3]) * 0.75));
+    }
+    else { g.beginPath(); g.arc(s.c[0] + 5, s.c[1] + 7, s.c[2], 0, 7); g.fill(); g.fillStyle = s.col; g.beginPath(); g.arc(s.c[0], s.c[1], s.c[2], 0, 7); g.fill(); g.strokeStyle = "rgba(0,0,0,.3)"; g.lineWidth = 3; g.stroke(); emoji(g, s.e, s.c[0], s.c[1], s.c[2] * 1.3); }
+  }
+  g.strokeStyle = "rgba(0,0,0,.35)"; g.lineWidth = 10; g.strokeRect(0, 0, W, H);
+  BG = c;
+}
+function bubble(t, x, y) {
+  ctx.font = "900 14px Nunito, sans-serif"; const w = ctx.measureText(t).width + 16;
+  ctx.fillStyle = "rgba(255,255,255,.95)"; rr(ctx, x - w / 2, y - 24, w, 24, 10); ctx.fill();
+  ctx.fillStyle = "#16202e"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(t, x, y - 12);
+}
+function drawBat(e, x, y, r) {
+  // the bat sweeps across the front of the bro while swinging, and rests on the shoulder otherwise
+  const A = ATK.bro;
+  let a;
+  if (e.swingT > 0) { const p = 1 - e.swingT / A.anim; a = e.f - A.arc + p * A.arc * 2; }
+  else a = e.f - 1.9;
+  const c = Math.cos(a), s = Math.sin(a);
+  const x0 = x + c * (r - 2), y0 = y + s * (r - 2), x1 = x + c * (r + 34), y1 = y + s * (r + 34);
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = 11; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.strokeStyle = "#5a3a1a"; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x + c * (r + 12), y + s * (r + 12)); ctx.stroke();
+  ctx.strokeStyle = "#c8894a"; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(x + c * (r + 12), y + s * (r + 12)); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.lineCap = "butt";
+  if (e.swingT > 0) {
+    ctx.strokeStyle = "rgba(255,255,255,.45)"; ctx.lineWidth = 6; ctx.beginPath();
+    ctx.arc(x, y, r + 30, e.f - A.arc, a); ctx.stroke();
+  }
+}
+function drawEnt(e, now) {
+  const r = R[e.team], x = e.rx, y = e.ry;
+  const lying = e.out;
+  let lift = 0, sc = 1;
+  if (e.team === "ped" && e.swingT > 0) { const p = 1 - e.swingT / ATK.ped.anim; lift = Math.sin(p * Math.PI) * 18; sc = 1 + Math.sin(p * Math.PI) * 0.25; }
+  const wob = e.stun > 0 ? 1 + Math.sin(now / 40) * 0.15 : 1;
+  ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(x + 3, y + r * 0.8, r * 1.05 * sc, r * 0.45, 0, 0, 7); ctx.fill();
+  if (e.dashT > 0) { ctx.globalAlpha = 0.35; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x - e.vx * 0.05, y - e.vy * 0.05, r, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+  if (e.team === "bro" && !lying && Math.sin(e.f) < 0) drawBat(e, x, y - lift, r);   // bat behind when facing up
+  ctx.save(); ctx.translate(x, y - lift); ctx.scale(sc * wob, sc * (2 - wob));
+  if (lying) { ctx.rotate(Math.PI / 2); ctx.globalAlpha = 0.75; }
+  ctx.fillStyle = e.team === "ped" ? (lying ? "#8a6a5a" : "#d4541c") : (lying ? "#5a8a84" : "#16a08e");
+  ctx.beginPath(); ctx.arc(0, 0, r + 4, 0, 7); ctx.fill();
+  ctx.lineWidth = e.id === MYID ? 4 : 2; ctx.strokeStyle = e.id === MYID ? "#fff" : "rgba(0,0,0,.35)"; ctx.stroke();
+  const f = lying ? "😵" : e.stun > 0 ? "😖" : face(e);
+  emoji(ctx, f, 0, 1, r * 1.6);
+  ctx.restore(); ctx.globalAlpha = 1;
+  if (e.team === "bro" && !lying && Math.sin(e.f) >= 0) drawBat(e, x, y - lift, r);
+  if (lying) { for (let i = 0; i < 3; i++) { const a = now / 400 + i * 2.1; emoji(ctx, "💫", x + Math.cos(a) * r, y - r - 2 + Math.sin(a) * 6, 14); } }
+  const ny = y - r - 12 - lift;
+  // health bar
+  if (!lying) {
+    const bw = 40, fr = Math.max(0, e.hp) / HP_MAX;
+    ctx.fillStyle = "rgba(0,0,0,.6)"; rr(ctx, x - bw / 2 - 1, ny - 1, bw + 2, 7, 3); ctx.fill();
+    ctx.fillStyle = fr > 0.5 ? "#4fcf6a" : fr > 0.25 ? "#ffc93c" : "#ff5d5d"; rr(ctx, x - bw / 2, ny, bw * fr, 5, 2); ctx.fill();
+  }
+  ctx.font = "800 13px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+  ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.strokeText(e.name, x, ny - 3); ctx.fillStyle = e.id === MYID ? "#ffe066" : "#fff"; ctx.fillText(e.name, x, ny - 3);
+  if (e.sayT > 0 && e.say && !lying) bubble(e.say, x, ny - 20);
+}
+function fmtTime(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+function draw(now, dt) {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const m = me();
+  const vw = cw / scale, vh = chh / scale;
+  if (m) { camX += ((m.rx - vw / 2) - camX) * Math.min(1, dt * 8); camY += ((m.ry - vh / 2) - camY) * Math.min(1, dt * 8); }
+  camX = Math.max(0, Math.min(W - vw, camX)); camY = Math.max(0, Math.min(H - vh, camY));
+  let sx = 0, sy = 0; if (shake > 0) { sx = (Math.random() - 0.5) * 14 * shake; sy = (Math.random() - 0.5) * 14 * shake; }
+  ctx.fillStyle = "#111"; ctx.fillRect(0, 0, cw, chh);
+  ctx.save(); ctx.scale(scale, scale); ctx.translate(-camX + sx, -camY + sy);
+  if (BG) ctx.drawImage(BG, 0, 0, W, H);
+  // my attack range, faintly, so you know when you can reach
+  if (m && !m.out && phase === "play") {
+    const A = ATK[m.team], rg = A.reach + R[m.team];
+    ctx.globalAlpha = m.atkCd > 0 ? 0.08 : 0.16; ctx.fillStyle = m.team === "ped" ? "#ffb07a" : "#7ff0df";
+    ctx.beginPath();
+    if (m.team === "ped") ctx.arc(m.rx, m.ry, rg, 0, 7);
+    else { ctx.moveTo(m.rx, m.ry); ctx.arc(m.rx, m.ry, rg, m.f - A.arc, m.f + A.arc); ctx.closePath(); }
+    ctx.fill(); ctx.globalAlpha = 1;
+  }
+  for (let i = FX.length - 1; i >= 0; i--) {
+    const f = FX[i]; if (!f.ring) continue;
+    f.t += dt;
+    ctx.globalAlpha = Math.max(0, 1 - f.t / 0.45); ctx.strokeStyle = "#ffb07a"; ctx.lineWidth = 8;
+    ctx.beginPath(); ctx.arc(f.x, f.y, f.r * Math.min(1, 0.3 + f.t * 3), 0, 7); ctx.stroke();
+    ctx.globalAlpha = 1; if (f.t > 0.45) FX.splice(i, 1);
+  }
+  const ents = [...E.values()].sort((a, b) => a.ry - b.ry);
+  for (const e of ents) if (e.out) drawEnt(e, now);
+  for (const e of ents) if (!e.out) drawEnt(e, now);
+  for (let i = FX.length - 1; i >= 0; i--) {
+    const f = FX[i]; if (f.ring) continue;
+    f.t += dt;
+    if (f.part) { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 300 * dt; ctx.globalAlpha = Math.max(0, 1 - f.t / 0.9); emoji(ctx, f.part, f.x, f.y, 16); if (f.t > 0.9) FX.splice(i, 1); }
+    else if (f.num) { ctx.globalAlpha = Math.max(0, 1 - f.t / 0.9); label(ctx, f.num, f.x, f.y - f.t * 50, 20, "#ff5d5d", "#16202e"); if (f.t > 0.9) FX.splice(i, 1); }
+    else {
+      ctx.globalAlpha = Math.max(0, 1 - f.t / 1.2); emoji(ctx, f.e, f.x, f.y - f.t * 20, 34 + f.t * 16);
+      ctx.font = "400 26px 'Lilita One', sans-serif"; ctx.textAlign = "center"; ctx.lineWidth = 5; ctx.strokeStyle = "#16202e"; ctx.strokeText(f.m, f.x, f.y - 36 - f.t * 40); ctx.fillStyle = f.col; ctx.fillText(f.m, f.x, f.y - 36 - f.t * 40);
+      if (f.t > 1.2) FX.splice(i, 1);
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  // HUD
+  const peds = ents.filter(e => e.team === "ped" && !e.out).length, bros = ents.filter(e => e.team === "bro" && !e.out).length;
+  ctx.textBaseline = "middle"; ctx.textAlign = "center";
+  const small = cw < 520;
+  const tbw = small ? 124 : 160, tcx = cw / 2 - (small ? 20 : 0);
+  ctx.fillStyle = "rgba(0,0,0,.55)"; rr(ctx, tcx - tbw / 2, 8, tbw, 44, 12); ctx.fill();
+  ctx.font = `400 ${small ? 24 : 30}px 'Lilita One', sans-serif`;
+  ctx.fillStyle = timeLeft < 30000 && phase === "play" ? "#ff8080" : "#fff"; ctx.fillText(fmtTime(phase === "play" ? timeLeft : 0), tcx, 31);
+  ctx.font = `900 ${small ? 12 : 14}px Nunito, sans-serif`;
+  const line = `🐶 Pedigreers left: ${peds}     😎 Bros left: ${bros}`;
+  const lw = ctx.measureText(line).width + 24;
+  ctx.fillStyle = "rgba(0,0,0,.55)"; rr(ctx, cw / 2 - lw / 2, 56, lw, 26, 10); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.fillText(line, cw / 2, 69);
+  if (m) {
+    ctx.textAlign = "left"; ctx.font = "900 14px Nunito, sans-serif";
+    let lab, col;
+    if (m.out) { lab = "You passed out 💫 cheer on your team!"; col = "rgba(90,90,110,.9)"; }
+    else if (m.team === "ped") { lab = "You are a PEDIGREER 🐶 slam the bros!"; col = "rgba(212,84,28,.9)"; }
+    else { lab = "You are a BRO 😎 bonk the Pedigreers!"; col = "rgba(22,160,142,.9)"; }
+    const tw = ctx.measureText(lab).width + 20;
+    ctx.fillStyle = col; rr(ctx, 10, chh - 64, tw, 26, 10); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.fillText(lab, 20, chh - 51);
+    const pl = `❤️ ${Math.max(0, Math.round(m.hp))}  ·  KOs: ${myKOs}  ·  ${$("onlineLbl").textContent}`;
+    const pw = ctx.measureText(pl).width + 20;
+    ctx.fillStyle = "rgba(0,0,0,.55)"; rr(ctx, 10, chh - 34, pw, 26, 10); ctx.fill(); ctx.fillStyle = "#fff"; ctx.fillText(pl, 20, chh - 21);
+  }
+  // minimap
+  const mw = small ? 110 : 160, mh = mw * H / W, mx = cw - mw - 10, my = 10;
+  ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(mx - 3, my - 3, mw + 6, mh + 6);
+  if (BG) { ctx.globalAlpha = 0.8; ctx.drawImage(BG, mx, my, mw, mh); ctx.globalAlpha = 1; }
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(mx + camX / W * mw, my + camY / H * mh, vw / W * mw, vh / H * mh);
+  for (const e of ents) { ctx.globalAlpha = e.out ? 0.35 : 1; ctx.fillStyle = e.team === "ped" ? "#e0703a" : "#2fc1ae"; ctx.beginPath(); ctx.arc(mx + e.rx / W * mw, my + e.ry / H * mh, e.id === MYID ? 4.5 : 3, 0, 7); ctx.fill(); if (e.id === MYID) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke(); } }
+  ctx.globalAlpha = 1;
+  // banners
+  let banner = "", sub = "";
+  if (phase === "play" && freezeLeft > 0) { banner = String(Math.ceil(freezeLeft / 1000)); sub = "Get ready to fight!"; }
+  else if (phase === "play" && freezeLeft <= 0 && ROUND_MS - timeLeft < FREEZE_MS + 900 && round > 0) { banner = "FIGHT!"; }
+  if (phase === "end") {
+    banner = { ped: "PEDIGREERS WIN!", bro: "BROS WIN!", draw: "DRAW!" }[winner] || "ROUND OVER";
+    sub = { ped: "The bros got slammed 🐶", bro: "The Pedigreers got bonked 🏏", draw: "Same number left on each team" }[winner] || "";
+    sub += ` · next round in ${Math.max(0, Math.ceil(endLeft / 1000))}`;
+  }
+  if (banner) {
+    ctx.textAlign = "center"; ctx.font = `400 ${small ? 38 : 56}px 'Lilita One', sans-serif`; ctx.lineWidth = 8; ctx.strokeStyle = "#16202e";
+    ctx.strokeText(banner, cw / 2, chh / 2 - 10); ctx.fillStyle = "#ffc93c"; ctx.fillText(banner, cw / 2, chh / 2 - 10);
+    if (sub) { ctx.font = `900 ${small ? 13 : 16}px Nunito, sans-serif`; ctx.lineWidth = 4; ctx.strokeText(sub, cw / 2, chh / 2 + 28); ctx.fillStyle = "#fff"; ctx.fillText(sub, cw / 2, chh / 2 + 28); }
+  }
+  if (joy) { ctx.globalAlpha = 0.35; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(joy.bx, joy.by, 50, 0, 7); ctx.fill(); ctx.globalAlpha = 0.7; const dx = joy.x - joy.bx, dy = joy.y - joy.by, d = Math.hypot(dx, dy) || 1, k = Math.min(d, 50) / d; ctx.beginPath(); ctx.arc(joy.bx + dx * k, joy.by + dy * k, 22, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+}
+
+// ---------------- main loop ----------------
+let last = performance.now(), meT = 0, lastMeSent = "", stTimer = 0;
+const touchy = matchMedia("(pointer:coarse)").matches;
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (playing) {
+    const m = me();
+    if (!isHost) {
+      if (phase === "play") { timeLeft -= dt * 1000; freezeLeft = Math.max(0, freezeLeft - dt * 1000); }
+      endLeft -= dt * 1000;
+    }
+    if (round !== myRound && phase === "play") { myRound = round; resetMyRound(); }
+    if (m) {
+      const [ix, iy] = readInput();
+      move(m, dt, ix, iy, dashQueued); dashQueued = false;
+      if (atkQueued || atkHeld) { tryAttack(); atkQueued = false; }
+      const A = ATK[m.team], ab = $("atkBtn");
+      ab.className = "atk " + m.team; $("atkTxt").textContent = A.name;
+      ab.disabled = m.out || m.atkCd > 0;
+      $("atkLbl").textContent = m.atkCd > 0 ? m.atkCd.toFixed(1) + "s" : touchy ? "tap" : "Space";
+      const db = $("dashBtn"), ready = m.dashCd <= 0; db.disabled = !ready || m.out; $("dashLbl").textContent = ready ? (touchy ? "ready" : "E key") : m.dashCd.toFixed(1) + "s";
+    }
+    if (isHost) {
+      hostTick(dt);
+      stTimer += dt; if (stTimer > 0.2) { stTimer = 0; sendState(); }
+    } else {
+      for (const e of E.values()) {
+        if (e.id === MYID) continue;
+        const age = Math.min(0.25, (now - (e.bot ? (e.seen2 || now) : (e.seen || e.seen2 || now))) / 1000);
+        const tx = e.x + e.vx * age, ty = e.y + e.vy * age;
+        const k = Math.min(1, dt * 10); e.rx += (tx - e.rx) * k; e.ry += (ty - e.ry) * k;
+        e.sayT = Math.max(0, e.sayT - dt); e.stun = Math.max(0, e.stun - dt); e.swingT = Math.max(0, e.swingT - dt);
+      }
+    }
+    if (isHost) for (const e of E.values()) if (!e.bot && e.id !== MYID) { const k = Math.min(1, dt * 10); e.rx += (e.x - e.rx) * k; e.ry += (e.y - e.ry) * k; }
+    meT += dt;
+    if (online && m && meT > 0.1) {
+      const moving = Math.abs(m.vx) + Math.abs(m.vy) > 5;
+      const sig = Math.round(m.x) + "," + Math.round(m.y);
+      if (moving || sig !== lastMeSent || meT > 0.5) { meT = 0; lastMeSent = sig; bcast("me", { i: MYID, x: Math.round(m.x), y: Math.round(m.y), vx: Math.round(m.vx), vy: Math.round(m.vy), d: m.dashT > 0 ? 1 : 0, f: +m.f.toFixed(2) }); }
+    }
+    shake = Math.max(0, shake - dt);
+    draw(now, dt);
+  }
+  requestAnimationFrame(frame);
+}
+function resetMyRound() { myKOs = 0; myDmg = 0; roundScored = false; const m = me(); myTeamThisRound = m ? m.team : S.side; }
+
+// ---------------- lobby ----------------
+function renderLobby() {
+  $("sidePick").querySelectorAll(".opt").forEach(b => b.classList.toggle("sel", b.dataset.side === S.side));
+  $("mapPick").innerHTML = Object.entries(MAPS).map(([id, m]) => `<button class="opt${id === S.map ? " sel" : ""}" data-map="${id}" type="button"><span class="e">${m.e}</span>${m.name}<small>${m.desc}</small></button>`).join("");
+  $("mapPick").querySelectorAll(".opt").forEach(b => b.onclick = () => { S.map = b.dataset.map; save(); renderLobby(); });
+}
+$("sidePick").querySelectorAll(".opt").forEach(b => b.onclick = () => { S.side = b.dataset.side; save(); renderLobby(); });
+const sideTxt = () => S.side === "ped" ? "Be a bro next round" : "Be a Pedigreer next round";
+function startGame() {
+  MAP = MAPS[S.map] || MAPS.backyard; buildBG();
+  E = new Map(); FX.length = 0; lastSt = null; round = 0; myRound = -1; isHost = true; hostId = MYID; peers = [];
+  joinT = Date.now();
+  const [x, y] = spawnIn(spawnArea(S.side), R[S.side]);
+  mkEnt(MYID, { name: NAME, team: S.side, side: S.side, x, y, lb: S.bat, ls: S.slam });
+  playing = true; $("lobby").hidden = true; $("stage").classList.remove("inlobby"); $("bar").hidden = false; $("dashBtn").hidden = false; $("atkBtn").hidden = false;
+  $("onlineLbl").textContent = "Connecting…";
+  startRound();
+  resetMyRound(); myRound = round;
+  $("sideBtn").textContent = sideTxt();
+  setMsg(`${MAP.name}: you are on the ${TEAM_NAME[S.side]} team. ${S.side === "ped" ? "Get close to the bros and SLAM (Space)!" : "Swing your bat (Space) at the Pedigreers, then step back before they slam you!"}`);
+  connect();
+  resize();
+  $("stage").scrollIntoView({ block: "start", behavior: "smooth" });
+  setTimeout(() => { if (!online && playing) $("onlineLbl").textContent = "Offline, computer players only"; }, 6000);
+}
+$("playBtn").onclick = startGame;
+$("menuBtn").onclick = () => {
+  roundScored = true;
+  disconnect(); playing = false; E = new Map();
+  $("lobby").hidden = false; $("stage").classList.add("inlobby"); $("bar").hidden = true; $("dashBtn").hidden = true; $("atkBtn").hidden = true; renderLobby();
+  setMsg("Pick a team and a map, then press PLAY.");
+};
+$("sideBtn").onclick = () => {
+  S.side = S.side === "ped" ? "bro" : "ped"; save();
+  const m = me(); if (m) m.side = S.side;
+  if (online && ch) try { ch.track(meta()); } catch (e) {}
+  $("sideBtn").textContent = sideTxt();
+  setMsg(`Next round you will be on the ${TEAM_NAME[S.side]} team.`, "good");
+};
+
+// ---------------- HUD, upgrades ----------------
+function renderHUD() { $("hName").textContent = NAME; $("hWins").textContent = S.wins.toLocaleString(); $("hBat").textContent = "Lv " + S.bat; $("hSlam").textContent = "Lv " + S.slam; }
+function renderUps() {
+  const card = (key, team, title, em) => {
+    const lv = S[key], A = ATK[team], max = lv >= UP_MAX, cost = max ? 0 : UP_COST[lv];
+    const now = Math.round(A.dmg * mult(lv)), next = Math.round(A.dmg * mult(lv + 1));
+    return `<div class="up ${team}"><h3>${em} ${title}</h3>
+      <div class="lv">Level ${lv} of ${UP_MAX} · ${now} damage a hit</div>
+      <div class="pips">${Array.from({ length: UP_MAX }, (_, i) => `<i class="${i < lv ? "on" : ""}"></i>`).join("")}</div>
+      <p>${max ? "Maxed out. Nothing hits harder!" : `Next level: ${next} damage a hit.`}</p>
+      <button class="buy" data-k="${key}" type="button" ${max || S.wins < cost ? "disabled" : ""}>${max ? "MAX" : `Upgrade for ${cost} 🏆`}</button></div>`;
+  };
+  $("ups").innerHTML = card("bat", "bro", "Bat power", "🏏") + card("slam", "ped", "Slam power", "💥");
+  $("ups").querySelectorAll(".buy").forEach(b => b.onclick = () => {
+    const k = b.dataset.k, lv = S[k]; if (lv >= UP_MAX) return;
+    const cost = UP_COST[lv];
+    if (S.wins < cost) { setMsg(`You need ${cost} wins for that. You have ${S.wins}.`, "bad"); return; }
+    S.wins -= cost; S[k] = lv + 1; save(); renderHUD(); renderUps();
+    const m = me(); if (m) { m.lb = S.bat; m.ls = S.slam; }
+    if (online && ch) try { ch.track(meta()); } catch (e) {}
+    setMsg(`${k === "bat" ? "🏏 Bat" : "💥 Slam"} power is now level ${S[k]}!`, "good");
+  });
+}
+
+// ---------------- name ----------------
+function closeBox() { $("overlay").hidden = true; }
+$("nameChip").onclick = () => {
+  $("box").innerHTML = `<h3>What's your name?</h3><input id="nameIn" maxlength="12" autocomplete="off" spellcheck="false" aria-label="Your name">
+    <p class="hint" id="nameHint">First name or nickname only. Up to 12 letters. It shows above your character and on the leaderboard.</p>
+    <div class="row"><button class="small" id="nameOk" type="button">Save</button><button class="small alt" id="nameCancel" type="button">Cancel</button></div>`;
+  $("overlay").hidden = false; const inp = $("nameIn"); inp.value = hasName() ? NAME : ""; inp.focus();
+  const done = () => {
+    const v = cleanName(inp.value);
+    if (isRude(v)) { inp.value = ""; $("nameHint").textContent = "That name is not allowed. Try another one."; inp.focus(); return; }
+    NAME = v || "Player"; try { localStorage.setItem(NAME_KEY, NAME); } catch (e) {}
+    const m = me(); if (m) m.name = NAME;
+    if (online && ch) try { ch.track(meta()); } catch (e) {}
+    renderHUD(); closeBox(); setMsg(`Hi ${NAME}! Your name is saved.`, "good");
+  };
+  $("nameOk").onclick = done; $("nameCancel").onclick = closeBox;
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") done(); if (e.key === "Escape") closeBox(); });
+};
+setInterval(() => { try { const n = safeName(localStorage.getItem(NAME_KEY)); if (n !== "Player" && n !== NAME) { NAME = n; renderHUD(); const m = me(); if (m) m.name = NAME; } } catch (e) {} }, 2000);
+// an online save coming down from account.js replaces the save while the page is open
+setInterval(() => { try { const raw = localStorage.getItem(SAVE_KEY); if (raw && raw !== JSON.stringify(S)) { const side = S.side, map = S.map; S = Object.assign(S, JSON.parse(raw)); if (playing) { S.side = side; S.map = map; } renderHUD(); renderUps(); } } catch (e) {} }, 3000);
+
+// ---------------- start up ----------------
+{ const s = document.createElement("span"); s.id = "onlineLbl"; s.hidden = true; document.body.appendChild(s); }
+addEventListener("resize", () => { resize(); });
+document.addEventListener("visibilitychange", () => {
+  if (!playing) return;
+  if (document.hidden) { if (online) disconnect(); }
+  else if (!online) { joinT = Date.now(); connect(); }
+});
+renderHUD(); renderUps(); renderLobby(); resize();
+if (window.Leaderboard) Leaderboard.mount({ el: "lb", game: "bro-got-slammed", dir: "desc", unit: "KOs", max: 40, title: "Bro Got Slammed — most knockouts in a round" });
+requestAnimationFrame(frame);
+// test hook
+window.__bgs = { ATK, E: () => E, killMe: () => E.delete(MYID), state: () => ({ phase, round, timeLeft, winner, isHost, online, peds: alive("ped").length, bros: alive("bro").length }), step: dt => { hostTick(dt); }, S: () => S };
+</script>
+</body>
+</html>

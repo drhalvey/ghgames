@@ -16,6 +16,7 @@ ghgames/
   blackhole.html  drag-and-release: fling stars into a black hole
   sparrow.html    flappy-style sparrow, with score + best
   crazy-dads.html dads vs kids chase: soda knockouts, then the Monica & Didi boss (online via Supabase Realtime)
+  bro-got-slammed.html  Pedigreers vs Bro Got Slammed: 4-minute team fights, wins buy damage upgrades (online via Supabase Realtime)
   CNAME           contains "ghgames.au" — tells GitHub Pages the domain
   README.md       this file
 ```

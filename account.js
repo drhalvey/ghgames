@@ -25,6 +25,7 @@
   var GAMES = {
     "wall-hop":     { title: "Wall Hop Pets", keys: ["wallhop-pets-v1"] },
     "crazy-dads":   { title: "Crazy Dads",    keys: ["crazydads-save"] },
+    "bro-got-slammed": { title: "Bro Got Slammed", keys: ["brogotslammed-save"] },
     "log-clicker":  { title: "Log Clicker",   keys: ["logclicker_save"] },
     "sprig-rescue": { title: "Sprig Rescue",  keys: ["sprig_save"] },
     "click-frenzy": { title: "Click Frenzy",  keys: ["frenzy_best"], merge: "max" },

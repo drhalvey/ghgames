@@ -7,7 +7,11 @@ Hosted free on GitHub Pages at **ghgames.au**.
 
 ```
 ghgames/
-  index.html      the arcade homepage (game tiles)
+  index.html      the arcade homepage (featured game + game tiles with drawn SVG cover art)
+  leaderboards.html  all the leaderboards on one page
+  site.css        shared look for the homepage and leaderboards page
+  favicon.svg     the yellow GH logo
+  analytics.js    Google Analytics (set GA_ID inside; Frondi Clicker pages do not load it)
   blackhole.html  drag-and-release: fling stars into a black hole
   sparrow.html    flappy-style sparrow, with score + best
   crazy-dads.html dads vs kids chase: soda knockouts, then the Monica & Didi boss (online via Supabase Realtime)
@@ -45,17 +49,11 @@ Make a free [GitHub](https://github.com) account, then a new **public** reposito
 
 ## Adding a new game (the fun loop, forever after)
 
-1. Build a self-contained `index.html` game (one file, plain HTML/JS), touch-friendly for iPad.
-2. Save it as `<name>.html` in the same folder.
-3. In the homepage `index.html`, turn the `class="card soon"` placeholder into a real tile:
-   ```html
-   <a class="card" href="<name>.html">
-     <div class="emoji">🎮</div>
-     <div class="name">Game Name</div>
-     <div class="desc">One fun line about it.</div>
-   </a>
-   ```
-4. Upload the changes to GitHub. Live in under a minute.
+1. Build a self-contained game file (one file, plain HTML/JS), touch-friendly for iPad, saved as `<name>.html`.
+2. Put `<script src="analytics.js" defer></script>` under its `<title>` so visits are counted.
+3. In `index.html`, copy an existing `<a class="tile">` block inside the grid and change the link, the SVG cover art, the name, the one-line description and the two tags. Give the newest game the `<span class="badge new">New</span>` badge and take it off the old one.
+4. If it has a leaderboard, add a `<div id="lb-...">` and a `Leaderboard.mount(...)` line to `leaderboards.html`.
+5. Push to GitHub. Live in under a minute.
 
 ## House rules (keep it safe)
 

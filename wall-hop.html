@@ -250,7 +250,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
       <h2>Gifts</h2>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="small" id="giftWinsBtn" style="background:#d98b1e;box-shadow:0 4px 0 #8f5a0f">Give wins</button><button class="small" id="giftPetBtn" style="background:#2fa27a;box-shadow:0 4px 0 #1d6b50">Give a pet</button></div>
     </div>
-    <p class="sub">Type a friend's in-game name and send them wins or one of your pets. You keep yours; you can only give what you already have. Gifts arrive while their game is open. Both of you need a name set.</p>
+    <p class="sub">Type a friend's in-game name and send them wins or one of your pets. You can only give what you have, and it leaves your game straight away. Gifts arrive while their game is open. Both of you need a name set.</p>
   </section>
 </div>
 
@@ -783,8 +783,8 @@ function closeName(){ $("overlay").hidden = true; $("hatchBox").className = "hat
 $("nameChip").onclick = openName;
 applyName();
 // ---------- gifts ----------
-// Gifts go through the same free server as the leaderboards. Sending posts a copy of the wins
-// or pet to your friend's name; you keep yours, but you can only give what you have. Their game collects waiting gifts
+// Gifts go through the same free server as the leaderboards. Sending takes the wins or pet out
+// of your game at once and posts them to your friend's name. Their game collects waiting gifts
 // when it opens and every 20 seconds after that. The server only lets a game read gifts that are
 // addressed to it, and hands each gift out once.
 const SB_URL = "https://bpqaeqswtgtbqrczjcrx.supabase.co";
@@ -797,10 +797,10 @@ function sb(path, body){
 }
 const hasName = () => NAME && NAME !== "Player";
 function needName(){ setMsg("Set your name first (tap the Player chip at the top) so your friend knows who it is from.", "bad"); }
-function sendGift(to, kind, payload, what){
+function sendGift(to, kind, payload, what, undo){
   return sb("gifts", { to_name: to, from_name: NAME, kind, payload }).then(()=>{
     closeName(); setMsg(`🎁 Sent ${what} to ${to}! It arrives when their game is open.`, "good");
-  }).catch(()=>{ setMsg("Could not reach the gift server. Try again in a minute.", "bad"); closeName(); });
+  }).catch(()=>{ undo(); save(); renderPets(); setMsg("Could not reach the gift server, so nothing was taken. Try again in a minute.", "bad"); closeName(); });
 }
 function friendField(){ return `<input id="giftTo" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Friend's in-game name" aria-label="Friend's name" style="font-size:20px">`; }
 function readFriend(){
@@ -815,7 +815,7 @@ $("giftWinsBtn").onclick = ()=>{
   box.innerHTML = `<h3>Give wins</h3><p>You have <b style="color:var(--gold)">${fmt(S.wins)}</b> wins.</p>
     ${friendField()}
     <input id="giftAmt" inputmode="decimal" autocomplete="off" placeholder="How many wins? e.g. 500 or 2.5M" aria-label="Wins to give" style="font-size:20px">
-    <p class="hint" id="giftHint">You can type K, M, B or T for thousands, millions, billions or trillions. You keep your wins too.</p>
+    <p class="hint" id="giftHint">You can type K, M, B or T for thousands, millions, billions or trillions. The wins leave your game when you press Send.</p>
     <div class="row"><button class="buy" id="giftGo">Send wins</button><button class="small" id="giftCancel">Cancel</button></div>`;
   $("overlay").hidden = false; $("giftTo").focus();
   const go = ()=>{
@@ -826,8 +826,8 @@ $("giftWinsBtn").onclick = ()=>{
     let amt = m ? D(m[1]).mul(Decimal.pow(10, pow[m[2]]||0)).floor() : null;
     if(!amt || amt.lte(0)){ $("giftHint").textContent = "Type a number bigger than 0."; return; }
     if(amt.gt(S.wins)){ $("giftHint").textContent = "You only have "+fmt(S.wins)+" wins. You can only give what you have."; return; }
-    $("giftGo").disabled = true; $("giftGo").textContent = "Sending…";
-    sendGift(to, "wins", {v: amt.toString()}, fmt(amt)+" wins");
+    S.wins = S.wins.sub(amt); save(); renderHUD(); $("giftGo").disabled = true; $("giftGo").textContent = "Sending…";
+    sendGift(to, "wins", {v: amt.toString()}, fmt(amt)+" wins", ()=>{ S.wins = S.wins.add(amt); });
   };
   $("giftGo").onclick = go; $("giftCancel").onclick = closeName;
   ["giftTo","giftAmt"].forEach(id=> $(id).addEventListener("keydown", e=>{ e.stopPropagation(); if(e.key==="Enter"){ e.preventDefault(); go(); } if(e.key==="Escape") closeName(); }));
@@ -839,7 +839,7 @@ $("giftPetBtn").onclick = ()=>{
   let chosen = null;
   box.innerHTML = `<h3>Give a pet</h3>
     ${friendField()}
-    <p>${list.length ? "Pick the pet to give. You keep yours too." : "You have no pets to give yet."}</p>
+    <p>${list.length ? "Pick the pet to give. It leaves your game when you press Send." : "You have no pets to give yet."}</p>
     ${list.length ? `<div class="pick">${list.map(p=>`<div class="pet-card" data-id="${p.id}" tabindex="0" role="button">${petHTML(p.e,p.i,false,p.t)}<div class="nm">${pname(p)}</div><div style="color:#7ff0a0">+${fmt(pm(p))}</div></div>`).join("")}</div>` : ""}
     <p class="hint" id="giftHint"></p>
     <div class="row"><button class="buy" id="giftGo" disabled>Pick a pet first</button><button class="small" id="giftCancel">Cancel</button></div>`;
@@ -850,8 +850,10 @@ $("giftPetBtn").onclick = ()=>{
   });
   $("giftGo").onclick = ()=>{
     if(!chosen) return; const to = readFriend(); if(!to) return;
-    const pet = chosen; $("giftGo").disabled = true; $("giftGo").textContent = "Sending…";
-    sendGift(to, "pet", {e:pet.e, i:pet.i, t:pet.t||0}, pname(pet));
+    const pet = chosen, wasEq = S.equipped.includes(pet.id);
+    S.pets = S.pets.filter(p=>p.id!==pet.id); S.equipped = S.equipped.filter(id=>id!==pet.id);
+    save(); renderPets(); $("giftGo").disabled = true; $("giftGo").textContent = "Sending…";
+    sendGift(to, "pet", {e:pet.e, i:pet.i, t:pet.t||0}, pname(pet), ()=>{ S.pets.push(pet); if(wasEq && S.equipped.length<MAX_EQUIP) S.equipped.push(pet.id); });
   };
   $("giftCancel").onclick = closeName;
   $("giftTo").addEventListener("keydown", e=>{ e.stopPropagation(); if(e.key==="Escape") closeName(); });

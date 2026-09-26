@@ -962,6 +962,20 @@ function checkBlocked(){
   }).catch(()=>{});
 }
 blockReady = true; checkBlocked(); setInterval(checkBlocked, 20000);
+// ---------- auto update ----------
+// version.txt is changed whenever the game is updated. Open games check it every minute and,
+// when it changes, save and reload between runs so everyone gets the new rules straight away.
+const GAME_VERSION = "2026-09-26b";
+function checkVersion(){
+  if(!navigator.onLine) return;
+  fetch("version.txt?t=" + Date.now(), {cache:"no-store"}).then(r => r.ok ? r.text() : "").then(v=>{
+    v = (v||"").trim();
+    if(!v || v === GAME_VERSION) return;
+    const go = ()=>{ if(G.state !== "idle"){ setTimeout(go, 1000); return; } saveNow(); location.reload(); };
+    go();
+  }).catch(()=>{});
+}
+setInterval(checkVersion, 60000);
 // ---------- leaderboard ----------
 if(window.Leaderboard){
   Leaderboard.mount({el:"lb", game:"wall-hop", dir:"desc", unit:"walls", title:"Wall Hop Pets — best wall reached"});

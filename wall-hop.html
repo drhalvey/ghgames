@@ -160,6 +160,10 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .namebox input:focus{border-color:var(--gold)}
 .namebox .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
 .namebox .hint{font-size:12px;color:var(--muted);font-weight:800}
+.gift-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.gift-row input{font-family:var(--body);font-weight:800;font-size:15px;padding:9px 12px;border-radius:12px;border:2px solid var(--line);background:#0f2740;color:var(--ink);outline:none;flex:1 1 220px;min-width:0}
+.gift-row input:focus{border-color:var(--gold)}
+.code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#0f2740;border:2px solid var(--line);border-radius:12px;padding:10px;word-break:break-all;user-select:all;width:min(520px,86vw);text-align:left}
 </style>
 
 </head>
@@ -234,6 +238,20 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
     <div class="crafts" id="crafts"></div>
     <button class="small" id="craftMore" hidden>Show more recipes</button>
   </section>
+
+  <section class="panel">
+    <h2>Leaderboard</h2>
+    <p class="sub">Your best wall goes on the board automatically. Same name as the other GH Games.</p>
+    <div id="lb"></div>
+  </section>
+
+  <section class="panel">
+    <div class="inv-bar">
+      <h2>Gifts</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="small" id="giftWinsBtn" style="background:#d98b1e;box-shadow:0 4px 0 #8f5a0f">Give wins</button><button class="small" id="giftPetBtn" style="background:#2fa27a;box-shadow:0 4px 0 #1d6b50">Give a pet</button></div>
+    </div>
+    <p class="sub">Type a friend's in-game name and send them wins or one of your pets. You keep yours; you can only give what you already have. Gifts arrive while their game is open. Both of you need a name set.</p>
+  </section>
 </div>
 
 <div class="overlay" id="overlay" hidden>
@@ -241,6 +259,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/break_infinity.js@2.0.0/dist/break_infinity.min.js"></script>
+<script src="leaderboard.js"></script>
 <script>
 (function(){
 const D = x => new Decimal(x);
@@ -739,19 +758,20 @@ $("fastBtn").onclick = ()=>{ FAST=!FAST; try{ localStorage.setItem(SAVE_KEY+"-fa
 // ---------- player name ----------
 // Kept separately from the save so "Reset game" leaves the name alone, and under a
 // shared key so other GH Games can reuse it.
-const NAME_KEY = "ghgames-player-name";
+const NAME_KEY = "ghgames_nick"; // shared with the leaderboards and the other GH Games
 let NAME = "Player";
-function cleanName(v){ return (v||"").replace(/[^A-Za-z0-9 _\-!?.']/g,"").replace(/\s+/g," ").trim().slice(0,14); }
+function cleanName(v){ return (v||"").replace(/[^A-Za-z0-9 _\-!?.']/g,"").replace(/\s+/g," ").trim().slice(0,12); }
 try{ NAME = cleanName(localStorage.getItem(NAME_KEY)) || "Player"; if(isRude(NAME)) NAME="Player"; }catch(e){}
 // swear filter: names are squashed to letters only (so "s.h-i t" and "sh1t" are caught) and checked against a blocklist
 const BAD = ["fuck","shit","bitch","cunt","dick","cock","pussy","asshole","arsehole","wanker","twat","bastard","slut","whore","nigg","fag","retard","penis","vagina","boob","tits","porn","sex","damn","crap","piss","bollock","prick","knob","bugger","bloody","hell","kys","rape","nazi","hitler","dildo","cum"];
 function isRude(v){ const t = v.toLowerCase().replace(/[013457@$!]/g, c=>({"0":"o","1":"i","3":"e","4":"a","5":"s","7":"t","@":"a","$":"s","!":"i"}[c])).replace(/[^a-z]/g,""); return BAD.some(w => t.includes(w)); }
 function applyName(){ $("hName").textContent = NAME; }
+setInterval(()=>{ try{ const n = cleanName(localStorage.getItem(NAME_KEY)); if(n && n!==NAME && !isRude(n)){ NAME = n; applyName(); } }catch(e){} }, 2000);
 function openName(){
   const box = $("hatchBox"); box.className = "hatch namebox";
   box.innerHTML = `<h3>What's your name?</h3>
-    <input id="nameIn" maxlength="14" autocomplete="off" spellcheck="false" value="${NAME.replace(/&/g,"&amp;").replace(/"/g,"&quot;")}" aria-label="Your name">
-    <p class="hint" id="nameHint">First name or nickname only. Up to 14 letters. It shows above your character.</p>
+    <input id="nameIn" maxlength="12" autocomplete="off" spellcheck="false" value="${NAME.replace(/&/g,"&amp;").replace(/"/g,"&quot;")}" aria-label="Your name">
+    <p class="hint" id="nameHint">First name or nickname only. Up to 12 letters. It shows above your character.</p>
     <div class="row"><button class="buy" id="nameOk">Save</button><button class="small" id="nameCancel">Cancel</button></div>`;
   $("overlay").hidden = false;
   const inp = $("nameIn"); inp.focus(); inp.select();
@@ -762,6 +782,104 @@ function openName(){
 function closeName(){ $("overlay").hidden = true; $("hatchBox").className = "hatch"; }
 $("nameChip").onclick = openName;
 applyName();
+// ---------- gifts ----------
+// Gifts go through the same free server as the leaderboards. Sending posts a copy of the wins
+// or pet to your friend's name; you keep yours, but you can only give what you have. Their game collects waiting gifts
+// when it opens and every 20 seconds after that. The server only lets a game read gifts that are
+// addressed to it, and hands each gift out once.
+const SB_URL = "https://bpqaeqswtgtbqrczjcrx.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwcWFlcXN3dGd0YnFyY3pqY3J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzUzOTIsImV4cCI6MjA5NjkxMTM5Mn0.hsEZJ_C4NvySPMb59G9EPPfdJRSNBODbnuo9ij_zxrI";
+function sb(path, body){
+  return fetch(SB_URL + "/rest/v1/" + path, { method: body ? "POST" : "GET",
+    headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY, "Content-Type": "application/json", Prefer: "return=minimal" },
+    body: body ? JSON.stringify(body) : undefined })
+    .then(r => { if(!r.ok) throw new Error("server " + r.status); return r.text().then(t => t ? JSON.parse(t) : []); });
+}
+const hasName = () => NAME && NAME !== "Player";
+function needName(){ setMsg("Set your name first (tap the Player chip at the top) so your friend knows who it is from.", "bad"); }
+function sendGift(to, kind, payload, what){
+  return sb("gifts", { to_name: to, from_name: NAME, kind, payload }).then(()=>{
+    closeName(); setMsg(`🎁 Sent ${what} to ${to}! It arrives when their game is open.`, "good");
+  }).catch(()=>{ setMsg("Could not reach the gift server. Try again in a minute.", "bad"); closeName(); });
+}
+function friendField(){ return `<input id="giftTo" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Friend's in-game name" aria-label="Friend's name" style="font-size:20px">`; }
+function readFriend(){
+  const to = cleanName($("giftTo").value).slice(0,12);
+  if(!to){ $("giftHint").textContent = "Type your friend's in-game name."; return null; }
+  if(to.toLowerCase() === NAME.toLowerCase()){ $("giftHint").textContent = "That is your own name. Gifts are for friends!"; return null; }
+  return to;
+}
+$("giftWinsBtn").onclick = ()=>{
+  if(!hasName()) return needName();
+  const box = $("hatchBox"); box.className = "hatch namebox";
+  box.innerHTML = `<h3>Give wins</h3><p>You have <b style="color:var(--gold)">${fmt(S.wins)}</b> wins.</p>
+    ${friendField()}
+    <input id="giftAmt" inputmode="decimal" autocomplete="off" placeholder="How many wins? e.g. 500 or 2.5M" aria-label="Wins to give" style="font-size:20px">
+    <p class="hint" id="giftHint">You can type K, M, B or T for thousands, millions, billions or trillions. You keep your wins too.</p>
+    <div class="row"><button class="buy" id="giftGo">Send wins</button><button class="small" id="giftCancel">Cancel</button></div>`;
+  $("overlay").hidden = false; $("giftTo").focus();
+  const go = ()=>{
+    const to = readFriend(); if(!to) return;
+    const raw = $("giftAmt").value.trim().toUpperCase().replace(/,/g,"");
+    const m = raw.match(/^(\d+(?:\.\d+)?)\s*([KMBT]|QA|QI|SX|SP|OC|NO|DC)?$/);
+    const pow = {K:3,M:6,B:9,T:12,QA:15,QI:18,SX:21,SP:24,OC:27,NO:30,DC:33};
+    let amt = m ? D(m[1]).mul(Decimal.pow(10, pow[m[2]]||0)).floor() : null;
+    if(!amt || amt.lte(0)){ $("giftHint").textContent = "Type a number bigger than 0."; return; }
+    if(amt.gt(S.wins)){ $("giftHint").textContent = "You only have "+fmt(S.wins)+" wins. You can only give what you have."; return; }
+    $("giftGo").disabled = true; $("giftGo").textContent = "Sending…";
+    sendGift(to, "wins", {v: amt.toString()}, fmt(amt)+" wins");
+  };
+  $("giftGo").onclick = go; $("giftCancel").onclick = closeName;
+  ["giftTo","giftAmt"].forEach(id=> $(id).addEventListener("keydown", e=>{ e.stopPropagation(); if(e.key==="Enter"){ e.preventDefault(); go(); } if(e.key==="Escape") closeName(); }));
+};
+$("giftPetBtn").onclick = ()=>{
+  if(!hasName()) return needName();
+  const box = $("hatchBox"); box.className = "hatch namebox";
+  const list = [...S.pets].sort(byStrength).slice(0,80);
+  let chosen = null;
+  box.innerHTML = `<h3>Give a pet</h3>
+    ${friendField()}
+    <p>${list.length ? "Pick the pet to give. You keep yours too." : "You have no pets to give yet."}</p>
+    ${list.length ? `<div class="pick">${list.map(p=>`<div class="pet-card" data-id="${p.id}" tabindex="0" role="button">${petHTML(p.e,p.i,false,p.t)}<div class="nm">${pname(p)}</div><div style="color:#7ff0a0">+${fmt(pm(p))}</div></div>`).join("")}</div>` : ""}
+    <p class="hint" id="giftHint"></p>
+    <div class="row"><button class="buy" id="giftGo" disabled>Pick a pet first</button><button class="small" id="giftCancel">Cancel</button></div>`;
+  $("overlay").hidden = false;
+  box.querySelectorAll(".pick .pet-card").forEach(c=>{
+    const choose = ()=>{ box.querySelectorAll(".pick .pet-card").forEach(x=>x.classList.remove("sel")); c.classList.add("sel"); chosen = S.pets.find(p=>p.id===+c.dataset.id); $("giftGo").disabled=false; $("giftGo").textContent="Send "+pname(chosen); };
+    c.onclick = choose; c.onkeydown = ev=>{ if(ev.key==="Enter") choose(); };
+  });
+  $("giftGo").onclick = ()=>{
+    if(!chosen) return; const to = readFriend(); if(!to) return;
+    const pet = chosen; $("giftGo").disabled = true; $("giftGo").textContent = "Sending…";
+    sendGift(to, "pet", {e:pet.e, i:pet.i, t:pet.t||0}, pname(pet));
+  };
+  $("giftCancel").onclick = closeName;
+  $("giftTo").addEventListener("keydown", e=>{ e.stopPropagation(); if(e.key==="Escape") closeName(); });
+};
+let claiming = false, newBest = false;
+function claimGifts(){
+  if(!hasName() || claiming || !navigator.onLine) return;
+  claiming = true;
+  sb("rpc/claim_gifts", { p_name: NAME }).then(rows=>{
+    claiming = false;
+    if(!rows || !rows.length) return;
+    const got = [];
+    rows.forEach(g=>{
+      const pl = g.payload || {}, from = cleanName(g.from_name) || "A friend";
+      if(g.kind==="wins" && pl.v){ const v = D(pl.v); if(v.gt(0)){ S.wins = S.wins.add(v); got.push(`${fmt(v)} wins from ${from}`); } }
+      else if(g.kind==="pet" && EGGS[pl.e] && RAR[pl.i]){ const pet = {id:S.nextId++, e:pl.e, i:pl.i}; if(pl.t) pet.t=pl.t; S.pets.push(pet); if(S.equipped.length<MAX_EQUIP) S.equipped.push(pet.id); got.push(`${pname(pet)} from ${from}`); }
+    });
+    if(got.length){ save(); renderPets(); setMsg("🎁 You got " + got.join(", ") + "!", "good"); }
+  }).catch(()=>{ claiming = false; });
+}
+claimGifts(); setInterval(claimGifts, 20000);
+// ---------- leaderboard ----------
+if(window.Leaderboard){
+  Leaderboard.mount({el:"lb", game:"wall-hop", dir:"desc", unit:"walls", title:"Wall Hop Pets — best wall reached"});
+  if(hasName() && S.best>0) Leaderboard.submit(S.best);
+}
+function postBest(){ if(window.Leaderboard && hasName() && S.best>0) Leaderboard.submit(S.best); }
+window.addEventListener("focus", claimGifts);
 window.addEventListener("resize", resize);
 const LBLC=[];
 function LBL(i){
@@ -812,7 +930,7 @@ function update(dt){
       } else if(G.power.gte(h) && G.x >= wx - 95){
         G.jump = {x0:G.x, x1:wx+THICK+95, peak:wallPix(G.next)+46, p:0, dur:(wx+THICK+190-G.x)/speed + 0.12};
       } else if(G.power.lt(h) && G.x >= wx - 26){
-        G.state="bonk"; G.bonkT=0; G.bx=G.x;
+        G.state="bonk"; G.bonkT=0; G.bx=G.x; if(newBest){ newBest=false; postBest(); }
         setMsg(`Bonk! Wall ${G.next+1} is ${fmt(h)} tall and your jump was ${fmt(G.power)}. You cleared ${G.cleared} wall${G.cleared===1?'':'s'}.`, G.cleared? "good":"bad");
       }
     } else {
@@ -822,7 +940,7 @@ function update(dt){
       if(p>=1){
         G.y=0; G.jump=null;
         const r = wallReward(G.next).mul(rebMulti()).mul(worldMulti()); S.wins = S.wins.add(r); G.cleared++;
-        if(G.next+1 > S.best) S.best = G.next+1;
+        if(G.next+1 > S.best){ S.best = G.next+1; newBest = true; }
         G.floats.push({x:wallX(G.next)+THICK/2, y:wallPix(G.next)+20, t:0, txt:"+"+fmt(r)+" wins"});
         G.next++; save(); renderHUD();
       }

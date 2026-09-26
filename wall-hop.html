@@ -799,6 +799,7 @@ $("fastBtn").onclick = ()=>{ FAST=!FAST; try{ localStorage.setItem(SAVE_KEY+"-fa
 // ---------- player name ----------
 // Kept separately from the save so "Reset game" leaves the name alone, and under a
 // shared key so other GH Games can reuse it.
+let blockReady = false;
 const NAME_KEY = "ghgames_nick"; // shared with the leaderboards and the other GH Games
 let NAME = "Player";
 function cleanName(v){ return (v||"").replace(/[^A-Za-z0-9 _\-!?.']/g,"").replace(/\s+/g," ").trim().slice(0,12); }
@@ -806,7 +807,7 @@ try{ NAME = cleanName(localStorage.getItem(NAME_KEY)) || "Player"; if(isRude(NAM
 // swear filter: names are squashed to letters only (so "s.h-i t" and "sh1t" are caught) and checked against a blocklist
 const BAD = ["fuck","shit","bitch","cunt","dick","cock","pussy","asshole","arsehole","wanker","twat","bastard","slut","whore","nigg","fag","retard","penis","vagina","boob","tits","porn","sex","damn","crap","piss","bollock","prick","knob","bugger","bloody","hell","kys","rape","nazi","hitler","dildo","cum"];
 function isRude(v){ const t = v.toLowerCase().replace(/[013457@$!]/g, c=>({"0":"o","1":"i","3":"e","4":"a","5":"s","7":"t","@":"a","$":"s","!":"i"}[c])).replace(/[^a-z]/g,""); return BAD.some(w => t.includes(w)); }
-function applyName(){ $("hName").textContent = NAME; }
+function applyName(){ $("hName").textContent = NAME; if(blockReady) checkBlocked(); }
 setInterval(()=>{ try{ const n = cleanName(localStorage.getItem(NAME_KEY)); if(n && n!==NAME && !isRude(n)){ NAME = n; applyName(); } }catch(e){} }, 2000);
 function openName(){
   const box = $("hatchBox"); box.className = "hatch namebox";
@@ -947,6 +948,20 @@ function claimGifts(){
   }).catch(()=>{ claiming = false; });
 }
 claimGifts(); setInterval(claimGifts, 20000);
+// ---------- block list ----------
+// The owner can switch jumping off for a name. The game checks when it opens, every 20 seconds, and on a name change.
+let BLOCKED = false;
+function checkBlocked(){
+  const n = (NAME||"").toLowerCase().trim();
+  if(!n || !navigator.onLine) return;
+  sb("blocked_players?select=name&name=eq." + encodeURIComponent(n)).then(rows=>{
+    const was = BLOCKED; BLOCKED = !!(rows && rows.length);
+    const jb = $("jumpBtn"); if(jb && G.state==="idle") jb.disabled = BLOCKED;
+    if(BLOCKED && !was) setMsg("Jumping is switched off for the name "+NAME+".", "bad");
+    if(!BLOCKED && was) setMsg("Jumping is back on. Go!", "good");
+  }).catch(()=>{});
+}
+blockReady = true; checkBlocked(); setInterval(checkBlocked, 20000);
 // ---------- leaderboard ----------
 if(window.Leaderboard){
   Leaderboard.mount({el:"lb", game:"wall-hop", dir:"desc", unit:"walls", title:"Wall Hop Pets — best wall reached"});
@@ -972,6 +987,7 @@ const wallPix = i => 44 + 17*Math.min(i,40) + 4*Math.max(0,i-40);
 let G = {state:"idle", x:60, y:0, next:0, power:0, run:0, jump:null, t:0, bonkT:0, camX:0, camY:0, floats:[], meter:0, dir:1, cleared:0};
 function startRun(){
   if(G.state!=="idle") return;
+  if(BLOCKED){ setMsg("Jumping is switched off for the name "+NAME+".", "bad"); return; }
   const timing = 0.35 + 0.65*G.meter;
   G.power = jumpPower().mul(timing); G.state="running"; G.next=0; G.cleared=0; G.x=60; G.y=0; G.run=0;
   jumpBtn.disabled = true;
@@ -1024,7 +1040,7 @@ function update(dt){
     G.bonkT += dt;
     const k = Math.min(1,G.bonkT/0.4);
     G.x = G.bx - 70*k; G.y = Math.max(0, 60*Math.sin(Math.PI*k));
-    if(G.bonkT > 1.5){ G.state="idle"; G.x=60; G.y=0; G.next=0; jumpBtn.disabled=false; }
+    if(G.bonkT > 1.5){ G.state="idle"; G.x=60; G.y=0; G.next=0; jumpBtn.disabled=BLOCKED; }
   }
   // camera
   const tx = Math.max(0, G.x - W*0.32), ty = Math.max(0, G.y + 90 - (H-60)*0.6);

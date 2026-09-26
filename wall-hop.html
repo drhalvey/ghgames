@@ -425,6 +425,20 @@ const byStrength = (a,b) => pm(b).cmp(pm(a));
 const pname = p => (p.t ? TIERS[p.t]+" " : "") + EGGS[p.e].pets[p.i][0];
 const WH=[], WR=[];
 const wallHeight = i => WH[i] || (WH[i] = Decimal.pow(1.5, i).mul(6).round());
+// highest wall index a jump of power p can clear (height 6 x 1.5^i)
+function maxWall(p){
+  let i = Math.floor((Decimal.log10(p.div(6)) ) / Math.log10(1.5));
+  if(!isFinite(i) || i < 0) return -1;
+  while(i > 0 && Decimal.pow(1.5, i).mul(6).round().gt(p)) i--;
+  while(Decimal.pow(1.5, i+1).mul(6).round().lte(p)) i++;
+  return i;
+}
+// wins from walls a..b together: 3 x (1.7^a + ... + 1.7^b)
+function rewardSum(a, b){
+  if(b < a) return D(0);
+  if(b - a < 60){ let t = D(0); for(let i=a;i<=b;i++) t = t.add(Decimal.pow(1.7,i).mul(3).ceil()); return t; }
+  return Decimal.pow(1.7, b+1).sub(Decimal.pow(1.7, a)).div(0.7).mul(3);
+}
 const wallReward = i => WR[i] || (WR[i] = Decimal.pow(1.7, i).mul(3).ceil());
 
 // ---------- state ----------
@@ -973,7 +987,7 @@ blockReady = true; checkBlocked(); setInterval(checkBlocked, 20000);
 // ---------- auto update ----------
 // version.txt is changed whenever the game is updated. Open games check it every minute and,
 // when it changes, save and reload between runs so everyone gets the new rules straight away.
-const GAME_VERSION = "2026-09-26f";
+const GAME_VERSION = "2026-09-26g";
 function checkVersion(){
   if(!navigator.onLine) return;
   fetch("version.txt?t=" + Date.now(), {cache:"no-store"}).then(r => r.ok ? r.text() : "").then(v=>{
@@ -1037,17 +1051,20 @@ function update(dt){
     G.meter += G.dir*dt*1.6; if(G.meter>1){G.meter=1;G.dir=-1;} if(G.meter<0){G.meter=0;G.dir=1;}
     needle.style.transform = "translateX("+(G.meter*meterW)+"px)";
   }
-  const speed = 280 + G.next*45 + 3*G.next*G.next;
+  const speed = 2*(280 + G.next*45 + 3*G.next*G.next); // twice as fast as before
   if(G.state==="running"){
     const wx = wallX(G.next), h = wallHeight(G.next);
     if(!G.jump){
       G.x += speed*dt; G.run += dt;
-      if(G.next >= 8 && G.power.gte(h)){
-        // turbo: past wall 8, clear walls in batches so huge jumps don't take forever
-        let got = D(0), k = 0;
-        while(k < 40 && G.power.gte(wallHeight(G.next))){ got = got.add(wallReward(G.next)); G.next++; G.cleared++; k++; }
+      if(G.next >= 3 && G.power.gte(h)){
+        // turbo: past wall 3, clear walls in big batches so any run finishes in about a third of a second.
+        // The last wall you can clear and the wins in between are worked out with maths, not one wall at a time.
+        const last = maxWall(G.power), left = last - G.next + 1;
+        const to = Math.min(last, G.next + Math.max(40, Math.ceil(left/20)) - 1);
+        let got = rewardSum(G.next, to);
+        G.cleared += to - G.next + 1; G.next = to + 1;
         got = got.mul(rebMulti()).mul(worldMulti()); S.wins = S.wins.add(got);
-        if(G.next > S.best) S.best = G.next;
+        if(G.next > S.best){ S.best = G.next; newBest = true; }
         G.x = wallX(G.next) - 140; G.y = 0;
         G.floats.length = 0; G.floats.push({x:wallX(G.next-1)+THICK/2, y:wallPix(G.next-1)+20, t:0, txt:"+"+fmt(got)+" wins"});
         save(); renderHUD();
@@ -1122,7 +1139,9 @@ function draw(){
     const done = G.state!=="idle" && i < G.next;
     ctx.fillStyle = `hsl(${hue},62%,${done?64:52}%)`; rr(x, sy(ph), THICK, ph, 6); ctx.fill();
     ctx.strokeStyle="rgba(0,0,0,.25)"; ctx.lineWidth=2;
-    ctx.beginPath(); for(let b=18;b<ph;b+=18){ ctx.moveTo(x+3,sy(b)); ctx.lineTo(x+THICK-3,sy(b)); } ctx.stroke();
+    // only the stripes that are on screen: very tall walls are millions of pixels high
+    const b0 = Math.max(18, Math.ceil((GY - H)/18)*18), b1 = Math.min(ph, GY + 18);
+    ctx.beginPath(); for(let b=b0;b<b1;b+=18){ ctx.moveTo(x+3,sy(b)); ctx.lineTo(x+THICK-3,sy(b)); } ctx.stroke();
     ctx.strokeStyle="rgba(0,0,0,.4)"; ctx.lineWidth=3; rr(x, sy(ph), THICK, ph, 6); ctx.stroke();
     // label flag
     const L = LBL(i); ctx.drawImage(L.c, x-22, sy(ph)-44, L.w, L.h);

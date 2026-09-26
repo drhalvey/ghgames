@@ -153,6 +153,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.hatch .egg.shake{animation:none}}
 .fast{font-family:var(--body);font-weight:800;font-size:13px;padding:6px 12px;border:2px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;align-self:center}
 .jump.stop{background:var(--red);box-shadow:0 5px 0 #a8323a}
+.jump.stop:disabled{background:#6b3a44;box-shadow:0 5px 0 #4a2830;opacity:.7}
 .fast[aria-pressed="true"]{background:var(--green);border-color:var(--green-dk);color:#0c2238}
 .chip.name{cursor:pointer;text-align:left;font:inherit;color:inherit}
 .chip.name b{color:#ffd6e8;font-size:18px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -191,6 +192,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
   <div class="controls">
     <div class="meter" aria-hidden="true"><div class="needle" id="needle"></div><div class="meter-lbl">TIMING</div></div>
     <button class="jump" id="jumpBtn">JUMP!</button>
+    <button class="jump stop" id="stopBtn" disabled>STOP</button>
   </div>
   <div class="msg" id="msg">Stop the needle in the green for a big jump. Each wall you clear pays wins, and taller walls pay more.</div>
 
@@ -967,7 +969,7 @@ blockReady = true; checkBlocked(); setInterval(checkBlocked, 20000);
 // ---------- auto update ----------
 // version.txt is changed whenever the game is updated. Open games check it every minute and,
 // when it changes, save and reload between runs so everyone gets the new rules straight away.
-const GAME_VERSION = "2026-09-26c";
+const GAME_VERSION = "2026-09-26d";
 function checkVersion(){
   if(!navigator.onLine) return;
   fetch("version.txt?t=" + Date.now(), {cache:"no-store"}).then(r => r.ok ? r.text() : "").then(v=>{
@@ -1006,7 +1008,7 @@ function startRun(){
   if(BLOCKED){ setMsg("Jumping is switched off for the name "+NAME+".", "bad"); return; }
   const timing = 0.35 + 0.65*G.meter;
   G.power = jumpPower().mul(timing); G.state="running"; G.next=0; G.cleared=0; G.x=60; G.y=0; G.run=0;
-  jumpBtn.disabled = false; jumpBtn.textContent = "STOP"; jumpBtn.classList.add("stop");
+  jumpBtn.disabled = true; stopBtn.disabled = false;
   setMsg(`Timing ${Math.round(timing*100)}%, so your jump power is ${fmt(G.power)}. Go! Press STOP to end the run and keep your wins.`);
 }
 // STOP ends a run early: you keep every win from the walls you cleared
@@ -1017,9 +1019,11 @@ function stopRun(){
   resetJumpBtn(); save(); renderHUD();
   setMsg(`You stopped. You cleared ${G.cleared} wall${G.cleared===1?'':'s'} and kept all your wins.`, "good");
 }
-function resetJumpBtn(){ jumpBtn.textContent = "JUMP!"; jumpBtn.classList.remove("stop"); jumpBtn.disabled = BLOCKED; }
+function resetJumpBtn(){ jumpBtn.disabled = BLOCKED; stopBtn.disabled = true; }
+const stopBtn = $("stopBtn");
+stopBtn.onclick = stopRun;
 function jumpOrStop(){ if(G.state==="running") stopRun(); else startRun(); }
-jumpBtn.onclick = jumpOrStop;
+jumpBtn.onclick = startRun;
 cv.addEventListener("pointerdown", jumpOrStop);
 window.addEventListener("keydown", e=>{ if(e.code==="Space" && $("overlay").hidden){ e.preventDefault(); jumpOrStop(); } });
 
@@ -1047,7 +1051,7 @@ function update(dt){
         G.jump = {x0:G.x, x1:wx+THICK+95, peak:wallPix(G.next)+46, p:0, dur:(wx+THICK+190-G.x)/speed + 0.12};
       } else if(G.power.lt(h) && G.x >= wx - 26){
         G.state="bonk"; G.bonkT=0; G.bx=G.x; if(newBest){ newBest=false; postBest(); }
-        jumpBtn.textContent = "JUMP!"; jumpBtn.classList.remove("stop"); jumpBtn.disabled = true;
+        jumpBtn.disabled = true; stopBtn.disabled = true;
         setMsg(`Bonk! Wall ${G.next+1} is ${fmt(h)} tall and your jump was ${fmt(G.power)}. You cleared ${G.cleared} wall${G.cleared===1?'':'s'}.`, G.cleared? "good":"bad");
       }
     } else {

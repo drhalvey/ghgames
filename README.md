@@ -10,6 +10,7 @@ ghgames/
   index.html      the arcade homepage (game tiles)
   blackhole.html  drag-and-release: fling stars into a black hole
   sparrow.html    flappy-style sparrow, with score + best
+  crazy-dads.html dads vs kids chase: soda knockouts, then the Monica & Didi boss (online via Supabase Realtime)
   CNAME           contains "ghgames.au" — tells GitHub Pages the domain
   README.md       this file
 ```

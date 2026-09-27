@@ -1060,7 +1060,7 @@ blockReady = true; checkBlocked(); setInterval(checkBlocked, 20000);
 // ---------- auto update ----------
 // version.txt is changed whenever the game is updated. Open games check it every minute and,
 // when it changes, save and reload between runs so everyone gets the new rules straight away.
-const GAME_VERSION = "2026-09-27b";
+const GAME_VERSION = "2026-09-27c";
 function checkVersion(){
   if(!navigator.onLine) return;
   fetch("version.txt?t=" + Date.now(), {cache:"no-store"}).then(r => r.ok ? r.text() : "").then(v=>{
@@ -1124,16 +1124,16 @@ function update(dt){
     G.meter += G.dir*dt*1.6; if(G.meter>1){G.meter=1;G.dir=-1;} if(G.meter<0){G.meter=0;G.dir=1;}
     needle.style.transform = "translateX("+(G.meter*meterW)+"px)";
   }
-  const speed = 2*(280 + G.next*45 + 3*G.next*G.next); // twice as fast as before
+  const speed = 6*(280 + G.next*45 + 3*G.next*G.next); // six times the original speed
   if(G.state==="running"){
     const wx = wallX(G.next), h = wallHeight(G.next);
     if(!G.jump){
       G.x += speed*dt; G.run += dt;
       if(G.next >= 3 && G.power.gte(h)){
-        // turbo: past wall 3, clear walls in big batches so any run finishes in about a third of a second.
+        // turbo: past wall 3, clear walls in big batches so any run finishes in about a seventh of a second.
         // The last wall you can clear and the wins in between are worked out with maths, not one wall at a time.
         const last = maxWall(G.power), left = last - G.next + 1;
-        const to = Math.min(last, G.next + Math.max(40, Math.ceil(left/20)) - 1);
+        const to = Math.min(last, G.next + Math.max(40, Math.ceil(left/8)) - 1);
         let got = rewardSum(G.next, to);
         G.cleared += to - G.next + 1; G.next = to + 1;
         got = got.mul(rebMulti()).mul(worldMulti()).mul(ascMulti()); S.wins = S.wins.add(got);
@@ -1165,7 +1165,7 @@ function update(dt){
     G.bonkT += dt;
     const k = Math.min(1,G.bonkT/0.4);
     G.x = G.bx - 70*k; G.y = Math.max(0, 60*Math.sin(Math.PI*k));
-    if(G.bonkT > 1.5){ G.state="idle"; G.x=60; G.y=0; G.next=0; resetJumpBtn(); }
+    if(G.bonkT > 0.8){ G.state="idle"; G.x=60; G.y=0; G.next=0; resetJumpBtn(); }
   }
   // camera
   const tx = Math.max(0, G.x - W*0.32), ty = Math.max(0, G.y + 90 - (H-60)*0.6);

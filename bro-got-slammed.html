@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Bro Got Slammed</title>
 <script src="analytics.js" defer></script>
 <script src="account.js" data-game="bro-got-slammed"></script>
@@ -18,7 +18,9 @@
   --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;touch-action:manipulation}
+button,a,.stage,canvas{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.stage,.stage *,button{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 html,body{background:var(--bg);margin:0}
 body{font-family:var(--body);color:var(--ink);padding:14px 14px 40px;font-size:15px}
 .wrap{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
@@ -32,7 +34,7 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
 .chip b{font-size:17px;font-weight:900}
 button.chip{cursor:pointer}
 button.chip:hover{border-color:var(--gold)}
-.stage{position:relative;border-radius:20px;overflow:hidden;border:3px solid var(--line);background:#111;touch-action:none;user-select:none;-webkit-user-select:none}
+.stage{position:relative;touch-action:none;border-radius:20px;overflow:hidden;border:3px solid var(--line);background:#111;touch-action:none;user-select:none;-webkit-user-select:none}
 canvas{display:block;width:100%;touch-action:none}
 .atk{position:absolute;right:14px;bottom:14px;width:96px;height:96px;border-radius:50%;border:none;font-family:var(--display);font-size:22px;color:#fff;background:radial-gradient(circle at 35% 30%,#ff9ac0,#e0336f);box-shadow:0 6px 0 #8a1c43,0 10px 18px rgba(0,0,0,.4);cursor:pointer;touch-action:none}
 .atk.ped{background:radial-gradient(circle at 35% 30%,#ffb07a,#d4541c);box-shadow:0 6px 0 #7a2c0a,0 10px 18px rgba(0,0,0,.4)}
@@ -795,11 +797,11 @@ function tryAttack() {
 // ---------------- drawing ----------------
 const ctx = cv.getContext("2d");
 let cw = 0, chh = 0, dpr = 1, scale = 1, camX = 0, camY = 0, shake = 0;
-let BG = null;
+let BG = null, MINI = null;
 function resize() {
   const st = $("stage"); cw = st.clientWidth;
   chh = Math.round(cw < 600 ? Math.max(300, Math.min(innerHeight * 0.64, cw * 1.15)) : Math.max(280, Math.min(innerHeight * 0.7, cw * 0.66)));
-  dpr = Math.min(devicePixelRatio || 1, 2);
+  dpr = Math.min(devicePixelRatio || 1, 1.5);   // a tiny bit less sharp on retina screens, a lot faster on every device
   cv.width = Math.round(cw * dpr); cv.height = Math.round(chh * dpr); cv.style.height = chh + "px";
   const visW = Math.max(560, Math.min(1000, cw * 1.35));
   scale = cw / visW;
@@ -807,7 +809,30 @@ function resize() {
   if (cw / scale > W) scale = cw / W;
 }
 function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
-function emoji(c, e, x, y, size) { if (!e) return; c.fillStyle = "#000"; c.font = `${size}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(e, x, y); }
+// drawing emoji and names as text every frame is slow on iPhones, so each one is drawn once into a little picture and reused
+const SPR = new Map();
+function sprite(key, w, h, paint) {
+  let c = SPR.get(key);
+  if (!c) {
+    if (SPR.size > 800) SPR.clear();
+    c = document.createElement("canvas"); c.width = Math.ceil(w * 2); c.height = Math.ceil(h * 2); c.w = w; c.h = h;
+    const g = c.getContext("2d"); g.scale(2, 2); paint(g); SPR.set(key, c);
+  }
+  return c;
+}
+function emoji(c, e, x, y, size) {
+  if (!e) return;
+  if (c !== ctx) return emojiText(c, e, x, y, size);
+  size = Math.max(8, Math.round(size / 2) * 2);
+  const b = Math.ceil(size * 1.35);
+  const sp = sprite("e" + e + size, b, b, g => emojiText(g, e, b / 2, b / 2, size));
+  c.drawImage(sp, x - b / 2, y - b / 2, b, b);
+}
+function nameTag(t, x, y, mine) {
+  const sp = sprite("n" + (mine ? 1 : 0) + t, 150, 22, g => { g.font = "800 13px Nunito, sans-serif"; g.textAlign = "center"; g.textBaseline = "bottom"; g.lineWidth = 3; g.strokeStyle = "rgba(0,0,0,.6)"; g.strokeText(t, 75, 19); g.fillStyle = mine ? "#ffe066" : "#fff"; g.fillText(t, 75, 19); });
+  ctx.drawImage(sp, x - 75, y - 19, 150, 22);
+}
+function emojiText(c, e, x, y, size) { if (!e) return; c.fillStyle = "#000"; c.font = `${size}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(e, x, y); }
 function label(c, t, x, y, size, fill, stroke) { c.font = `900 ${size}px Nunito, sans-serif`; c.textAlign = "center"; c.textBaseline = "middle"; c.lineWidth = 3; c.strokeStyle = stroke || "rgba(0,0,0,.6)"; c.strokeText(t, x, y); c.fillStyle = fill || "#fff"; c.fillText(t, x, y); }
 function buildBG() {
   const k = 1.25, c = document.createElement("canvas"); c.width = W * k; c.height = H * k;
@@ -842,6 +867,9 @@ function buildBG() {
   }
   g.strokeStyle = "rgba(0,0,0,.35)"; g.lineWidth = 10; g.strokeRect(0, 0, W, H);
   BG = c;
+  // small copy for the minimap so it is not shrunk from the big picture every frame
+  const mc = document.createElement("canvas"); mc.width = 320; mc.height = 200; mc.getContext("2d").drawImage(c, 0, 0, 320, 200); MINI = mc;
+  SPR.clear();
 }
 function bubble(t, x, y) {
   ctx.font = "900 14px Nunito, sans-serif"; const w = ctx.measureText(t).width + 16;
@@ -892,8 +920,7 @@ function drawEnt(e, now) {
     ctx.fillStyle = "rgba(0,0,0,.6)"; rr(ctx, x - bw / 2 - 1, ny - 1, bw + 2, 7, 3); ctx.fill();
     ctx.fillStyle = fr > 0.5 ? "#4fcf6a" : fr > 0.25 ? "#ffc93c" : "#ff5d5d"; rr(ctx, x - bw / 2, ny, bw * fr, 5, 2); ctx.fill();
   }
-  ctx.font = "800 13px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
-  ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.strokeText(e.name, x, ny - 3); ctx.fillStyle = e.id === MYID ? "#ffe066" : "#fff"; ctx.fillText(e.name, x, ny - 3);
+  nameTag(e.name, x, ny - 3, e.id === MYID);
   if (e.sayT > 0 && e.say && !lying) bubble(e.say, x, ny - 20);
 }
 function fmtTime(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
@@ -968,7 +995,7 @@ function draw(now, dt) {
   // minimap
   const mw = small ? 110 : 160, mh = mw * H / W, mx = cw - mw - 10, my = 10;
   ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(mx - 3, my - 3, mw + 6, mh + 6);
-  if (BG) { ctx.globalAlpha = 0.8; ctx.drawImage(BG, mx, my, mw, mh); ctx.globalAlpha = 1; }
+  if (MINI) { ctx.globalAlpha = 0.8; ctx.drawImage(MINI, mx, my, mw, mh); ctx.globalAlpha = 1; }
   ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(mx + camX / W * mw, my + camY / H * mh, vw / W * mw, vh / H * mh);
   for (const e of ents) { ctx.globalAlpha = e.out ? 0.35 : 1; ctx.fillStyle = e.team === "ped" ? "#e0703a" : "#2fc1ae"; ctx.beginPath(); ctx.arc(mx + e.rx / W * mw, my + e.ry / H * mh, e.id === MYID ? 4.5 : 3, 0, 7); ctx.fill(); if (e.id === MYID) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke(); } }
   ctx.globalAlpha = 1;
@@ -1129,6 +1156,18 @@ setInterval(() => { try { const n = safeName(localStorage.getItem(NAME_KEY)); if
 // an online save coming down from account.js replaces the save while the page is open
 setInterval(() => { try { const raw = localStorage.getItem(SAVE_KEY); if (raw && raw !== JSON.stringify(S)) { const side = S.side, map = S.map; S = Object.assign(S, JSON.parse(raw)); if (playing) { S.side = side; S.map = map; } renderHUD(); renderUps(); } } catch (e) {} }, 3000);
 
+// ---------------- no zooming on iPhone / iPad ----------------
+// Safari ignores user-scalable=no, so block pinch and double-tap zoom here
+["gesturestart", "gesturechange", "gestureend"].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+let lastTouchEnd = 0;
+document.addEventListener("touchend", e => {
+  const now = Date.now();
+  if (now - lastTouchEnd < 350 && !(e.target.closest && e.target.closest("input,button,a"))) e.preventDefault();
+  lastTouchEnd = now;
+}, { passive: false });
+document.addEventListener("dblclick", e => e.preventDefault(), { passive: false });
+
 // ---------------- start up ----------------
 { const s = document.createElement("span"); s.id = "onlineLbl"; s.hidden = true; document.body.appendChild(s); }
 addEventListener("resize", () => { resize(); });
@@ -1138,6 +1177,7 @@ document.addEventListener("visibilitychange", () => {
   else if (!online) { joinT = Date.now(); connect(); }
 });
 renderHUD(); renderUps(); renderLobby(); resize();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => SPR.clear());   // redraw name tags once the game font arrives
 if (window.Leaderboard) Leaderboard.mount({ el: "lb", game: "bro-got-slammed", dir: "desc", unit: "KOs", max: 40, title: "Bro Got Slammed — most knockouts in a round" });
 requestAnimationFrame(frame);
 // test hook

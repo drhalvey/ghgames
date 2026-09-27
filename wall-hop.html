@@ -107,6 +107,9 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .bar{flex:1 1 220px;height:18px;border-radius:9px;background:#0c2238;overflow:hidden;border:2px solid var(--line)}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff6fa3,#ffc93c)}
 .rebbtn{background:#e0529a;box-shadow:0 4px 0 #9a2d66;font-size:20px;padding:10px 18px}
+.ascbtn{background:#7a5cff;box-shadow:0 4px 0 #4a36b0}
+.chip.asc b{color:#c9b8ff}
+.asc-panel{border-color:#7a5cff}
 .rebbtn:disabled{background:#5e7c96;box-shadow:0 4px 0 #3d566d;cursor:default}
 .ladder{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:0;padding:0;list-style:none}
 .ladder li{background:var(--panel2);border-radius:12px;padding:8px 10px;font-weight:800;font-size:13px;display:flex;justify-content:space-between;gap:8px;font-variant-numeric:tabular-nums}
@@ -183,6 +186,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
       <div class="chip"><span>Jump power</span><b id="hPower">10</b></div>
       <div class="chip"><span>Best wall</span><b id="hBest">0</b></div>
       <div class="chip reb"><span>Rebirths</span><b id="hReb">0</b></div>
+      <div class="chip asc"><span>Ascensions</span><b id="hAsc">0</b></div>
       <div class="chip wld"><span id="hWorldName">World 1</span><b id="hWorld">x1</b></div>
       <button class="fast" id="fastBtn" aria-pressed="false">Fast mode: off</button>
     </div>
@@ -213,6 +217,15 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
     </div>
     <ul class="ladder" id="ladder"></ul>
     <div class="foot"><button class="reset" id="rebResetBtn">Reset rebirths</button></div>
+  </section>
+
+  <section class="panel asc-panel">
+    <h2>Ascension</h2>
+    <p class="sub">Like rebirths, but better, and nothing resets: you keep all your wins, pets, rebirths and worlds. Your first ascension needs 1e1000000 wins, and each one after that needs another million zeros (1e2000000, 1e3000000 ...). Every ascension makes your jump and your wins 10 times bigger.</p>
+    <div class="reb-row">
+      <div class="reb-stat" id="ascMultiBox">x1<small>Jump and wins multi</small></div>
+      <button class="rebbtn ascbtn" id="ascBtn" disabled>Need 1e1000000 wins</button>
+    </div>
   </section>
 
   <section class="panel">
@@ -524,8 +537,12 @@ const fmt = n => {
 };
 const totalMulti = () => S.equipped.reduce((s,id)=>{ const p=S.pets.find(x=>x.id===id); return p ? s.add(pm(p)) : s; }, D(1));
 const rebMulti = () => S.reb.add(1);
+// ascensions: nothing resets; the Nth ascension needs 1e(N million) wins; each one is x10 jump and wins
+const ASC_STEP = 1e6;
+const ascFor = w => { w = D(w); return w.lt(D("1e1000000")) ? 0 : Math.floor(w.log10()/ASC_STEP + 1e-12); };
+const ascMulti = () => Decimal.pow(10, S.asc||0);
 const worldMulti = () => WORLDS[S.world||0].mult;
-const jumpPower = () => rebMulti().mul(totalMulti()).mul(BASE_POWER * worldMulti());
+const jumpPower = () => rebMulti().mul(totalMulti()).mul(BASE_POWER * worldMulti()).mul(ascMulti());
 // Rebirths: 100B wins = 1. Every x1000 more wins gives 1000/150 = about 6.7x more rebirths.
 const REB_MIN = 1e11, REB_EXP = Math.log(1000/150)/Math.log(1000);
 const rebirthsFor = w => { w = D(w); return w.lt(REB_MIN) ? D(0) : w.div(REB_MIN).pow(REB_EXP).add(1e-9).floor(); };
@@ -550,6 +567,11 @@ let BUYS=[];
 function renderHUD(){
   setTxt("hWins", fmt(S.wins)); setTxt("hMulti", "x"+fmt(totalMulti()));
   setTxt("hPower", fmt(jumpPower())); setTxt("hBest", String(S.best)); setTxt("hReb", fmt(S.reb));
+  { const a = S.asc||0, g = ascFor(S.wins) - a, ab = $("ascBtn");
+    setTxt("hAsc", String(a));
+    const at = g > 0 ? "Ascend for +"+g : "Need "+fmt(D("1e"+((a+1)*ASC_STEP)))+" wins";
+    if(ab.textContent !== at) ab.textContent = at; if(ab.disabled !== !(g > 0)) ab.disabled = !(g > 0);
+    const am = "x"+fmt(ascMulti()); if(HUDC.am !== am){ HUDC.am = am; $("ascMultiBox").innerHTML = am+"<small>Jump and wins multi</small>"; } }
   setTxt("rebMulti", ""); // placeholder cache key
   const n = rebirthsFor(S.wins);
   const has = n.gt(0), btn = $("rebBtn"), bt = rebArmed ? "Pick a pet to keep" : (has ? "Rebirth for +"+fmt(n) : "Need 100B wins");
@@ -702,6 +724,11 @@ $("craftAllBtn").onclick = ()=>{
 // ---------- rebirth ----------
 let rebArmed=false;
 $("ladder").innerHTML = [1e11,1e14,1e17,1e20,1e30,"1e60","1e114","1e303","1e603","1e903"].map(w=>D(w)).map(w=>`<li><span>${fmt(w)} wins</span><span>+${fmt(rebirthsFor(w))} rebirths</span></li>`).join("");
+$("ascBtn").onclick = ()=>{
+  const g = ascFor(S.wins) - (S.asc||0); if(g <= 0) return;
+  S.asc = (S.asc||0) + g; LBLC.length = 0; save(); renderHUD();
+  setMsg(`You ascended ${g===1?"once":g+" times"}! You now have ${S.asc} ascension${S.asc===1?"":"s"}, so your jump and wins are x${fmt(ascMulti())}. Nothing was reset.`, "good");
+};
 $("rebBtn").onclick = ()=>{
   const n = rebirthsFor(S.wins); if(!n.gt(0)) return;
   if(G.state!=="idle"){ setMsg("Finish your run first, then rebirth."); return; }
@@ -812,7 +839,7 @@ $("cleanBtn").onclick = ()=>{
 let resetArmed = false;
 $("resetBtn").onclick = ()=>{
   if(!resetArmed){ resetArmed=true; $("resetBtn").textContent="Tap again to wipe everything"; setTimeout(()=>{resetArmed=false;$("resetBtn").textContent="Reset game";},3000); return; }
-  S = {wins:D(0), pets:[], equipped:[], best:0, nextId:1, reb:D(0), world:0, worlds:1}; LBLC.length=0; save(); applyWorld(); renderPets(); resetArmed=false; $("resetBtn").textContent="Reset game";
+  S = {wins:D(0), pets:[], equipped:[], best:0, nextId:1, reb:D(0), world:0, worlds:1, asc:0}; LBLC.length=0; save(); applyWorld(); renderPets(); resetArmed=false; $("resetBtn").textContent="Reset game";
 };
 
 // ---------- hatching ----------
@@ -1033,7 +1060,7 @@ blockReady = true; checkBlocked(); setInterval(checkBlocked, 20000);
 // ---------- auto update ----------
 // version.txt is changed whenever the game is updated. Open games check it every minute and,
 // when it changes, save and reload between runs so everyone gets the new rules straight away.
-const GAME_VERSION = "2026-09-27a";
+const GAME_VERSION = "2026-09-27b";
 function checkVersion(){
   if(!navigator.onLine) return;
   fetch("version.txt?t=" + Date.now(), {cache:"no-store"}).then(r => r.ok ? r.text() : "").then(v=>{
@@ -1059,7 +1086,7 @@ function LBL(i){
   c.width=w*d; c.height=h*d; const g=c.getContext("2d"); g.scale(d,d);
   g.fillStyle="rgba(12,34,56,.85)"; g.beginPath(); g.roundRect ? g.roundRect(0,0,w,h,9) : g.rect(0,0,w,h); g.fill();
   g.textAlign="center"; g.fillStyle="#fff"; g.font="15px 'Lilita One', sans-serif"; g.fillText("Height "+fmt(wallHeight(i)), w/2, 16);
-  g.fillStyle="#ffc93c"; g.font="13px 'Lilita One', sans-serif"; g.fillText("+"+fmt(wallReward(i).mul(rebMulti()).mul(worldMulti()))+" wins", w/2, 32);
+  g.fillStyle="#ffc93c"; g.font="13px 'Lilita One', sans-serif"; g.fillText("+"+fmt(wallReward(i).mul(rebMulti()).mul(worldMulti()).mul(ascMulti()))+" wins", w/2, 32);
   return (LBLC[i]={c,w,h});
 }
 const WALL0 = 360, GAP = 250, THICK = 38;
@@ -1109,7 +1136,7 @@ function update(dt){
         const to = Math.min(last, G.next + Math.max(40, Math.ceil(left/20)) - 1);
         let got = rewardSum(G.next, to);
         G.cleared += to - G.next + 1; G.next = to + 1;
-        got = got.mul(rebMulti()).mul(worldMulti()); S.wins = S.wins.add(got);
+        got = got.mul(rebMulti()).mul(worldMulti()).mul(ascMulti()); S.wins = S.wins.add(got);
         if(G.next > S.best){ S.best = G.next; newBest = true; }
         G.x = wallX(G.next) - 140; G.y = 0;
         G.floats.length = 0; G.floats.push({x:wallX(G.next-1)+THICK/2, y:wallPix(G.next-1)+20, t:0, txt:"+"+fmt(got)+" wins"});
@@ -1127,7 +1154,7 @@ function update(dt){
       G.x = j.x0 + (j.x1-j.x0)*p; G.y = 4*j.peak*p*(1-p);
       if(p>=1){
         G.y=0; G.jump=null;
-        const r = wallReward(G.next).mul(rebMulti()).mul(worldMulti()); S.wins = S.wins.add(r); G.cleared++;
+        const r = wallReward(G.next).mul(rebMulti()).mul(worldMulti()).mul(ascMulti()); S.wins = S.wins.add(r); G.cleared++;
         if(G.next+1 > S.best){ S.best = G.next+1; newBest = true; }
         G.floats.push({x:wallX(G.next)+THICK/2, y:wallPix(G.next)+20, t:0, txt:"+"+fmt(r)+" wins"});
         G.next++; save(); renderHUD();

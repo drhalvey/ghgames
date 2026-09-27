@@ -142,8 +142,8 @@ canvas{display:block;width:100%;touch-action:none}
       <li><b>Dash:</b> Space or the pink DASH button. Then wait for it to charge again.</li>
       <li><b>Dads</b> start frozen for 3 seconds while the kids run. Then they chase. A hug is so tight the kid turns into a dad.</li>
       <li><b>Playing as a dad:</b> kids you can hug have a pink ❤️ over their head, and a pink arrow at the edge of the screen points to the nearest one. Kids holding a soda 🥤 have a red dashed ring: keep away from them, or you'll drink it and pass out.</li>
-      <li><b>Soda:</b> there are 6 soda machines 🥤 on every map and the soda is free. Kids walk into a machine to grab one, then touch a dad. He drinks it and passes out 💤. Each machine takes 25 seconds to refill, and a soda goes flat after 12 seconds, so not every kid has one.</li>
-      <li><b>Boss:</b> when every dad is down, Monica arrives riding Didi, her massive greyhound 🐕. If Didi catches you, you get slobbered and you are out.</li>
+      <li><b>Soda:</b> there are 6 soda machines 🥤 on every map and the soda is free. Kids walk into a machine to grab one, then touch a dad. He drinks it and naps for 30 seconds 💤 (mash WAKE UP to wake up faster), then he is back chasing. Each machine takes 20 seconds to refill, and a soda goes flat after 12 seconds, so not every kid has one.</li>
+      <li><b>Boss:</b> when every dad is asleep at the same time, Monica arrives riding Didi, her massive greyhound 🐕. If Didi catches you, you get slobbered and you are out. Players who were dads wake up as kids and join the boss fight too.</li>
       <li><b>Beat the boss:</b> grab a peanut butter jar 🥜 (Didi will chase you!) and press DROP (E key) to lure her. While Didi slurps for 10 seconds, every kid gets TNT 🧨. Place it around her (E key) and it blows up 2 seconds later. Enough blasts and the kids win.</li>
       <li><b>Win:</b> kids win if someone is still free when the 5 minutes run out, or if they beat Monica and Didi. Dads win if every kid gets hugged. Monica wins if Didi slobbers every kid.</li>
       <li><b>Points:</b> kids get 1 point a second while free, 40 for each dad knocked out with soda, 50 for luring Didi, 30 for each TNT blast that hits her, 200 for escaping and 300 for beating the boss. Dads get 50 for every hug. Every 5 points gives you a sock 🧦.</li>
@@ -185,7 +185,9 @@ const SPEED = { dad: 205, kid: 212, botdad: 168, botkid: 196 };
 const DASH_T = 0.28, DASH_X = 2.3, DASH_CD = 3.5, BOT_DASH_CD = 4.2;
 // soda and boss
 const SODA_CD = 5;                        // seconds before a kid can grab another soda
-const MACH_REFILL = 25;                   // a soda machine takes this long to refill after someone takes a soda
+const MACH_REFILL = 20;                   // a soda machine takes this long to refill after someone takes a soda
+const NAP = 30;                           // a dad who drinks a soda naps this long, then wakes up and chases again
+const WAKE_TAP = 0.6;                     // each WAKE UP tap takes this many seconds off the nap
 const SODA_LIFE = 12;                     // a soda goes flat after this many seconds
 const BOSS_R = 58, BOSS_BODY = 38, DIDI_SPEED = 205, INTRO_MS = 3500;
 const SLURP_MS = 10000, FUSE_MS = 2000, BLAST = 150, TNT_EACH = 2, JAR_EVERY = 6;
@@ -430,7 +432,7 @@ let E = new Map();   // id -> entity
 function mkEnt(id, o) {
   const e = Object.assign({ id, name: "Player", bot: false, team: "kid", side: "kid", hat: "none", x: W / 2, y: H / 2, vx: 0, vy: 0,
     rx: W / 2, ry: H / 2, dashT: 0, dashCd: 0, stun: 0, seen: 0, pref: 1, tgt: null, tgtT: 0, wa: Math.random() * 6.28, say: "", sayT: 0, sayNext: 3 + Math.random() * 8,
-    soda: false, sodaCd: 0, down: false, out: false, tnt: 0, pb: false, pbT: 0, actCd: 0, brave: Math.random() < 0.35 }, o);
+    soda: false, sodaCd: 0, down: false, out: false, tnt: 0, pb: false, pbT: 0, actCd: 0, brave: Math.random() < 0.6 }, o);
   e.rx = e.x; e.ry = e.y;
   E.set(id, e); return e;
 }
@@ -481,6 +483,9 @@ function addBot(team, i) {
 }
 function startBoss() {
   phase = "boss";
+  // real players who were napping dads wake up as kids so everyone can fight Monica and Didi
+  const wokeDads = [];
+  for (const e of E.values()) if (!e.bot && e.team === "dad") { e.team = "kid"; e.down = false; e.napT = 0; e.out = false; e.stun = 0; wokeDads.push(e.id); }
   const kids = freeKids();
   const spots = [[220, 220], [1380, 220], [220, 780], [1380, 780], [800, 500]];
   let best = spots[0], bd = -1;
@@ -490,7 +495,7 @@ function startBoss() {
   boss = { x, y, rx: x, ry: y, vx: 0, vy: 0, hp, max: hp, mode: "intro", left: INTRO_MS, speed: DIDI_SPEED, t: 0, rad: BOSS_BODY, team: "boss", pref: 1, say: "Didi, GET THEM!", sayT: 3, sayNext: 8 };
   jar = null; tnts = []; jarTimer = 2;
   for (const k of kids) { k.soda = false; k.tnt = 0; }
-  ev({ t: "boss" });
+  ev({ t: "boss", dads: wokeDads });
   sendState(true);
 }
 function hostTick(dt) {
@@ -505,7 +510,13 @@ function hostTick(dt) {
       if (e.soda) { e.sodaT = (e.sodaT || SODA_LIFE) - dt; if (e.sodaT <= 0) { e.soda = false; e.sodaCd = 3; if (e.id === MYID) setMsg("😖 Your soda went flat! Find a machine that is full.", "bad"); } }
     }
     for (let i = 0; i < machCd.length; i++) machCd[i] = Math.max(0, machCd[i] - dt);
-    if (phase === "play") playRules();
+    if (phase === "play") {
+      for (const d of E.values()) if (d.down) {
+        d.napT = (d.napT || NAP) - dt;
+        if (d.napT <= 0) { d.down = false; d.napT = 0; d.stun = 0.6; ev({ t: "wake", d: d.id, x: d.x, y: d.y }); }
+      }
+      playRules();
+    }
     else bossRules(dt);
   } else {
     endLeft -= dt * 1000;
@@ -530,7 +541,7 @@ function playRules() {
         if (k.team !== "kid" || d.down) continue;
         const rr = R.dad + R.kid + 2;
         if ((d.x - k.x) ** 2 + (d.y - k.y) ** 2 >= rr * rr) continue;
-        if (k.soda) { d.down = true; d.vx = d.vy = 0; k.soda = false; k.sodaCd = SODA_CD; ev({ t: "soda", d: d.id, k: k.id, x: d.x, y: d.y, m: SODA_SAY[Math.floor(Math.random() * SODA_SAY.length)] }); }
+        if (k.soda) { d.down = true; d.napT = NAP; d.vx = d.vy = 0; k.soda = false; k.sodaCd = SODA_CD; ev({ t: "soda", d: d.id, k: k.id, x: d.x, y: d.y, m: SODA_SAY[Math.floor(Math.random() * SODA_SAY.length)] }); }
         else { k.team = "dad"; k.stun = STUN_MS / 1000; k.vx = k.vy = 0; ev({ t: "hug", d: d.id, k: k.id, x: (d.x + k.x) / 2, y: (d.y + k.y) / 2, m: HUG_SAY[Math.floor(Math.random() * HUG_SAY.length)] }); }
       }
     }
@@ -608,7 +619,9 @@ function bossRules(dt) {
 }
 // actions: drop the peanut butter, place TNT
 function doAct(e, a) {
-  if (!e || e.team !== "kid" || e.out || phase !== "boss") return;
+  if (!e) return;
+  if (a === "wake") { if (e.down && phase === "play" && e.actCd <= 0) { e.napT = Math.max(0.05, (e.napT || NAP) - WAKE_TAP); e.actCd = 0.08; } return; }
+  if (e.team !== "kid" || e.out || phase !== "boss") return;
   if (a === "drop" && e.pb && jar && jar.by === e.id) { e.pb = false; jar.by = null; jar.drop = e.id; jar.x = e.x; jar.y = e.y; ev({ t: "drop", k: e.id }); }
   else if (a === "tnt" && e.tnt > 0 && boss && boss.mode === "slurp" && e.actCd <= 0) { e.tnt--; e.actCd = 0.35; tnts.push({ x: e.x, y: e.y, fuse: FUSE_MS, by: e.id }); }
 }
@@ -620,7 +633,7 @@ function endRound(w) {
 function sendState() {
   if (!online || !ch) return;
   const e = [...E.values()].map(v => [v.id, v.team === "dad" ? 1 : 0, Math.round(v.x), Math.round(v.y), Math.round(v.vx), Math.round(v.vy), v.bot ? 1 : 0, v.name, v.hat,
-    v.stun > 0 ? 1 : 0, v.dashT > 0 ? 1 : 0, v.sayT > 0 ? v.say : "", (v.soda ? 1 : 0) | (v.down ? 2 : 0) | (v.out ? 4 : 0) | (v.pb ? 8 : 0), v.tnt]);
+    v.stun > 0 ? 1 : 0, v.dashT > 0 ? 1 : 0, v.sayT > 0 ? v.say : "", (v.soda ? 1 : 0) | (v.down ? 2 : 0) | (v.out ? 4 : 0) | (v.pb ? 8 : 0), v.tnt, v.down ? Math.ceil(v.napT || 0) : 0]);
   const bb = boss ? [Math.round(boss.x), Math.round(boss.y), Math.round(boss.vx), Math.round(boss.vy), boss.hp, boss.max, boss.mode, Math.round(boss.left), boss.sayT > 0 ? boss.say : ""] : null;
   const jj = jar ? [Math.round(jar.x), Math.round(jar.y), jar.by] : null;
   const tt = tnts.map(t => [Math.round(t.x), Math.round(t.y), Math.round(t.fuse)]);
@@ -782,11 +795,19 @@ function onEv(p) {
     const d = E.get(p.d); if (d) { d.down = true; }
     const k = E.get(p.k); if (k) k.soda = false;
     if (p.k === MYID) { sodas++; setMsg(`🥤 ${name(p.d)} drank your soda and passed out! +40 points. Grab another one!`, "good"); }
-    if (p.d === MYID) { setMsg(`💤 You drank ${name(p.k)}'s soda and passed out! Stay down until the round ends.`, "bad"); shake = 0.4; }
+    if (p.d === MYID) { setMsg(`💤 You drank ${name(p.k)}'s soda and passed out! You wake up in ${NAP} seconds. Mash WAKE UP (or the E key) to wake up faster!`, "bad"); shake = 0.4; }
+    if (d) d.napT = NAP;
+  } else if (p.t === "wake") {
+    const d = E.get(p.d); if (d) { d.down = false; d.napT = 0; }
+    FX.push({ x: p.x, y: p.y, t: 0, m: "I'M AWAKE!", e: "⏰", col: "#7fd4ff" });
+    if (p.d === MYID) setMsg("⏰ You're awake! Go and hug some kids. Watch out for soda 🥤!", "good");
   } else if (p.t === "boss") {
     bossBanner = 3.5; shake = 0.6;
     const M2 = me();
-    setMsg(M2 && M2.team === "kid" ? "🐕 ALL THE DADS ARE DOWN! Monica is here riding Didi, her massive greyhound. Grab the peanut butter 🥜 and lure Didi!" : "🐕 All the dads are down! Monica and Didi have arrived. Watch the kids try to beat them!", "bad");
+    const wasDad = !!(p.dads && p.dads.includes(MYID));
+    for (const id of p.dads || []) { const x = E.get(id); if (x) { x.team = "kid"; x.down = false; x.napT = 0; } }
+    if (wasDad || (M2 && M2.team === "kid")) setMsg(wasDad ? "🐕 Every dad is asleep, and Monica has arrived on Didi! You've woken up as a KID. Help the others beat her: grab the peanut butter 🥜!" : "🐕 ALL THE DADS ARE DOWN! Monica is here riding Didi, her massive greyhound. Grab the peanut butter 🥜 and lure Didi!", "bad");
+    else setMsg(M2 && M2.team === "kid" ? "🐕 ALL THE DADS ARE DOWN! Monica is here riding Didi, her massive greyhound. Grab the peanut butter 🥜 and lure Didi!" : "🐕 All the dads are down! Monica and Didi have arrived. Watch the kids try to beat them!", "bad");
   } else if (p.t === "jar") {
     if (M && M.team === "kid" && !M.out) setMsg("🥜 A peanut butter jar appeared! Grab it, then DROP it to lure Didi.", "");
   } else if (p.t === "drop") {
@@ -908,11 +929,12 @@ function onSt(p) {
   lastSt = p; phase = p.p; round = p.r; winner = p.w; timeLeft = p.t; freezeLeft = p.f; endLeft = p.n;
   const ids = new Set();
   for (const a of p.e) {
-    const [id, team, x, y, vx, vy, bot, name, hat, stun, dash, say, fl, tnt] = a; ids.add(id);
+    const [id, team, x, y, vx, vy, bot, name, hat, stun, dash, say, fl, tnt, nap] = a; ids.add(id);
     let e = E.get(id);
     if (!e) e = mkEnt(id, { x, y, bot: !!bot });
     const t = team ? "dad" : "kid";
     if (id === MYID && e.soda && !(fl & 1) && phase === "play" && !e.down) { /* used or went flat */ }
+    if (!(id === MYID && e.down && (fl & 2) && e.napT < nap)) e.napT = nap || 0;
     e.soda = !!(fl & 1); e.down = !!(fl & 2); e.out = !!(fl & 4); e.pb = !!(fl & 8); e.tnt = tnt || 0;
     if (id === MYID) {
       e.team = t;
@@ -976,7 +998,9 @@ function readInput() {
   return [x, y];
 }
 function myAction() {
-  const M = me(); if (!M || phase !== "boss" || M.team !== "kid" || M.out) return null;
+  const M = me(); if (!M) return null;
+  if (M.down && phase === "play") return "wake";
+  if (phase !== "boss" || M.team !== "kid" || M.out) return null;
   if (M.pb) return "drop";
   if (M.tnt > 0 && boss && boss.mode === "slurp") return "tnt";
   return null;
@@ -989,6 +1013,7 @@ function useAction() {
     bcast("act", { i: MYID, a });
     if (a === "tnt" && M.actCd <= 0) { M.tnt = Math.max(0, M.tnt - 1); M.actCd = 0.35; tnts.push({ x: M.x, y: M.y, fuse: FUSE_MS }); }
     if (a === "drop") M.pb = false;
+    if (a === "wake") M.napT = Math.max(0.05, (M.napT || NAP) - WAKE_TAP);
   }
 }
 
@@ -1148,7 +1173,7 @@ function drawEnt(e, now) {
   }
   ctx.restore();
   // things they carry
-  if (e.down) emoji(ctx, "💤", x + 14 * U, y - 16 * U - Math.sin(now / 300) * 4, 18);
+  if (e.down) { emoji(ctx, "💤", x + 14 * U, y - 16 * U - Math.sin(now / 300) * 4, 18); if (e.napT > 0) label(ctx, Math.ceil(e.napT) + "s", x - 12 * U, y - 16 * U, 14, "#bfe3ff", "#1d2a44"); }
   if (e.out) emoji(ctx, "💦", x + 14 * U, y - 10 * U, 18);
   if (e.soda) emoji(ctx, "🥤", x + dir * 15 * U, y + 2 * U - bob, 20);
   if (e.pb) emoji(ctx, "🥜", x - dir * 15 * U, y + 2 * U - bob, 22);
@@ -1250,7 +1275,7 @@ function draw(now, dt) {
   if (m) {
     ctx.textAlign = "left"; ctx.font = "900 14px Nunito, sans-serif";
     let lab, col;
-    if (m.down) { lab = "You passed out 💤"; col = "rgba(90,127,166,.9)"; }
+    if (m.down) { lab = `Napping 💤 ${Math.ceil(m.napT || 0)}s · tap WAKE UP (E) to wake faster!`; col = "rgba(90,127,166,.9)"; }
     else if (m.out) { lab = "Slobbered! You're out 💦"; col = "rgba(160,128,112,.9)"; }
     else if (m.team === "dad") { lab = "DAD: touch kids with ❤️ to hug · avoid 🥤"; col = "rgba(47,127,214,.9)"; }
     else if (phase === "boss") { lab = m.pb ? "Drop the peanut butter! 🥜" : m.tnt > 0 && boss && boss.mode === "slurp" ? "Place your TNT near Didi! 🧨" : "Lure Didi with peanut butter 🥜"; col = "rgba(255,138,60,.9)"; }
@@ -1329,7 +1354,7 @@ function frame(now) {
       const btn = $("dashBtn"); const ready = m.dashCd <= 0; btn.disabled = !ready; $("dashLbl").textContent = ready ? (touchy ? "ready" : "Space") : m.dashCd.toFixed(1) + "s";
       const a = myAction(), ab = $("actBtn");
       ab.hidden = !a;
-      if (a) { $("actTxt").textContent = a === "drop" ? "DROP 🥜" : `TNT 🧨 x${m.tnt}`; $("actLbl").textContent = touchy ? "tap" : "E key"; }
+      if (a) { $("actTxt").textContent = a === "wake" ? "WAKE UP! 👊" : a === "drop" ? "DROP 🥜" : `TNT 🧨 x${m.tnt}`; $("actLbl").textContent = touchy ? "tap" : "E key"; }
     }
     if (isHost) {
       hostTick(dt);

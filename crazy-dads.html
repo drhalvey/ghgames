@@ -117,6 +117,7 @@ canvas{display:block;width:100%;touch-action:none}
       <button id="zoomOut" type="button" aria-label="See more of the map">🔍−</button>
       <button id="zoomIn" type="button" aria-label="Zoom in">🔍+</button>
       <button id="fullBtn" type="button" title="Big screen">⛶</button>
+      <button id="buckBtn" type="button" title="Pay 100 socks to bring Uncle Buck" aria-label="Pay 100 socks to bring Uncle Buck">🍔 100🧦</button>
     </div>
     <button class="dash" id="dashBtn" type="button" hidden>DASH<small id="dashLbl">Space</small></button>
     <button class="act" id="actBtn" type="button" hidden><span id="actTxt">DROP</span><small id="actLbl">E key</small></button>
@@ -145,7 +146,7 @@ canvas{display:block;width:100%;touch-action:none}
       <li><b>Soda:</b> there are 6 soda machines 🥤 on every map and the soda is free. Kids walk into a machine to grab one, then touch a dad. He drinks it and naps for 30 seconds 💤 (mash WAKE UP to wake up faster), then he is back chasing. Each machine takes 20 seconds to refill, and a soda goes flat after 12 seconds, so not every kid has one.</li>
       <li><b>Boss:</b> when every dad is asleep at the same time, Monica arrives riding Didi, her massive greyhound 🐕. If Didi catches you, you get slobbered and you are out. Players who were dads wake up as kids and join the boss fight too.</li>
       <li><b>Beat the boss:</b> grab a peanut butter jar 🥜 (Didi will chase you!) and press DROP (E key) to lure her. While Didi slurps for 10 seconds, every kid gets TNT 🧨. Place it around her (E key) and it blows up 2 seconds later. Enough blasts and the kids win.</li>
-      <li><b>Mega boss:</b> beat Monica and Didi three times in a row on the same map (the ⭐ counter shows how many) and UNCLE BUCK arrives. He's enormous and he EATS kids. Everyone gets back up for this fight. Grab a cheeseburger 🍔 and drop it: he stops to eat it for 5 seconds, and every kid gets 2 nukes ☢️ to place around him. Beating him is worth 600 points.</li>
+      <li><b>Mega boss:</b> any player can pay 100 socks 🧦 (the 🍔 100🧦 button at the top of the game) to bring UNCLE BUCK into the game, once per round. All the dads fall asleep in fright. He's enormous and he EATS kids. Everyone gets back up for this fight. Grab a cheeseburger 🍔 and drop it: he stops to eat it for 5 seconds, and every kid gets 2 nukes ☢️ to place around him. Beating him is worth 600 points.</li>
       <li><b>Win:</b> kids win if someone is still free when the 5 minutes run out, or if they beat Monica and Didi. Dads win if every kid gets hugged. Monica wins if Didi slobbers every kid.</li>
       <li><b>Points:</b> kids get 1 point a second while free, 40 for each dad knocked out with soda, 50 for luring Didi, 30 for each TNT blast that hits her, 200 for escaping and 300 for beating the boss. Dads get 50 for every hug. Every 5 points gives you a sock 🧦.</li>
       <li><b>Maps:</b> water and sand slow you down, slides, trampolines and hot sand speed you up, and ice makes you slide.</li>
@@ -198,8 +199,8 @@ const BK = {
   buck: { name: "Uncle Buck", short: "Uncle Buck", her: "him", r: 100, body: 58, speed: 172, eat: 5000, blast: 240, each: 2, item: "🍔", itemName: "cheeseburger", bomb: "☢️", bombName: "nuke", catchWord: "CHOMP!", eatWord: "NOM NOM NOM!" },
 };
 const bk = () => BK[(boss && boss.kind) || "monica"];
-const STREAK_FOR_BUCK = 3;
-let monicaStreak = 0;     // Monica beaten this many times in a row on this map
+const BUCK_PRICE = 100;   // socks one player pays to summon Uncle Buck
+let buckUsed = false;     // Uncle Buck can be summoned once per round
 
 // ---------------- save ----------------
 const SAVE_KEY = "crazydads-save";
@@ -482,7 +483,7 @@ function startRound() {
     Object.assign(e, { x, y, rx: x, ry: y, vx: 0, vy: 0, stun: 0, dashT: 0, dashCd: 0, soda: false, sodaCd: 0, down: false, out: false, tnt: 0, pb: false });
   }
   boss = null; jar = null; tnts = [];
-  machCd = MAP.soda.map(() => 0);
+  machCd = MAP.soda.map(() => 0); buckUsed = false;
   phase = "play"; winner = ""; timeLeft = ROUND_MS; freezeLeft = FREEZE_MS;
   sendState(true);
 }
@@ -497,7 +498,7 @@ function startBoss(kind) {
   const K = BK[kind];
   phase = "boss";
   // for the mega boss everyone gets back up, even kids Didi slobbered
-  if (kind === "buck") for (const e of E.values()) if (e.team === "kid") { e.out = false; e.pb = false; e.tnt = 0; }
+  if (kind === "buck") for (const e of E.values()) { if (e.team === "kid") { e.out = false; e.pb = false; e.tnt = 0; } else if (e.bot) { e.down = true; e.napT = 999; e.vx = e.vy = 0; } }
   // real players who were napping dads wake up as kids so everyone can fight Monica and Didi
   const wokeDads = [];
   for (const e of E.values()) if (!e.bot && e.team === "dad") { e.team = "kid"; e.down = false; e.napT = 0; e.out = false; e.stun = 0; wokeDads.push(e.id); }
@@ -510,7 +511,7 @@ function startBoss(kind) {
   boss = { kind, x, y, rx: x, ry: y, vx: 0, vy: 0, hp, max: hp, mode: "intro", left: INTRO_MS, speed: K.speed, t: 0, rad: K.body, team: "boss", pref: 1, say: kind === "buck" ? "I'M SO HUNGRY!" : "Didi, GET THEM!", sayT: 3, sayNext: 8 };
   jar = null; tnts = []; jarTimer = 2;
   for (const k of kids) { k.soda = false; k.tnt = 0; }
-  ev({ t: "boss", dads: wokeDads, kind, streak: monicaStreak });
+  ev({ t: "boss", dads: wokeDads, kind, by: startBoss.by || null }); startBoss.by = null;
   sendState(true);
 }
 function hostTick(dt) {
@@ -629,17 +630,19 @@ function bossRules(dt) {
       ev({ t: "boom", x: t.x, y: t.y, hit: hit ? 1 : 0, by: t.by });
       if (b.hp <= 0) {
         if (b.kind === "buck") { endRound("kidsbuck"); return; }
-        monicaStreak++;
-        if (monicaStreak >= STREAK_FOR_BUCK) { monicaStreak = 0; ev({ t: "monicaDown" }); startBoss("buck"); return; }
         endRound("kidsboss"); return;
       }
     }
   }
-  if (freeKids().length === 0) { if (b.kind === "buck") endRound("buck"); else { monicaStreak = 0; endRound("monica"); } }
+  if (freeKids().length === 0) { if (b.kind === "buck") endRound("buck"); else endRound("monica"); }
 }
 // actions: drop the peanut butter, place TNT
 function doAct(e, a) {
   if (!e) return;
+  if (a === "summon") {
+    if (!buckUsed && (phase === "play" || (phase === "boss" && boss && boss.kind !== "buck"))) { buckUsed = true; startBoss.by = e.id; startBoss("buck"); }
+    return;
+  }
   if (a === "wake") { if (e.down && phase === "play" && e.actCd <= 0) { e.napT = Math.max(0.05, (e.napT || NAP) - WAKE_TAP); e.actCd = 0.08; } return; }
   if (e.team !== "kid" || e.out || phase !== "boss") return;
   if (a === "drop" && e.pb && jar && jar.by === e.id) { e.pb = false; jar.by = null; jar.drop = e.id; jar.x = e.x; jar.y = e.y; ev({ t: "drop", k: e.id }); }
@@ -657,7 +660,7 @@ function sendState() {
   const bb = boss ? [Math.round(boss.x), Math.round(boss.y), Math.round(boss.vx), Math.round(boss.vy), boss.hp, boss.max, boss.mode, Math.round(boss.left), boss.sayT > 0 ? boss.say : "", boss.kind] : null;
   const jj = jar ? [Math.round(jar.x), Math.round(jar.y), jar.by] : null;
   const tt = tnts.map(t => [Math.round(t.x), Math.round(t.y), Math.round(t.fuse)]);
-  bcast("st", { k: monicaStreak, m: machCd.map(v => Math.ceil(v)), h: MYID, p: phase, t: Math.round(timeLeft), f: Math.round(freezeLeft), n: Math.round(endLeft), r: round, w: winner, e, b: bb, j: jj, x: tt });
+  bcast("st", { u: buckUsed ? 1 : 0, m: machCd.map(v => Math.ceil(v)), h: MYID, p: phase, t: Math.round(timeLeft), f: Math.round(freezeLeft), n: Math.round(endLeft), r: round, w: winner, e, b: bb, j: jj, x: tt });
 }
 
 // ---- bots ----
@@ -825,10 +828,12 @@ function onEv(p) {
   } else if (p.t === "monicaDown") {
     FX.push({ x: boss ? boss.x : W / 2, y: boss ? boss.y : H / 2, t: 0, boom: true, hit: 1 });
   } else if (p.t === "boss" && p.kind === "buck") {
-    bossBanner = 4.5; shake = 1;
+    bossBanner = 4.5; shake = 1; buckUsed = true;
+    const who = p.by ? (E.get(p.by) || {}).name || "Someone" : "Someone";
+    if (p.by === MYID) { S.socks = Math.max(0, S.socks - BUCK_PRICE); save(); renderHUD(); renderShop(); }
     for (const id of p.dads || []) { const x = E.get(id); if (x) { x.team = "kid"; x.down = false; x.napT = 0; } }
     for (const e of E.values()) if (e.team === "kid") e.out = false;
-    setMsg("🍔 MEGA BOSS! You beat Monica and Didi three times in a row, so UNCLE BUCK has come, and he wants to EAT you! Everyone is back up. Grab a cheeseburger 🍔, drop it to distract him for 5 seconds, then place your 2 nukes ☢️ around him!", "bad");
+    setMsg((p.by === MYID ? `🍔 You paid ${BUCK_PRICE} socks and called UNCLE BUCK!` : `🍔 ${who} paid ${BUCK_PRICE} socks and called UNCLE BUCK!`) + " MEGA BOSS! He wants to EAT you, and all the dads fell asleep in fright. Everyone is back up. Grab a cheeseburger 🍔, drop it to distract him for 5 seconds, then place your 2 nukes ☢️ around him!", "bad");
   } else if (p.t === "boss") {
     bossBanner = 3.5; shake = 0.6;
     const M2 = me();
@@ -939,7 +944,7 @@ function becomeHost() {
   if (isHost && round > 0) return;
   isHost = true; hostId = MYID;
   if (lastSt && lastSt.r > 0) {
-    if (typeof lastSt.k === "number") monicaStreak = lastSt.k;
+    buckUsed = !!lastSt.u;
     phase = lastSt.p; round = lastSt.r; winner = lastSt.w; timeLeft = lastSt.t; freezeLeft = lastSt.f; endLeft = lastSt.n || END_MS;
     for (const e of E.values()) if (e.bot) { e.x = e.rx; e.y = e.ry; }
     if (boss) { boss.x = boss.rx; boss.y = boss.ry; boss.t = boss.t || 0; boss.rad = bk().body; boss.team = "boss"; boss.pref = 1; boss.sayNext = 5; }
@@ -989,7 +994,7 @@ function onSt(p) {
   jar = p.j ? { x: p.j[0], y: p.j[1], by: p.j[2] } : null;
   tnts = (p.x || []).map(t => ({ x: t[0], y: t[1], fuse: t[2] }));
   if (p.m) machCd = p.m.slice();
-  if (typeof p.k === "number") monicaStreak = p.k;
+  buckUsed = !!p.u;
   if (phase === "end") finishMyRound();
 }
 function updateOnlineMsg() {
@@ -1354,7 +1359,7 @@ function draw(now, dt) {
   if (phase === "boss" || (phase === "end" && boss)) { ctx.fillStyle = boss && boss.kind === "buck" ? "#ffb13c" : "#ff8fb8"; ctx.fillText(boss && boss.kind === "buck" ? (small ? "MEGA" : "MEGA BOSS") : "BOSS", tcx, 31); }
   else { ctx.fillStyle = timeLeft < 30000 && phase === "play" ? "#ff8080" : "#fff"; ctx.fillText(fmtTime(phase === "play" ? timeLeft : 0), tcx, 31); }
   ctx.font = `900 ${small ? 12 : 14}px Nunito, sans-serif`;
-  const line = phase === "boss" || (phase === "end" && boss) ? (boss && boss.kind === "buck" ? `🧒 Kids free: ${kids}    🍔 Uncle Buck: ${boss.hp} ❤️` : `🧒 Kids free: ${kids}    🐕 Didi: ${boss ? boss.hp : 0} ❤️    ⭐ ${monicaStreak}/${STREAK_FOR_BUCK}`) : `🧒 Kids free: ${kids}    🧔 Dads up: ${dads}`;
+  const line = phase === "boss" || (phase === "end" && boss) ? (boss && boss.kind === "buck" ? `🧒 Kids free: ${kids}    🍔 Uncle Buck: ${boss.hp} ❤️` : `🧒 Kids free: ${kids}    🐕 Didi: ${boss ? boss.hp : 0} ❤️`) : `🧒 Kids free: ${kids}    🧔 Dads up: ${dads}`;
   const lw = ctx.measureText(line).width + 24;
   ctx.fillStyle = "rgba(0,0,0,.55)"; rr(ctx, cw / 2 - lw / 2, 56, lw, 26, 10); ctx.fill();
   ctx.fillStyle = "#fff"; ctx.fillText(line, cw / 2, 69);
@@ -1410,7 +1415,6 @@ function draw(now, dt) {
   if (phase === "end") {
     banner = { kids: "KIDS ESCAPED!", kidsboss: "KIDS WIN!", dads: "DADS WIN!", monica: "MONICA WINS!", kidsbuck: "MEGA WIN!!!", buck: "UNCLE BUCK WINS!" }[winner] || "ROUND OVER";
     sub = { kids: "Somebody got away from the hugs", kidsboss: "Monica and Didi got blown away 💥", dads: "Everyone got hugged too hard", monica: "Didi slobbered every single kid", kidsbuck: "Uncle Buck got nuked ☢️", buck: "He ate every single kid 😋" }[winner] || "";
-    if (winner === "kidsboss") sub += ` · Monica beaten ${monicaStreak} in a row`;
     sub += ` · next round in ${Math.max(0, Math.ceil(endLeft / 1000))}`;
   }
   if (banner) {
@@ -1491,7 +1495,7 @@ function renderLobby() {
 $("sidePick").querySelectorAll(".opt").forEach(b => b.onclick = () => { S.side = b.dataset.side; save(); renderLobby(); });
 function startGame() {
   MAP = MAPS[S.map] || MAPS.backyard; buildBG();
-  monicaStreak = 0;
+  buckUsed = false;
   E = new Map(); FX.length = 0; lastSt = null; round = 0; myRound = -1; isHost = true; hostId = MYID; peers = []; boss = null; jar = null; tnts = [];
   joinT = Date.now();
   const [x, y] = spawnIn(S.side === "dad" ? MAP.dadSpawn : MAP.kidSpawn, R[S.side]);
@@ -1528,6 +1532,14 @@ $("fullBtn").onclick = () => {
   else (stageEl.requestFullscreen || stageEl.webkitRequestFullscreen).call(stageEl);
 };
 ["fullscreenchange", "webkitfullscreenchange"].forEach(ev => document.addEventListener(ev, () => { const on = document.fullscreenElement || document.webkitFullscreenElement; $("fullBtn").textContent = on ? "✕" : "⛶"; setTimeout(resize, 50); }));
+$("buckBtn").onclick = () => {
+  if (!playing) return;
+  if (S.socks < BUCK_PRICE) { setMsg(`You need ${BUCK_PRICE} socks 🧦 to bring Uncle Buck. You have ${S.socks}.`, "bad"); return; }
+  if (buckUsed || (boss && boss.kind === "buck")) { setMsg("Uncle Buck has already been called this round. Try again next round.", "bad"); return; }
+  if (phase !== "play" && phase !== "boss") { setMsg("Wait for the next round to start, then call Uncle Buck.", "bad"); return; }
+  setMsg("📣 Calling Uncle Buck…", "");
+  if (isHost) doAct(me(), "summon"); else bcast("act", { i: MYID, a: "summon" });
+};
 $("sideBtn").onclick = () => {
   S.side = S.side === "dad" ? "kid" : "dad"; save();
   const m = me(); if (m) m.side = S.side;
@@ -1667,7 +1679,7 @@ claimGifts(); setInterval(claimGifts, 20000); addEventListener("focus", claimGif
 if (window.Leaderboard) Leaderboard.mount({ el: "lb", game: "crazy-dads", dir: "desc", unit: "pts", max: 5000, title: "Crazy Dads — best round" });
 requestAnimationFrame(frame);
 // test hook
-window.__cd = { SPEED, E: () => E, tnts: () => tnts, streak: v => { if (v !== undefined) monicaStreak = v; return monicaStreak; }, boss: () => boss, jar: () => jar, state: () => ({ phase, round, timeLeft, winner, isHost, online, bossHp: boss && boss.hp }), step: dt => { hostTick(dt); } };
+window.__cd = { SPEED, E: () => E, tnts: () => tnts, summon: () => doAct(me(), "summon"), boss: () => boss, jar: () => jar, state: () => ({ phase, round, timeLeft, winner, isHost, online, bossHp: boss && boss.hp }), step: dt => { hostTick(dt); } };
 </script>
 </body>
 </html>

@@ -71,6 +71,7 @@ canvas{display:block;width:100%;touch-action:none}
 .up{background:var(--panel2);border:2px solid var(--line);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
 .up.ped{border-color:var(--ped)}
 .up.bro{border-color:var(--bro)}
+.up.wm{border-color:var(--gold)}
 .up h3{margin:0;font-family:var(--display);font-weight:400;font-size:21px}
 .up .lv{font-weight:900;font-size:15px}
 .up .pips{display:flex;gap:4px}
@@ -108,6 +109,7 @@ canvas{display:block;width:100%;touch-action:none}
       <div class="chip"><span>Wins 🏆</span><b id="hWins">0</b></div>
       <div class="chip"><span>Bat 🏏</span><b id="hBat">Lv 0</b></div>
       <div class="chip"><span>Slam 💥</span><b id="hSlam">Lv 0</b></div>
+      <div class="chip"><span>Win multi ✖️</span><b id="hWm">x1</b></div>
     </div>
   </div>
 
@@ -142,13 +144,13 @@ canvas{display:block;width:100%;touch-action:none}
       <li><b>Bro Got Slammed 😎</b> swing the bat 🏏 in the direction you are moving. Smaller hits, but really quick.</li>
       <li><b>Pass out:</b> Pedigreers have 150 health and bros have 250. When yours runs out you pass out 💫 and stay down until the next round.</li>
       <li><b>Win:</b> each round lasts 4 minutes. The team with more players still standing at the end wins. Knock out the whole other team and you win straight away. Same number left is a draw.</li>
-      <li><b>Wins 🏆:</b> everyone on the winning team gets a win, even if they passed out. Spend wins on damage upgrades below.</li>
+      <li><b>Wins 🏆:</b> everyone on the winning team gets a win, even if they passed out. Spend wins on damage upgrades and Win multi below. Win multi gives you more wins every time your team wins.</li>
     </ul>
   </section>
 
   <section class="panel">
-    <h2>Damage upgrades</h2>
-    <p class="sub">Spend your wins to hit harder. Bat power works when you are a bro, Slam power when you are a Pedigreer. Friends online feel it too.</p>
+    <h2>Upgrades</h2>
+    <p class="sub">Spend your wins to hit harder. Bat power works when you are a bro, Slam power when you are a Pedigreer. Friends online feel it too. Win multi gives you extra wins every time your team wins.</p>
     <div class="ups" id="ups"></div>
   </section>
 
@@ -180,11 +182,15 @@ const BOT_DMG = 0.85, BOT_CD = 1.35;
 // damage upgrades: each level adds 25% damage
 const UP_COST = [1, 2, 3, 4, 5, 7, 9, 12, 15, 20];
 const UP_MAX = UP_COST.length;
+// win multi: each level adds 1 more win every time your team wins (level 10 = 11 wins a round)
+const WM_COST = [3, 6, 10, 15, 25, 40, 60, 90, 130, 200];
+const WM_MAX = WM_COST.length;
+const winsPerRound = () => 1 + (S.wm || 0);
 const mult = lv => 1 + 0.25 * lv;
 
 // ---------------- save ----------------
 const SAVE_KEY = "brogotslammed-save";
-let S = { wins: 0, bat: 0, slam: 0, side: "bro", map: "backyard", best: 0, kos: 0 };
+let S = { wins: 0, bat: 0, slam: 0, wm: 0, side: "bro", map: "backyard", best: 0, kos: 0 };
 try { const raw = localStorage.getItem(SAVE_KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
 
@@ -627,7 +633,7 @@ function finishMyRound() {
   const M = me(); const t = M ? M.team : myTeamThisRound;
   let txt;
   if (winner === "draw") txt = "It's a draw! Nobody gets a win this time.";
-  else if (winner === t) { S.wins += 1; txt = `🏆 ${TEAM_NAME[winner]} win! You got a win. Spend it on damage upgrades.`; }
+  else if (winner === t) { const got = winsPerRound(); S.wins += got; txt = `🏆 ${TEAM_NAME[winner]} win! You got ${got === 1 ? "a win" : got + " wins"}. Spend them on upgrades.`; }
   else txt = `${TEAM_NAME[winner] || "The other team"} win this round. Get them next time!`;
   S.kos += myKOs; if (myKOs > S.best) S.best = myKOs;
   save(); renderHUD(); renderUps();
@@ -1072,7 +1078,7 @@ $("sideBtn").onclick = () => {
 };
 
 // ---------------- HUD, upgrades ----------------
-function renderHUD() { $("hName").textContent = NAME; $("hWins").textContent = S.wins.toLocaleString(); $("hBat").textContent = "Lv " + S.bat; $("hSlam").textContent = "Lv " + S.slam; }
+function renderHUD() { $("hName").textContent = NAME; $("hWins").textContent = S.wins.toLocaleString(); $("hBat").textContent = "Lv " + S.bat; $("hSlam").textContent = "Lv " + S.slam; $("hWm").textContent = "x" + winsPerRound(); }
 function renderUps() {
   const card = (key, team, title, em) => {
     const lv = S[key], A = ATK[team], max = lv >= UP_MAX, cost = max ? 0 : UP_COST[lv];
@@ -1083,15 +1089,21 @@ function renderUps() {
       <p>${max ? "Maxed out. Nothing hits harder!" : `Next level: ${next} damage a hit.`}</p>
       <button class="buy" data-k="${key}" type="button" ${max || S.wins < cost ? "disabled" : ""}>${max ? "MAX" : `Upgrade for ${cost} 🏆`}</button></div>`;
   };
-  $("ups").innerHTML = card("bat", "bro", "Bat power", "🏏") + card("slam", "ped", "Slam power", "💥");
+  const wl = S.wm || 0, wmax = wl >= WM_MAX, wcost = wmax ? 0 : WM_COST[wl];
+  const wmCard = `<div class="up wm"><h3>✖️ Win multi</h3>
+      <div class="lv">Level ${wl} of ${WM_MAX} · x${1 + wl} wins every time your team wins</div>
+      <div class="pips">${Array.from({ length: WM_MAX }, (_, i) => `<i class="${i < wl ? "on" : ""}"></i>`).join("")}</div>
+      <p>${wmax ? "Maxed out. 11 wins every round you win!" : `Next level: x${2 + wl} wins.`}</p>
+      <button class="buy" data-k="wm" type="button" ${wmax || S.wins < wcost ? "disabled" : ""}>${wmax ? "MAX" : `Upgrade for ${wcost} 🏆`}</button></div>`;
+  $("ups").innerHTML = card("bat", "bro", "Bat power", "🏏") + card("slam", "ped", "Slam power", "💥") + wmCard;
   $("ups").querySelectorAll(".buy").forEach(b => b.onclick = () => {
-    const k = b.dataset.k, lv = S[k]; if (lv >= UP_MAX) return;
-    const cost = UP_COST[lv];
+    const k = b.dataset.k, lv = S[k] || 0, costs = k === "wm" ? WM_COST : UP_COST; if (lv >= costs.length) return;
+    const cost = costs[lv];
     if (S.wins < cost) { setMsg(`You need ${cost} wins for that. You have ${S.wins}.`, "bad"); return; }
     S.wins -= cost; S[k] = lv + 1; save(); renderHUD(); renderUps();
     const m = me(); if (m) { m.lb = S.bat; m.ls = S.slam; }
     if (online && ch) try { ch.track(meta()); } catch (e) {}
-    setMsg(`${k === "bat" ? "🏏 Bat" : "💥 Slam"} power is now level ${S[k]}!`, "good");
+    setMsg(k === "wm" ? `✖️ Win multi is now x${winsPerRound()}! Every round your team wins gives you ${winsPerRound()} wins.` : `${k === "bat" ? "🏏 Bat" : "💥 Slam"} power is now level ${S[k]}!`, "good");
   });
 }
 

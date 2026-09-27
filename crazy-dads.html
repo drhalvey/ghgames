@@ -1053,12 +1053,14 @@ function useAction() {
 // ---------------- drawing ----------------
 const ctx = cv.getContext("2d");
 let cw = 0, chh = 0, dpr = 1, scale = 1, camX = 0, camY = 0, shake = 0;
-let BG = null;
+let BG = null, MINI = null, dprCap = 1.5;
 function resize() {
   const st = $("stage"); cw = st.clientWidth;
   const full = document.fullscreenElement || document.webkitFullscreenElement;
   chh = full ? innerHeight : Math.round(cw < 600 ? Math.max(300, Math.min(innerHeight * 0.64, cw * 1.15)) : Math.max(300, Math.min(innerHeight * 0.8, cw * 0.66)));
-  dpr = Math.min(devicePixelRatio || 1, 2);
+  dpr = Math.min(devicePixelRatio || 1, dprCap);
+  // keep the number of pixels we draw each frame sensible on big screens
+  const px = cw * chh * dpr * dpr; if (px > 2.4e6) dpr = Math.max(1, Math.sqrt(2.4e6 / (cw * chh)));
   cv.width = Math.round(cw * dpr); cv.height = Math.round(chh * dpr); cv.style.height = chh + "px";
   const visW = Math.max(640, Math.min(1300, cw * 1.5)) * (S.zoom || 1);
   scale = cw / visW;
@@ -1066,8 +1068,40 @@ function resize() {
   if (cw / scale > W) scale = cw / W;
 }
 function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
-function emoji(c, e, x, y, size) { if (!e) return; c.fillStyle = "#000"; c.font = `${size}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(e, x, y); }
-function label(c, t, x, y, size, fill, stroke) { c.font = `900 ${size}px Nunito, sans-serif`; c.textAlign = "center"; c.textBaseline = "middle"; c.lineWidth = 3; c.strokeStyle = stroke || "rgba(0,0,0,.6)"; c.strokeText(t, x, y); c.fillStyle = fill || "#fff"; c.fillText(t, x, y); }
+// Drawing emoji and outlined text is slow, especially on iPads, so each one is drawn once
+// onto a small picture and that picture is reused every frame.
+const GLYPHS = new Map();
+function glyphCache(key, make) {
+  let g = GLYPHS.get(key);
+  if (!g) { if (GLYPHS.size > 600) GLYPHS.clear(); g = make(); GLYPHS.set(key, g); }
+  return g;
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => GLYPHS.clear());
+function emoji(c, e, x, y, size) {
+  if (!e) return;
+  const sz = Math.max(4, Math.round(size));
+  const g = glyphCache("e" + e + sz, () => {
+    const k = 2, w = Math.ceil(sz * 1.5), cv2 = document.createElement("canvas"); cv2.width = cv2.height = w * k;
+    const q = cv2.getContext("2d"); q.scale(k, k);
+    q.font = `${sz}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`; q.textAlign = "center"; q.textBaseline = "middle"; q.fillStyle = "#000";
+    q.fillText(e, w / 2, w / 2 + sz * 0.05);
+    return { c: cv2, w, h: w };
+  });
+  c.drawImage(g.c, x - g.w / 2, y - g.h / 2, g.w, g.h);
+}
+function textPic(t, size, weight, fill, stroke, lw) {
+  return glyphCache("t" + t + "|" + size + weight + fill + stroke + lw, () => {
+    const m = document.createElement("canvas").getContext("2d"); m.font = `${weight} ${size}px Nunito, sans-serif`;
+    const w = Math.ceil(m.measureText(t).width + lw * 2 + 4), h = Math.ceil(size * 1.5 + lw * 2), k = 2;
+    const cv2 = document.createElement("canvas"); cv2.width = w * k; cv2.height = h * k;
+    const q = cv2.getContext("2d"); q.scale(k, k);
+    q.font = `${weight} ${size}px Nunito, sans-serif`; q.textAlign = "center"; q.textBaseline = "middle"; q.lineJoin = "round";
+    if (lw) { q.lineWidth = lw; q.strokeStyle = stroke; q.strokeText(t, w / 2, h / 2); }
+    q.fillStyle = fill; q.fillText(t, w / 2, h / 2);
+    return { c: cv2, w, h };
+  });
+}
+function label(c, t, x, y, size, fill, stroke) { const g = textPic(String(t), size, 900, fill || "#fff", stroke || "rgba(0,0,0,.6)", 3); c.drawImage(g.c, x - g.w / 2, y - g.h / 2, g.w, g.h); }
 function buildBG() {
   const k = 1.25, c = document.createElement("canvas"); c.width = W * k; c.height = H * k;
   const g = c.getContext("2d"); g.scale(k, k);
@@ -1216,8 +1250,7 @@ function drawEnt(e, now) {
   const hasHat = e.hat && HAT[e.hat] && HAT[e.hat].e && !lying;
   if (hasHat) emoji(ctx, HAT[e.hat].e, x + dir * 0.8 * U, top - 2 * U, 18 * U);
   const ny = top - (hasHat ? 14 * U : 3);
-  ctx.font = "800 13px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
-  ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.strokeText(e.name, x, ny); ctx.fillStyle = e.id === MYID ? "#ffe066" : "#fff"; ctx.fillText(e.name, x, ny);
+  if (e.name) { const g = textPic(e.name, 13, 800, e.id === MYID ? "#ffe066" : "#fff", "rgba(0,0,0,.6)", 3); ctx.drawImage(g.c, x - g.w / 2, ny - g.h + 3, g.w, g.h); }
   if (e.sayT > 0 && e.say && !lying) bubble(e.say, x, ny - 16);
 }
 function drawBuck(now) {
@@ -1270,7 +1303,10 @@ function draw(now, dt) {
   let sx = 0, sy = 0; if (shake > 0) { sx = (Math.random() - 0.5) * 14 * shake; sy = (Math.random() - 0.5) * 14 * shake; }
   ctx.fillStyle = "#111"; ctx.fillRect(0, 0, cw, chh);
   ctx.save(); ctx.scale(scale, scale); ctx.translate(-camX + sx, -camY + sy);
-  if (BG) ctx.drawImage(BG, 0, 0, W, H);
+  if (BG) {
+    const k = BG.width / W, sx0 = Math.max(0, camX - 20), sy0 = Math.max(0, camY - 20), sw = Math.min(W - sx0, vw + 40), sh = Math.min(H - sy0, vh + 40);
+    ctx.drawImage(BG, sx0 * k, sy0 * k, sw * k, sh * k, sx0, sy0, sw, sh);
+  }
   // empty soda machines show a countdown
   MAP.soda.forEach(([mx0, my0], i) => {
     if (!(machCd[i] > 0) || phase !== "play") return;
@@ -1358,7 +1394,10 @@ function draw(now, dt) {
   // minimap
   const mw = small ? 120 : 210, mh = mw * H / W, mx = cw - mw - 10, my = 10;
   ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(mx - 3, my - 3, mw + 6, mh + 6);
-  if (BG) { ctx.globalAlpha = 0.8; ctx.drawImage(BG, mx, my, mw, mh); ctx.globalAlpha = 1; }
+  if (BG) {
+    if (!MINI || MINI.w !== mw || MINI.bg !== BG) { const c2 = document.createElement("canvas"); c2.width = Math.ceil(mw * dpr); c2.height = Math.ceil(mh * dpr); const q = c2.getContext("2d"); q.drawImage(BG, 0, 0, c2.width, c2.height); MINI = { c: c2, w: mw, bg: BG }; }
+    ctx.drawImage(MINI.c, mx, my, mw, mh);
+  }
   ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(mx + camX / W * mw, my + camY / H * mh, vw / W * mw, vh / H * mh);
   for (const e of ents) { ctx.globalAlpha = e.down || e.out ? 0.4 : 1; ctx.fillStyle = e.team === "dad" ? "#2f7fd6" : "#ff8a3c"; ctx.beginPath(); ctx.arc(mx + e.rx / W * mw, my + e.ry / H * mh, e.id === MYID ? 4.5 : 3, 0, 7); ctx.fill(); if (e.id === MYID) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke(); } }
   ctx.globalAlpha = 1;
@@ -1385,8 +1424,14 @@ function draw(now, dt) {
 
 // ---------------- main loop ----------------
 let last = performance.now(), meT = 0, lastMeSent = "";
+let slowT = 0, fastMsgShown = false;
 function frame(now) {
-  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const raw = (now - last) / 1000;
+  const dt = Math.min(0.05, raw); last = now;
+  if (playing && !document.hidden) {
+    slowT = raw > 0.028 && raw < 0.5 ? slowT + raw : Math.max(0, slowT - raw * 0.5);
+    if (slowT > 2 && dprCap > 1) { dprCap = 1; slowT = 0; resize(); }
+  }
   if (playing) {
     const m = me();
     if (!isHost) {

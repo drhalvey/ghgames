@@ -43,7 +43,9 @@ canvas{display:block;width:100%;touch-action:none}
 .act[hidden]{display:none}
 
 .dash small{display:block;font-family:var(--body);font-size:11px;font-weight:900}
-.bar{position:absolute;left:10px;top:10px;display:flex;gap:6px}
+.bar{position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap;max-width:calc(100% - 250px)}
+.stage:fullscreen{border-radius:0;border:none}
+.bar button[hidden]{display:none}
 .bar button{font-family:var(--body);font-weight:900;font-size:13px;border:none;border-radius:10px;padding:7px 11px;background:rgba(0,0,0,.55);color:#fff;cursor:pointer}
 .lobby{position:absolute;inset:0;background:linear-gradient(160deg,rgba(42,23,64,.96),rgba(74,43,112,.96));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;overflow:auto;text-align:center}
 .lobby[hidden]{display:none}
@@ -91,7 +93,7 @@ canvas{display:block;width:100%;touch-action:none}
 @media (max-width:600px){
   .dash{width:74px;height:74px;font-size:18px;right:10px;bottom:10px}
   .act{right:92px;bottom:14px;height:60px;min-width:80px;font-size:17px}
-  .bar{top:auto;bottom:78px;left:10px}
+  .bar{top:auto;bottom:78px;left:10px;max-width:calc(100% - 20px)}
   .bar button{font-size:12px;padding:6px 9px}
 }</style>
 </head>
@@ -110,15 +112,18 @@ canvas{display:block;width:100%;touch-action:none}
   <div class="stage inlobby" id="stage">
     <canvas id="cv" aria-label="Game area. Move with arrow keys, WASD or by dragging. Space to dash."></canvas>
     <div class="bar" id="bar" hidden>
-      <button id="menuBtn" type="button">☰ Menu</button>
-      <button id="sideBtn" type="button">Switch team</button>
+      <button id="menuBtn" type="button" title="Menu">☰</button>
+      <button id="sideBtn" type="button" title="Switch team next round">⇄ Switch team</button>
+      <button id="zoomOut" type="button" aria-label="See more of the map">🔍−</button>
+      <button id="zoomIn" type="button" aria-label="Zoom in">🔍+</button>
+      <button id="fullBtn" type="button" title="Big screen">⛶</button>
     </div>
     <button class="dash" id="dashBtn" type="button" hidden>DASH<small id="dashLbl">Space</small></button>
     <button class="act" id="actBtn" type="button" hidden><span id="actTxt">DROP</span><small id="actLbl">E key</small></button>
     <div class="lobby" id="lobby">
       <h2>Pick your team</h2>
       <div class="pick" id="sidePick">
-        <button class="opt dad" data-side="dad" type="button"><span class="e">🧔</span>Dads<small>Hug the kids. A bit too hard.</small></button>
+        <button class="opt dad" data-side="dad" type="button"><span class="e">🧔</span>Dads<small>Chase kids and touch them to hug. Stay away from kids holding soda 🥤!</small></button>
         <button class="opt kid" data-side="kid" type="button"><span class="e">🧒</span>Kids<small>Run away! A hugged kid turns into a dad.</small></button>
       </div>
       <h2>Pick a map</h2>
@@ -132,10 +137,12 @@ canvas{display:block;width:100%;touch-action:none}
   <section class="panel">
     <h2>How to play</h2>
     <ul class="help">
-      <li><b>Move:</b> arrow keys or WASD. On a tablet, touch and drag anywhere on the game.</li>
+      <li><b>Move:</b> arrow keys or WASD, or hold the mouse button and your character walks to the pointer. On a tablet, touch and drag anywhere on the game.</li>
+      <li><b>See more of the map:</b> press 🔍− (or the minus key, or scroll the mouse wheel) to zoom out, 🔍+ to zoom in, and ⛶ to fill the whole screen.</li>
       <li><b>Dash:</b> Space or the pink DASH button. Then wait for it to charge again.</li>
       <li><b>Dads</b> start frozen for 3 seconds while the kids run. Then they chase. A hug is so tight the kid turns into a dad.</li>
-      <li><b>Soda:</b> there are 6 soda machines 🥤 on every map and the soda is free. Kids walk into a machine to grab one, then touch a dad. He drinks it and passes out 💤. Dads, keep away from kids carrying soda!</li>
+      <li><b>Playing as a dad:</b> kids you can hug have a pink ❤️ over their head, and a pink arrow at the edge of the screen points to the nearest one. Kids holding a soda 🥤 have a red dashed ring: keep away from them, or you'll drink it and pass out.</li>
+      <li><b>Soda:</b> there are 6 soda machines 🥤 on every map and the soda is free. Kids walk into a machine to grab one, then touch a dad. He drinks it and passes out 💤. Each machine takes 25 seconds to refill, and a soda goes flat after 12 seconds, so not every kid has one.</li>
       <li><b>Boss:</b> when every dad is down, Monica arrives riding Didi, her massive greyhound 🐕. If Didi catches you, you get slobbered and you are out.</li>
       <li><b>Beat the boss:</b> grab a peanut butter jar 🥜 (Didi will chase you!) and press DROP (E key) to lure her. While Didi slurps for 10 seconds, every kid gets TNT 🧨. Place it around her (E key) and it blows up 2 seconds later. Enough blasts and the kids win.</li>
       <li><b>Win:</b> kids win if someone is still free when the 5 minutes run out, or if they beat Monica and Didi. Dads win if every kid gets hugged. Monica wins if Didi slobbers every kid.</li>
@@ -178,12 +185,14 @@ const SPEED = { dad: 205, kid: 212, botdad: 168, botkid: 196 };
 const DASH_T = 0.28, DASH_X = 2.3, DASH_CD = 3.5, BOT_DASH_CD = 4.2;
 // soda and boss
 const SODA_CD = 5;                        // seconds before a kid can grab another soda
+const MACH_REFILL = 25;                   // a soda machine takes this long to refill after someone takes a soda
+const SODA_LIFE = 12;                     // a soda goes flat after this many seconds
 const BOSS_R = 58, BOSS_BODY = 38, DIDI_SPEED = 205, INTRO_MS = 3500;
 const SLURP_MS = 10000, FUSE_MS = 2000, BLAST = 150, TNT_EACH = 2, JAR_EVERY = 6;
 
 // ---------------- save ----------------
 const SAVE_KEY = "crazydads-save";
-let S = { socks: 0, hats: ["none"], hat: "none", side: "kid", map: "backyard", best: 0 };
+let S = { socks: 0, hats: ["none"], hat: "none", side: "kid", map: "backyard", best: 0, zoom: 1 };
 try { const raw = localStorage.getItem(SAVE_KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
 
@@ -438,6 +447,7 @@ let boss = null;          // { x, y, vx, vy, hp, max, mode: "intro"|"chase"|"slu
 let jar = null;           // { x, y, by, drop }
 let tnts = [];            // { x, y, fuse, by }
 let jarTimer = 0;
+let machCd = [0, 0, 0, 0, 0, 0];   // seconds until each soda machine has a soda again
 let lastSt = null;        // last state from the host
 let sb = null, ch = null, online = false, joinT = 0, peers = [];
 let survived = 0, hugs = 0, sodas = 0, lures = 0, booms = 0, roundScored = true, myRound = -1;
@@ -459,6 +469,7 @@ function startRound() {
     Object.assign(e, { x, y, rx: x, ry: y, vx: 0, vy: 0, stun: 0, dashT: 0, dashCd: 0, soda: false, sodaCd: 0, down: false, out: false, tnt: 0, pb: false });
   }
   boss = null; jar = null; tnts = [];
+  machCd = MAP.soda.map(() => 0);
   phase = "play"; winner = ""; timeLeft = ROUND_MS; freezeLeft = FREEZE_MS;
   sendState(true);
 }
@@ -489,7 +500,11 @@ function hostTick(dt) {
     for (const e of E.values()) if (e.bot) move(e, dt, e.ix, e.iy, e.wantDash);
     for (const e of E.values()) if (e.bot && e.wantAct) doAct(e, e.wantAct);
     for (const e of E.values()) if (!e.bot && e.id !== MYID) e.stun = Math.max(0, e.stun - dt);
-    for (const e of E.values()) e.sodaCd = Math.max(0, e.sodaCd - dt);
+    for (const e of E.values()) {
+      e.sodaCd = Math.max(0, e.sodaCd - dt);
+      if (e.soda) { e.sodaT = (e.sodaT || SODA_LIFE) - dt; if (e.sodaT <= 0) { e.soda = false; e.sodaCd = 3; if (e.id === MYID) setMsg("😖 Your soda went flat! Find a machine that is full.", "bad"); } }
+    }
+    for (let i = 0; i < machCd.length; i++) machCd[i] = Math.max(0, machCd[i] - dt);
     if (phase === "play") playRules();
     else bossRules(dt);
   } else {
@@ -501,7 +516,11 @@ function playRules() {
   // grab a soda from a machine
   for (const k of E.values()) {
     if (k.team !== "kid" || k.soda || k.sodaCd > 0) continue;
-    for (const [x, y] of MAP.soda) if (Math.hypot(k.x - x, k.y - y) < 23 + R.kid + 14) { k.soda = true; if (k.id === MYID) setMsg("🥤 You grabbed a free soda! Touch a dad to make him drink it.", "good"); break; }
+    MAP.soda.forEach(([x, y], i) => {
+      if (k.soda || machCd[i] > 0 || Math.hypot(k.x - x, k.y - y) >= 23 + R.kid + 14) return;
+      k.soda = true; k.sodaT = SODA_LIFE; machCd[i] = MACH_REFILL;
+      if (k.id === MYID) setMsg(`🥤 You grabbed a free soda! Touch a dad before it goes flat in ${SODA_LIFE} seconds.`, "good");
+    });
   }
   // dads touching kids: soda knocks the dad out, otherwise it's a hug
   if (freezeLeft <= 0) {
@@ -605,7 +624,7 @@ function sendState() {
   const bb = boss ? [Math.round(boss.x), Math.round(boss.y), Math.round(boss.vx), Math.round(boss.vy), boss.hp, boss.max, boss.mode, Math.round(boss.left), boss.sayT > 0 ? boss.say : ""] : null;
   const jj = jar ? [Math.round(jar.x), Math.round(jar.y), jar.by] : null;
   const tt = tnts.map(t => [Math.round(t.x), Math.round(t.y), Math.round(t.fuse)]);
-  bcast("st", { h: MYID, p: phase, t: Math.round(timeLeft), f: Math.round(freezeLeft), n: Math.round(endLeft), r: round, w: winner, e, b: bb, j: jj, x: tt });
+  bcast("st", { m: machCd.map(v => Math.ceil(v)), h: MYID, p: phase, t: Math.round(timeLeft), f: Math.round(freezeLeft), n: Math.round(endLeft), r: round, w: winner, e, b: bb, j: jj, x: tt });
 }
 
 // ---- bots ----
@@ -709,7 +728,7 @@ function botThink(e, dt) {
     if (t && td < 350) { go(steer(e, Math.atan2(t.y + t.vy * 0.3 - e.y, t.x + t.vx * 0.3 - e.x))); if (td < 100 && e.dashCd <= 0) e.wantDash = true; return; }
   }
   if (!e.soda && e.sodaCd <= 0) {
-    let m = null, md = 1e9; for (const [x, y] of MAP.soda) { const d = Math.hypot(x - e.x, y - e.y); if (d < md) { md = d; m = { x, y }; } }
+    let m = null, md = 1e9; MAP.soda.forEach(([x, y], i) => { if (machCd[i] > 0) return; const d = Math.hypot(x - e.x, y - e.y); if (d < md) { md = d; m = { x, y }; } });
     if (m && (near > 260 || md < 140)) { go(threats.length ? bestDir(e, threats, m, 1.4) : steer(e, Math.atan2(m.y - e.y, m.x - e.x))); if (near < 110 && e.dashCd <= 0) e.wantDash = true; return; }
   }
   if (!threats.length) {
@@ -893,6 +912,7 @@ function onSt(p) {
     let e = E.get(id);
     if (!e) e = mkEnt(id, { x, y, bot: !!bot });
     const t = team ? "dad" : "kid";
+    if (id === MYID && e.soda && !(fl & 1) && phase === "play" && !e.down) { /* used or went flat */ }
     e.soda = !!(fl & 1); e.down = !!(fl & 2); e.out = !!(fl & 4); e.pb = !!(fl & 8); e.tnt = tnt || 0;
     if (id === MYID) {
       e.team = t;
@@ -914,6 +934,7 @@ function onSt(p) {
   } else boss = null;
   jar = p.j ? { x: p.j[0], y: p.j[1], by: p.j[2] } : null;
   tnts = (p.x || []).map(t => ({ x: t[0], y: t[1], fuse: t[2] }));
+  if (p.m) machCd = p.m.slice();
   if (phase === "end") finishMyRound();
 }
 function updateOnlineMsg() {
@@ -937,7 +958,7 @@ addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
 addEventListener("blur", () => { for (const k in keys) keys[k] = false; });
 let joy = null; // {id, bx, by, x, y}
 const cv = $("cv");
-cv.addEventListener("pointerdown", e => { if (!playing) return; cv.setPointerCapture(e.pointerId); const r = cv.getBoundingClientRect(); joy = { id: e.pointerId, bx: e.clientX - r.left, by: e.clientY - r.top, x: e.clientX - r.left, y: e.clientY - r.top }; e.preventDefault(); });
+cv.addEventListener("pointerdown", e => { if (!playing) return; cv.setPointerCapture(e.pointerId); const r = cv.getBoundingClientRect(); joy = { id: e.pointerId, mouse: e.pointerType === "mouse", bx: e.clientX - r.left, by: e.clientY - r.top, x: e.clientX - r.left, y: e.clientY - r.top }; e.preventDefault(); });
 cv.addEventListener("pointermove", e => { if (!joy || e.pointerId !== joy.id) return; const r = cv.getBoundingClientRect(); joy.x = e.clientX - r.left; joy.y = e.clientY - r.top; });
 const endJoy = e => { if (joy && e.pointerId === joy.id) joy = null; };
 cv.addEventListener("pointerup", endJoy); cv.addEventListener("pointercancel", endJoy);
@@ -947,7 +968,11 @@ function readInput() {
   let x = 0, y = 0;
   if (keys["arrowleft"] || keys["a"]) x -= 1; if (keys["arrowright"] || keys["d"]) x += 1;
   if (keys["arrowup"] || keys["w"]) y -= 1; if (keys["arrowdown"] || keys["s"]) y += 1;
-  if (joy) { const dx = joy.x - joy.bx, dy = joy.y - joy.by, d = Math.hypot(dx, dy); if (d > 8) { const m = Math.min(1, d / 50); x = dx / d * m; y = dy / d * m; } }
+  if (joy && joy.mouse) {
+    // with a mouse: hold the button and your character walks towards the pointer
+    const M = me();
+    if (M) { const dx = joy.x - (M.rx - camX) * scale, dy = joy.y - (M.ry - camY) * scale, d = Math.hypot(dx, dy); if (d > 12) { x = dx / d; y = dy / d; } }
+  } else if (joy) { const dx = joy.x - joy.bx, dy = joy.y - joy.by, d = Math.hypot(dx, dy); if (d > 8) { const m = Math.min(1, d / 50); x = dx / d * m; y = dy / d * m; } }
   return [x, y];
 }
 function myAction() {
@@ -973,10 +998,11 @@ let cw = 0, chh = 0, dpr = 1, scale = 1, camX = 0, camY = 0, shake = 0;
 let BG = null;
 function resize() {
   const st = $("stage"); cw = st.clientWidth;
-  chh = Math.round(cw < 600 ? Math.max(300, Math.min(innerHeight * 0.64, cw * 1.15)) : Math.max(280, Math.min(innerHeight * 0.7, cw * 0.66)));
+  const full = document.fullscreenElement || document.webkitFullscreenElement;
+  chh = full ? innerHeight : Math.round(cw < 600 ? Math.max(300, Math.min(innerHeight * 0.64, cw * 1.15)) : Math.max(300, Math.min(innerHeight * 0.8, cw * 0.66)));
   dpr = Math.min(devicePixelRatio || 1, 2);
   cv.width = Math.round(cw * dpr); cv.height = Math.round(chh * dpr); cv.style.height = chh + "px";
-  const visW = Math.max(560, Math.min(1000, cw * 1.35));
+  const visW = Math.max(640, Math.min(1300, cw * 1.5)) * (S.zoom || 1);
   scale = cw / visW;
   if (chh / scale > H) scale = chh / H;
   if (cw / scale > W) scale = cw / W;
@@ -1022,29 +1048,116 @@ function bubble(t, x, y) {
   ctx.fillStyle = "rgba(255,255,255,.95)"; rr(ctx, x - w / 2, y - 24, w, 24, 10); ctx.fill();
   ctx.fillStyle = "#2a1740"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(t, x, y - 12);
 }
+const SKINS = ["#ffdcc0", "#f5c79a", "#d9a06b", "#a86b3d", "#7a4a26"];
+const HAIRS = ["#3b2314", "#6b3e1f", "#e0b04a", "#1d1d1d", "#b5542a", "#8a8a8a"];
+const DAD_SHIRTS = ["#2f7fd6", "#2767b0", "#3f96e8", "#1f5aa0"];
+const KID_SHIRTS = ["#ff8a3c", "#ff6fa3", "#ffb62e", "#ff5d5d", "#f76cd9"];
 function drawEnt(e, now) {
-  const r = R[e.team], x = e.rx, y = e.ry;
+  const dad = e.team === "dad", x = e.rx, y = e.ry, h = hash(e.id);
+  const U = (dad ? 1.75 : 1.5) * (R[e.team] / 17);             // size unit (drawn a bit bigger than the hit circle so they are easy to see)
   const lying = e.down || e.out;
-  const squish = e.stun > 0 ? 1 + Math.sin(now / 60) * 0.18 : 1;
-  ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(x + 3, y + r * 0.8, r * 1.05, r * 0.45, 0, 0, 7); ctx.fill();
-  if (e.dashT > 0) { ctx.globalAlpha = 0.35; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x - e.vx * 0.05, y - e.vy * 0.05, r, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
-  ctx.save(); ctx.translate(x, y); ctx.scale(squish, 2 - squish);
-  if (lying) { ctx.rotate(Math.PI / 2); ctx.globalAlpha = 0.8; }
-  ctx.fillStyle = e.team === "dad" ? (e.down ? "#5a7fa6" : "#2f7fd6") : (e.out ? "#a08070" : "#ff8a3c");
-  ctx.beginPath(); ctx.arc(0, 0, r + 4, 0, 7); ctx.fill();
-  ctx.lineWidth = e.id === MYID ? 4 : 2; ctx.strokeStyle = e.id === MYID ? "#fff" : "rgba(0,0,0,.35)"; ctx.stroke();
-  let near = false;
-  if (e.team === "dad" && !e.down) for (const k of E.values()) if (k.team === "kid" && !k.soda && (k.rx - x) ** 2 + (k.ry - y) ** 2 < 110 * 110) { near = true; break; }
-  const f = e.down ? "😴" : e.out ? "🥴" : e.stun > 0 ? "😵" : (near ? "🤗" : face(e));
-  emoji(ctx, f, 0, 1, r * 1.6);
-  ctx.restore(); ctx.globalAlpha = 1;
-  if (e.down) emoji(ctx, "💤", x + r, y - r - 4 - Math.sin(now / 300) * 4, 18);
-  if (e.out) emoji(ctx, "💦", x + r, y - r, 18);
-  if (e.soda) emoji(ctx, "🥤", x + r + 4, y + 4, 20);
-  if (e.pb) emoji(ctx, "🥜", x - r - 4, y + 2, 22);
-  if (e.tnt > 0 && !e.out) { emoji(ctx, "🧨", x - r - 2, y + 6, 18); if (e.tnt > 1) label(ctx, "x" + e.tnt, x - r - 2, y + 20, 11); }
-  if (e.hat && HAT[e.hat] && HAT[e.hat].e && !lying) emoji(ctx, HAT[e.hat].e, x, y - r - 6, r * 1.15);
-  const ny = y - r - (e.hat && e.hat !== "none" && !lying ? 22 : 8);
+  const spd = Math.hypot(e.vx, e.vy), moving = spd > 25 && !lying && e.stun <= 0;
+  const ph = moving ? now / (e.dashT > 0 ? 40 : 75) + h : 0;
+  const bob = moving ? Math.abs(Math.sin(ph)) * 3 * U : Math.sin(now / 450 + h) * 0.8 * U;
+  if (Math.abs(e.vx) > 8) e.face = e.vx < 0 ? -1 : 1;
+  const dir = e.face || 1;
+  const skin = SKINS[h % SKINS.length], hair = HAIRS[(h >> 3) % HAIRS.length];
+  const shirt = dad ? DAD_SHIRTS[(h >> 5) % DAD_SHIRTS.length] : KID_SHIRTS[(h >> 5) % KID_SHIRTS.length];
+  const M = me();
+  // who is scary / huggable, used for faces and markers
+  let hugReady = false, scared = false;
+  if (dad && !e.down) for (const k of E.values()) if (k.team === "kid" && !k.soda && !k.out && (k.rx - x) ** 2 + (k.ry - y) ** 2 < 120 * 120) { hugReady = true; break; }
+  if (!dad && !e.soda && !e.out) for (const d of E.values()) if (d.team === "dad" && !d.down && (d.rx - x) ** 2 + (d.ry - y) ** 2 < 150 * 150) { scared = true; break; }
+  // ground: shadow, my ring, dad helper markers
+  ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.beginPath(); ctx.ellipse(x, y + 14 * U, 13 * U, 5 * U, 0, 0, 7); ctx.fill();
+  if (e.id === MYID) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, y + 14 * U, 17 * U, 7 * U, 0, 0, 7); ctx.stroke(); }
+  const iAmDad = M && M.team === "dad" && !M.down && phase === "play";
+  if (iAmDad && !dad && !e.out) {
+    if (e.soda) { ctx.strokeStyle = "rgba(255,60,60,.9)"; ctx.lineWidth = 4; ctx.setLineDash([6, 5]); ctx.beginPath(); ctx.arc(x, y, 30 * U, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+    else { ctx.fillStyle = "rgba(255,111,163,.28)"; ctx.beginPath(); ctx.arc(x, y, (26 + Math.sin(now / 180) * 3) * U, 0, 7); ctx.fill(); }
+  }
+  if (e.dashT > 0) { ctx.globalAlpha = 0.3; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.ellipse(x - e.vx * 0.06, y - e.vy * 0.06, 12 * U, 16 * U, 0, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+  ctx.save(); ctx.translate(x, y);
+  if (lying) { ctx.translate(0, 6 * U); ctx.rotate(dir * Math.PI / 2); }
+  if (e.stun > 0) ctx.rotate(Math.sin(now / 50) * 0.25);
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
+  const OL = "rgba(40,20,40,.55)";
+  // legs
+  const sw = moving ? Math.sin(ph) * 4 * U : 0;
+  ctx.fillStyle = dad ? "#34405a" : "#3b5bdb";
+  ctx.beginPath(); ctx.ellipse(-4 * U + sw * 0.3, 11 * U - (sw > 0 ? sw * 0.4 : 0), 3.4 * U, 4.2 * U, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(4 * U - sw * 0.3, 11 * U - (sw < 0 ? -sw * 0.4 : 0), 3.4 * U, 4.2 * U, 0, 0, 7); ctx.fill();
+  ctx.translate(0, -bob);
+  // arms
+  ctx.strokeStyle = skin; ctx.lineWidth = 3.6 * U;
+  if (hugReady) {
+    const w = Math.sin(now / 90) * 2 * U;
+    ctx.beginPath(); ctx.moveTo(-8 * U, 1 * U); ctx.lineTo(-17 * U, -8 * U + w); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8 * U, 1 * U); ctx.lineTo(17 * U, -8 * U - w); ctx.stroke();
+  } else {
+    const a = moving ? Math.sin(ph) * 5 * U : 0;
+    ctx.beginPath(); ctx.moveTo(-8 * U, 1 * U); ctx.lineTo(-11 * U, 8 * U + a); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8 * U, 1 * U); ctx.lineTo(11 * U, 8 * U - a); ctx.stroke();
+  }
+  // body
+  ctx.fillStyle = e.down ? "#7d93ad" : e.out ? "#b09a8c" : shirt;
+  ctx.strokeStyle = OL; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(0, 4 * U, (dad ? 10.5 : 9) * U, 8.5 * U, 0, 0, 7); ctx.fill(); ctx.stroke();
+  if (dad) { ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.beginPath(); ctx.ellipse(0, 3 * U, 3 * U, 5 * U, 0, 0, 7); ctx.fill(); }
+  // head
+  const hx = dir * 0.8 * U, hy = -10 * U, hr = (dad ? 9.5 : 10) * U;
+  ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(hx, hy, hr, 0, 7); ctx.fill(); ctx.stroke();
+  // hair
+  ctx.fillStyle = hair;
+  if (dad) {
+    if (h % 3 !== 0) { ctx.beginPath(); ctx.arc(hx, hy - 1 * U, hr, Math.PI * 1.08, Math.PI * 1.92); ctx.closePath(); ctx.fill(); }
+    else { ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.beginPath(); ctx.ellipse(hx - 3 * U, hy - 6 * U, 2.5 * U, 1.4 * U, -0.4, 0, 7); ctx.fill(); }
+  } else {
+    ctx.beginPath(); ctx.arc(hx, hy - 1.5 * U, hr, Math.PI * 1.02, Math.PI * 1.98); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(hx - 1 * U, hy - hr - 1 * U); ctx.quadraticCurveTo(hx + 3 * U, hy - hr - 6 * U, hx + 5 * U, hy - hr + 1 * U); ctx.lineWidth = 2 * U; ctx.strokeStyle = hair; ctx.stroke();
+    if (h % 2) { ctx.fillStyle = hair; ctx.beginPath(); ctx.arc(hx - hr + 1 * U, hy + 1 * U, 3 * U, 0, 7); ctx.arc(hx + hr - 1 * U, hy + 1 * U, 3 * U, 0, 7); ctx.fill(); }
+  }
+  // face
+  const ex = hx + dir * 1.5 * U, ey = hy + 0.5 * U, gap = 3.6 * U;
+  ctx.fillStyle = "#2a1a2a"; ctx.strokeStyle = "#2a1a2a"; ctx.lineWidth = 1.6 * U;
+  const blink = ((now / 100 + h) % 45) < 1.2;
+  if (e.out || e.stun > 0) {
+    for (const sx of [-1, 1]) { const cx = ex + sx * gap; ctx.beginPath(); ctx.moveTo(cx - 1.6 * U, ey - 1.6 * U); ctx.lineTo(cx + 1.6 * U, ey + 1.6 * U); ctx.moveTo(cx + 1.6 * U, ey - 1.6 * U); ctx.lineTo(cx - 1.6 * U, ey + 1.6 * U); ctx.stroke(); }
+  } else if (e.down || blink) {
+    for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(ex + sx * gap, ey, 1.8 * U, 0.1, Math.PI - 0.1); ctx.stroke(); }
+  } else {
+    const big = scared ? 2.6 : 2.2;
+    for (const sx of [-1, 1]) {
+      ctx.fillStyle = "#2a1a2a"; ctx.beginPath(); ctx.ellipse(ex + sx * gap, ey, big * 0.85 * U, big * U, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(ex + sx * gap + 0.7 * U, ey - 0.8 * U, 0.8 * U, 0, 7); ctx.fill();
+    }
+  }
+  ctx.fillStyle = "rgba(255,110,140,.45)";
+  ctx.beginPath(); ctx.ellipse(ex - gap - 2 * U, ey + 3.2 * U, 2.2 * U, 1.3 * U, 0, 0, 7); ctx.ellipse(ex + gap + 2 * U, ey + 3.2 * U, 2.2 * U, 1.3 * U, 0, 0, 7); ctx.fill();
+  // mouth
+  ctx.strokeStyle = "#2a1a2a"; ctx.fillStyle = "#7a1f35"; ctx.lineWidth = 1.4 * U;
+  const my = ey + 4.5 * U;
+  if (scared || e.stun > 0) { ctx.beginPath(); ctx.ellipse(ex, my + 0.5 * U, 1.6 * U, 2 * U, 0, 0, 7); ctx.fill(); }
+  else if (hugReady) { ctx.beginPath(); ctx.arc(ex, my - 0.5 * U, 3 * U, 0, Math.PI); ctx.closePath(); ctx.fill(); }
+  else if (!e.down) { ctx.beginPath(); ctx.arc(ex, my - 1.2 * U, 2.2 * U, 0.2, Math.PI - 0.2); ctx.stroke(); }
+  // dad moustache and beard
+  if (dad) {
+    ctx.fillStyle = hair === "#e0b04a" ? "#b8862e" : hair;
+    ctx.beginPath(); ctx.ellipse(ex - 1.8 * U, my - 1.6 * U, 2.2 * U, 1.1 * U, -0.25, 0, 7); ctx.ellipse(ex + 1.8 * U, my - 1.6 * U, 2.2 * U, 1.1 * U, 0.25, 0, 7); ctx.fill();
+    if (h % 2 === 0) { ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.arc(hx, hy + 1 * U, hr, 0.25, Math.PI - 0.25); ctx.arc(hx, hy + 3 * U, hr * 0.62, Math.PI - 0.5, 0.5, true); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1; }
+  }
+  ctx.restore();
+  // things they carry
+  if (e.down) emoji(ctx, "💤", x + 14 * U, y - 16 * U - Math.sin(now / 300) * 4, 18);
+  if (e.out) emoji(ctx, "💦", x + 14 * U, y - 10 * U, 18);
+  if (e.soda) emoji(ctx, "🥤", x + dir * 15 * U, y + 2 * U - bob, 20);
+  if (e.pb) emoji(ctx, "🥜", x - dir * 15 * U, y + 2 * U - bob, 22);
+  if (e.tnt > 0 && !e.out) { emoji(ctx, "🧨", x - dir * 15 * U, y + 4 * U, 18); if (e.tnt > 1) label(ctx, "x" + e.tnt, x - dir * 15 * U, y + 18 * U, 11); }
+  if (iAmDad && !dad && !e.out && !e.soda) emoji(ctx, "❤️", x, y - 34 * U - Math.abs(Math.sin(now / 250)) * 4, 16);
+  const top = y - 20 * U - bob;
+  const hasHat = e.hat && HAT[e.hat] && HAT[e.hat].e && !lying;
+  if (hasHat) emoji(ctx, HAT[e.hat].e, x + dir * 0.8 * U, top - 2 * U, 18 * U);
+  const ny = top - (hasHat ? 14 * U : 3);
   ctx.font = "800 13px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
   ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.strokeText(e.name, x, ny); ctx.fillStyle = e.id === MYID ? "#ffe066" : "#fff"; ctx.fillText(e.name, x, ny);
   if (e.sayT > 0 && e.say && !lying) bubble(e.say, x, ny - 16);
@@ -1083,6 +1196,12 @@ function draw(now, dt) {
   ctx.fillStyle = "#111"; ctx.fillRect(0, 0, cw, chh);
   ctx.save(); ctx.scale(scale, scale); ctx.translate(-camX + sx, -camY + sy);
   if (BG) ctx.drawImage(BG, 0, 0, W, H);
+  // empty soda machines show a countdown
+  MAP.soda.forEach(([mx0, my0], i) => {
+    if (!(machCd[i] > 0) || phase !== "play") return;
+    ctx.fillStyle = "rgba(40,40,50,.7)"; rr(ctx, mx0 - 23, my0 - 23, 46, 46, 10); ctx.fill();
+    label(ctx, String(Math.ceil(machCd[i])), mx0, my0, 18, "#fff", "#000");
+  });
   // peanut butter jar on the ground
   if (jar && !jar.by) {
     const p = 1 + Math.sin(now / 200) * 0.1;
@@ -1133,7 +1252,7 @@ function draw(now, dt) {
     let lab, col;
     if (m.down) { lab = "You passed out 💤"; col = "rgba(90,127,166,.9)"; }
     else if (m.out) { lab = "Slobbered! You're out 💦"; col = "rgba(160,128,112,.9)"; }
-    else if (m.team === "dad") { lab = "You are a DAD 🧔 hug the kids!"; col = "rgba(47,127,214,.9)"; }
+    else if (m.team === "dad") { lab = "DAD: touch kids with ❤️ to hug · avoid 🥤"; col = "rgba(47,127,214,.9)"; }
     else if (phase === "boss") { lab = m.pb ? "Drop the peanut butter! 🥜" : m.tnt > 0 && boss && boss.mode === "slurp" ? "Place your TNT near Didi! 🧨" : "Lure Didi with peanut butter 🥜"; col = "rgba(255,138,60,.9)"; }
     else { lab = m.soda ? "Give a dad your soda! 🥤" : "You are a KID 🧒 run away!"; col = "rgba(255,138,60,.9)"; }
     const tw = ctx.measureText(lab).width + 20;
@@ -1143,8 +1262,26 @@ function draw(now, dt) {
     const pw = ctx.measureText(pl).width + 20;
     ctx.fillStyle = "rgba(0,0,0,.55)"; rr(ctx, 10, chh - 34, pw, 26, 10); ctx.fill(); ctx.fillStyle = "#fff"; ctx.fillText(pl, 20, chh - 21);
   }
+  // dads get an arrow pointing to the nearest kid they can hug
+  if (m && m.team === "dad" && !m.down && phase === "play") {
+    let t = null, td = 1e9;
+    for (const k of ents) if (k.team === "kid" && !k.soda && !k.out) { const d = Math.hypot(k.rx - m.rx, k.ry - m.ry); if (d < td) { td = d; t = k; } }
+    if (t) {
+      const sx = (t.rx - camX) * scale, sy = (t.ry - camY) * scale;
+      if (sx < 0 || sy < 0 || sx > cw || sy > chh) {
+        const cx = cw / 2, cy = chh / 2, a = Math.atan2(sy - cy, sx - cx);
+        const k = Math.min((cw / 2 - 40) / Math.abs(Math.cos(a) || 1e-6), (chh / 2 - 40) / Math.abs(Math.sin(a) || 1e-6));
+        const ax = cx + Math.cos(a) * k, ay = cy + Math.sin(a) * k;
+        ctx.save(); ctx.translate(ax, ay); ctx.rotate(a);
+        ctx.fillStyle = "#ff6fa3"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(18, 0); ctx.lineTo(-10, -13); ctx.lineTo(-4, 0); ctx.lineTo(-10, 13); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.restore();
+        label(ctx, "❤️ " + Math.round(td / 10) + "m", ax - Math.cos(a) * 30, ay - Math.sin(a) * 30, 12);
+      }
+    }
+  }
   // minimap
-  const mw = small ? 110 : 160, mh = mw * H / W, mx = cw - mw - 10, my = 10;
+  const mw = small ? 120 : 210, mh = mw * H / W, mx = cw - mw - 10, my = 10;
   ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(mx - 3, my - 3, mw + 6, mh + 6);
   if (BG) { ctx.globalAlpha = 0.8; ctx.drawImage(BG, mx, my, mw, mh); ctx.globalAlpha = 1; }
   ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(mx + camX / W * mw, my + camY / H * mh, vw / W * mw, vh / H * mh);
@@ -1167,7 +1304,7 @@ function draw(now, dt) {
     ctx.font = `900 ${small ? 13 : 16}px Nunito, sans-serif`; ctx.lineWidth = 4; ctx.strokeText(sub, cw / 2, chh / 2 + 28); ctx.fillStyle = "#fff"; ctx.fillText(sub, cw / 2, chh / 2 + 28);
   }
   // joystick
-  if (joy) { ctx.globalAlpha = 0.35; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(joy.bx, joy.by, 50, 0, 7); ctx.fill(); ctx.globalAlpha = 0.7; const dx = joy.x - joy.bx, dy = joy.y - joy.by, d = Math.hypot(dx, dy) || 1, k = Math.min(d, 50) / d; ctx.beginPath(); ctx.arc(joy.bx + dx * k, joy.by + dy * k, 22, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+  if (joy && !joy.mouse) { ctx.globalAlpha = 0.35; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(joy.bx, joy.by, 50, 0, 7); ctx.fill(); ctx.globalAlpha = 0.7; const dx = joy.x - joy.bx, dy = joy.y - joy.by, d = Math.hypot(dx, dy) || 1, k = Math.min(d, 50) / d; ctx.beginPath(); ctx.arc(joy.bx + dx * k, joy.by + dy * k, 22, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
 }
 
 // ---------------- main loop ----------------
@@ -1241,7 +1378,7 @@ function startGame() {
   $("onlineLbl").textContent = "Connecting…";
   startRound();          // play straight away with computer players; friends join in when we connect
   resetMyRound(); myRound = round;
-  $("sideBtn").textContent = S.side === "dad" ? "Be a kid next round" : "Be a dad next round";
+  $("sideBtn").textContent = S.side === "dad" ? "⇄ Be a kid" : "⇄ Be a dad";
   setMsg(`${MAP.name}: you are on the ${S.side === "dad" ? "Dads" : "Kids"} team. ${S.side === "dad" ? "Wait 3 seconds, then hug those kids! Keep away from kids with soda 🥤." : "Run! Grab a free soda 🥤 and give it to a dad to knock him out."}`);
   connect();
   resize();
@@ -1255,11 +1392,25 @@ $("menuBtn").onclick = () => {
   $("lobby").hidden = false; $("stage").classList.add("inlobby"); $("bar").hidden = true; $("dashBtn").hidden = true; $("actBtn").hidden = true; renderLobby();
   setMsg("Pick a team and a map, then press PLAY.");
 };
+function setZoom(z) { S.zoom = Math.max(0.6, Math.min(1.8, Math.round(z * 100) / 100)); save(); resize(); }
+$("zoomOut").onclick = () => setZoom((S.zoom || 1) * 1.2);
+$("zoomIn").onclick = () => setZoom((S.zoom || 1) / 1.2);
+addEventListener("keydown", e => { if (!playing || (e.target && e.target.tagName === "INPUT")) return; if (e.key === "-" || e.key === "_") setZoom((S.zoom || 1) * 1.2); if (e.key === "=" || e.key === "+") setZoom((S.zoom || 1) / 1.2); });
+cv.addEventListener("wheel", e => { if (!playing) return; e.preventDefault(); setZoom((S.zoom || 1) * (e.deltaY > 0 ? 1.1 : 1 / 1.1)); }, { passive: false });
+const stageEl = $("stage");
+const canFull = !!(stageEl.requestFullscreen || stageEl.webkitRequestFullscreen);
+if (!canFull) $("fullBtn").hidden = true;
+$("fullBtn").onclick = () => {
+  const on = document.fullscreenElement || document.webkitFullscreenElement;
+  if (on) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  else (stageEl.requestFullscreen || stageEl.webkitRequestFullscreen).call(stageEl);
+};
+["fullscreenchange", "webkitfullscreenchange"].forEach(ev => document.addEventListener(ev, () => { const on = document.fullscreenElement || document.webkitFullscreenElement; $("fullBtn").textContent = on ? "✕" : "⛶"; setTimeout(resize, 50); }));
 $("sideBtn").onclick = () => {
   S.side = S.side === "dad" ? "kid" : "dad"; save();
   const m = me(); if (m) m.side = S.side;
   if (online && ch) try { ch.track(meta()); } catch (e) {}
-  $("sideBtn").textContent = S.side === "dad" ? "Be a kid next round" : "Be a dad next round";
+  $("sideBtn").textContent = S.side === "dad" ? "⇄ Be a kid" : "⇄ Be a dad";
   setMsg(`Next round you will be on the ${S.side === "dad" ? "Dads" : "Kids"} team.`, "good");
 };
 

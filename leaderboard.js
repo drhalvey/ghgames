@@ -39,14 +39,20 @@
     return null;
   }
 
+  // K M B T Qa Qi Sx Sp Oc No Dc, then UDc DDc ... NoDc, Vg, UVg ... Tg ...
+  var SMALL = ["K","M","B","T","Qa","Qi","Sx","Sp","Oc","No"];
+  var NU = ["","U","D","T","Qa","Qi","Sx","Sp","Oc","No"];
+  var NT = ["","Dc","Vg","Tg","Qag","Qig","Sxg","Spg","Ocg","Nog"];
+  var NH = ["","Ce","Du","Tr","Qd","Qn","Sc","St","Og","Nn"];
+  function illion(N) { return N < 10 ? SMALL[N] : NU[N % 10] + NT[Math.floor(N / 10) % 10] + NH[Math.floor(N / 100) % 10]; }
   function fmt(n, unit) {
     if (unit === "sec") return Number(n).toFixed(1) + "s";
     n = Math.round(n);
+    if (!isFinite(n)) return "MAX";
     if (n < 1e6) return n.toLocaleString();
-    var s = ["", "K", "M", "B", "T", "Qa", "Qi"];
-    var e = Math.min(s.length - 1, Math.floor(Math.log10(n) / 3));
+    var e = Math.floor(Math.log10(n) / 3 + 1e-9);
     var v = n / Math.pow(10, e * 3);
-    return (v >= 100 ? Math.round(v) : v.toFixed(1)) + s[e];
+    return (v >= 100 ? Math.round(v) : v.toFixed(1)) + illion(e - 1);
   }
 
   function esc(t) { var d = document.createElement("div"); d.textContent = t; return d.innerHTML; }

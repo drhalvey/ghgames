@@ -1,0 +1,940 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Steal an Animal</title>
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="steal-an-animal"></script>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#16201a; --panel:#1f2d24; --panel2:#2a3c30; --line:#3f5a47;
+  --ink:#f1fff4; --muted:#b4cdb9; --gold:#ffc93c; --pink:#ff6fa3; --green:#4fcf6a; --red:#ff5d5d; --blue:#4aa8ff;
+  --display:"Lilita One","Arial Rounded MT Bold","Trebuchet MS",sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;touch-action:manipulation}
+button,a,canvas{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.stage,.stage *,button{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+html,body{background:var(--bg);margin:0}
+body{font-family:var(--body);color:var(--ink);padding:14px 14px 40px;font-size:15px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.home{font-weight:900;color:var(--muted);text-decoration:none;font-size:14px}
+.home:hover{color:var(--gold)}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);margin:0;line-height:1;color:var(--gold);text-shadow:0 3px 0 #b5462b,0 6px 0 rgba(0,0,0,.25)}
+.hud{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:6px 12px;display:flex;flex-direction:column;align-items:flex-start;color:var(--ink);font-family:var(--body)}
+.chip span{font-size:11px;color:var(--muted);font-weight:800}
+.chip b{font-size:17px;font-weight:900}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--gold)}
+.stage{position:relative;border-radius:20px;overflow:hidden;border:3px solid var(--line);background:#111}
+canvas{display:block;width:100%;touch-action:none}
+.btns{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.bb{font-family:var(--body);font-weight:900;font-size:16px;border:none;border-radius:14px;padding:12px 10px;color:#fff;cursor:pointer;background:var(--blue);box-shadow:0 4px 0 #1f5a9a}
+.bb small{display:block;font-size:11px;font-weight:800;opacity:.9}
+.bb:active{transform:translateY(3px);box-shadow:0 1px 0 #1f5a9a}
+.bb.lock{background:#7b4fd6;box-shadow:0 4px 0 #4a2a90}
+.bb.shop{background:#e8873a;box-shadow:0 4px 0 #9a4f12}
+.bb.world{background:#22a77f;box-shadow:0 4px 0 #11684e}
+.bb.reb{background:#e8384f;box-shadow:0 4px 0 #8f1626}
+.bb.friend{background:#3b82f6;box-shadow:0 4px 0 #1d4fa8}
+.bb[disabled]{filter:grayscale(.7) brightness(.75);cursor:default}
+.msg{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:10px 14px;font-weight:800;min-height:44px}
+.msg.good{border-color:var(--green)}
+.msg.bad{border-color:var(--red)}
+.panel{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:14px 16px}
+.panel h2{font-family:var(--display);font-weight:400;margin:0 0 6px;font-size:24px;color:var(--gold)}
+.panel ul{margin:0;padding-left:20px;color:var(--muted);font-weight:700;line-height:1.5}
+.overlay{position:fixed;inset:0;background:rgba(5,10,7,.72);display:flex;align-items:center;justify-content:center;padding:14px;z-index:50}
+.overlay[hidden]{display:none}
+.box{background:var(--panel);border:3px solid var(--line);border-radius:20px;padding:16px;max-width:560px;width:100%;max-height:88vh;overflow:auto}
+.box h2{font-family:var(--display);font-weight:400;margin:0 0 8px;color:var(--gold);font-size:26px}
+.box p{margin:0 0 10px;color:var(--muted);font-weight:700}
+.list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.item{display:flex;align-items:center;gap:10px;background:var(--panel2);border:2px solid var(--line);border-radius:14px;padding:8px 10px}
+.item .e{font-size:30px;width:40px;text-align:center}
+.item .t{flex:1;min-width:0}
+.item .t b{display:block;font-size:16px}
+.item .t small{color:var(--muted);font-weight:800}
+.item.here{border-color:var(--gold)}
+.go{font-family:var(--body);font-weight:900;border:none;border-radius:12px;padding:9px 13px;color:#fff;background:var(--green);cursor:pointer;box-shadow:0 3px 0 #1f7a33;font-size:14px;white-space:nowrap}
+.go.pink{background:var(--pink);box-shadow:0 3px 0 #8a1c43}
+.go.grey,.go[disabled]{background:#4a5a50;box-shadow:0 3px 0 #2a3530;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+.box input{font-family:var(--body);font-weight:800;font-size:16px;background:#101812;border:2px solid var(--line);color:var(--ink);border-radius:12px;padding:9px 11px;flex:1;min-width:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="home" href="index.html">← GH Games</a>
+  <div class="top">
+    <h1>Steal an Animal</h1>
+    <div class="hud">
+      <div class="chip"><span>Coins</span><b id="hCoins">0</b></div>
+      <div class="chip"><span>Per second</span><b id="hInc">0</b></div>
+      <div class="chip"><span>Everything</span><b id="hMul">×1</b></div>
+      <div class="chip"><span>World</span><b id="hWorld">Meadow</b></div>
+      <button class="chip" id="hName" type="button"><span>Name</span><b id="hNameV">Player</b></button>
+    </div>
+  </div>
+  <div class="stage"><canvas id="cv" width="1000" height="720"></canvas></div>
+  <div class="btns">
+    <button class="bb lock" id="bLock" type="button">🔒 Lock base<small id="bLockS">60 seconds</small></button>
+    <button class="bb shop" id="bShop" type="button">🛒 Shop<small>Guards and pads</small></button>
+    <button class="bb world" id="bWorld" type="button">🌍 Worlds<small id="bWorldS">Everything multi</small></button>
+    <button class="bb reb" id="bReb" type="button">♻️ Rebirth<small id="bRebS"></small></button>
+    <button class="bb friend" id="bFriend" type="button">👀 Visit a friend<small>Steal their animals</small></button>
+  </div>
+  <div class="msg" id="msg">Tap an animal on the road to buy it. Run into other bases, grab an animal and bring it home!</div>
+  <div class="panel">
+    <h2>How to play</h2>
+    <ul>
+      <li>Tap or hold on the map to run there (or use the arrow keys / WASD).</li>
+      <li>Animals walk along the road. Tap one to buy it. It sits in your base and makes coins every second.</li>
+      <li>Run into another base, touch an animal to grab it, then carry it back into your base to keep it. Watch out for the owner and their guard animals!</li>
+      <li>Robbers will try to steal from you too. Touch them to get your animal back, buy guard animals, or lock your base.</li>
+      <li>Shiny is ×2, Golden ×5, Diamond ×10 and Rainbow ×25.</li>
+      <li>There are 3 galaxies with 25 worlds each. Buy new worlds for better animals. Every world you own doubles everything you earn. Rebirth for a bonus that keeps forever.</li>
+      <li>Tap one of your own animals to sell it.</li>
+    </ul>
+  </div>
+  <div id="lb"></div>
+</div>
+<div class="overlay" id="overlay" hidden><div class="box" id="box"></div></div>
+
+<script src="leaderboard.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = t => { const d = document.createElement("div"); d.textContent = String(t); return d.innerHTML; };
+
+// ---------------- big number names ----------------
+// K M B T Qa Qi Sx Sp Oc No Dc, then U D T Qa Qi Sx Sp Oc No in front of Dc (UDc, DDc ... NoDc),
+// then Vg, UVg, DVg ... NoVg, then Tg, and so on.
+const SMALL = ["K","M","B","T","Qa","Qi","Sx","Sp","Oc","No"];
+const NU = ["","U","D","T","Qa","Qi","Sx","Sp","Oc","No"];
+const NT = ["","Dc","Vg","Tg","Qag","Qig","Sxg","Spg","Ocg","Nog"];
+const NH = ["","Ce","Du","Tr","Qd","Qn","Sc","St","Og","Nn"];
+function illion(N) { // name for 10^(3N+3)
+  if (N < 10) return SMALL[N];
+  return NU[N % 10] + NT[Math.floor(N / 10) % 10] + NH[Math.floor(N / 100) % 10];
+}
+function fmt(n) {
+  n = Number(n) || 0;
+  if (!isFinite(n)) return "MAX";
+  if (n < 0) return "-" + fmt(-n);
+  if (n < 10) return (Math.floor(n * 10) / 10).toString();
+  if (n < 1000) return Math.floor(n).toString();
+  let e = Math.floor(Math.log10(n) / 3 + 1e-9);
+  let v = n / Math.pow(10, e * 3);
+  if (v >= 999.995) { v /= 1000; e++; }
+  const s = v >= 100 ? Math.floor(v) : v >= 10 ? Math.floor(v * 10) / 10 : Math.floor(v * 100) / 100;
+  return s + illion(e - 1);
+}
+const CAP = 1e300;
+
+// ---------------- game data ----------------
+const TIERS = [
+  { n: "Common",    c: "#c3cad6", p: 15,     i: 1,     w: 60 },
+  { n: "Uncommon",  c: "#4fcf6a", p: 120,    i: 6,     w: 25 },
+  { n: "Rare",      c: "#4aa8ff", p: 1000,   i: 40,    w: 10 },
+  { n: "Epic",      c: "#b06cff", p: 9000,   i: 280,   w: 4 },
+  { n: "Legendary", c: "#ffc93c", p: 80000,  i: 2000,  w: 0.9 },
+  { n: "Mythic",    c: "#ff4f8b", p: 750000, i: 15000, w: 0.12 }
+];
+const KF = [1, 1.25, 1.5, 1.8];
+const KINDS = [
+  ["🐭","Mouse"],["🐤","Chick"],["🐸","Frog"],["🐰","Bunny"],
+  ["🐷","Pig"],["🐱","Cat"],["🦆","Duck"],["🦊","Fox"],
+  ["🐼","Panda"],["🐨","Koala"],["🐧","Penguin"],["🦉","Owl"],
+  ["🦁","Lion"],["🐯","Tiger"],["🦈","Shark"],["🐺","Wolf"],
+  ["🦄","Unicorn"],["🐉","Dragon"],["🦖","T-Rex"],["🐳","Whale"],
+  ["🦚","Peacock"],["🦩","Flamingo"],["🐙","Kraken"],["🦕","Brachio"]
+];
+const MUTS = [
+  { n: "",        x: 1,  ch: 0 },
+  { n: "Shiny",   x: 2,  ch: 0.06,  c: "#ffffff" },
+  { n: "Golden",  x: 5,  ch: 0.02,  c: "#ffd700" },
+  { n: "Diamond", x: 10, ch: 0.006, c: "#7ff3ff" },
+  { n: "Rainbow", x: 25, ch: 0.0015, c: "rainbow" }
+];
+// Worlds: 3 galaxies, 25 worlds in each (75 worlds). Each world's animals are worth about
+// 3,000 times more than the last one, and every world you own doubles everything (Everything multi).
+const THEMES = [
+  { n: "Meadow",   e: "🌼", g: "#5fae4a", g2: "#57a142", r: "#8a7a5a" },
+  { n: "Jungle",   e: "🌴", g: "#2f8f3a", g2: "#2a8034", r: "#6b5a3a" },
+  { n: "Ocean",    e: "🌊", g: "#2b7fc0", g2: "#2673ae", r: "#d9c48a" },
+  { n: "Desert",   e: "🌵", g: "#d9b765", g2: "#cfac58", r: "#a8753a" },
+  { n: "Snow",     e: "❄️", g: "#c9dbe8", g2: "#bdd1e0", r: "#8fa3b5" },
+  { n: "Volcano",  e: "🌋", g: "#5a2b22", g2: "#4f251d", r: "#ff7a2f" },
+  { n: "Candy",    e: "🍭", g: "#ff9fd0", g2: "#f792c6", r: "#ffffff" },
+  { n: "Sky",      e: "☁️", g: "#86c6f2", g2: "#7bbbe8", r: "#ffffff" },
+  { n: "Crystal",  e: "💎", g: "#6a5acd", g2: "#6050c0", r: "#c9f2ff" },
+  { n: "Haunted",  e: "👻", g: "#3a3550", g2: "#332e48", r: "#7a6a9a" },
+  { n: "Robot",    e: "🤖", g: "#4c5560", g2: "#444c56", r: "#9aa3ad" },
+  { n: "Moon",     e: "🌙", g: "#6d6f80", g2: "#636575", r: "#a9abba" },
+  { n: "Rainbow",  e: "🌈", g: "#3fb6a8", g2: "#37a69a", r: "#ffd23d" },
+  { n: "Swamp",    e: "🐊", g: "#4a6b3a", g2: "#425f33", r: "#6b5a3a" },
+  { n: "Mushroom", e: "🍄", g: "#7a4a8a", g2: "#6f4180", r: "#e8d2b0" },
+  { n: "Pirate",   e: "🏴‍☠️", g: "#2f9fb0", g2: "#2a92a2", r: "#e6cf8f" },
+  { n: "Farm",     e: "🚜", g: "#7cb342", g2: "#72a63c", r: "#a1784a" },
+  { n: "City",     e: "🏙️", g: "#566070", g2: "#4e5766", r: "#2f3540" },
+  { n: "Castle",   e: "🏰", g: "#6f8f5a", g2: "#668452", r: "#9a9a9a" },
+  { n: "Dino",     e: "🦖", g: "#8a9a3a", g2: "#7f8e34", r: "#8a6a3a" },
+  { n: "Toy",      e: "🧸", g: "#ffb347", g2: "#f7a83b", r: "#4aa8ff" },
+  { n: "Music",    e: "🎵", g: "#2d2d5a", g2: "#262650", r: "#ff6fa3" },
+  { n: "Sun",      e: "☀️", g: "#ffb020", g2: "#f5a414", r: "#fff3c4" },
+  { n: "Void",     e: "🕳️", g: "#0b0b10", g2: "#121218", r: "#40405a" },
+  { n: "Infinity", e: "♾️", g: "#1e1030", g2: "#291642", r: "#ffc93c" }
+];
+const GALAXIES = [
+  { n: "Milky Way", e: "🌌", tag: "",     tint: null },
+  { n: "Andromeda", e: "💫", tag: " II",  tint: "rgba(90,40,160,.32)" },
+  { n: "Whirlpool", e: "🌀", tag: " III", tint: "rgba(255,190,40,.22)" }
+];
+const PER_GALAXY = 25;
+const WORLDS = [];
+GALAXIES.forEach((G, gi) => THEMES.forEach(T => WORLDS.push(Object.assign({}, T, { n: T.n + G.tag, base: T.n, gal: gi }))));
+const WSTEP = 3.5; // each world is 10^3.5 (about 3,162) times richer
+const WSCALE = Math.pow(10, WSTEP);
+const worldCost = w => 500 * Math.pow(10, WSTEP * w);
+const GUARDS = [
+  { e: "🐕", n: "Guard Dog",       cost: 400,  sp: 150, r: 95 },
+  { e: "🐊", n: "Croc",            cost: 2.5e4, sp: 165, r: 110 },
+  { e: "🐻", n: "Bear",            cost: 2e6,  sp: 178, r: 125 },
+  { e: "🦏", n: "Rhino",           cost: 2e8,  sp: 190, r: 140 },
+  { e: "🦍", n: "Gorilla",         cost: 2e12, sp: 200, r: 150 },
+  { e: "🐲", n: "Guardian Dragon", cost: 1e20, sp: 212, r: 165 }
+];
+const MAX_GUARDS = 3, MAX_PADS = 10;
+const padCost = p => 300 * Math.pow(8, p - 6);
+
+const tierOf = k => Math.floor(k / 4);
+function aPrice(a) { return TIERS[tierOf(a.k)].p * KF[a.k % 4] * Math.pow(WSCALE, a.w) * MUTS[a.m].x; }
+function aInc(a) { return TIERS[tierOf(a.k)].i * KF[a.k % 4] * Math.pow(WSCALE, a.w) * MUTS[a.m].x; }
+function aName(a) { return (a.m ? MUTS[a.m].n + " " : "") + (a.w ? WORLDS[a.w].n + " " : "") + KINDS[a.k][1]; }
+function validA(a) {
+  return a && Number.isInteger(a.k) && a.k >= 0 && a.k < KINDS.length && Number.isInteger(a.w) && a.w >= 0 && a.w < WORLDS.length
+    && Number.isInteger(a.m) && a.m >= 0 && a.m < MUTS.length;
+}
+
+// ---------------- save ----------------
+const SAVE_KEY = "stealanimal-save";
+const DEF = { coins: 30, animals: [], pads: 6, guards: [], reb: 0, nid: 1, sec: "", seen: 0, lockUntil: 0, lockReady: 0, world: 0, worlds: 1, steals: 0, best: 0 };
+function randSecret() { const a = "abcdefghijkmnpqrstuvwxyz23456789"; let s = ""; for (let i = 0; i < 24; i++) s += a[Math.floor(Math.random() * a.length)]; return s; }
+function fix(o) {
+  const S = Object.assign({}, DEF, o || {});
+  S.coins = Math.min(CAP, Math.max(0, Number(S.coins) || 0));
+  S.pads = Math.max(6, Math.min(MAX_PADS, S.pads | 0));
+  S.worlds = Math.max(1, Math.min(WORLDS.length, S.worlds | 0));
+  S.world = Math.max(0, Math.min(S.worlds - 1, S.world | 0));
+  S.reb = Math.max(0, S.reb | 0);
+  S.guards = (Array.isArray(S.guards) ? S.guards : []).filter(t => Number.isInteger(t) && t >= 0 && t < GUARDS.length).slice(0, MAX_GUARDS);
+  const used = {};
+  S.animals = (Array.isArray(S.animals) ? S.animals : []).filter(a => {
+    if (!validA(a) || !Number.isInteger(a.id) || !Number.isInteger(a.p) || a.p < 0 || a.p >= S.pads || used[a.p]) return false;
+    used[a.p] = 1; return true;
+  });
+  S.nid = Math.max(S.nid | 0, 1 + S.animals.reduce((m, a) => Math.max(m, a.id), 0));
+  if (typeof S.sec !== "string" || S.sec.length < 16) S.sec = randSecret();
+  return S;
+}
+let S = (() => { try { return fix(JSON.parse(localStorage.getItem(SAVE_KEY))); } catch (e) { return fix(null); } })();
+let lastSaved = "";
+function save() { S.seen = Date.now(); try { lastSaved = JSON.stringify(S); localStorage.setItem(SAVE_KEY, lastSaved); } catch (e) {} }
+
+// ---------------- name ----------------
+const NAME_KEY = "ghgames_nick";
+const BANNED = /(fuck|shit|cunt|bitch|nigg|f4g|fag|slut|whore|dick|penis|rape)/i;
+function safeName(n) { n = String(n || "").trim().slice(0, 12); return n && !BANNED.test(n) ? n : "Player"; }
+let NAME = safeName((() => { try { return localStorage.getItem(NAME_KEY); } catch (e) { return ""; } })());
+const hasName = () => NAME && NAME !== "Player";
+
+// ---------------- multipliers ----------------
+const everyMul = () => Math.pow(2, S.worlds - 1);
+const rebMul = () => 1 + 0.5 * S.reb;
+const luck = () => 1 + 0.15 * S.reb + 0.1 * (S.worlds - 1);
+const rebCost = () => 2e5 * Math.pow(10, WSTEP * (S.worlds - 1)) * Math.pow(3, S.reb);
+function income() {
+  let t = 0; for (const a of S.animals) t += aInc(a);
+  return Math.min(CAP, t * everyMul() * rebMul());
+}
+
+// ---------------- map ----------------
+const W = 1000, H = 720, PW = 280, PH = 220;
+const PLOTS = [{ x: 30, y: 30 }, { x: 360, y: 30 }, { x: 690, y: 30 }, { x: 30, y: 470 }, { x: 360, y: 470 }, { x: 690, y: 470 }];
+const ME = 4, FRIEND = 3, NPC_PLOTS = [0, 1, 2, 5];
+const ROAD_Y = 290, ROAD_H = 140, LANES = [330, 392];
+function padPos(plot, p) {
+  const P = PLOTS[plot];
+  return { x: P.x + 40 + (p % 5) * 50, y: P.y + (p < 5 ? 82 : 156) };
+}
+function inPlot(plot, x, y, m) { m = m || 0; const P = PLOTS[plot]; return x > P.x - m && x < P.x + PW + m && y > P.y - m && y < P.y + PH + m; }
+function plotCenter(plot) { const P = PLOTS[plot]; return { x: P.x + PW / 2, y: P.y + PH / 2 + (plot < 3 ? 20 : -20) }; }
+function frontY(plot) { const P = PLOTS[plot]; return plot < 3 ? P.y + PH - 16 : P.y + 16; }
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+function moveTo(o, tx, ty, sp, dt) {
+  const dx = tx - o.x, dy = ty - o.y, d = Math.hypot(dx, dy);
+  if (d < 1) return true;
+  const s = Math.min(d, sp * dt); o.x += dx / d * s; o.y += dy / d * s; return d <= s;
+}
+
+// ---------------- state ----------------
+const player = { x: plotCenter(ME).x, y: plotCenter(ME).y, carry: null, inv: 0, tx: null, ty: null };
+const road = [];
+const fx = [];
+let bases = [], npcs = [], myGuards = [], friend = null, pending = false;
+let roadTimer = 0, t = 0, raidCool = 40;
+
+function rollKind(boost) {
+  const L = luck() * (boost || 1);
+  const ws = TIERS.map((T, i) => T.w * Math.pow(L, i));
+  let r = Math.random() * ws.reduce((a, b) => a + b, 0), tier = 0;
+  for (let i = 0; i < ws.length; i++) { r -= ws[i]; if (r <= 0) { tier = i; break; } }
+  return tier * 4 + Math.floor(Math.random() * 4);
+}
+function rollMut(boost) {
+  const b = (boost || 1) * (1 + 0.1 * S.reb);
+  for (let m = MUTS.length - 1; m > 0; m--) if (Math.random() < MUTS[m].ch * b) return m;
+  return 0;
+}
+function makeGuards(plot, tiers) {
+  return tiers.map((tier, i) => {
+    const P = PLOTS[plot], hx = P.x + 50 + i * ((PW - 100) / Math.max(1, tiers.length - 1 || 1)) + (tiers.length === 1 ? (PW - 100) / 2 : 0);
+    const hy = frontY(plot);
+    return { t: tier, x: hx, y: hy, hx, hy, ph: Math.random() * 6, stun: 0 };
+  });
+}
+const NPC_INFO = [
+  { n: "Bandit Bob", c: "#e8873a", d: 0 },
+  { n: "Sneaky Sue", c: "#b06cff", d: 1 },
+  { n: "Robber Rex", c: "#e8384f", d: 2 },
+  { n: "Thief Tilly", c: "#22a77f", d: 3 }
+];
+let npcId = 1e9;
+function npcAnimal(d) {
+  return { id: npcId++, k: rollKind(1.4 + 0.45 * d), w: S.world, m: rollMut(1 + d) };
+}
+function buildWorld() {
+  bases = [];
+  npcs = [];
+  NPC_PLOTS.forEach((plot, i) => {
+    const info = NPC_INFO[i], n = 5 + Math.floor(Math.random() * 4);
+    const animals = [];
+    for (let p = 0; p < n; p++) { const a = npcAnimal(info.d); a.p = p; animals.push(a); }
+    const gt = Math.min(GUARDS.length - 1, Math.floor(S.world / 13));
+    const tiers = info.d === 0 ? [] : info.d === 1 ? [gt] : info.d === 2 ? [gt, gt] : [Math.min(GUARDS.length - 1, gt + 1), gt];
+    bases[plot] = { kind: "npc", name: info.n, color: info.c, animals, guards: makeGuards(plot, tiers), lockUntil: 0, refill: 30 + Math.random() * 30, lockT: 40 + Math.random() * 60 };
+    const c = plotCenter(plot);
+    npcs.push({ plot, name: info.n, color: info.c, x: c.x, y: c.y, state: "home", tx: c.x, ty: c.y, wait: 0, carry: null, stun: 0, target: null });
+  });
+  bases[ME] = { kind: "me" };
+  bases[FRIEND] = friend ? friend : { kind: "empty" };
+  myGuards = makeGuards(ME, S.guards);
+  road.length = 0;
+  for (let i = 0; i < 6; i++) spawnRoad(80 + i * 160);
+}
+function spawnRoad(x) {
+  const lane = Math.random() < 0.5 ? 0 : 1;
+  const a = { k: rollKind(), w: S.world, m: rollMut(), lane, x: x != null ? x : (lane === 0 ? -30 : W + 30), y: LANES[lane], dir: lane === 0 ? 1 : -1 };
+  road.push(a);
+}
+
+// ---------------- messages ----------------
+let msgT = 0;
+function setMsg(t, cls) { const m = $("msg"); m.textContent = t; m.className = "msg" + (cls ? " " + cls : ""); msgT = 6; }
+function pop(x, y, text, c) { fx.push({ x, y, text, c: c || "#ffc93c", life: 1.4 }); }
+
+// ---------------- buying, selling, stealing ----------------
+function freePad() {
+  const used = {}; S.animals.forEach(a => used[a.p] = 1);
+  for (let p = 0; p < S.pads; p++) if (!used[p]) return p;
+  return -1;
+}
+function addMine(a) {
+  const p = freePad(); if (p < 0) return false;
+  const n = { id: S.nid++, k: a.k, w: a.w, m: a.m, p };
+  S.animals.push(n);
+  const pp = padPos(ME, p); pop(pp.x, pp.y - 20, "NEW!", "#4fcf6a");
+  save(); return true;
+}
+function buyRoad(a) {
+  const price = aPrice(a);
+  if (freePad() < 0) { setMsg("Your base is full! Sell an animal or buy more pads in the Shop.", "bad"); return; }
+  if (S.coins < price) { setMsg("You need " + fmt(price) + " coins for the " + aName(a) + ".", "bad"); return; }
+  S.coins -= price;
+  road.splice(road.indexOf(a), 1);
+  addMine(a);
+  setMsg("You bought the " + aName(a) + "! It makes " + fmt(aInc(a) * everyMul() * rebMul()) + " coins a second.", "good");
+}
+function askSell(a) {
+  const val = aPrice(a) * 0.5;
+  openBox(`<h2>${KINDS[a.k][0]} ${esc(aName(a))}</h2>
+    <p>${TIERS[tierOf(a.k)].n} · makes ${fmt(aInc(a) * everyMul() * rebMul())} a second</p>
+    <div class="row"><button class="go grey" id="xNo">Keep it</button><button class="go pink" id="xSell">Sell for ${fmt(val)}</button></div>`);
+  $("xNo").onclick = closeBox;
+  $("xSell").onclick = () => {
+    const i = S.animals.indexOf(a); if (i >= 0) { S.animals.splice(i, 1); S.coins = Math.min(CAP, S.coins + val); save(); setMsg("Sold for " + fmt(val) + " coins.", "good"); }
+    closeBox();
+  };
+}
+function caught(by) {
+  const c = player.carry;
+  if (c) { const b = bases[c.plot]; if (b && b.animals && !c.gone) b.animals.push(c.a); }
+  player.carry = null; pending = false;
+  const h = plotCenter(ME); player.x = h.x; player.y = h.y; player.tx = null; player.inv = 2.5;
+  setMsg("😵 Caught by " + by + "! The animal went back home.", "bad");
+}
+function tryPickup() {
+  if (player.carry || player.inv > 0) return;
+  for (const plot of [0, 1, 2, 3, 5]) {
+    const b = bases[plot]; if (!b || !b.animals || !inPlot(plot, player.x, player.y)) continue;
+    for (const a of b.animals) {
+      const pp = padPos(plot, a.p);
+      if (Math.hypot(pp.x - player.x, pp.y - player.y) > 26) continue;
+      if (freePad() < 0) { if (msgT < 4) setMsg("Your base is full! Make room before you steal.", "bad"); return; }
+      if (b.kind === "friend") {
+        if (!hasName()) { if (msgT < 4) setMsg("Pick a name first (tap Name at the top) so your friend knows who robbed them!", "bad"); return; }
+        if (b.coolUntil > Date.now()) { if (msgT < 4) setMsg(b.name + " was just robbed. Wait " + Math.ceil((b.coolUntil - Date.now()) / 1000) + " seconds.", "bad"); return; }
+        if (b.animals.length <= 1) { if (msgT < 4) setMsg("That's " + b.name + "'s last animal. Leave them one!", "bad"); return; }
+      }
+      b.animals.splice(b.animals.indexOf(a), 1);
+      player.carry = { a, plot };
+      setMsg("You grabbed the " + aName(a) + "! Run home!", "good");
+      return;
+    }
+  }
+}
+function deliver() {
+  const c = player.carry; if (!c || pending) return;
+  const b = bases[c.plot];
+  if (b.kind === "friend") {
+    pending = true;
+    rpc("sta_steal", { p_owner: b.name, p_thief: NAME, p_animal_id: c.a.id }).then(r => {
+      pending = false;
+      if (player.carry !== c) return;
+      if (r && r.ok) {
+        player.carry = null; addMine(c.a); S.steals++; save();
+        b.coolUntil = Date.now() + 60000;
+        setMsg("😎 You stole " + b.name + "'s " + aName(c.a) + "!", "good");
+      } else {
+        const why = { locked: b.name + " locked their base just in time!", cooldown: b.name + " was robbed less than a minute ago.", last_one: "That was their last animal.", gone: "That animal was already gone!" }[r && r.error] || "Could not steal it. Try again.";
+        player.carry = null;
+        if (r && r.error !== "gone") b.animals.push(c.a);
+        setMsg(why, "bad");
+      }
+    }).catch(() => { pending = false; if (player.carry === c) { player.carry = null; b.animals.push(c.a); } setMsg("No internet, so the steal did not work.", "bad"); });
+    return;
+  }
+  player.carry = null;
+  if (addMine(c.a)) { S.steals++; save(); setMsg("😎 You stole the " + aName(c.a) + " from " + b.name + "!", "good"); }
+}
+
+// ---------------- NPC robbers ----------------
+function updateNpcs(dt) {
+  const raiding = npcs.some(n => n.state === "raid" || n.state === "flee");
+  raidCool -= dt;
+  for (const n of npcs) {
+    const b = bases[n.plot];
+    if (n.stun > 0) { n.stun -= dt; continue; }
+    const c = player.carry;
+    // chase a player who stole from this base
+    if (n.state === "home" || n.state === "chase") {
+      if (c && c.plot === n.plot && inPlot(n.plot, player.x, player.y, 140) && player.inv <= 0) n.state = "chase";
+      else if (n.state === "chase") n.state = "home";
+    }
+    if (n.state === "chase") {
+      moveTo(n, player.x, player.y, 165, dt);
+      if (dist(n, player) < 24) { caught(n.name); n.state = "home"; }
+      continue;
+    }
+    if (n.state === "home") {
+      n.wait -= dt;
+      if (moveTo(n, n.tx, n.ty, 70, dt) && n.wait <= 0) {
+        const P = PLOTS[n.plot]; n.tx = P.x + 30 + Math.random() * (PW - 60); n.ty = P.y + 40 + Math.random() * (PH - 80); n.wait = 1 + Math.random() * 2;
+      }
+      if (!raiding && raidCool <= 0 && S.animals.length > 0 && Math.random() < dt * 0.15) {
+        const a = S.animals[Math.floor(Math.random() * S.animals.length)];
+        n.state = "raid"; n.target = a.id; raidCool = 45 + Math.random() * 45;
+        setMsg("🚨 " + n.name + " is coming to rob your base!", "bad");
+      }
+      continue;
+    }
+    if (n.state === "raid") {
+      const a = S.animals.find(x => x.id === n.target);
+      if (!a) { n.state = "back"; continue; }
+      if (S.lockUntil > Date.now() && inPlot(ME, n.x, n.y, 4)) { n.state = "back"; setMsg("🔒 Your lock stopped " + n.name + "!", "good"); continue; }
+      const pp = padPos(ME, a.p);
+      if (moveTo(n, pp.x, pp.y, 150, dt)) {
+        S.animals.splice(S.animals.indexOf(a), 1); save();
+        n.carry = a; n.state = "flee";
+        setMsg("😱 " + n.name + " grabbed your " + aName(a) + "! Touch them to get it back!", "bad");
+      }
+      continue;
+    }
+    if (n.state === "flee") {
+      const h = plotCenter(n.plot);
+      if (moveTo(n, h.x, h.y, 135, dt) || inPlot(n.plot, n.x, n.y, -20)) {
+        const a = n.carry; n.carry = null; n.state = "home";
+        const used = {}; b.animals.forEach(x => used[x.p] = 1);
+        let p = 0; while (used[p] && p < 9) p++;
+        if (!used[p]) { a.p = p; a.id = npcId++; b.animals.push(a); }
+        setMsg("😭 " + n.name + " got away with your " + aName(a) + ". Go steal it back from their base!", "bad");
+      }
+      continue;
+    }
+    if (n.state === "back") {
+      const h = plotCenter(n.plot);
+      if (moveTo(n, h.x, h.y, 140, dt)) n.state = "home";
+    }
+  }
+}
+function rescue(n, by) {
+  const a = n.carry; n.carry = null; n.state = "back"; n.stun = 2;
+  if (addMine(a)) setMsg((by ? by + " stopped " : "You stopped ") + n.name + " and got your " + aName(a) + " back!", "good");
+  else setMsg("You stopped " + n.name + ", but your base is full so the animal ran away.", "bad");
+}
+
+// ---------------- guards ----------------
+function updateGuards(list, plot, dt) {
+  for (const g of list) {
+    const G = GUARDS[g.t];
+    if (g.stun > 0) { g.stun -= dt; continue; }
+    let target = null;
+    if (plot === ME) {
+      for (const n of npcs) if ((n.state === "flee" || n.state === "raid") && inPlot(ME, n.x, n.y, 40) && Math.hypot(n.x - g.x, n.y - g.y) < G.r * 1.6) target = n;
+    } else if (player.inv <= 0) {
+      const c = player.carry;
+      const intruding = inPlot(plot, player.x, player.y) || (c && c.plot === plot && inPlot(plot, player.x, player.y, 70));
+      if (intruding && Math.hypot(player.x - g.hx, player.y - g.hy) < G.r * 1.8) target = player;
+    }
+    if (target) {
+      moveTo(g, target.x, target.y, G.sp, dt);
+      if (dist(g, target) < 24) {
+        if (target === player) caught("a " + G.n);
+        else rescue(target, "Your " + G.n);
+        g.stun = 1.5;
+      }
+    } else {
+      g.ph += dt;
+      moveTo(g, g.hx + Math.sin(g.ph) * 30, g.hy, 90, dt);
+    }
+  }
+}
+
+// ---------------- input ----------------
+const cv = $("cv"), ctx = cv.getContext("2d");
+const keys = {};
+addEventListener("keydown", e => { if ($("overlay").hidden) { keys[e.key.toLowerCase()] = 1; if (e.key.startsWith("Arrow")) e.preventDefault(); } });
+addEventListener("keyup", e => { keys[e.key.toLowerCase()] = 0; });
+let holding = false;
+function toWorld(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; }
+cv.addEventListener("pointerdown", e => {
+  e.preventDefault();
+  const p = toWorld(e);
+  for (const a of road) if (Math.hypot(a.x - p.x, a.y - p.y) < 30) { buyRoad(a); return; }
+  for (const a of S.animals) { const pp = padPos(ME, a.p); if (Math.hypot(pp.x - p.x, pp.y - p.y) < 24) { askSell(a); return; } }
+  if (!friend && inPlot(FRIEND, p.x, p.y)) { openFriends(); return; }
+  holding = true; player.tx = p.x; player.ty = p.y;
+  try { cv.setPointerCapture(e.pointerId); } catch (x) {}
+});
+cv.addEventListener("pointermove", e => { if (holding) { const p = toWorld(e); player.tx = p.x; player.ty = p.y; } });
+addEventListener("pointerup", () => { holding = false; });
+addEventListener("pointercancel", () => { holding = false; });
+
+// ---------------- update ----------------
+function updatePlayer(dt) {
+  const sp = player.carry ? 190 : 270;
+  let kx = (keys["arrowright"] || keys["d"] ? 1 : 0) - (keys["arrowleft"] || keys["a"] ? 1 : 0);
+  let ky = (keys["arrowdown"] || keys["s"] ? 1 : 0) - (keys["arrowup"] || keys["w"] ? 1 : 0);
+  if (kx || ky) { const d = Math.hypot(kx, ky); player.x += kx / d * sp * dt; player.y += ky / d * sp * dt; player.tx = null; }
+  else if (player.tx != null) { if (moveTo(player, player.tx, player.ty, sp, dt) && !holding) player.tx = null; }
+  player.x = Math.max(12, Math.min(W - 12, player.x)); player.y = Math.max(12, Math.min(H - 12, player.y));
+  if (player.inv > 0) player.inv -= dt;
+  // locked bases push you out
+  for (const plot of [0, 1, 2, 3, 5]) {
+    const b = bases[plot];
+    if (!b || !(b.lockUntil > Date.now()) || !inPlot(plot, player.x, player.y)) continue;
+    const P = PLOTS[plot];
+    const opts = [[player.x - P.x, P.x - 2, null], [P.x + PW - player.x, P.x + PW + 2, null], [player.y - P.y, null, P.y - 2], [P.y + PH - player.y, null, P.y + PH + 2]];
+    opts.sort((a, b) => a[0] - b[0]);
+    if (opts[0][1] != null) player.x = opts[0][1]; else player.y = opts[0][2];
+    player.tx = null;
+    if (msgT < 4) setMsg("🔒 " + b.name + "'s base is locked. Come back soon!", "bad");
+  }
+  tryPickup();
+  if (player.carry && inPlot(ME, player.x, player.y)) deliver();
+  // tag robbers
+  for (const n of npcs) if (n.carry && dist(n, player) < 26) rescue(n, null);
+}
+let incT = 0, pubT = 3, lbT = 0, lbSent = 0, hudT = 0;
+function update(dt) {
+  t += dt;
+  const inc = income();
+  S.coins = Math.min(CAP, S.coins + inc * dt);
+  if (inc > S.best) S.best = inc;
+  incT += dt;
+  if (incT > 2 && inc > 0) { incT = 0; const c = plotCenter(ME); pop(c.x, PLOTS[ME].y + 30, "+" + fmt(inc * 2), "#ffe066"); }
+  roadTimer -= dt;
+  if (roadTimer <= 0) { roadTimer = 1.5 + Math.random() * 0.8; spawnRoad(); }
+  for (let i = road.length - 1; i >= 0; i--) {
+    const a = road[i]; a.x += a.dir * 55 * dt;
+    if (a.x < -50 || a.x > W + 50) road.splice(i, 1);
+  }
+  for (const plot of NPC_PLOTS) {
+    const b = bases[plot];
+    b.refill -= dt;
+    if (b.refill <= 0) {
+      b.refill = 35 + Math.random() * 25;
+      if (b.animals.length < 8) { const used = {}; b.animals.forEach(x => used[x.p] = 1); let p = 0; while (used[p]) p++; const a = npcAnimal(NPC_INFO[NPC_PLOTS.indexOf(plot)].d); a.p = p; b.animals.push(a); }
+    }
+    b.lockT -= dt;
+    if (b.lockT <= 0) { b.lockT = 50 + Math.random() * 70; if (!(player.carry && player.carry.plot === plot) && !inPlot(plot, player.x, player.y)) b.lockUntil = Date.now() + 20000; }
+    updateGuards(b.guards, plot, dt);
+  }
+  if (friend) updateGuards(friend.guards, FRIEND, dt);
+  updateGuards(myGuards, ME, dt);
+  updateNpcs(dt);
+  updatePlayer(dt);
+  for (let i = fx.length - 1; i >= 0; i--) { fx[i].life -= dt; fx[i].y -= 30 * dt; if (fx[i].life <= 0) fx.splice(i, 1); }
+  if (msgT > 0) msgT -= dt;
+  pubT -= dt; if (pubT <= 0) { pubT = 20; publish(); }
+  lbT -= dt;
+  if (lbT <= 0) { lbT = 10; if (window.Leaderboard && hasName() && inc >= 10 && inc > lbSent * 1.5) { lbSent = inc; Leaderboard.submit(inc); } }
+  hudT -= dt; if (hudT <= 0) { hudT = 0.25; renderHUD(); }
+}
+
+// ---------------- drawing ----------------
+function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function ring(x, y, a, r) {
+  const m = MUTS[a.m];
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 7);
+  ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.fill();
+  ctx.lineWidth = 4;
+  if (m.c === "rainbow") ctx.strokeStyle = `hsl(${(t * 200) % 360},90%,60%)`;
+  else ctx.strokeStyle = m.c || TIERS[tierOf(a.k)].c;
+  ctx.stroke();
+  if (a.m) { ctx.beginPath(); ctx.arc(x, y, r + 5, 0, 7); ctx.lineWidth = 2; ctx.strokeStyle = TIERS[tierOf(a.k)].c; ctx.stroke(); }
+}
+function emoji(e, x, y, s) { ctx.font = s + "px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(e, x, y + 1); }
+function label(txt, x, y, size, col) {
+  ctx.font = "900 " + size + "px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.lineWidth = 4; ctx.strokeStyle = "rgba(0,0,0,.65)"; ctx.strokeText(txt, x, y); ctx.fillStyle = col || "#fff"; ctx.fillText(txt, x, y);
+}
+function drawAnimal(a, x, y, extra) {
+  ring(x, y, a, 20);
+  emoji(KINDS[a.k][0], x, y, 26);
+  if (a.m === 2 || a.m === 3) { ctx.globalAlpha = .25 + .15 * Math.sin(t * 4); ctx.fillStyle = MUTS[a.m].c; ctx.beginPath(); ctx.arc(x, y, 20, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+  if (extra) label(extra, x, y + 30, 11, "#ffe066");
+}
+function drawPlot(plot) {
+  const P = PLOTS[plot], b = bases[plot], wd = WORLDS[S.world];
+  const mine = plot === ME;
+  ctx.fillStyle = mine ? "rgba(255,201,60,.16)" : "rgba(0,0,0,.14)";
+  rr(P.x, P.y, PW, PH, 18); ctx.fill();
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = mine ? "#ffc93c" : b && b.color ? b.color : b && b.kind === "friend" ? "#4aa8ff" : "rgba(255,255,255,.3)";
+  ctx.setLineDash(b && b.kind === "empty" ? [10, 8] : []); ctx.stroke(); ctx.setLineDash([]);
+  const title = mine ? "⭐ " + (hasName() ? NAME : "Your") + " base" : b.kind === "empty" ? "👀 Tap to visit a friend" : (b.kind === "friend" ? "👀 " : "") + b.name;
+  label(title, P.x + PW / 2, P.y + 24, 17, mine ? "#ffe066" : "#fff");
+  if (b.kind === "empty") { emoji("🏠", P.x + PW / 2, P.y + 120, 54); return; }
+  const pads = mine ? S.pads : 10;
+  for (let p = 0; p < pads; p++) {
+    const pp = padPos(plot, p);
+    ctx.fillStyle = "rgba(255,255,255,.18)"; ctx.beginPath(); ctx.arc(pp.x, pp.y, 21, 0, 7); ctx.fill();
+  }
+  const list = mine ? S.animals : b.animals;
+  for (const a of list) { const pp = padPos(plot, a.p); drawAnimal(a, pp.x, pp.y, mine ? "+" + fmt(aInc(a) * everyMul() * rebMul()) : fmt(aPrice(a))); }
+  const lockU = mine ? S.lockUntil : b.lockUntil;
+  if (lockU > Date.now()) {
+    ctx.fillStyle = `rgba(123,79,214,${.28 + .08 * Math.sin(t * 5)})`; rr(P.x, P.y, PW, PH, 18); ctx.fill();
+    ctx.strokeStyle = "#c9a8ff"; ctx.lineWidth = 3; rr(P.x + 4, P.y + 4, PW - 8, PH - 8, 15); ctx.stroke();
+    label("🔒 " + Math.ceil((lockU - Date.now()) / 1000), P.x + PW - 34, P.y + 24, 16, "#e6d8ff");
+  }
+}
+function drawPerson(x, y, col, name, inv) {
+  ctx.globalAlpha = inv > 0 && Math.floor(t * 10) % 2 ? .4 : 1;
+  ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(x, y + 14, 14, 5, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 15, 0, 7); ctx.fill();
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.stroke();
+  ctx.fillStyle = "#1b1b2b"; ctx.beginPath(); ctx.arc(x - 5, y - 3, 2.5, 0, 7); ctx.arc(x + 5, y - 3, 2.5, 0, 7); ctx.fill();
+  ctx.globalAlpha = 1;
+  label(name, x, y - 26, 12);
+}
+function draw() {
+  const wd = WORLDS[S.world];
+  ctx.fillStyle = wd.g; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = wd.g2; for (let x = 0; x < W; x += 100) ctx.fillRect(x, 0, 50, H);
+  const GT = GALAXIES[wd.gal];
+  if (GT.tint) { ctx.fillStyle = GT.tint; ctx.fillRect(0, 0, W, H); ctx.fillStyle = "rgba(255,255,255,.7)"; for (let i = 0; i < 40; i++) { const sx = (i * 263) % W, sy = (i * 157) % H; ctx.fillRect(sx, sy, 2 + (i % 3), 2 + (i % 3)); } }
+  // road
+  ctx.fillStyle = wd.r; ctx.fillRect(0, ROAD_Y, W, ROAD_H);
+  ctx.fillStyle = "rgba(0,0,0,.18)"; ctx.fillRect(0, ROAD_Y, W, 6); ctx.fillRect(0, ROAD_Y + ROAD_H - 6, W, 6);
+  ctx.fillStyle = "rgba(255,255,255,.45)";
+  for (let x = -60 + (t * 55) % 60; x < W; x += 60) ctx.fillRect(x, LANES[0] + 30, 30, 4);
+  label(GT.e + " " + GT.n + " · " + wd.e + " " + wd.n + " World (" + (S.world % PER_GALAXY + 1) + "/" + PER_GALAXY + ")", W / 2, ROAD_Y + 18, 14, "#fff");
+  for (const plot of [0, 1, 2, 3, 4, 5]) drawPlot(plot);
+  for (const a of road) drawAnimal(a, a.x, a.y, "💰" + fmt(aPrice(a)));
+  const allGuards = [].concat(...NPC_PLOTS.map(p => bases[p].guards), myGuards, friend ? friend.guards : []);
+  for (const g of allGuards) { ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.beginPath(); ctx.arc(g.x, g.y, 17, 0, 7); ctx.fill(); emoji(GUARDS[g.t].e, g.x, g.y, 28); }
+  for (const n of npcs) {
+    drawPerson(n.x, n.y, n.color, n.name, n.stun > 0 ? 1 : 0);
+    if (n.carry) emoji(KINDS[n.carry.k][0], n.x, n.y - 44, 24);
+    if (n.state === "chase") label("!", n.x + 16, n.y - 16, 18, "#ff5d5d");
+  }
+  drawPerson(player.x, player.y, "#ffc93c", hasName() ? NAME : "You", player.inv);
+  if (player.carry) { drawAnimal(player.carry.a, player.x, player.y - 48); }
+  for (const f of fx) { ctx.globalAlpha = Math.min(1, f.life); label(f.text, f.x, f.y, 16, f.c); ctx.globalAlpha = 1; }
+}
+
+// ---------------- HUD ----------------
+function renderHUD() {
+  $("hCoins").textContent = fmt(S.coins);
+  $("hInc").textContent = fmt(income());
+  $("hMul").textContent = "×" + fmt(everyMul() * rebMul());
+  $("hWorld").textContent = WORLDS[S.world].e + " " + WORLDS[S.world].n + " (" + (S.world + 1) + "/" + WORLDS.length + ")";
+  $("hNameV").textContent = NAME;
+  const now = Date.now();
+  $("bLockS").textContent = S.lockUntil > now ? "Locked " + Math.ceil((S.lockUntil - now) / 1000) + "s" : S.lockReady > now ? "Ready in " + Math.ceil((S.lockReady - now) / 1000) + "s" : "60 seconds";
+  $("bLock").disabled = S.lockReady > now;
+  $("bRebS").textContent = "Needs " + fmt(rebCost());
+  $("bWorldS").textContent = S.worlds < WORLDS.length ? "Next: " + fmt(worldCost(S.worlds)) : "All worlds owned!";
+}
+
+// ---------------- overlay ----------------
+function openBox(html) { $("box").innerHTML = html; $("overlay").hidden = false; }
+function closeBox() { $("overlay").hidden = true; }
+$("overlay").addEventListener("pointerdown", e => { if (e.target.id === "overlay") closeBox(); });
+
+$("bLock").onclick = () => {
+  const now = Date.now(); if (S.lockReady > now) return;
+  S.lockUntil = now + 60000; S.lockReady = S.lockUntil + 30000; save(); pubT = 0;
+  setMsg("🔒 Your base is locked for 60 seconds. Nobody can get in!", "good");
+};
+
+function openShop() {
+  const pc = padCost(S.pads);
+  let h = `<h2>🛒 Shop</h2><p>You have <b>${fmt(S.coins)}</b> coins.</p><div class="list">`;
+  h += `<div class="item"><div class="e">🟫</div><div class="t"><b>More pads (${S.pads}/${MAX_PADS})</b><small>Room for one more animal</small></div>`
+    + (S.pads < MAX_PADS ? `<button class="go" data-pad="1" ${S.coins < pc ? "disabled" : ""}>${fmt(pc)}</button>` : `<button class="go grey" disabled>Max</button>`) + `</div>`;
+  h += `</div><p>Guard animals chase robbers out of your base. You can have ${MAX_GUARDS}. Buying a 4th swaps out your weakest.</p>`;
+  h += `<p>Your guards: ${S.guards.length ? S.guards.map(g => GUARDS[g].e).join(" ") : "none yet"}</p><div class="list">`;
+  GUARDS.forEach((G, i) => {
+    h += `<div class="item"><div class="e">${G.e}</div><div class="t"><b>${G.n}</b><small>Speed ${G.sp} · sees ${G.r}</small></div><button class="go" data-g="${i}" ${S.coins < G.cost ? "disabled" : ""}>${fmt(G.cost)}</button></div>`;
+  });
+  h += `</div><div class="row"><button class="go grey" id="xClose">Close</button></div>`;
+  openBox(h);
+  $("xClose").onclick = closeBox;
+  const pb = $("box").querySelector("[data-pad]");
+  if (pb) pb.onclick = () => { if (S.coins >= pc && S.pads < MAX_PADS) { S.coins -= pc; S.pads++; save(); setMsg("New pad built!", "good"); openShop(); } };
+  $("box").querySelectorAll("[data-g]").forEach(b => b.onclick = () => {
+    const i = +b.dataset.g, G = GUARDS[i];
+    if (S.coins < G.cost) return;
+    if (S.guards.length >= MAX_GUARDS) {
+      const low = Math.min(...S.guards);
+      if (low >= i) { setMsg("Your guards are already at least as good as a " + G.n + ".", "bad"); return; }
+      S.guards.splice(S.guards.indexOf(low), 1);
+    }
+    S.coins -= G.cost; S.guards.push(i); S.guards.sort((a, b) => b - a);
+    myGuards = makeGuards(ME, S.guards); save(); pubT = 0;
+    setMsg(G.e + " Your new " + G.n + " is guarding your base!", "good"); openShop();
+  });
+}
+$("bShop").onclick = openShop;
+
+let galTab = -1;
+function openWorlds(tab) {
+  if (tab == null) tab = galTab >= 0 ? galTab : Math.floor(S.world / PER_GALAXY);
+  galTab = tab;
+  let h = `<h2>🌍 Worlds</h2><p>3 galaxies with 25 worlds each. Every world has better animals (×${fmt(WSCALE)}) and every world you own doubles everything (Everything ×2 that stacks). You have <b>${fmt(S.coins)}</b> coins.</p>`;
+  h += `<div class="row" style="justify-content:flex-start;margin-bottom:10px">` + GALAXIES.map((G, gi) => {
+    const open = gi * PER_GALAXY < S.worlds + 1;
+    return `<button class="go ${gi === tab ? "" : "grey"}" data-tab="${gi}">${open ? G.e : "🔒"} ${G.n}</button>`;
+  }).join("") + `</div><div class="list">`;
+  for (let i = tab * PER_GALAXY; i < (tab + 1) * PER_GALAXY; i++) {
+    const w = WORLDS[i];
+    let btn;
+    if (i < S.worlds) btn = i === S.world ? `<button class="go grey" disabled>You're here</button>` : `<button class="go" data-go="${i}">Go</button>`;
+    else if (i === S.worlds) btn = `<button class="go pink" data-buy="${i}" ${S.coins < worldCost(i) ? "disabled" : ""}>${fmt(worldCost(i))}</button>`;
+    else btn = `<button class="go grey" disabled>🔒 ${fmt(worldCost(i))}</button>`;
+    h += `<div class="item ${i === S.world ? "here" : ""}"><div class="e">${w.e}</div><div class="t"><b>${i % PER_GALAXY + 1}. ${esc(w.n)}</b><small>Everything ×${fmt(Math.pow(2, i + 1 - 1))} · animals ×${fmt(Math.pow(WSCALE, i))}</small></div>${btn}</div>`;
+  }
+  h += `</div><div class="row"><button class="go grey" id="xClose">Close</button></div>`;
+  openBox(h);
+  $("xClose").onclick = closeBox;
+  $("box").querySelectorAll("[data-tab]").forEach(b => b.onclick = () => openWorlds(+b.dataset.tab));
+  $("box").querySelectorAll("[data-go]").forEach(b => b.onclick = () => { travel(+b.dataset.go); closeBox(); });
+  $("box").querySelectorAll("[data-buy]").forEach(b => b.onclick = () => {
+    const i = +b.dataset.buy, c = worldCost(i);
+    if (S.coins < c || i !== S.worlds) return;
+    S.coins -= c; S.worlds++; save();
+    travel(i); closeBox();
+    const newGal = i % PER_GALAXY === 0;
+    setMsg((newGal ? GALAXIES[WORLDS[i].gal].e + " NEW GALAXY! " : WORLDS[i].e + " ") + "Welcome to " + WORLDS[i].n + " World! Everything is now ×" + fmt(everyMul()) + ".", "good");
+  });
+}
+function travel(i) {
+  if (player.carry) { caught("the world portal"); }
+  S.world = i; save(); buildWorld();
+  const h = plotCenter(ME); player.x = h.x; player.y = h.y; player.tx = null;
+  setMsg(WORLDS[i].e + " You travelled to " + WORLDS[i].n + " World.", "good");
+}
+$("bWorld").onclick = () => openWorlds();
+
+$("bReb").onclick = () => {
+  const c = rebCost();
+  openBox(`<h2>♻️ Rebirth</h2>
+    <p>Rebirth resets your coins, animals and pads. You keep your worlds and guards.</p>
+    <p>You get <b>+50% money forever</b> (now ×${rebMul()}, after ×${rebMul() + 0.5}), better luck on the road, and one extra starting pad.</p>
+    <p>Costs <b>${fmt(c)}</b> coins. You have ${fmt(S.coins)}.</p>
+    <div class="row"><button class="go grey" id="xNo">Not yet</button><button class="go pink" id="xYes" ${S.coins < c ? "disabled" : ""}>Rebirth!</button></div>`);
+  $("xNo").onclick = closeBox;
+  $("xYes").onclick = () => {
+    if (S.coins < rebCost()) return;
+    if (player.carry) caught("the rebirth");
+    S.reb++; S.coins = 30; S.animals = []; S.pads = Math.min(MAX_PADS, 6 + S.reb); lbSent = 0; save();
+    closeBox(); setMsg("♻️ Rebirth " + S.reb + "! Money is now ×" + rebMul() + " forever.", "good");
+  };
+};
+
+// ---------------- name ----------------
+function openName(after) {
+  openBox(`<h2>Your name</h2><p>Friends type this name to visit your base. No real names, keep it friendly.</p>
+    <div class="row"><input id="xName" maxlength="12" placeholder="nickname"><button class="go" id="xOk">Save</button></div>`);
+  const inp = $("xName"); inp.value = hasName() ? NAME : ""; inp.focus();
+  const ok = () => {
+    const v = inp.value.trim().slice(0, 12);
+    if (!v || v.toLowerCase() === "player") return;
+    if (BANNED.test(v)) { alert("Please pick a friendlier name 🙂"); return; }
+    NAME = v; try { localStorage.setItem(NAME_KEY, NAME); } catch (e) {}
+    closeBox(); renderHUD(); pubT = 0; if (after) after();
+  };
+  $("xOk").onclick = ok;
+  inp.addEventListener("keydown", e => { e.stopPropagation(); if (e.key === "Enter") ok(); });
+}
+$("hName").onclick = () => openName();
+
+// ---------------- online: friends' bases ----------------
+const SB_URL = "https://bpqaeqswtgtbqrczjcrx.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwcWFlcXN3dGd0YnFyY3pqY3J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzUzOTIsImV4cCI6MjA5NjkxMTM5Mn0.hsEZJ_C4NvySPMb59G9EPPfdJRSNBODbnuo9ij_zxrI";
+function rpc(fn, args) {
+  return fetch(SB_URL + "/rest/v1/rpc/" + fn, { method: "POST",
+    headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY, "Content-Type": "application/json" }, body: JSON.stringify(args) })
+    .then(r => { if (!r.ok) throw new Error("server " + r.status); return r.text().then(t => t ? JSON.parse(t) : null); });
+}
+let nameTaken = false;
+function publish() {
+  if (!hasName() || !navigator.onLine) return;
+  const guardsCode = S.guards.reduce((c, g) => c * 10 + (g + 1), 0);
+  const lockSecs = Math.max(0, Math.ceil((S.lockUntil - Date.now()) / 1000));
+  rpc("sta_publish", {
+    p_name: NAME, p_secret: S.sec, p_animals: S.animals.map(a => ({ id: a.id, k: a.k, w: a.w, m: a.m })),
+    p_guards: guardsCode, p_worth: Math.min(9e18, Math.floor(income())), p_lock_secs: lockSecs
+  }).then(r => {
+    if (!r) return;
+    if (r.error === "name_taken") { if (!nameTaken) setMsg("Someone else already has a base called " + NAME + ". Pick another name so friends can visit you.", "bad"); nameTaken = true; return; }
+    nameTaken = false;
+    (r.thefts || []).forEach(th => {
+      const id = th.animal && th.animal.id;
+      const i = S.animals.findIndex(a => a.id === id);
+      if (i >= 0) {
+        const a = S.animals[i]; S.animals.splice(i, 1);
+        setMsg("😱 " + safeName(th.thief) + " stole your " + aName(a) + " while you were away! Visit their base and steal it back!", "bad");
+      }
+    });
+    if ((r.thefts || []).length) save();
+  }).catch(() => {});
+}
+function decodeGuards(code) {
+  const out = []; code = Math.max(0, code | 0);
+  while (code > 0 && out.length < MAX_GUARDS) { const d = code % 10 - 1; if (d >= 0 && d < GUARDS.length) out.unshift(d); code = Math.floor(code / 10); }
+  return out;
+}
+function loadFriend(name) {
+  return rpc("sta_get", { p_name: name }).then(r => {
+    if (!r) { setMsg("No base called " + name + " yet. Check the spelling!", "bad"); return false; }
+    const animals = (r.animals || []).filter(validA).slice(0, 10).map((a, i) => ({ id: a.id, k: a.k, w: a.w, m: a.m, p: i }));
+    const carried = player.carry && player.carry.plot === FRIEND ? player.carry.a.id : null;
+    const same = friend && friend.name.toLowerCase() === String(r.name).toLowerCase();
+    friend = {
+      kind: "friend", name: safeName(r.name), animals: animals.filter(a => a.id !== carried),
+      guards: same ? friend.guards : makeGuards(FRIEND, decodeGuards(r.guards)),
+      lockUntil: Date.now() + (r.lock_secs || 0) * 1000, coolUntil: Date.now() + (r.cool_secs || 0) * 1000
+    };
+    bases[FRIEND] = friend;
+    return true;
+  });
+}
+setInterval(() => { if (friend && navigator.onLine && !pending) loadFriend(friend.name).catch(() => {}); }, 15000);
+function openFriends() {
+  if (!hasName()) { openName(openFriends); return; }
+  openBox(`<h2>👀 Visit a friend</h2><p>Type your friend's name, or pick a base below. Their base appears in the bottom-left corner.</p>
+    <div class="row" style="margin-bottom:12px"><input id="xF" maxlength="12" placeholder="friend's name"><button class="go" id="xGo">Visit</button></div>
+    <div class="list" id="xList"><p>Loading bases…</p></div>
+    <div class="row">${friend ? '<button class="go pink" id="xLeave">Leave ' + esc(friend.name) + "'s base</button>" : ""}<button class="go grey" id="xClose">Close</button></div>`);
+  $("xClose").onclick = closeBox;
+  if ($("xLeave")) $("xLeave").onclick = () => { if (player.carry && player.carry.plot === FRIEND) caught("leaving"); friend = null; bases[FRIEND] = { kind: "empty" }; closeBox(); };
+  const go = n => {
+    n = String(n || "").trim(); if (!n) return;
+    if (n.toLowerCase() === NAME.toLowerCase()) { setMsg("That's you! Pick a friend.", "bad"); return; }
+    if (player.carry && player.carry.plot === FRIEND) caught("switching bases");
+    loadFriend(n).then(ok => { if (ok) { closeBox(); setMsg("👀 You found " + friend.name + "'s base (bottom left). Go steal something!", "good"); } }).catch(() => setMsg("No internet right now.", "bad"));
+  };
+  $("xGo").onclick = () => go($("xF").value);
+  $("xF").addEventListener("keydown", e => { e.stopPropagation(); if (e.key === "Enter") go($("xF").value); });
+  rpc("sta_list", { p_exclude: NAME }).then(rows => {
+    const L = $("xList"); if (!L) return;
+    if (!rows || !rows.length) { L.innerHTML = "<p>No other bases yet. Tell a friend to play!</p>"; return; }
+    L.innerHTML = "";
+    rows.forEach(r => {
+      const d = document.createElement("div"); d.className = "item";
+      d.innerHTML = `<div class="e">${r.locked ? "🔒" : "🏠"}</div><div class="t"><b></b><small>${r.animals} animals · ${fmt(r.worth)}/s</small></div><button class="go">Visit</button>`;
+      d.querySelector("b").textContent = safeName(r.name);
+      d.querySelector("button").onclick = () => go(r.name);
+      L.appendChild(d);
+    });
+  }).catch(() => { const L = $("xList"); if (L) L.innerHTML = "<p>Could not load bases. Are you online?</p>"; });
+}
+$("bFriend").onclick = openFriends;
+
+// ---------------- start ----------------
+(function offline() {
+  if (S.seen) {
+    const secs = Math.min(7200, Math.max(0, (Date.now() - S.seen) / 1000));
+    const got = Math.min(CAP, income() * secs * 0.5);
+    if (got >= 1 && secs > 30) { S.coins = Math.min(CAP, S.coins + got); setMsg("💤 Your animals made " + fmt(got) + " coins while you were away!", "good"); }
+  }
+})();
+buildWorld();
+save();
+renderHUD();
+setInterval(save, 5000);
+addEventListener("pagehide", save);
+addEventListener("visibilitychange", () => { if (document.hidden) save(); });
+// the account system may bring a save down from another device
+setInterval(() => {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw && raw !== lastSaved) { S = fix(JSON.parse(raw)); lastSaved = raw; player.carry = null; buildWorld(); }
+    const n = safeName(localStorage.getItem(NAME_KEY)); if (n !== "Player" && n !== NAME) NAME = n;
+  } catch (e) {}
+}, 3000);
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (!document.hidden) { update(dt); draw(); }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+if (window.Leaderboard) Leaderboard.mount({ el: "lb", game: "steal-an-animal", dir: "desc", unit: "/s", title: "Steal an Animal — money per second" });
+</script>
+</body>
+</html>

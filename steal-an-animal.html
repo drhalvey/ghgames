@@ -145,7 +145,7 @@ function fmt(n) {
   if (d.lt(1000)) return Math.floor(d.toNumber()).toString();
   let e = Math.floor(d.exponent / 3);
   let v = d.mantissa * Math.pow(10, d.exponent - e * 3);
-  if (v >= 999.995) { v /= 1000; e++; }
+  if (v >= 1000) { v /= 1000; e++; }
   const s = v >= 100 ? Math.floor(v) : v >= 10 ? Math.floor(v * 10) / 10 : Math.floor(v * 100) / 100;
   return s + illion(e - 1);
 }
@@ -833,9 +833,20 @@ function openWorlds(tab) {
     else btn = `<button class="go grey" disabled>🔒 ${fmt(worldCost(i))}</button>`;
     h += `<div class="item ${i === S.world ? "here" : ""}"><div class="e">${w.e}</div><div class="t"><b>${i % PER_GALAXY + 1}. ${esc(w.n)}</b><small>Everything ×${fmt(D(2).pow(i))} · animals ×${fmt(WSCALE.pow(i))}${i ? " · price ×" + fmt(worldJump(i)) : ""}</small></div>${btn}</div>`;
   }
-  h += `</div><div class="row"><button class="go grey" id="xClose">Close</button></div>`;
+  const canBuy = S.worlds < WORLDS.length && S.coins.gte(worldCost(S.worlds));
+  h += `</div><div class="row"><button class="go grey" id="xClose">Close</button>`
+    + (S.worlds < WORLDS.length ? `<button class="go pink" id="xMaxW" ${canBuy ? "" : "disabled"}>⏫ Buy max worlds</button>` : "") + `</div>`;
   openBox(h);
   $("xClose").onclick = closeBox;
+  // Buy max worlds: keeps buying the next world until you run out of coins or own them all, then takes you to the newest one
+  if ($("xMaxW")) $("xMaxW").onclick = () => {
+    const start = S.worlds;
+    while (S.worlds < WORLDS.length && S.coins.gte(worldCost(S.worlds))) { S.coins = S.coins.sub(worldCost(S.worlds)); S.worlds++; }
+    if (S.worlds === start) return;
+    save(); travel(S.worlds - 1); closeBox();
+    const w = WORLDS[S.world];
+    setMsg("⏫ Bought " + (S.worlds - start) + " world" + (S.worlds - start > 1 ? "s" : "") + "! Welcome to " + w.e + " " + w.n + " World (" + S.worlds + "/" + WORLDS.length + "). Everything is now ×" + fmt(everyMul()) + ".", "good");
+  };
   $("box").querySelectorAll("[data-tab]").forEach(b => b.onclick = () => openWorlds(+b.dataset.tab));
   $("box").querySelectorAll("[data-go]").forEach(b => b.onclick = () => { travel(+b.dataset.go); closeBox(); });
   $("box").querySelectorAll("[data-buy]").forEach(b => b.onclick = () => {

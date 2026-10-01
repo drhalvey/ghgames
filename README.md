@@ -24,6 +24,7 @@ ghgames/
   drop-goal-hero.html  proper rugby kicking: 3D-jointed players, phase play into a drop goal with the defence rushing, touchline conversions off a tee with power/accuracy meters; 2003 World Cup final scenario, Conversion mode and Career, upgrades, 6 stadiums
   runway-stars.html  dress-up fashion show: outfits to a theme, everyone rates each other out of 5 stars, best rating wins, wins buy better clothes (online via Supabase Realtime, computer models fill spots)
   plains-of-abraham.html  Quebec 1759: hold the British line, lie down under sniper fire, hold fire until 40 yards, give the perfect volley, reload drill, advance and charge; upgrades, stars, leaderboard
+  save-your-rabbit.html  intro where a rich guy steals your rabbit, then a 25-stage jump obby: wins from each stage buy jump multis, walls need more jump each stage, stage 25 gets your rabbit back
   CNAME           contains "ghgames.au" — tells GitHub Pages the domain
   README.md       this file
 ```

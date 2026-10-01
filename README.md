@@ -19,6 +19,7 @@ ghgames/
   bro-got-slammed.html  Pedigreers vs Bro Got Slammed: 4-minute team fights, wins buy damage upgrades (online via Supabase Realtime)
   size-simulator.html  eat-and-grow PvP: upgrades, rebirths, worlds bought with coins, pets, daily rewards, shared 10-minute events (online via Supabase Realtime)
   steal-an-animal.html  buy animals off the road, steal from computer bases and friends' bases (online via Supabase sta_* functions), guards, lock, 8 galaxies of 25 worlds, rebirths
+  rugby-kicker.html  aim then power bar: kick a rugby ball as high as you can for Wins, goals pay double, upgrades, 11 stadiums up to the Galaxy Arena
   CNAME           contains "ghgames.au" — tells GitHub Pages the domain
   README.md       this file
 ```

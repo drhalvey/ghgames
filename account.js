@@ -28,6 +28,7 @@
     "bro-got-slammed": { title: "Bro Got Slammed", keys: ["brogotslammed-save"] },
     "size-simulator": { title: "Size Simulator", keys: ["sizesim-save"] },
     "steal-an-animal": { title: "Steal an Animal", keys: ["stealanimal-save"] },
+    "rugby-kicker": { title: "Rugby Kicker", keys: ["rugbykicker-save"] },
     "log-clicker":  { title: "Log Clicker",   keys: ["logclicker_save"] },
     "sprig-rescue": { title: "Sprig Rescue",  keys: ["sprig_save"] },
     "click-frenzy": { title: "Click Frenzy",  keys: ["frenzy_best"], merge: "max" },

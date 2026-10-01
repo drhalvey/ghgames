@@ -885,7 +885,10 @@ function renderEggs() {
   const w = S.world, egg = EGGS[w];
   let h = `<button class="buy" id="eggBtn" type="button" ${S.coins < egg.cost || S.pets.length >= MAX_PETS ? "disabled" : ""}>🥚 ${WORLDS[w].n} egg · 🪙 ${fmt(egg.cost)}</button>`;
   if (S.freeEggs > 0) h += `<button class="buy go" id="freeEggBtn" type="button" ${S.pets.length >= MAX_PETS ? "disabled" : ""}>🎁 Free egg (${S.freeEggs})</button>`;
-  h += `<button class="small alt" id="bestBtn" type="button">Equip best</button><span class="hint">Pets ${S.pets.length}/${MAX_PETS} · Pet multi x${fmt(petMult())}</span>`;
+  const spare = S.pets.length - S.eq.length;
+  h += `<button class="small alt" id="bestBtn" type="button">Equip best</button>`;
+  h += `<button class="small alt" id="delAllBtn" type="button" ${spare > 0 ? "" : "disabled"}>🗑️ Delete unequipped (${spare})</button>`;
+  h += `<span class="hint">Pets ${S.pets.length}/${MAX_PETS} · Pet multi x${fmt(petMult())}</span>`;
   setHTML("eggRow", h);
 }
 function renderPets() {
@@ -922,6 +925,22 @@ $("eggRow").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   if (b.id === "eggBtn") hatch(false);
   else if (b.id === "freeEggBtn") hatch(true);
+  else if (b.id === "delAllBtn") {
+    const spare = S.pets.filter(p => !S.eq.includes(p.id));
+    if (!spare.length) return;
+    $("box").innerHTML = `<h3>Delete ${spare.length} pet${spare.length > 1 ? "s" : ""}?</h3>
+      <p class="hint">This deletes every pet that is not equipped. Your ${S.eq.length} equipped pet${S.eq.length === 1 ? "" : "s"} stay. You can't undo this.</p>
+      <div style="font-size:26px;line-height:1.3">${spare.slice(0, 40).map(p => PETS[p.k].e).join(" ")}${spare.length > 40 ? " …" : ""}</div>
+      <div class="row"><button class="small" id="delYes" type="button">Yes, delete them</button><button class="small alt" id="delNo" type="button">Cancel</button></div>`;
+    $("overlay").hidden = false;
+    $("delNo").onclick = closeBox;
+    $("delYes").onclick = () => {
+      const n = spare.length;
+      S.pets = S.pets.filter(p => S.eq.includes(p.id));
+      save(); renderAll(); closeBox();
+      setMsg(`Deleted ${n} pet${n > 1 ? "s" : ""}. Your equipped pets are safe.`, "good");
+    };
+  }
   else if (b.id === "bestBtn") { S.eq = [...S.pets].sort((a, c) => petPower(c) - petPower(a)).slice(0, MAX_EQ).map(p => p.id); save(); renderAll(); }
 });
 $("pets").addEventListener("click", e => {

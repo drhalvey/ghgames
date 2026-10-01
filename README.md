@@ -90,5 +90,6 @@ Make a free [GitHub](https://github.com) account, then a new **public** reposito
 - It is not real money and cannot be bought or cashed out. Each game keeps its own in-game coins for its own balance; PhatCoin is the coin that works everywhere.
 - Add to a game: `<script src="phatcoin.js" data-game="<name>"></script>` after `account.js`, then call `PhatCoin.earn("win", n, "why")`, `PhatCoin.spend(cost, "item").then(ok => ...)`, `PhatCoin.leaderboard(nick, "desc")`. `data-pill="none"` hides the floating coin if the game shows it in its own HUD.
 - Live in: Steal an Animal (PhatCoin Shop: Coin Rush, Lucky Charm, Time Warp, Mystery Egg, Super Lock).
+- Also earned in: Plains of Abraham (3 to 5 for a victory, by stars).
 - Give someone PhatCoin by hand (Supabase SQL editor):
   `update public.pc_wallets w set balance = balance + 100 from public.accounts a where a.id = w.account_id and a.username = 'theirname';`

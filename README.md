@@ -17,6 +17,7 @@ ghgames/
   sparrow.html    flappy-style sparrow, with score + best
   crazy-dads.html dads vs kids chase: soda knockouts, then the Monica & Didi boss (online via Supabase Realtime)
   bro-got-slammed.html  Pedigreers vs Bro Got Slammed: 4-minute team fights, wins buy damage upgrades (online via Supabase Realtime)
+  size-simulator.html  eat-and-grow PvP: upgrades, rebirths, worlds bought with coins, pets, daily rewards, shared 10-minute events (online via Supabase Realtime)
   CNAME           contains "ghgames.au" — tells GitHub Pages the domain
   README.md       this file
 ```

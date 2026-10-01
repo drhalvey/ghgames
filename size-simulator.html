@@ -1,0 +1,1013 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Size Simulator</title>
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="size-simulator"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#17162b; --panel:#232142; --panel2:#2f2c58; --line:#48437f;
+  --ink:#f4f3ff; --muted:#bcb8e0; --gold:#ffc93c; --pink:#ff6fa3; --green:#4fcf6a; --red:#ff5d5d; --blue:#4aa8ff;
+  --display:"Lilita One","Arial Rounded MT Bold","Trebuchet MS",sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;touch-action:manipulation}
+button,a,.stage,canvas{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.stage,.stage *,button{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+html,body{background:var(--bg);margin:0}
+body{font-family:var(--body);color:var(--ink);padding:14px 14px 40px;font-size:15px}
+.wrap{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.home{font-weight:900;color:var(--muted);text-decoration:none;font-size:14px}
+.home:hover{color:var(--gold)}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);margin:0;line-height:1;color:var(--gold);text-shadow:0 3px 0 #7a3cc0,0 6px 0 rgba(0,0,0,.25)}
+.hud{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:6px 12px;display:flex;flex-direction:column;align-items:flex-start;color:var(--ink);font-family:var(--body)}
+.chip span{font-size:11px;color:var(--muted);font-weight:800}
+.chip b{font-size:17px;font-weight:900}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--gold)}
+.chip.ready{border-color:var(--gold);animation:pulse 1.2s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 5px rgba(255,201,60,.35)}}
+.stage{position:relative;touch-action:none;border-radius:20px;overflow:hidden;border:3px solid var(--line);background:#111}
+canvas{display:block;width:100%;touch-action:none}
+.boost{position:absolute;right:14px;bottom:14px;width:92px;height:92px;border-radius:50%;border:none;font-family:var(--display);font-size:20px;color:#3b2200;background:radial-gradient(circle at 35% 30%,#ffe98a,#ffb300);box-shadow:0 6px 0 #a86a00,0 10px 18px rgba(0,0,0,.4);cursor:pointer;touch-action:none}
+.boost small{display:block;font-family:var(--body);font-size:11px;font-weight:900}
+.boost:active{transform:translateY(3px)}
+.boost[disabled]{filter:grayscale(.8) brightness(.7)}
+.bar{position:absolute;left:10px;top:10px;display:flex;gap:6px}
+.bar button{font-family:var(--body);font-weight:900;font-size:13px;border:none;border-radius:10px;padding:7px 11px;background:rgba(0,0,0,.55);color:#fff;cursor:pointer}
+.bar[hidden],.boost[hidden]{display:none}
+.lobby{position:absolute;inset:0;background:linear-gradient(160deg,rgba(23,22,43,.97),rgba(47,44,88,.97));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;overflow:auto;text-align:center}
+.lobby[hidden]{display:none}
+.stage.inlobby canvas{display:none}
+.stage.inlobby .lobby{position:relative;inset:auto;padding:22px 16px}
+.lobby h2{font-family:var(--display);font-weight:400;margin:0;font-size:24px;color:var(--gold)}
+.lobby p{margin:0;color:var(--muted);font-weight:700;max-width:560px}
+.cols{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.col{width:52px;height:52px;border-radius:50%;border:4px solid transparent;cursor:pointer;box-shadow:inset 0 -6px 0 rgba(0,0,0,.2)}
+.col.sel{border-color:#fff;box-shadow:0 0 0 3px var(--gold),inset 0 -6px 0 rgba(0,0,0,.2)}
+.pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;width:100%;max-width:700px}
+.opt{font-family:var(--body);cursor:pointer;border:3px solid var(--line);background:var(--panel);color:var(--ink);border-radius:16px;padding:10px 12px;font-weight:900;font-size:15px}
+.opt .e{display:block;font-size:32px;line-height:1.1}
+.opt small{display:block;color:var(--muted);font-size:11px;font-weight:800}
+.opt.sel{border-color:var(--gold);background:var(--panel2);box-shadow:0 0 0 3px rgba(255,201,60,.25)}
+.opt.locked{opacity:.55}
+.play{font-family:var(--display);font-size:30px;border:none;border-radius:18px;padding:10px 46px;color:#3b2200;background:linear-gradient(#ffd966,#ffb300);box-shadow:0 6px 0 #a86a00;cursor:pointer}
+.play:active{transform:translateY(3px);box-shadow:0 3px 0 #a86a00}
+.msg{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:10px 14px;font-weight:800;min-height:44px}
+.msg.good{border-color:var(--green)}
+.msg.bad{border-color:var(--red)}
+.panel{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:14px 16px}
+.panel h2{font-family:var(--display);font-weight:400;margin:0 0 6px;font-size:24px;color:var(--gold)}
+.sub{color:var(--muted);margin:0 0 10px;font-weight:700}
+.ups{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.up{background:var(--panel2);border:2px solid var(--line);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.up.here{border-color:var(--gold)}
+.up h3{margin:0;font-family:var(--display);font-weight:400;font-size:21px}
+.up .lv{font-weight:900;font-size:15px}
+.up p{margin:0;color:var(--muted);font-weight:700;font-size:13px}
+.buy{font-family:var(--body);font-weight:900;border:none;border-radius:12px;padding:10px 14px;color:#fff;background:var(--pink);cursor:pointer;box-shadow:0 4px 0 #8a1c43;font-size:15px}
+.buy.go{background:var(--green);box-shadow:0 4px 0 #1f7a33}
+.buy[disabled]{background:#4a4870;box-shadow:0 4px 0 #2a2844;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.small{font-family:var(--body);font-weight:900;border:none;border-radius:12px;padding:9px 14px;color:#fff;background:var(--pink);cursor:pointer;box-shadow:0 4px 0 #8a1c43}
+.small.alt{background:#48437f;box-shadow:0 4px 0 #232142}
+.small[disabled]{background:#4a4870;box-shadow:0 4px 0 #2a2844;cursor:default}
+.pets{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:10px}
+.pet{background:var(--panel2);border:3px solid var(--line);border-radius:14px;padding:8px 6px;text-align:center;cursor:pointer;font-family:var(--body);color:var(--ink)}
+.pet .e{font-size:34px;line-height:1.1;display:block}
+.pet b{display:block;font-size:13px}
+.pet small{display:block;font-size:11px;font-weight:900}
+.pet.on{box-shadow:0 0 0 3px var(--gold);background:#3d3a72}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:10px 0}
+.days div{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:8px 2px;text-align:center;font-weight:900;font-size:12px}
+.days div .e{font-size:22px;display:block}
+.days div.done{opacity:.5}
+.days div.today{border-color:var(--gold)}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.overlay[hidden]{display:none}
+.box{background:var(--panel);border:3px solid var(--gold);border-radius:20px;padding:18px;max-width:460px;width:100%;display:flex;flex-direction:column;gap:10px;max-height:90vh;overflow:auto}
+.box h3{font-family:var(--display);font-weight:400;margin:0;font-size:26px;color:var(--gold)}
+.box input{font-family:var(--body);font-weight:800;font-size:20px;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:#12112a;color:var(--ink);outline:none;width:100%}
+.box input:focus{border-color:var(--gold)}
+.hatch{font-size:90px;text-align:center;line-height:1.1;animation:pop .5s}
+@keyframes pop{0%{transform:scale(.2) rotate(-20deg)}70%{transform:scale(1.2)}100%{transform:scale(1)}}
+.hint{color:var(--muted);font-size:13px;margin:0;font-weight:700}
+.help{margin:0;padding-left:18px;color:var(--muted);font-weight:700;line-height:1.5}
+.help b{color:var(--ink)}
+@media (max-width:600px){
+  .boost{width:78px;height:78px;font-size:17px;right:10px;bottom:10px}
+  .bar button{font-size:12px;padding:6px 9px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="home" href="index.html">← GH Games</a>
+  <div class="top">
+    <h1>Size Simulator</h1>
+    <div class="hud">
+      <button class="chip" id="nameChip" type="button" title="Change your name"><span>Name ✏️</span><b id="hName">Player</b></button>
+      <div class="chip"><span>Size 📏</span><b id="hSize">1</b></div>
+      <div class="chip"><span>Coins 🪙</span><b id="hCoins">0</b></div>
+      <div class="chip"><span>Grow multi ✖️</span><b id="hMulti">x1</b></div>
+      <div class="chip" id="eventChip"><span id="hEvTitle">Event ⚡</span><b id="hEvent">…</b></div>
+      <button class="chip" id="dailyChip" type="button"><span>Daily 🎁</span><b id="hDaily">Claim!</b></button>
+    </div>
+  </div>
+
+  <div class="stage inlobby" id="stage">
+    <canvas id="cv" aria-label="Game area. Move with arrow keys, WASD, the mouse or by dragging. Space for boost."></canvas>
+    <div class="bar" id="bar" hidden>
+      <button id="menuBtn" type="button">☰ Menu</button>
+      <span id="onlineLbl" style="font-weight:900;font-size:12px;background:rgba(0,0,0,.55);border-radius:10px;padding:7px 10px">Offline</span>
+    </div>
+    <button class="boost" id="boostBtn" type="button" hidden>BOOST<small id="boostLbl">Space</small></button>
+    <div class="lobby" id="lobby">
+      <h2>Pick your colour</h2>
+      <div class="cols" id="colPick"></div>
+      <h2>Pick a world</h2>
+      <div class="pick" id="worldPick"></div>
+      <button class="play" id="playBtn" type="button">PLAY!</button>
+      <p>Eat things smaller than you to grow. Eat smaller players too, but watch out for bigger ones! Friends in the same world play together.</p>
+    </div>
+  </div>
+  <div class="msg" id="msg">Pick a colour and a world, then press PLAY.</div>
+
+  <section class="panel">
+    <h2>Upgrades</h2>
+    <p class="sub">Every bite earns coins. Spend them here.</p>
+    <div class="ups" id="ups"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Worlds</h2>
+    <p class="sub">Each world costs coins to unlock and makes you grow faster. Unlocked worlds stay unlocked, even after a rebirth.</p>
+    <div class="ups" id="worlds"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Pets</h2>
+    <p class="sub">Hatch eggs to get pets. Tap a pet to equip it (up to 3). Pets multiply how fast you grow. Better worlds have better eggs.</p>
+    <div class="row" id="eggRow"></div>
+    <div class="pets" id="pets"></div>
+  </section>
+
+  <section class="panel">
+    <h2>How to play</h2>
+    <ul class="help">
+      <li><b>Move</b> with the mouse, arrow keys or WASD. On iPad, hold and drag on the game.</li>
+      <li><b>Eat</b> anything smaller than you. The bigger you get, the bigger the things you can eat.</li>
+      <li><b>PvP:</b> if you are at least 1.5 times someone's size, run into them to eat them. If someone bigger eats you, you shrink and respawn.</li>
+      <li><b>Boost</b> (Space or the yellow button) gives a burst of speed to chase or escape.</li>
+      <li><b>Rebirth</b> resets your size, coins and upgrades but makes you grow faster forever. Worlds and pets are kept.</li>
+      <li><b>Events</b> start every 20 minutes to 2 hours and last 10 minutes. They multiply your growing and coins. Rarer events are bigger: up to x100!</li>
+      <li>Claim your <b>daily reward</b> every day. Don't miss a day or your streak starts again!</li>
+    </ul>
+  </section>
+
+  <div id="lb"></div>
+</div>
+
+<div class="overlay" id="overlay" hidden><div class="box" id="box"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="leaderboard.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+// ---------------- numbers ----------------
+const SUF = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc", "Ud", "Dd", "Td"];
+function fmt(n) {
+  n = Number(n) || 0;
+  if (n < 10) return (Math.floor(n * 10) / 10).toString();
+  if (n < 1000) return Math.floor(n).toString();
+  let i = 0; while (n >= 1000 && i < SUF.length - 1) { n /= 1000; i++; }
+  return (n >= 100 ? Math.floor(n) : n >= 10 ? Math.floor(n * 10) / 10 : Math.floor(n * 100) / 100) + SUF[i];
+}
+
+// ---------------- game data ----------------
+const COLS = [["#ff5d5d", "#b8302f"], ["#ff9b3d", "#b55e12"], ["#ffd23d", "#b08a0e"], ["#4fcf6a", "#22813a"], ["#2fc1ae", "#137a6d"], ["#4aa8ff", "#1f62b0"], ["#a46cff", "#5f2fb3"], ["#ff6fa3", "#b02c61"]];
+// tiers: radius of each thing and how many are in a world
+const TIER_R = [7, 10, 14, 20, 28, 38, 52, 70, 92, 120, 165, 220, 300, 400];
+const TIER_N = [900, 700, 500, 350, 250, 170, 120, 80, 55, 38, 26, 18, 12, 8];
+const WORLDS = [
+  { n: "Park",   e: "🌳", cost: 0,    mult: 1,   ground: "#6dbb4f", grid: "#62ad46", edge: "#3f7d2c", things: ["🍪","🍎","🍔","🍕","🐔","🛒","🚗","🚌","🌳","🏠","🏰","🏢","⛰️","🌋"] },
+  { n: "City",   e: "🏙️", cost: 25e3, mult: 3,   ground: "#8b919c", grid: "#7f8590", edge: "#4c5059", things: ["🍩","🥤","🌭","🍟","🐦","🛴","🚕","🚓","🚒","🏪","🏬","🏨","🏙️","🗼"] },
+  { n: "Beach",  e: "🏝️", cost: 2e6,  mult: 10,  ground: "#f0d48c", grid: "#e6c979", edge: "#3d8fd1", things: ["🐚","🦀","🍉","🏐","🐢","⛱️","🚤","🐬","🦈","🐋","⛵","🛳️","🏝️","🗿"] },
+  { n: "Snow",   e: "⛄", cost: 2e8,  mult: 40,  ground: "#e6f0fa", grid: "#d6e4f2", edge: "#8fb3d6", things: ["❄️","🧤","🍦","⛄","🐧","🛷","🦭","🦌","🎄","🚂","🏡","🏰","🗻","🏔️"] },
+  { n: "Space",  e: "🚀", cost: 5e10, mult: 150, ground: "#13123a", grid: "#1d1c4c", edge: "#6a5cff", things: ["✨","⭐","☄️","👽","🛸","🛰️","🚀","🌑","🌒","🌍","🪐","🌕","☀️","🌌"] },
+  { n: "Candy",  e: "🍭", cost: 2e13, mult: 600, ground: "#ffc6e0", grid: "#ffb6d6", edge: "#e0559a", things: ["🍬","🍭","🍫","🧁","🍪","🍩","🍰","🍦","🎂","🥞","🍯","🍮","🍡","🏩"] }
+];
+const EGGS = [
+  { cost: 1000, pow: 1 }, { cost: 30e3, pow: 2.5 }, { cost: 2.5e6, pow: 6 },
+  { cost: 2.5e8, pow: 15 }, { cost: 6e10, pow: 40 }, { cost: 2.5e13, pow: 100 }
+];
+const RAR = [
+  { n: "Common",    c: "#c3c9d8", p: 58, m: 1.2 },
+  { n: "Uncommon",  c: "#5fd27a", p: 26, m: 1.5 },
+  { n: "Rare",      c: "#4aa8ff", p: 11, m: 2 },
+  { n: "Epic",      c: "#b46cff", p: 4,  m: 3.5 },
+  { n: "Legendary", c: "#ffc93c", p: 1,  m: 8 }
+];
+const PETS = [
+  { e: "🐶", n: "Doggo", r: 0 }, { e: "🐱", n: "Kitty", r: 0 },
+  { e: "🐰", n: "Bunny", r: 1 }, { e: "🐸", n: "Froggy", r: 1 },
+  { e: "🦊", n: "Foxy", r: 2 },  { e: "🐼", n: "Panda", r: 2 },
+  { e: "🦄", n: "Unicorn", r: 3 }, { e: "🐉", n: "Dragon", r: 3 },
+  { e: "🦖", n: "Rexy", r: 4 },  { e: "🦁", n: "King Leo", r: 4 }
+];
+const DAILY = [ // coins are times your best world's multi
+  { c: 300, e: "🪙" }, { c: 600, e: "🪙" }, { c: 1000, egg: 1, e: "🥚" }, { c: 1500, e: "💰" },
+  { c: 2500, e: "💰" }, { c: 4000, e: "💎" }, { c: 8000, egg: 3, e: "🎁" }
+];
+const UPS = {
+  sp:   { n: "Speed 👟",  max: 20, cost: l => 30 * Math.pow(1.55, l), d: l => `+${l * 6}% speed` },
+  bite: { n: "Big Bites 😋", max: 40, cost: l => 50 * Math.pow(1.7, l), d: l => `x${(1 + l * 0.25).toFixed(2)} growing` },
+  mag:  { n: "Long Reach 🧲", max: 20, cost: l => 80 * Math.pow(1.6, l), d: l => `+${l * 6}% eating reach` }
+};
+const MAX_PETS = 60, MAX_EQ = 3;
+// events: everyone in the world gets the same event at the same time.
+// one starts 20 minutes to 2 hours after the last one ends and lasts 10 minutes.
+// the rarer the event, the bigger the everything multi (growing and coins, not rebirths).
+const EVENTS = [
+  { n: "Snack Rush",     e: "🍪", m: 2,   w: 40, c: "#ffb36b" },
+  { n: "Golden Hour",    e: "🌟", m: 3,   w: 25, c: "#ffd23d" },
+  { n: "Mega Munch",     e: "😋", m: 5,   w: 18, c: "#5fd27a" },
+  { n: "Size Storm",     e: "⛈️", m: 10,  w: 10, c: "#4aa8ff" },
+  { n: "Rainbow Frenzy", e: "🌈", m: 25,  w: 5,  c: "#ff6fa3" },
+  { n: "Cosmic Feast",   e: "🌌", m: 100, w: 2,  c: "#b46cff" }
+];
+const EV_LEN = 10 * 60e3, EV_ANCHOR = Date.UTC(2026, 9, 1, 0, 0, 0);
+let evCache = null;
+function eventAt(t) {
+  // walk the shared schedule from a fixed start date; every step is at least 30 minutes so this stays quick
+  if (evCache && t >= evCache.start && t < evCache.next) return evCache;
+  let start = EV_ANCHOR, i = 0;
+  if (evCache && t >= evCache.start) { start = evCache.start; i = evCache.i; }
+  for (;;) {
+    const r = rnd(hash("ev" + i));
+    const gap = (20 + r() * 100) * 60e3;
+    let roll = r() * EVENTS.reduce((a, b) => a + b.w, 0), k = 0;
+    while (roll >= EVENTS[k].w) { roll -= EVENTS[k].w; k++; }
+    const s = start + gap, end = s + EV_LEN;
+    if (t < end) { evCache = { i, start, s, end, next: end, ev: EVENTS[k] }; return evCache; }
+    start = end; i++;
+  }
+}
+function eventNow() { const t = Date.now(), x = eventAt(t); return t >= x.s ? x : null; }
+const eventMult = () => { const x = eventNow(); return x ? x.ev.m : 1; };
+const W = 6000;
+
+// ---------------- save ----------------
+const SAVE_KEY = "sizesim-save";
+const DEF = { mass: 1, coins: 0, sp: 0, bite: 0, mag: 0, rb: 0, best: 1, eats: 0, col: 3, world: 0, worlds: [0], pets: [], eq: [], day: "", streak: 0, freeEggs: 0, pid: 1 };
+let S = load();
+function load() {
+  let o = {}; try { o = JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; } catch (e) {}
+  return fix(Object.assign({}, DEF, o));
+}
+function fix(s) {
+  const num = (v, d) => (typeof v === "number" && isFinite(v) && v >= 0) ? v : d;
+  s.mass = Math.max(1, num(s.mass, 1)); s.coins = num(s.coins, 0); s.best = Math.max(s.mass, num(s.best, 1));
+  for (const k of ["sp", "bite", "mag"]) s[k] = Math.min(UPS[k].max, Math.floor(num(s[k], 0)));
+  s.rb = Math.floor(num(s.rb, 0)); s.col = Math.floor(num(s.col, 3)) % COLS.length;
+  if (!Array.isArray(s.worlds)) s.worlds = [0];
+  s.worlds = [...new Set([0, ...s.worlds.filter(w => WORLDS[w])])];
+  s.world = s.worlds.includes(s.world) ? s.world : 0;
+  if (!Array.isArray(s.pets)) s.pets = [];
+  s.pets = s.pets.filter(p => p && PETS[p.k] && EGGS[p.w]).slice(0, MAX_PETS);
+  if (!Array.isArray(s.eq)) s.eq = [];
+  s.eq = s.eq.filter(id => s.pets.some(p => p.id === id)).slice(0, MAX_EQ);
+  s.freeEggs = Math.floor(num(s.freeEggs, 0)); s.streak = Math.floor(num(s.streak, 0)); s.pid = Math.floor(num(s.pid, 1));
+  return s;
+}
+let lastSaved = "";
+function save() { try { lastSaved = JSON.stringify(S); localStorage.setItem(SAVE_KEY, lastSaved); } catch (e) {} }
+
+// ---------------- names ----------------
+const NAME_KEY = "ghgames_nick";
+const BAD = ["fuck","shit","bitch","cunt","dick","cock","pussy","asshole","arsehole","wanker","twat","bastard","slut","whore","nigg","fag","retard","penis","vagina","boob","tits","porn","sex","damn","crap","piss","bollock","prick","knob","bugger","bloody","hell","kys","rape","nazi","hitler","dildo","cum"];
+function isRude(v) { const t = (v || "").toLowerCase().replace(/[013457@$!]/g, c => ({"0":"o","1":"i","3":"e","4":"a","5":"s","7":"t","@":"a","$":"s","!":"i"}[c])).replace(/[^a-z]/g, ""); return BAD.some(w => t.includes(w)); }
+function cleanName(v) { return (v || "").replace(/[^A-Za-z0-9 _\-!?.']/g, "").replace(/\s+/g, " ").trim().slice(0, 12); }
+function safeName(v) { const n = cleanName(v); return !n || isRude(n) ? "Player" : n; }
+let NAME = safeName((() => { try { return localStorage.getItem(NAME_KEY); } catch (e) { return ""; } })());
+const hasName = () => NAME && NAME !== "Player";
+
+// ---------------- maths ----------------
+const radius = m => Math.min(12 * Math.cbrt(Math.max(1, m)), 800);
+const itemVal = r => 0.6 * Math.pow(r / 12, 3);
+const needMass = r => Math.pow(r * 1.05 / 12, 3);
+function petMult() {
+  let t = 0;
+  for (const id of S.eq) { const p = S.pets.find(q => q.id === id); if (p) t += RAR[PETS[p.k].r].m * EGGS[p.w].pow; }
+  return Math.max(1, t);
+}
+const gainMult = () => (1 + S.bite * 0.25) * (1 + S.rb) * WORLDS[S.world].mult * petMult() * eventMult();
+const rebirthNeed = () => 2000 * Math.pow(4, S.rb);
+const bestWorld = () => Math.max(...S.worlds);
+function rnd(seed) { let t = seed >>> 0; return () => { t += 0x6D2B79F5; let r = Math.imul(t ^ t >>> 15, 1 | t); r ^= r + Math.imul(r ^ r >>> 7, 61 | r); return ((r ^ r >>> 14) >>> 0) / 4294967296; }; }
+function hash(s) { let h = 7; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+// ---------------- world items ----------------
+let ITEMS = [];
+function placeItem(it) {
+  const r = rnd(hash(S.world + ":" + it.k + ":" + it.g));
+  it.x = 150 + r() * (W - 300); it.y = 150 + r() * (W - 300); it.rot = (r() - 0.5) * 0.5; it.pop = 0.4;
+}
+function buildItems() {
+  ITEMS = []; let k = 0;
+  TIER_R.forEach((r, t) => { for (let i = 0; i < TIER_N[t]; i++) { const it = { k: k++, t, r, g: 0 }; placeItem(it); ITEMS.push(it); } });
+}
+
+// ---------------- entities ----------------
+const MYID = Math.random().toString(36).slice(2, 10);
+let E = new Map();   // everyone except me: remote players and computer players
+const ME = { id: MYID, x: W / 2, y: W / 2, vx: 0, vy: 0, sh: 3, boost: 0, boostCd: 0, fx: 1, fy: 0 };
+const BOT_NAMES = ["Chomper", "Big Bob", "Nom Nom", "Snacky", "Gulp", "Munchie", "Tiny Tim", "Mr Wobble", "Blobby", "Hungry Hal", "Crumbs", "Burp"];
+const FX = [];
+let playing = false, isHost = true, hostId = MYID, online = false, sb = null, ch = null, peers = [], joinT = Date.now();
+
+function spawnPos(avoidBig) {
+  for (let i = 0; i < 20; i++) {
+    const x = 300 + Math.random() * (W - 600), y = 300 + Math.random() * (W - 600);
+    let ok = true;
+    if (avoidBig) for (const e of E.values()) if (Math.hypot(e.x - x, e.y - y) < radius(e.m) + 500) { ok = false; break; }
+    if (ok) return [x, y];
+  }
+  return [Math.random() * W, Math.random() * W];
+}
+function addBot(i) {
+  const wm = WORLDS[S.world].mult;
+  const [x, y] = spawnPos(false);
+  const b = { id: "b" + i, bot: true, name: BOT_NAMES[i % BOT_NAMES.length], x, y, vx: 0, vy: 0,
+    m: Math.exp(Math.random() * Math.log(300)), c: (i * 3) % COLS.length, sh: 0,
+    gm: (1 + Math.random() * 2) * wm, cap: Math.exp(Math.log(50) + Math.random() * Math.log(100)) * wm,
+    think: 0, tx: x, ty: y, mode: "eat", boost: 0, boostCd: 0, fx: 1, fy: 0 };
+  E.set(b.id, b); return b;
+}
+function fillBots() {
+  if (!isHost) return;
+  const humans = peers.length || 1;
+  const want = Math.max(3, 9 - humans);
+  let bots = [...E.values()].filter(e => e.bot);
+  for (let i = 0; bots.length < want && i < 30; i++) if (!E.has("b" + i)) { bots.push(addBot(i)); }
+  while (bots.length > want) { const b = bots.pop(); E.delete(b.id); }
+}
+
+// ---------------- growing ----------------
+function grow(amount, x, y, show) {
+  S.mass += amount; S.coins += amount;
+  if (S.mass > S.best) S.best = S.mass;
+  if (show) FX.push({ x, y, t: 0, txt: "+" + fmt(amount), c: "#ffe27a" });
+}
+function eatItemsFor(e, isMe) {
+  const m = isMe ? S.mass : e.m, r = radius(m);
+  const reach = r * (isMe ? 1 + S.mag * 0.06 : 1);
+  for (const it of ITEMS) {
+    const dx = it.x - e.x, dy = it.y - e.y;
+    if (Math.abs(dx) > reach || Math.abs(dy) > reach) continue;
+    if (dx * dx + dy * dy > reach * reach) continue;
+    if (m < needMass(it.r)) continue;
+    if (!isMe && e.m > e.cap) continue;
+    const v = itemVal(it.r);
+    if (online) foodQ.push([it.k, it.g]);
+    it.g++; placeItem(it);
+    if (isMe) { grow(v * gainMult(), it.x, it.y, false); FX.push({ x: e.x, y: e.y - r, t: 0, txt: "+" + fmt(v * gainMult()), c: "#ffe27a" }); S.eats++; }
+    else e.m += v * e.gm;
+  }
+}
+const canEat = (bigM, smallM) => bigM >= smallM * 1.5;
+function touching(big, small, bm, smm) { return Math.hypot(big.x - small.x, big.y - small.y) < radius(bm) - radius(smm) * 0.4; }
+let claimed = new Map();
+function iEatOthers() {
+  if (ME.sh > 0) return;
+  for (const e of E.values()) {
+    if (e.sh > 0 || e.hide > 0) continue;
+    if (!canEat(S.mass, e.m) || !touching(ME, e, S.mass, e.m)) continue;
+    const gain = e.m * 0.5;
+    grow(gain, e.x, e.y, true);
+    FX.push({ x: ME.x, y: ME.y - radius(S.mass) - 20, t: 0, txt: `You ate ${e.name}!`, c: "#ff9ac0", big: true });
+    setMsg(`You ate ${e.name}! +${fmt(gain)} size.`, "good");
+    e.hide = 1.5;
+    if (e.bot && isHost) respawnBot(e);
+    else bcast("ate", { e: MYID, en: NAME, v: e.id, m: S.mass });
+  }
+}
+function respawnBot(b) {
+  const [x, y] = spawnPos(true);
+  b.x = x; b.y = y; b.m = 1 + Math.random() * 5 * WORLDS[S.world].mult; b.sh = 3; b.hide = 0;
+}
+function getEaten(byName) {
+  const before = S.mass;
+  S.mass = Math.max(1, S.mass * 0.3);
+  const [x, y] = spawnPos(true);
+  ME.x = x; ME.y = y; ME.vx = ME.vy = 0; ME.sh = 4;
+  setMsg(`${byName} ate you! You shrank from ${fmt(before)} to ${fmt(S.mass)}. You have 4 seconds of shield.`, "bad");
+  save(); renderHUD();
+}
+
+// ---------------- computer players (host only) ----------------
+function botThink(b) {
+  const r = radius(b.m);
+  const all = [...E.values()].filter(o => o !== b && !(o.hide > 0));
+  all.push({ x: ME.x, y: ME.y, m: S.mass, sh: ME.sh, me: true });
+  let fx = 0, fy = 0, threat = false;
+  for (const o of all) {
+    const d = Math.hypot(o.x - b.x, o.y - b.y);
+    if (canEat(o.m, b.m) && d < radius(o.m) + 450) { fx += (b.x - o.x) / (d + 1); fy += (b.y - o.y) / (d + 1); threat = true; }
+  }
+  if (threat) { b.mode = "flee"; b.tx = b.x + fx * 1000; b.ty = b.y + fy * 1000; if (b.boostCd <= 0 && Math.random() < 0.5) { b.boost = 1.2; b.boostCd = 7; } return; }
+  let prey = null, pd = 1e9;
+  for (const o of all) {
+    if (o.sh > 0 || !canEat(b.m, o.m)) continue;
+    if (!o.bot && o.m < b.m * 0.03) continue;   // too tiny to bother chasing
+    const d = Math.hypot(o.x - b.x, o.y - b.y);
+    if (d < 650 + r && d < pd) { pd = d; prey = o; }
+  }
+  if (prey && Math.random() < 0.8) { b.mode = "hunt"; b.tx = prey.x; b.ty = prey.y; if (pd < 300 + r && b.boostCd <= 0 && Math.random() < 0.3) { b.boost = 1.2; b.boostCd = 7; } return; }
+  let best = null, bs = 0;
+  if (b.m <= b.cap) for (const it of ITEMS) {
+    if (b.m < needMass(it.r)) continue;
+    const d = Math.hypot(it.x - b.x, it.y - b.y);
+    if (d > 1400) continue;
+    const s = itemVal(it.r) / (d + 60);
+    if (s > bs) { bs = s; best = it; }
+  }
+  if (best) { b.mode = "eat"; b.tx = best.x; b.ty = best.y; }
+  else if (Math.hypot(b.tx - b.x, b.ty - b.y) < 60) { b.mode = "wander"; b.tx = 300 + Math.random() * (W - 600); b.ty = 300 + Math.random() * (W - 600); }
+}
+function speedOf(m, lv, boost) { return 165 * (1 + lv * 0.06) * Math.pow(radius(m) / 12, 0.3) * (boost > 0 ? 1.75 : 1); }
+function hostTick(dt) {
+  for (const b of E.values()) {
+    if (!b.bot) continue;
+    b.sh = Math.max(0, b.sh - dt); b.hide = Math.max(0, (b.hide || 0) - dt);
+    b.boost = Math.max(0, b.boost - dt); b.boostCd = Math.max(0, b.boostCd - dt);
+    b.think -= dt; if (b.think <= 0) { b.think = 0.35 + Math.random() * 0.2; botThink(b); }
+    const dx = b.tx - b.x, dy = b.ty - b.y, d = Math.hypot(dx, dy);
+    const sp = speedOf(b.m, 0, b.boost) * 0.92;
+    if (d > 4) { b.vx = dx / d * sp; b.vy = dy / d * sp; b.fx = dx / d; b.fy = dy / d; } else { b.vx = b.vy = 0; }
+    b.x = Math.max(0, Math.min(W, b.x + b.vx * dt)); b.y = Math.max(0, Math.min(W, b.y + b.vy * dt));
+    if (b.m > b.cap * 1.5) b.m *= 1 - 0.03 * dt;
+    eatItemsFor(b, false);
+    if (b.sh > 0) continue;
+    // computer players eat other players and each other
+    if (ME.sh <= 0 && canEat(b.m, S.mass) && touching(b, ME, b.m, S.mass)) { b.m += S.mass * 0.5; FX.push({ x: b.x, y: b.y, t: 0, txt: `${b.name} ate you!`, c: "#ff5d5d", big: true }); getEaten(b.name); continue; }
+    for (const o of E.values()) {
+      if (o === b || o.sh > 0 || o.hide > 0) continue;
+      if (!canEat(b.m, o.m) || !touching(b, o, b.m, o.m)) continue;
+      b.m += o.m * 0.5; o.hide = 1.5;
+      FX.push({ x: b.x, y: b.y - radius(b.m), t: 0, txt: `${b.name} ate ${o.name}!`, c: "#ffb07a" });
+      if (o.bot) respawnBot(o); else bcast("ate", { e: b.id, en: b.name, v: o.id, m: b.m });
+    }
+  }
+}
+
+// ---------------- networking (Supabase Realtime) ----------------
+const SB_URL = "https://bpqaeqswtgtbqrczjcrx.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwcWFlcXN3dGd0YnFyY3pqY3J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzUzOTIsImV4cCI6MjA5NjkxMTM5Mn0.hsEZJ_C4NvySPMb59G9EPPfdJRSNBODbnuo9ij_zxrI";
+function bcast(ev, payload) { if (online && ch) try { ch.send({ type: "broadcast", event: ev, payload }); } catch (e) {} }
+const meta = () => ({ i: MYID, n: NAME, t: joinT });
+function connect() {
+  disconnect();
+  if (!window.supabase || !navigator.onLine) { updateOnlineMsg(); return; }
+  try {
+    if (!sb) sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 40 } } });
+    ch = sb.channel("sizesim-w" + S.world, { config: { broadcast: { self: false }, presence: { key: MYID } } });
+    ch.on("broadcast", { event: "me" }, m => onMe(m.payload));
+    ch.on("broadcast", { event: "bots" }, m => onBots(m.payload));
+    ch.on("broadcast", { event: "f" }, m => onFood(m.payload));
+    ch.on("broadcast", { event: "ate" }, m => onAte(m.payload));
+    ch.on("presence", { event: "sync" }, onSync);
+    ch.subscribe(async status => {
+      if (status === "SUBSCRIBED") { online = true; try { await ch.track(meta()); } catch (e) {} updateOnlineMsg(); }
+      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") { online = false; becomeHost(); updateOnlineMsg(); }
+    });
+  } catch (e) { online = false; }
+}
+function disconnect() { if (ch) { try { ch.untrack(); sb.removeChannel(ch); } catch (e) {} } ch = null; online = false; peers = []; }
+function onSync() {
+  const st = ch.presenceState();
+  peers = Object.values(st).map(a => a[0]).filter(Boolean);
+  if (!peers.find(p => p.i === MYID)) peers.push(meta());
+  peers.sort((a, b) => (a.t - b.t) || (a.i < b.i ? -1 : 1));
+  hostId = peers[0].i;
+  if (hostId === MYID) becomeHost();
+  else if (isHost) { isHost = false; for (const [id, e] of E) if (e.bot) E.delete(id); }
+  const ids = new Set(peers.map(p => p.i));
+  for (const [id, e] of E) if (!e.bot && !ids.has(id)) E.delete(id);
+  fillBots(); updateOnlineMsg();
+}
+function becomeHost() {
+  if (isHost) { fillBots(); return; }
+  isHost = true; hostId = MYID;
+  // take over the computer players exactly where they are
+  for (const b of E.values()) if (b.bot) {
+    const wm = WORLDS[S.world].mult;
+    b.x = b.tx2 ?? b.x; b.y = b.ty2 ?? b.y;
+    b.gm = b.gm || (1 + Math.random() * 2) * wm; b.cap = b.cap || Math.max(b.m, 500 * wm);
+    b.think = 0; b.tx = b.x; b.ty = b.y; b.boost = 0; b.boostCd = 0;
+  }
+  fillBots();
+}
+function onMe(p) {
+  if (!p || p.i === MYID) return;
+  let e = E.get(p.i);
+  if (!e) { e = { id: p.i, bot: false, x: p.x, y: p.y, fx: 1, fy: 0 }; E.set(p.i, e); }
+  e.name = safeName(p.n); e.tx2 = +p.x || 0; e.ty2 = +p.y || 0; e.m = Math.max(1, +p.m || 1);
+  e.c = (p.c | 0) % COLS.length; e.sh = p.sh ? 1 : 0; e.boost = p.b ? 1 : 0; e.pets = String(p.p || "").slice(0, 12);
+  e.fx = +p.fx || 0; e.fy = +p.fy || 0; e.seen = performance.now();
+}
+function onBots(p) {
+  if (isHost || !Array.isArray(p.b)) return;
+  const ids = new Set();
+  for (const a of p.b) {
+    const [id, name, x, y, m, c, sh, fx, fy] = a; ids.add(id);
+    let e = E.get(id);
+    if (!e) { e = { id, bot: true, x, y }; E.set(id, e); }
+    e.bot = true; e.name = String(name).slice(0, 16); e.tx2 = x; e.ty2 = y; e.m = m; e.c = c; e.sh = sh; e.fx = fx; e.fy = fy; e.seen = performance.now();
+  }
+  for (const [id, e] of E) if (e.bot && !ids.has(id)) E.delete(id);
+}
+function onFood(p) {
+  if (!p || !Array.isArray(p.l)) return;
+  for (const [k, g] of p.l) { const it = ITEMS[k | 0]; if (it && it.g <= g) { it.g = (g | 0) + 1; placeItem(it); } }
+}
+function onAte(p) {
+  const eater = E.get(p.e);
+  if (eater) { eater.m = Math.max(eater.m, +p.m || 0); }
+  if (p.v === MYID) {
+    if (ME.sh > 0) return;
+    if (!canEat((+p.m || 0) / 1.0 + 1, S.mass * 0.8)) return;   // a little slack for lag
+    if (eater) FX.push({ x: eater.x, y: eater.y, t: 0, txt: `${safeName(p.en)} ate you!`, c: "#ff5d5d", big: true });
+    getEaten(safeName(p.en));
+    return;
+  }
+  const v = E.get(p.v);
+  if (v) {
+    v.hide = 1.5;
+    if (eater) FX.push({ x: eater.x, y: eater.y, t: 0, txt: `${safeName(p.en)} ate ${v.name}!`, c: "#ffb07a" });
+    if (v.bot && isHost) respawnBot(v);
+  }
+}
+let netT = 0; const foodQ = [];
+function netTick(dt) {
+  netT -= dt; if (netT > 0 || !online) return;
+  netT = 0.12;
+  if (foodQ.length) bcast("f", { l: foodQ.splice(0, 60) });
+  bcast("me", { i: MYID, n: NAME, x: Math.round(ME.x), y: Math.round(ME.y), m: +S.mass.toPrecision(6), c: S.col, sh: ME.sh > 0 ? 1 : 0, b: ME.boost > 0 ? 1 : 0, p: eqEmojis(), fx: +ME.fx.toFixed(2), fy: +ME.fy.toFixed(2) });
+  if (isHost) bcast("bots", { b: [...E.values()].filter(e => e.bot).map(b => [b.id, b.name, Math.round(b.x), Math.round(b.y), +b.m.toPrecision(6), b.c, b.sh > 0 ? 1 : 0, +b.fx.toFixed(2), +b.fy.toFixed(2)]) });
+}
+function updateOnlineMsg() {
+  const n = peers.length || 1;
+  $("onlineLbl").textContent = online ? (n > 1 ? `🟢 ${n} players online` : "🟢 Online, just you so far") : "⚪ Offline";
+}
+
+// ---------------- input ----------------
+const keys = {};
+let boostQueued = false, mouse = null, joy = null;
+addEventListener("keydown", e => {
+  if (e.target && e.target.tagName === "INPUT") return;
+  const k = e.key.toLowerCase(); keys[k] = true;
+  if ((k === " " || k === "shift") && playing) { boostQueued = true; e.preventDefault(); }
+  if (playing && ["arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) e.preventDefault();
+});
+addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
+addEventListener("blur", () => { for (const k in keys) keys[k] = false; });
+const cv = $("cv");
+function cvPos(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+cv.addEventListener("pointerdown", e => { if (!playing) return; if (e.pointerType !== "mouse") { cv.setPointerCapture(e.pointerId); joy = Object.assign({ id: e.pointerId }, cvPos(e)); joy.bx = joy.x; joy.by = joy.y; } e.preventDefault(); });
+cv.addEventListener("pointermove", e => {
+  if (e.pointerType === "mouse") { mouse = cvPos(e); return; }
+  if (joy && e.pointerId === joy.id) Object.assign(joy, cvPos(e));
+});
+cv.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") mouse = null; });
+const endJoy = e => { if (joy && e.pointerId === joy.id) joy = null; };
+cv.addEventListener("pointerup", endJoy); cv.addEventListener("pointercancel", endJoy);
+$("boostBtn").addEventListener("pointerdown", e => { boostQueued = true; e.preventDefault(); e.stopPropagation(); });
+function readInput() {
+  let x = 0, y = 0;
+  if (keys["arrowleft"] || keys["a"]) x -= 1; if (keys["arrowright"] || keys["d"]) x += 1;
+  if (keys["arrowup"] || keys["w"]) y -= 1; if (keys["arrowdown"] || keys["s"]) y += 1;
+  if (x || y) { const d = Math.hypot(x, y); return [x / d, y / d]; }
+  if (joy) { const dx = joy.x - joy.bx, dy = joy.y - joy.by, d = Math.hypot(dx, dy); if (d > 8) { const m = Math.min(1, d / 50); return [dx / d * m, dy / d * m]; } return [0, 0]; }
+  if (mouse) {
+    const dx = mouse.x - cw / 2, dy = mouse.y - chh / 2, d = Math.hypot(dx, dy), rr = radius(S.mass) * scale;
+    if (d > rr * 0.3) { const m = Math.min(1, (d - rr * 0.3) / 80); return [dx / d * m, dy / d * m]; }
+  }
+  return [0, 0];
+}
+
+// ---------------- drawing ----------------
+const ctx = cv.getContext("2d");
+let cw = 0, chh = 0, dpr = 1, scale = 1, camX = W / 2, camY = W / 2;
+function resize() {
+  const st = $("stage"); cw = st.clientWidth;
+  chh = Math.round(cw < 600 ? Math.max(320, Math.min(innerHeight * 0.64, cw * 1.15)) : Math.max(300, Math.min(innerHeight * 0.72, cw * 0.62)));
+  dpr = Math.min(devicePixelRatio || 1, 1.5);
+  cv.width = Math.round(cw * dpr); cv.height = Math.round(chh * dpr); cv.style.height = chh + "px";
+}
+const SPR = new Map();
+function emojiSprite(e) {
+  let c = SPR.get(e);
+  if (!c) {
+    c = document.createElement("canvas"); c.width = c.height = 128;
+    const g = c.getContext("2d");
+    g.font = `100px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+    g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(e, 64, 70);
+    SPR.set(e, c);
+  }
+  return c;
+}
+function emoji(e, x, y, size) { const s = size * 1.28; ctx.drawImage(emojiSprite(e), x - s / 2, y - s / 2, s, s); }
+function label(t, x, y, size, fill, stroke) {
+  ctx.font = `900 ${size}px Nunito, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.lineWidth = Math.max(2, size / 5); ctx.strokeStyle = stroke || "rgba(0,0,0,.65)"; ctx.lineJoin = "round"; ctx.strokeText(t, x, y);
+  ctx.fillStyle = fill || "#fff"; ctx.fillText(t, x, y);
+}
+function drawBlob(x, y, r, col, name, m, fx, fy, sh, boost, pets, mine, now) {
+  const sr = r * scale;
+  if (x + sr < -60 || x - sr > cw + 60 || y + sr < -60 || y - sr > chh + 60) return;
+  const [c1, c2] = COLS[col] || COLS[0];
+  const wob = 1 + Math.sin(now / 180 + x) * 0.025;
+  if (boost) { ctx.fillStyle = "rgba(255,226,122,.35)"; ctx.beginPath(); ctx.arc(x - fx * sr * 0.5, y - fy * sr * 0.5, sr * 0.95, 0, 7); ctx.fill(); }
+  ctx.fillStyle = "rgba(0,0,0,.18)"; ctx.beginPath(); ctx.ellipse(x, y + sr * 0.9, sr * 0.9, sr * 0.28, 0, 0, 7); ctx.fill();
+  const g = ctx.createRadialGradient(x - sr * 0.35, y - sr * 0.4, sr * 0.1, x, y, sr);
+  g.addColorStop(0, c1); g.addColorStop(1, c2);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, sr * wob, sr / wob, 0, 0, 7); ctx.fill();
+  ctx.lineWidth = Math.max(2, sr * 0.06); ctx.strokeStyle = mine ? "#fff" : "rgba(0,0,0,.35)"; ctx.stroke();
+  // face
+  const ex = (fx || 0) * sr * 0.12, ey = (fy || 0) * sr * 0.12;
+  for (const s of [-1, 1]) {
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x + s * sr * 0.3 + ex, y - sr * 0.15 + ey, sr * 0.2, 0, 7); ctx.fill();
+    ctx.fillStyle = "#1b1b2b"; ctx.beginPath(); ctx.arc(x + s * sr * 0.3 + ex * 1.6, y - sr * 0.13 + ey * 1.6, sr * 0.1, 0, 7); ctx.fill();
+  }
+  ctx.strokeStyle = "#1b1b2b"; ctx.lineWidth = Math.max(1.5, sr * 0.07); ctx.lineCap = "round";
+  ctx.beginPath(); ctx.arc(x + ex, y + sr * 0.18 + ey, sr * 0.28, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+  ctx.fillStyle = "rgba(255,120,150,.45)";
+  for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(x + s * sr * 0.55 + ex, y + sr * 0.12 + ey, sr * 0.11, 0, 7); ctx.fill(); }
+  if (sh) { ctx.setLineDash([8, 7]); ctx.strokeStyle = "rgba(140,220,255,.9)"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, sr + 8, now / 300, now / 300 + 7); ctx.stroke(); ctx.setLineDash([]); }
+  // pets orbit around
+  if (pets) {
+    const arr = [...pets]; const list = []; for (const ch of arr) if (ch.trim() && !/[️‍]/.test(ch)) list.push(ch);
+    list.slice(0, 3).forEach((p, i) => {
+      const a = now / 900 + i * (Math.PI * 2 / 3);
+      const ps = Math.max(18, sr * 0.45);
+      emoji(p, x + Math.cos(a) * (sr + ps * 0.7), y + Math.sin(a) * (sr + ps * 0.7) * 0.8, ps);
+    });
+  }
+  const fs = Math.max(12, Math.min(26, sr * 0.32));
+  label(name, x, y - sr - fs * 0.9, fs, mine ? "#ffe27a" : "#fff");
+  label(fmt(m), x, y + sr * 0.62, Math.max(10, Math.min(22, sr * 0.28)), "#fff");
+}
+function draw(now) {
+  const Wd = WORLDS[S.world];
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const myR = radius(S.mass);
+  const tScale = Math.min(cw, chh) / (myR * 13 + 260);
+  scale += (tScale - scale) * 0.08;
+  camX += (ME.x - camX) * 0.2; camY += (ME.y - camY) * 0.2;
+  const sx = wx => (wx - camX) * scale + cw / 2, sy = wy => (wy - camY) * scale + chh / 2;
+  // ground
+  ctx.fillStyle = Wd.edge; ctx.fillRect(0, 0, cw, chh);
+  const x0 = Math.max(0, sx(0)), y0 = Math.max(0, sy(0)), x1 = Math.min(cw, sx(W)), y1 = Math.min(chh, sy(W));
+  ctx.fillStyle = Wd.ground; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  let step = 100; while (step * scale < 40) step *= 4;
+  ctx.strokeStyle = Wd.grid; ctx.lineWidth = 2; ctx.beginPath();
+  for (let gx = Math.floor((camX - cw / 2 / scale) / step) * step; gx <= camX + cw / 2 / scale; gx += step) if (gx >= 0 && gx <= W) { ctx.moveTo(sx(gx), y0); ctx.lineTo(sx(gx), y1); }
+  for (let gy = Math.floor((camY - chh / 2 / scale) / step) * step; gy <= camY + chh / 2 / scale; gy += step) if (gy >= 0 && gy <= W) { ctx.moveTo(x0, sy(gy)); ctx.lineTo(x1, sy(gy)); }
+  ctx.stroke();
+  if (S.world === 4) { // stars in space
+    ctx.fillStyle = "rgba(255,255,255,.6)";
+    for (let i = 0; i < 120; i++) { const r = rnd(i * 97 + 3); const x = r() * W, y = r() * W; const px = sx(x), py = sy(y); if (px > -5 && px < cw + 5 && py > -5 && py < chh + 5) ctx.fillRect(px, py, 2, 2); }
+  }
+  // things to eat
+  const halfW = cw / 2 / scale + 450, halfH = chh / 2 / scale + 450;
+  for (const it of ITEMS) {
+    if (Math.abs(it.x - camX) > halfW || Math.abs(it.y - camY) > halfH) continue;
+    const sr = it.r * scale; if (sr < 1.2) continue;
+    const px = sx(it.x), py = sy(it.y);
+    const edible = S.mass >= needMass(it.r);
+    if (it.pop > 0) it.pop = Math.max(0, it.pop - 0.02);
+    const size = sr * 2 * (1 - it.pop);
+    if (!edible && sr > 6) { ctx.fillStyle = "rgba(255,60,60,.18)"; ctx.beginPath(); ctx.arc(px, py, sr * 1.05, 0, 7); ctx.fill(); }
+    ctx.save(); ctx.translate(px, py); ctx.rotate(it.rot); emoji(Wd.things[it.t], 0, 0, size); ctx.restore();
+  }
+  // players, smallest on the bottom
+  const list = [...E.values()].filter(e => !(e.hide > 0)).map(e => ({ e, m: e.m || 1 }));
+  list.push({ e: null, m: S.mass });
+  list.sort((a, b) => a.m - b.m);
+  for (const { e, m } of list) {
+    if (!e) drawBlob(sx(ME.x), sy(ME.y), radius(S.mass), S.col, NAME, S.mass, ME.fx, ME.fy, ME.sh > 0, ME.boost > 0, eqEmojis(), true, now);
+    else drawBlob(sx(e.x), sy(e.y), radius(e.m), e.c || 0, e.name || "?", e.m, e.fx, e.fy, e.sh > 0, e.boost > 0, e.pets, false, now);
+  }
+  // floating words
+  for (let i = FX.length - 1; i >= 0; i--) {
+    const f = FX[i]; f.t += 1 / 60;
+    if (f.t > 1.4) { FX.splice(i, 1); continue; }
+    ctx.globalAlpha = Math.min(1, (1.4 - f.t) * 2);
+    label(f.txt, sx(f.x), sy(f.y) - f.t * 40, f.big ? 22 : 15, f.c);
+    ctx.globalAlpha = 1;
+  }
+  // event banner
+  const evn = eventNow();
+  if (evn) {
+    const left = Math.max(0, Math.ceil((evn.end - Date.now()) / 1000));
+    const txt = `${evn.ev.e} ${evn.ev.n}! x${evn.ev.m} everything · ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+    ctx.font = "900 16px Nunito, sans-serif"; const tw = ctx.measureText(txt).width + 26;
+    ctx.fillStyle = "rgba(0,0,0,.55)"; rrect(cw / 2 - tw / 2, chh - 44, tw, 32, 14); ctx.fill();
+    ctx.strokeStyle = evn.ev.c; ctx.lineWidth = 3; ctx.stroke();
+    label(txt, cw / 2, chh - 28, 16, evn.ev.c);
+  }
+  // biggest players list
+  const top = [...E.values()].filter(e => e.m).map(e => [e.name, e.m, false]).concat([[NAME, S.mass, true]]).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const bw = 170, bx = cw - bw - 10;
+  ctx.fillStyle = "rgba(0,0,0,.45)"; rrect(bx, 10, bw, 26 + top.length * 19, 10); ctx.fill();
+  ctx.textAlign = "left"; ctx.font = "900 13px Nunito, sans-serif"; ctx.fillStyle = "#ffe27a"; ctx.fillText("🏆 Biggest", bx + 10, 25);
+  top.forEach((t, i) => {
+    ctx.font = "800 12px Nunito, sans-serif"; ctx.fillStyle = t[2] ? "#ffe27a" : "#fff"; ctx.textAlign = "left";
+    ctx.fillText(`${i + 1}. ${t[0]}`, bx + 10, 45 + i * 19); ctx.textAlign = "right"; ctx.fillText(fmt(t[1]), bx + bw - 10, 45 + i * 19);
+  });
+  // minimap
+  const mm = Math.min(110, cw * 0.22), mx = 10, my = chh - mm - 10;
+  ctx.fillStyle = "rgba(0,0,0,.45)"; rrect(mx, my, mm, mm, 8); ctx.fill();
+  for (const e of E.values()) { if (e.hide > 0) continue; ctx.fillStyle = canEat(e.m, S.mass) ? "#ff5d5d" : canEat(S.mass, e.m) ? "#4fcf6a" : "#fff"; ctx.beginPath(); ctx.arc(mx + e.x / W * mm, my + e.y / W * mm, 2.5, 0, 7); ctx.fill(); }
+  ctx.fillStyle = "#ffe27a"; ctx.beginPath(); ctx.arc(mx + ME.x / W * mm, my + ME.y / W * mm, 4, 0, 7); ctx.fill();
+}
+function rrect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+// ---------------- main loop ----------------
+let last = performance.now(), uiT = 0, hudT = 0, saveT = 0, lbT = 0, lbSent = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (playing) {
+    ME.sh = Math.max(0, ME.sh - dt); ME.boost = Math.max(0, ME.boost - dt); ME.boostCd = Math.max(0, ME.boostCd - dt);
+    if (boostQueued && ME.boostCd <= 0) { ME.boost = 1.3; ME.boostCd = 5; }
+    boostQueued = false;
+    const [ix, iy] = readInput();
+    const sp = speedOf(S.mass, S.sp, ME.boost);
+    ME.vx += (ix * sp - ME.vx) * Math.min(1, dt * 10); ME.vy += (iy * sp - ME.vy) * Math.min(1, dt * 10);
+    if (ix || iy) { const d = Math.hypot(ix, iy); ME.fx = ix / d; ME.fy = iy / d; }
+    ME.x = Math.max(0, Math.min(W, ME.x + ME.vx * dt)); ME.y = Math.max(0, Math.min(W, ME.y + ME.vy * dt));
+    eatItemsFor(ME, true);
+    for (const e of E.values()) {
+      e.hide = Math.max(0, (e.hide || 0) - dt);
+      if (e.tx2 != null && !(e.bot && isHost)) { const k = Math.min(1, dt * 10); e.x += (e.tx2 - e.x) * k; e.y += (e.ty2 - e.y) * k; }
+    }
+    for (const [id, e] of E) if (!(e.bot && isHost) && e.seen && now - e.seen > 4000) E.delete(id);
+    iEatOthers();
+    if (isHost) hostTick(dt);
+    netTick(dt);
+    const b = $("boostBtn"); b.disabled = ME.boostCd > 0; $("boostLbl").textContent = ME.boostCd > 0 ? Math.ceil(ME.boostCd) + "s" : "Space";
+    draw(now);
+    hudT -= dt; if (hudT <= 0) { hudT = 0.25; renderHUD(); }
+    saveT -= dt; if (saveT <= 0) { saveT = 5; save(); }
+    uiT -= dt; if (uiT <= 0) { uiT = 1; renderUps(); renderWorlds(); renderEggs(); }
+    lbT -= dt; if (lbT <= 0) { lbT = 20; submitBest(); }
+  }
+  requestAnimationFrame(frame);
+}
+function submitBest() {
+  if (!window.Leaderboard || !hasName()) return;
+  const v = Math.min(1999999999, Math.floor(S.best));
+  if (v > lbSent * 1.2 && v >= 10) { lbSent = v; Leaderboard.submit(v); }
+}
+
+// ---------------- UI ----------------
+function setHTML(id, h) { const el = $(id); if (el._h !== h) { el._h = h; el.innerHTML = h; } }
+function setMsg(t, k) { const m = $("msg"); m.textContent = t; m.className = "msg" + (k ? " " + k : ""); }
+function today(d) { d = d || new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
+function dailyReady() { return S.day !== today(); }
+function renderHUD() {
+  $("hName").textContent = NAME; $("hSize").textContent = fmt(S.mass); $("hCoins").textContent = fmt(S.coins);
+  $("hMulti").textContent = "x" + fmt(gainMult());
+  const t = Date.now(), x = eventAt(t), mmss = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+  if (t >= x.s) { $("hEvTitle").textContent = `${x.ev.e} ${x.ev.n}`; $("hEvent").textContent = `x${x.ev.m} · ${mmss(x.end - t)}`; $("eventChip").classList.add("ready"); $("eventChip").style.borderColor = x.ev.c; }
+  else { $("hEvTitle").textContent = "Next event ⚡"; $("hEvent").textContent = mmss(x.s - t); $("eventChip").classList.remove("ready"); $("eventChip").style.borderColor = ""; }
+  const r = dailyReady(); $("hDaily").textContent = r ? "Claim!" : "Done ✔"; $("dailyChip").classList.toggle("ready", r);
+}
+function renderUps() {
+  let h = "";
+  for (const k in UPS) {
+    const U = UPS[k], lv = S[k], maxed = lv >= U.max, c = U.cost(lv);
+    h += `<div class="up"><h3>${U.n}</h3><div class="lv">Level ${lv} / ${U.max}</div><p>${U.d(lv)}</p>
+      <button class="buy" data-up="${k}" type="button" ${maxed || S.coins < c ? "disabled" : ""}>${maxed ? "MAXED" : "Buy · 🪙 " + fmt(c)}</button></div>`;
+  }
+  const need = rebirthNeed();
+  h += `<div class="up here"><h3>Rebirth 🔁</h3><div class="lv">Rebirths: ${S.rb} (x${1 + S.rb} growing)</div>
+    <p>Needs size ${fmt(need)}. Resets size, coins and upgrades. Next: x${S.rb + 2} growing forever.</p>
+    <button class="buy go" id="rbBtn" type="button" ${S.mass < need ? "disabled" : ""}>${S.mass < need ? "Size " + fmt(S.mass) + " / " + fmt(need) : "REBIRTH!"}</button></div>`;
+  setHTML("ups", h);
+}
+$("ups").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b || b.disabled) return;
+  if (b.id === "rbBtn") {
+    if (S.mass < rebirthNeed()) return;
+    S.rb++; S.mass = 1; S.coins = 0; S.sp = 0; S.bite = 0; S.mag = 0;
+    setMsg(`Rebirth ${S.rb}! You now grow x${1 + S.rb} faster forever.`, "good");
+  } else {
+    const k = b.dataset.up, U = UPS[k]; if (!U || S[k] >= U.max) return;
+    const c = U.cost(S[k]); if (S.coins < c) return;
+    S.coins -= c; S[k]++; setMsg(`${U.n} is now level ${S[k]}!`, "good");
+  }
+  save(); renderAll();
+});
+function renderWorlds() {
+  let h = "";
+  WORLDS.forEach((w, i) => {
+    const have = S.worlds.includes(i), here = S.world === i;
+    const btn = here ? `<button class="buy" type="button" disabled>You are here</button>`
+      : have ? `<button class="buy go" data-go="${i}" type="button">Go there</button>`
+      : `<button class="buy" data-unlock="${i}" type="button" ${S.coins < w.cost ? "disabled" : ""}>Unlock · 🪙 ${fmt(w.cost)}</button>`;
+    h += `<div class="up ${here ? "here" : ""}"><h3>${w.e} ${w.n}</h3><div class="lv">x${w.mult} growing</div><p>${w.things.slice(0, 7).join(" ")}</p>${btn}</div>`;
+  });
+  setHTML("worlds", h);
+}
+$("worlds").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b || b.disabled) return;
+  if (b.dataset.unlock) {
+    const i = +b.dataset.unlock, w = WORLDS[i]; if (S.worlds.includes(i) || S.coins < w.cost) return;
+    S.coins -= w.cost; S.worlds.push(i); setMsg(`You unlocked ${w.e} ${w.n}! Going there now.`, "good");
+    goWorld(i);
+  } else if (b.dataset.go) goWorld(+b.dataset.go);
+});
+function goWorld(i) {
+  if (!S.worlds.includes(i)) return;
+  S.world = i; save(); buildItems(); E = new Map(); isHost = true; hostId = MYID;
+  ME.x = W / 2; ME.y = W / 2; ME.sh = 3;
+  if (playing) { joinT = Date.now(); connect(); fillBots(); }
+  renderAll(); renderLobby();
+}
+function petPower(p) { return RAR[PETS[p.k].r].m * EGGS[p.w].pow; }
+function eqEmojis() { return S.eq.map(id => { const p = S.pets.find(q => q.id === id); return p ? PETS[p.k].e : ""; }).join(""); }
+function renderEggs() {
+  const w = S.world, egg = EGGS[w];
+  let h = `<button class="buy" id="eggBtn" type="button" ${S.coins < egg.cost || S.pets.length >= MAX_PETS ? "disabled" : ""}>🥚 ${WORLDS[w].n} egg · 🪙 ${fmt(egg.cost)}</button>`;
+  if (S.freeEggs > 0) h += `<button class="buy go" id="freeEggBtn" type="button" ${S.pets.length >= MAX_PETS ? "disabled" : ""}>🎁 Free egg (${S.freeEggs})</button>`;
+  h += `<button class="small alt" id="bestBtn" type="button">Equip best</button><span class="hint">Pets ${S.pets.length}/${MAX_PETS} · Pet multi x${fmt(petMult())}</span>`;
+  setHTML("eggRow", h);
+}
+function renderPets() {
+  if (!S.pets.length) { $("pets").innerHTML = `<p class="hint">No pets yet. Hatch an egg!</p>`; return; }
+  const sorted = [...S.pets].sort((a, b) => petPower(b) - petPower(a));
+  $("pets").innerHTML = sorted.map(p => {
+    const P = PETS[p.k], R = RAR[P.r];
+    return `<button class="pet ${S.eq.includes(p.id) ? "on" : ""}" data-pet="${p.id}" type="button" style="border-color:${R.c}"><span class="e">${P.e}</span><b>${P.n}</b><small style="color:${R.c}">${R.n}</small><small>x${fmt(petPower(p))} · ${WORLDS[p.w].e}</small></button>`;
+  }).join("");
+}
+function hatch(free) {
+  const w = S.world, egg = EGGS[w];
+  if (S.pets.length >= MAX_PETS) { setMsg("Your pet bag is full. Delete some pets first.", "bad"); return; }
+  if (free) { if (S.freeEggs <= 0) return; S.freeEggs--; }
+  else { if (S.coins < egg.cost) return; S.coins -= egg.cost; }
+  let roll = Math.random() * 100, r = 0;
+  for (let i = RAR.length - 1; i >= 0; i--) { const below = RAR.slice(0, i).reduce((a, b) => a + b.p, 0); if (roll >= below) { r = i; break; } }
+  const opts = PETS.map((p, k) => ({ p, k })).filter(o => o.p.r === r);
+  const pick = opts[Math.floor(Math.random() * opts.length)];
+  const pet = { id: S.pid++, k: pick.k, w };
+  S.pets.push(pet);
+  if (S.eq.length < MAX_EQ) S.eq.push(pet.id);
+  save(); renderAll();
+  const R = RAR[r];
+  $("box").innerHTML = `<h3>You hatched…</h3><div class="hatch">${pick.p.e}</div>
+    <p style="text-align:center;margin:0;font-weight:900;font-size:22px">${pick.p.n}</p>
+    <p style="text-align:center;margin:0;font-weight:900;color:${R.c}">${R.n} · x${fmt(petPower(pet))} growing</p>
+    <div class="row" style="justify-content:center"><button class="small" id="hOk" type="button">Yay!</button>${(free ? S.freeEggs > 0 : S.coins >= egg.cost) ? `<button class="small alt" id="hAgain" type="button">Hatch another</button>` : ""}</div>`;
+  $("overlay").hidden = false;
+  $("hOk").onclick = closeBox;
+  if ($("hAgain")) $("hAgain").onclick = () => hatch(free);
+}
+$("eggRow").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b || b.disabled) return;
+  if (b.id === "eggBtn") hatch(false);
+  else if (b.id === "freeEggBtn") hatch(true);
+  else if (b.id === "bestBtn") { S.eq = [...S.pets].sort((a, c) => petPower(c) - petPower(a)).slice(0, MAX_EQ).map(p => p.id); save(); renderAll(); }
+});
+$("pets").addEventListener("click", e => {
+  const b = e.target.closest("[data-pet]"); if (!b) return;
+  const id = +b.dataset.pet, p = S.pets.find(q => q.id === id); if (!p) return;
+  const P = PETS[p.k], R = RAR[P.r], on = S.eq.includes(id);
+  $("box").innerHTML = `<h3>${P.e} ${P.n}</h3><p class="hint" style="color:${R.c}">${R.n} from the ${WORLDS[p.w].n} egg · x${fmt(petPower(p))} growing</p>
+    <div class="row"><button class="small" id="pEq" type="button">${on ? "Unequip" : "Equip"}</button><button class="small alt" id="pDel" type="button">Delete pet</button><button class="small alt" id="pX" type="button">Close</button></div>`;
+  $("overlay").hidden = false;
+  $("pEq").onclick = () => {
+    if (on) S.eq = S.eq.filter(x => x !== id);
+    else { if (S.eq.length >= MAX_EQ) S.eq.shift(); S.eq.push(id); }
+    save(); renderAll(); closeBox();
+  };
+  $("pDel").onclick = () => { S.pets = S.pets.filter(q => q.id !== id); S.eq = S.eq.filter(x => x !== id); save(); renderAll(); closeBox(); setMsg(`${P.n} was set free. Bye ${P.e}!`); };
+  $("pX").onclick = closeBox;
+});
+function closeBox() { $("overlay").hidden = true; }
+$("overlay").addEventListener("click", e => { if (e.target.id === "overlay") closeBox(); });
+
+// ---------------- daily rewards ----------------
+function dailyDay() {
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  const streak = S.day === today(y) ? S.streak : 0;
+  return streak % 7;   // 0..6: which day of the week-long streak is next
+}
+$("dailyChip").onclick = () => {
+  const ready = dailyReady(), next = ready ? dailyDay() : (S.streak - 1) % 7;
+  const wm = WORLDS[bestWorld()].mult;
+  const days = DAILY.map((d, i) => `<div class="${i < next || (!ready && i === next) ? "done" : ""} ${ready && i === next ? "today" : ""}"><span class="e">${d.e}</span>Day ${i + 1}<br>${fmt(d.c * wm)}${d.egg ? `<br>+${d.egg}🥚` : ""}</div>`).join("");
+  $("box").innerHTML = `<h3>Daily reward 🎁</h3><p class="hint">Come back every day. Day 3 and day 7 give free eggs. Miss a day and you go back to day 1.</p>
+    <div class="days">${days}</div>
+    <div class="row">${ready ? `<button class="small" id="dClaim" type="button">Claim day ${next + 1}!</button>` : `<span class="hint">You already claimed today. Come back tomorrow!</span>`}<button class="small alt" id="dX" type="button">Close</button></div>`;
+  $("overlay").hidden = false;
+  $("dX").onclick = closeBox;
+  if (ready) $("dClaim").onclick = () => {
+    const d = DAILY[next], em = eventMult();
+    S.coins += d.c * wm * em; S.freeEggs += d.egg || 0; S.streak = next + 1; S.day = today();
+    save(); renderAll(); closeBox();
+    setMsg(`Day ${next + 1} reward: 🪙 ${fmt(d.c * wm * em)} coins${d.egg ? ` and ${d.egg} free egg${d.egg > 1 ? "s" : ""}` : ""}!`, "good");
+  };
+};
+
+// ---------------- lobby ----------------
+function renderLobby() {
+  $("colPick").innerHTML = COLS.map((c, i) => `<button class="col ${S.col === i ? "sel" : ""}" data-col="${i}" type="button" style="background:${c[0]}" aria-label="Colour ${i + 1}"></button>`).join("");
+  $("worldPick").innerHTML = WORLDS.map((w, i) => {
+    const have = S.worlds.includes(i);
+    return `<button class="opt ${S.world === i ? "sel" : ""} ${have ? "" : "locked"}" data-w="${i}" type="button"><span class="e">${have ? w.e : "🔒"}</span>${w.n}<small>${have ? "x" + w.mult + " growing" : "🪙 " + fmt(w.cost) + " to unlock"}</small></button>`;
+  }).join("");
+}
+$("colPick").addEventListener("click", e => { const b = e.target.closest("[data-col]"); if (!b) return; S.col = +b.dataset.col; save(); renderLobby(); });
+$("worldPick").addEventListener("click", e => {
+  const b = e.target.closest("[data-w]"); if (!b) return; const i = +b.dataset.w;
+  if (!S.worlds.includes(i)) { setMsg(`${WORLDS[i].n} costs 🪙 ${fmt(WORLDS[i].cost)}. Unlock it in the Worlds section below.`, "bad"); return; }
+  S.world = i; save(); renderLobby();
+});
+$("playBtn").onclick = () => {
+  playing = true; $("stage").classList.remove("inlobby"); $("lobby").hidden = true; $("bar").hidden = false; $("boostBtn").hidden = false;
+  resize(); buildItems(); E = new Map(); isHost = true; hostId = MYID;
+  const [x, y] = spawnPos(false); ME.x = x; ME.y = y; ME.sh = 3; camX = x; camY = y; scale = 1;
+  joinT = Date.now(); connect(); fillBots();
+  setMsg(hasName() ? `Go ${NAME}! Eat things smaller than you. Things with a red glow are too big for now.` : "Eat things smaller than you! Tap your name at the top to set it for the leaderboard.");
+};
+$("menuBtn").onclick = () => {
+  playing = false; disconnect(); save(); submitBest();
+  $("stage").classList.add("inlobby"); $("lobby").hidden = false; $("bar").hidden = true; $("boostBtn").hidden = true;
+  renderLobby(); renderAll();
+};
+$("nameChip").onclick = () => {
+  $("box").innerHTML = `<h3>What's your name?</h3><input id="nameIn" maxlength="12" autocomplete="off" spellcheck="false" aria-label="Your name">
+    <p class="hint" id="nameHint">First name or nickname only. Up to 12 letters. It shows above your character and on the leaderboard.</p>
+    <div class="row"><button class="small" id="nameOk" type="button">Save</button><button class="small alt" id="nameCancel" type="button">Cancel</button></div>`;
+  $("overlay").hidden = false; const inp = $("nameIn"); inp.value = hasName() ? NAME : ""; inp.focus();
+  const done = () => {
+    const v = cleanName(inp.value);
+    if (isRude(v)) { inp.value = ""; $("nameHint").textContent = "That name is not allowed. Try another one."; inp.focus(); return; }
+    NAME = v || "Player"; try { localStorage.setItem(NAME_KEY, NAME); } catch (e) {}
+    if (online && ch) try { ch.track(meta()); } catch (e) {}
+    renderHUD(); closeBox(); setMsg(`Hi ${NAME}! Your name is saved.`, "good");
+  };
+  $("nameOk").onclick = done; $("nameCancel").onclick = closeBox;
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") done(); if (e.key === "Escape") closeBox(); });
+};
+function renderAll() { renderHUD(); renderUps(); renderWorlds(); renderEggs(); renderPets(); }
+setInterval(() => { try { const n = safeName(localStorage.getItem(NAME_KEY)); if (n !== "Player" && n !== NAME) { NAME = n; renderHUD(); } } catch (e) {} }, 2000);
+// an online save coming down from account.js replaces the save while the page is open
+setInterval(() => { try { const raw = localStorage.getItem(SAVE_KEY); if (raw && raw !== lastSaved && raw !== JSON.stringify(S)) { const w = S.world; S = fix(Object.assign({}, DEF, JSON.parse(raw))); if (playing) S.world = w; lastSaved = raw; renderAll(); renderLobby(); } } catch (e) {} }, 3000);
+addEventListener("pagehide", () => { save(); submitBest(); });
+
+// ---------------- no zooming on iPhone / iPad ----------------
+["gesturestart", "gesturechange", "gestureend"].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+let lastTouchEnd = 0;
+document.addEventListener("touchend", e => {
+  const now = Date.now();
+  if (now - lastTouchEnd < 350 && !(e.target.closest && e.target.closest("input,button,a"))) e.preventDefault();
+  lastTouchEnd = now;
+}, { passive: false });
+document.addEventListener("dblclick", e => e.preventDefault(), { passive: false });
+
+// ---------------- start up ----------------
+addEventListener("resize", resize);
+document.addEventListener("visibilitychange", () => {
+  if (!playing) return;
+  if (document.hidden) { if (online) disconnect(); save(); }
+  else if (!online) { joinT = Date.now(); connect(); }
+});
+lastSaved = JSON.stringify(S);
+renderAll(); renderLobby(); resize(); updateOnlineMsg();
+setInterval(() => { if (!playing) renderHUD(); }, 1000);
+let wasEvent = !!eventNow();
+setInterval(() => { const x = eventNow(); if (!!x !== wasEvent) { wasEvent = !!x; if (x) setMsg(`${x.ev.e} ${x.ev.n} has started! x${x.ev.m} growing and coins for 10 minutes!`, "good"); else setMsg("The event is over. The next one starts in 20 minutes to 2 hours."); } }, 1000);
+if (window.Leaderboard) Leaderboard.mount({ el: "lb", game: "size-simulator", dir: "desc", unit: "size", max: 1999999999, title: "Size Simulator — biggest size" });
+requestAnimationFrame(frame);
+// test hook
+window.__ss = { eventAt, eventNow, S: () => S, E: () => E, ME, ITEMS: () => ITEMS, host: () => isHost, step: dt => hostTick(dt), grow: n => grow(n, 0, 0, false), goWorld };
+</script>
+</body>
+</html>

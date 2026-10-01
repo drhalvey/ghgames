@@ -102,7 +102,7 @@ canvas{display:block;width:100%;touch-action:none}
       <li>Run into another base, touch an animal to grab it, then carry it back into your base to keep it. Watch out for the owner and their guard animals!</li>
       <li>Robbers will try to steal from you too. Touch them to get your animal back, buy guard animals, or lock your base.</li>
       <li>Shiny is ×2, Golden ×5, Diamond ×10 and Rainbow ×25.</li>
-      <li>There are 3 galaxies with 25 worlds each. Buy new worlds for better animals, but every world costs way, way more than the last. Every world you own doubles everything you earn. Each rebirth doubles your money forever.</li>
+      <li>There are 8 galaxies with 25 worlds each (200 worlds). Buy new worlds for better animals, but every world costs way, way more than the last. Every world you own doubles everything you earn. Each rebirth doubles your money forever.</li>
       <li>Tap one of your own animals to sell it.</li>
     </ul>
   </div>
@@ -124,9 +124,14 @@ const SMALL = ["K","M","B","T","Qa","Qi","Sx","Sp","Oc","No"];
 const NU = ["","U","D","T","Qa","Qi","Sx","Sp","Oc","No"];
 const NT = ["","Dc","Vg","Tg","Qag","Qig","Sxg","Spg","Ocg","Nog"];
 const NH = ["","Ce","Du","Tr","Qd","Qn","Sc","St","Og","Nn"];
-function illion(N) { // name for 10^(3N+3)
+const NK = ["","Mi","Bi","Ti","Qai","Qii","Sxi","Spi","Oci","Noi","Dci"];
+function illion(N) { // name for 10^(3N+3); past 1e3003 it carries on with Mi, Bi ... like Wall Hop
   if (N < 10) return SMALL[N];
-  return NU[N % 10] + NT[Math.floor(N / 10) % 10] + NH[Math.floor(N / 100) % 10];
+  const lo = NU[N % 10] + NT[Math.floor(N / 10) % 10] + NH[Math.floor(N / 100) % 10];
+  const K = Math.floor(N / 1000);
+  if (!K) return lo;
+  const kn = K < 10 ? NK[K] : NU[K % 10] + NT[Math.floor(K / 10) % 10] + NH[Math.floor(K / 100) % 10] + "i";
+  return lo + (K >= 10 && lo ? "-" : "") + kn;
 }
 const D = x => x instanceof Decimal ? x : new Decimal(x);
 function fmt(n) {
@@ -138,7 +143,6 @@ function fmt(n) {
   let v = d.mantissa * Math.pow(10, d.exponent - e * 3);
   if (v >= 999.995) { v /= 1000; e++; }
   const s = v >= 100 ? Math.floor(v) : v >= 10 ? Math.floor(v * 10) / 10 : Math.floor(v * 100) / 100;
-  if (e - 1 >= 1000) return d.toExponential(2);
   return s + illion(e - 1);
 }
 
@@ -168,7 +172,7 @@ const MUTS = [
   { n: "Diamond", x: 10, ch: 0.006, c: "#7ff3ff" },
   { n: "Rainbow", x: 25, ch: 0.0015, c: "rainbow" }
 ];
-// Worlds: 3 galaxies, 25 worlds in each (75 worlds). Each world's animals are worth about
+// Worlds: 8 galaxies, 25 worlds in each (200 worlds). Each world's animals are worth about
 // 3,000 times more than the last one, and every world you own doubles everything (Everything multi).
 const THEMES = [
   { n: "Meadow",   e: "🌼", g: "#5fae4a", g2: "#57a142", r: "#8a7a5a" },
@@ -200,7 +204,12 @@ const THEMES = [
 const GALAXIES = [
   { n: "Milky Way", e: "🌌", tag: "",     tint: null },
   { n: "Andromeda", e: "💫", tag: " II",  tint: "rgba(90,40,160,.32)" },
-  { n: "Whirlpool", e: "🌀", tag: " III", tint: "rgba(255,190,40,.22)" }
+  { n: "Whirlpool", e: "🌀", tag: " III", tint: "rgba(255,190,40,.22)" },
+  { n: "Triangulum", e: "🔺", tag: " IV", tint: "rgba(255,60,60,.22)" },
+  { n: "Sombrero",  e: "🎩", tag: " V",   tint: "rgba(30,200,120,.22)" },
+  { n: "Pinwheel",  e: "🍥", tag: " VI",  tint: "rgba(255,110,200,.24)" },
+  { n: "Cartwheel", e: "🎡", tag: " VII", tint: "rgba(40,160,255,.26)" },
+  { n: "Black Eye", e: "👁️", tag: " VIII", tint: "rgba(0,0,0,.42)" }
 ];
 const PER_GALAXY = 25;
 const WORLDS = [];
@@ -761,7 +770,7 @@ let galTab = -1;
 function openWorlds(tab) {
   if (tab == null) tab = galTab >= 0 ? galTab : Math.floor(S.world / PER_GALAXY);
   galTab = tab;
-  let h = `<h2>🌍 Worlds</h2><p>3 galaxies with 25 worlds each. Every world has better animals (×${fmt(WSCALE)}) but each world costs way, way more than the last one, and the jump keeps getting bigger. Every world you own doubles everything (Everything ×2 that stacks). You have <b>${fmt(S.coins)}</b> coins.</p>`;
+  let h = `<h2>🌍 Worlds</h2><p>${GALAXIES.length} galaxies with 25 worlds each (${WORLDS.length} worlds). Every world has better animals (×${fmt(WSCALE)}) but each world costs way, way more than the last one, and the jump keeps getting bigger. Every world you own doubles everything (Everything ×2 that stacks). You have <b>${fmt(S.coins)}</b> coins.</p>`;
   h += `<div class="row" style="justify-content:flex-start;margin-bottom:10px">` + GALAXIES.map((G, gi) => {
     const open = gi * PER_GALAXY < S.worlds + 1;
     return `<button class="go ${gi === tab ? "" : "grey"}" data-tab="${gi}">${open ? G.e : "🔒"} ${G.n}</button>`;

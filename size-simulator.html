@@ -321,11 +321,29 @@ const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
 // ---------------- world items ----------------
 let ITEMS = [];
+// things are kept in a grid of squares so only the nearby squares are checked (much faster on iPad)
+const GC = 250, GN = Math.ceil(W / GC);
+let GRID = [];
+const cellOf = (x, y) => Math.min(GN - 1, Math.max(0, Math.floor(x / GC))) + Math.min(GN - 1, Math.max(0, Math.floor(y / GC))) * GN;
 function placeItem(it) {
   const r = rnd(hash(S.world + ":" + it.k + ":" + it.g));
-  it.x = 150 + r() * (W - 300); it.y = 150 + r() * (W - 300); it.rot = (r() - 0.5) * 0.5; it.pop = 0.4;
+  it.x = 150 + r() * (W - 300); it.y = 150 + r() * (W - 300); it.pop = 0.4;
+  const c = cellOf(it.x, it.y);
+  if (it.cell !== c) {
+    if (it.cell != null) { const a = GRID[it.cell], i = a.indexOf(it); if (i >= 0) { a[i] = a[a.length - 1]; a.pop(); } }
+    GRID[c].push(it); it.cell = c;
+  }
+}
+function itemsIn(x0, y0, x1, y1, fn) {
+  const cx0 = Math.max(0, Math.floor(x0 / GC)), cy0 = Math.max(0, Math.floor(y0 / GC));
+  const cx1 = Math.min(GN - 1, Math.floor(x1 / GC)), cy1 = Math.min(GN - 1, Math.floor(y1 / GC));
+  for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
+    const a = GRID[cx + cy * GN];
+    for (let i = a.length - 1; i >= 0; i--) fn(a[i]);
+  }
 }
 function buildItems() {
+  GRID = []; for (let i = 0; i < GN * GN; i++) GRID.push([]);
   ITEMS = []; let k = 0;
   TIER_R.forEach((r, t) => { for (let i = 0; i < TIER_N[t]; i++) { const it = { k: k++, t, r, g: 0 }; placeItem(it); ITEMS.push(it); } });
 }
@@ -374,19 +392,20 @@ function grow(amount, x, y, show) {
 function eatItemsFor(e, isMe) {
   const m = isMe ? S.mass : e.m, r = radius(m);
   const reach = r * (isMe ? 1 + S.mag * 0.06 : 1);
-  for (const it of ITEMS) {
+  if (!isMe && e.m > e.cap) return;
+  const gm = isMe ? gainMult() : e.gm;
+  itemsIn(e.x - reach, e.y - reach, e.x + reach, e.y + reach, it => {
     const dx = it.x - e.x, dy = it.y - e.y;
-    if (Math.abs(dx) > reach || Math.abs(dy) > reach) continue;
-    if (dx * dx + dy * dy > reach * reach) continue;
-    if (m < needMass(it.r)) continue;
-    if (!isMe && e.m > e.cap) continue;
-    const v = itemVal(it.r);
+    if (dx * dx + dy * dy > reach * reach) return;
+    if (m < needMass(it.r)) return;
+    const v = itemVal(it.r) * gm;
     if (online) foodQ.push([it.k, it.g]);
     it.g++; placeItem(it);
-    if (isMe) { grow(v * gainMult(), it.x, it.y, false); FX.push({ x: e.x, y: e.y - r, t: 0, txt: "+" + fmt(v * gainMult()), c: "#ffe27a" }); S.eats++; }
-    else e.m += v * e.gm;
-  }
+    if (isMe) { grow(v, 0, 0, false); pendingGain += v; S.eats++; }
+    else e.m += v;
+  });
 }
+let pendingGain = 0, gainT = 0;
 const canEat = (bigM, smallM) => bigM >= smallM * 1.5;
 function touching(big, small, bm, smm) { return Math.hypot(big.x - small.x, big.y - small.y) < radius(bm) - radius(smm) * 0.4; }
 let claimed = new Map();
@@ -437,17 +456,18 @@ function botThink(b) {
   }
   if (prey && Math.random() < 0.8) { b.mode = "hunt"; b.tx = prey.x; b.ty = prey.y; if (pd < 300 + r && b.boostCd <= 0 && Math.random() < 0.3) { b.boost = 1.2; b.boostCd = 7; } return; }
   let best = null, bs = 0;
-  if (b.m <= b.cap) for (const it of ITEMS) {
-    if (b.m < needMass(it.r)) continue;
+  const look = Math.min(1400, 500 + r * 3);
+  if (b.m <= b.cap) itemsIn(b.x - look, b.y - look, b.x + look, b.y + look, it => {
+    if (b.m < needMass(it.r)) return;
     const d = Math.hypot(it.x - b.x, it.y - b.y);
-    if (d > 1400) continue;
     const s = itemVal(it.r) / (d + 60);
     if (s > bs) { bs = s; best = it; }
-  }
+  });
   if (best) { b.mode = "eat"; b.tx = best.x; b.ty = best.y; }
   else if (Math.hypot(b.tx - b.x, b.ty - b.y) < 60) { b.mode = "wander"; b.tx = 300 + Math.random() * (W - 600); b.ty = 300 + Math.random() * (W - 600); }
 }
-function speedOf(m, lv, boost) { return 165 * (1 + lv * 0.06) * Math.pow(radius(m) / 12, 0.3) * (boost > 0 ? 1.75 : 1); }
+// bigger players move faster across the world so they never feel slower on screen as the camera zooms out
+function speedOf(m, lv, boost) { return 165 * (1 + lv * 0.06) * Math.pow(radius(m) / 12, 0.7) * (boost > 0 ? 1.75 : 1); }
 function hostTick(dt) {
   for (const b of E.values()) {
     if (!b.bot) continue;
@@ -614,22 +634,29 @@ let cw = 0, chh = 0, dpr = 1, scale = 1, camX = W / 2, camY = W / 2;
 function resize() {
   const st = $("stage"); cw = st.clientWidth;
   chh = Math.round(cw < 600 ? Math.max(320, Math.min(innerHeight * 0.64, cw * 1.15)) : Math.max(300, Math.min(innerHeight * 0.72, cw * 0.62)));
-  dpr = Math.min(devicePixelRatio || 1, 1.5);
+  // touch screens (iPad) draw at normal sharpness: far fewer pixels, much smoother
+  const touch = matchMedia && matchMedia("(pointer: coarse)").matches;
+  dpr = Math.min(devicePixelRatio || 1, touch ? 1 : 1.5);
   cv.width = Math.round(cw * dpr); cv.height = Math.round(chh * dpr); cv.style.height = chh + "px";
 }
 const SPR = new Map();
-function emojiSprite(e) {
-  let c = SPR.get(e);
+// each emoji is drawn once at a few sizes and the closest size is reused (shrinking a big picture every frame is slow on iPad)
+const MIPS = [24, 48, 96, 160];
+function emojiSprite(e, px) {
+  let lvl = 0; while (lvl < MIPS.length - 1 && MIPS[lvl] < px) lvl++;
+  const key = e + lvl;
+  let c = SPR.get(key);
   if (!c) {
-    c = document.createElement("canvas"); c.width = c.height = 128;
+    const n = MIPS[lvl];
+    c = document.createElement("canvas"); c.width = c.height = n;
     const g = c.getContext("2d");
-    g.font = `100px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
-    g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(e, 64, 70);
-    SPR.set(e, c);
+    g.font = `${Math.round(n * 0.78)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+    g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(e, n / 2, n * 0.55);
+    SPR.set(key, c);
   }
   return c;
 }
-function emoji(e, x, y, size) { const s = size * 1.28; ctx.drawImage(emojiSprite(e), x - s / 2, y - s / 2, s, s); }
+function emoji(e, x, y, size) { const s = size * 1.28; ctx.drawImage(emojiSprite(e, s * dpr), x - s / 2, y - s / 2, s, s); }
 function label(t, x, y, size, fill, stroke) {
   ctx.font = `900 ${size}px Nunito, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
   ctx.lineWidth = Math.max(2, size / 5); ctx.strokeStyle = stroke || "rgba(0,0,0,.65)"; ctx.lineJoin = "round"; ctx.strokeText(t, x, y);
@@ -670,7 +697,10 @@ function drawBlob(x, y, r, col, name, m, fx, fy, sh, boost, pets, mine, now) {
   label(name, x, y - sr - fs * 0.9, fs, mine ? "#ffe27a" : "#fff");
   label(fmt(m), x, y + sr * 0.62, Math.max(10, Math.min(22, sr * 0.28)), "#fff");
 }
-function draw(now) {
+let fdt = 1 / 60;
+function draw(now, dt) {
+  fdt = dt || 1 / 60;
+  if (FX.length > 25) FX.splice(0, FX.length - 25);
   const Wd = WORLDS[S.world];
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const myR = radius(S.mass);
@@ -692,17 +722,17 @@ function draw(now) {
     for (let i = 0; i < 120; i++) { const r = rnd(i * 97 + 3); const x = r() * W, y = r() * W; const px = sx(x), py = sy(y); if (px > -5 && px < cw + 5 && py > -5 && py < chh + 5) ctx.fillRect(px, py, 2, 2); }
   }
   // things to eat
-  const halfW = cw / 2 / scale + 450, halfH = chh / 2 / scale + 450;
-  for (const it of ITEMS) {
-    if (Math.abs(it.x - camX) > halfW || Math.abs(it.y - camY) > halfH) continue;
-    const sr = it.r * scale; if (sr < 1.2) continue;
+  const halfW = cw / 2 / scale + 420, halfH = chh / 2 / scale + 420;
+  ctx.fillStyle = "rgba(255,60,60,.2)";
+  itemsIn(camX - halfW, camY - halfH, camX + halfW, camY + halfH, it => {
+    const sr = it.r * scale; if (sr < 2.5) return;   // too small to see
     const px = sx(it.x), py = sy(it.y);
-    const edible = S.mass >= needMass(it.r);
-    if (it.pop > 0) it.pop = Math.max(0, it.pop - 0.02);
+    if (px < -sr * 1.4 || px > cw + sr * 1.4 || py < -sr * 1.4 || py > chh + sr * 1.4) return;
+    if (it.pop > 0) it.pop = Math.max(0, it.pop - 0.03);
     const size = sr * 2 * (1 - it.pop);
-    if (!edible && sr > 6) { ctx.fillStyle = "rgba(255,60,60,.18)"; ctx.beginPath(); ctx.arc(px, py, sr * 1.05, 0, 7); ctx.fill(); }
-    ctx.save(); ctx.translate(px, py); ctx.rotate(it.rot); emoji(Wd.things[it.t], 0, 0, size); ctx.restore();
-  }
+    if (sr > 8 && S.mass < needMass(it.r)) { ctx.beginPath(); ctx.arc(px, py, sr * 1.05, 0, 7); ctx.fill(); }
+    emoji(Wd.things[it.t], px, py, size);
+  });
   // players, smallest on the bottom
   const list = [...E.values()].filter(e => !(e.hide > 0)).map(e => ({ e, m: e.m || 1 }));
   list.push({ e: null, m: S.mass });
@@ -713,7 +743,7 @@ function draw(now) {
   }
   // floating words
   for (let i = FX.length - 1; i >= 0; i--) {
-    const f = FX[i]; f.t += 1 / 60;
+    const f = FX[i]; f.t += fdt;
     if (f.t > 1.4) { FX.splice(i, 1); continue; }
     ctx.globalAlpha = Math.min(1, (1.4 - f.t) * 2);
     label(f.txt, sx(f.x), sy(f.y) - f.t * 40, f.big ? 22 : 15, f.c);
@@ -769,7 +799,8 @@ function frame(now) {
     if (isHost) hostTick(dt);
     netTick(dt);
     const b = $("boostBtn"); b.disabled = ME.boostCd > 0; $("boostLbl").textContent = ME.boostCd > 0 ? Math.ceil(ME.boostCd) + "s" : "Space";
-    draw(now);
+    gainT -= dt; if (gainT <= 0 && pendingGain > 0) { gainT = 0.35; FX.push({ x: ME.x, y: ME.y - radius(S.mass), t: 0, txt: "+" + fmt(pendingGain), c: "#ffe27a" }); pendingGain = 0; }
+    draw(now, dt);
     hudT -= dt; if (hudT <= 0) { hudT = 0.25; renderHUD(); }
     saveT -= dt; if (saveT <= 0) { saveT = 5; save(); }
     uiT -= dt; if (uiT <= 0) { uiT = 1; renderUps(); renderWorlds(); renderEggs(); }

@@ -203,9 +203,10 @@ const GALAXIES = [
 const PER_GALAXY = 25;
 const WORLDS = [];
 GALAXIES.forEach((G, gi) => THEMES.forEach(T => WORLDS.push(Object.assign({}, T, { n: T.n + G.tag, base: T.n, gal: gi }))));
-const WSTEP = 3.5; // each world is 10^3.5 (about 3,162) times richer
+const WSTEP = 3.3; // each world's animals are 10^3.3 (about 2,000) times better
 const WSCALE = Math.pow(10, WSTEP);
-const worldCost = w => 500 * Math.pow(10, WSTEP * w);
+const CSTEP = 4;    // but each world costs 10,000 times more than the one before, so every world up is harder to reach
+const worldCost = w => 5e6 * Math.pow(10, CSTEP * (w - 1));
 const GUARDS = [
   { e: "🐕", n: "Guard Dog",       cost: 400,  sp: 150, r: 95 },
   { e: "🐊", n: "Croc",            cost: 2.5e4, sp: 165, r: 110 },
@@ -262,7 +263,7 @@ const hasName = () => NAME && NAME !== "Player";
 const everyMul = () => Math.pow(2, S.worlds - 1);
 const rebMul = () => 1 + 0.5 * S.reb;
 const luck = () => 1 + 0.15 * S.reb + 0.1 * (S.worlds - 1);
-const rebCost = () => 2e5 * Math.pow(10, WSTEP * (S.worlds - 1)) * Math.pow(3, S.reb);
+const rebCost = () => Math.min(5e299, 2e5 * Math.pow(10, CSTEP * (S.worlds - 1)) * Math.pow(3, S.reb));
 function income() {
   let t = 0; for (const a of S.animals) t += aInc(a);
   return Math.min(CAP, t * everyMul() * rebMul());
@@ -754,7 +755,7 @@ let galTab = -1;
 function openWorlds(tab) {
   if (tab == null) tab = galTab >= 0 ? galTab : Math.floor(S.world / PER_GALAXY);
   galTab = tab;
-  let h = `<h2>🌍 Worlds</h2><p>3 galaxies with 25 worlds each. Every world has better animals (×${fmt(WSCALE)}) and every world you own doubles everything (Everything ×2 that stacks). You have <b>${fmt(S.coins)}</b> coins.</p>`;
+  let h = `<h2>🌍 Worlds</h2><p>3 galaxies with 25 worlds each. Every world has better animals (×${fmt(WSCALE)}) but costs ×${fmt(Math.pow(10, CSTEP))} more than the last one. Every world you own doubles everything (Everything ×2 that stacks). You have <b>${fmt(S.coins)}</b> coins.</p>`;
   h += `<div class="row" style="justify-content:flex-start;margin-bottom:10px">` + GALAXIES.map((G, gi) => {
     const open = gi * PER_GALAXY < S.worlds + 1;
     return `<button class="go ${gi === tab ? "" : "grey"}" data-tab="${gi}">${open ? G.e : "🔒"} ${G.n}</button>`;

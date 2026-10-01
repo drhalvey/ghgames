@@ -1128,19 +1128,23 @@ function checkBlocked(){
 }
 blockReady = true; checkBlocked(); setInterval(checkBlocked, 20000);
 // ---------- auto update ----------
-// version.txt is changed whenever the game is updated. Open games check it every minute and,
-// when it changes, save and reload between runs so everyone gets the new rules straight away.
-const GAME_VERSION = "2026-09-27e";
+// version.txt is changed whenever any game on the site is updated. The first check remembers the
+// version this page opened with; if it changes while the page is open, save and reload between runs
+// so everyone gets the new rules straight away. (No hard-coded version, so other games bumping
+// version.txt can never leave Wall Hop stuck reloading every minute.)
+let GAME_VERSION = null;
 function checkVersion(){
   if(!navigator.onLine) return;
   fetch("version.txt?t=" + Date.now(), {cache:"no-store"}).then(r => r.ok ? r.text() : "").then(v=>{
     v = (v||"").trim();
-    if(!v || v === GAME_VERSION) return;
+    if(!v) return;
+    if(GAME_VERSION === null){ GAME_VERSION = v; return; }
+    if(v === GAME_VERSION) return;
     const go = ()=>{ if(G.state !== "idle"){ setTimeout(go, 1000); return; } saveNow(); location.reload(); };
     go();
   }).catch(()=>{});
 }
-setInterval(checkVersion, 60000);
+checkVersion(); setInterval(checkVersion, 60000);
 // ---------- leaderboard ----------
 if(window.Leaderboard){
   Leaderboard.mount({el:"lb", game:"wall-hop", dir:"desc", unit:"walls", title:"Wall Hop Pets — best wall reached"});

@@ -6,6 +6,7 @@
 <title>Steal an Animal</title>
 <script src="analytics.js" defer></script>
 <script src="account.js" data-game="steal-an-animal"></script>
+<script src="phatcoin.js" data-game="steal-an-animal" data-pill="none"></script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -47,6 +48,10 @@ canvas{display:block;width:100%;touch-action:none}
 .bb.world{background:#22a77f;box-shadow:0 4px 0 #11684e}
 .bb.reb{background:#e8384f;box-shadow:0 4px 0 #8f1626}
 .bb.friend{background:#3b82f6;box-shadow:0 4px 0 #1d4fa8}
+.bb.phat{background:linear-gradient(#ffd54a,#f5a800);color:#2b1d00;box-shadow:0 4px 0 #8a5a00}
+button.chip.pc{background:#3a2d0c;border-color:#c98a00}
+button.chip.pc b{color:#ffd54a}
+.item.pcitem .e{font-size:28px}
 .bb[disabled]{filter:grayscale(.7) brightness(.75);cursor:default}
 .msg{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:10px 14px;font-weight:800;min-height:44px}
 .msg.good{border-color:var(--green)}
@@ -83,6 +88,7 @@ canvas{display:block;width:100%;touch-action:none}
       <div class="chip"><span>Per second</span><b id="hInc">0</b></div>
       <div class="chip"><span>Everything</span><b id="hMul">×1</b></div>
       <div class="chip"><span>World</span><b id="hWorld">Meadow</b></div>
+      <button class="chip pc" id="hPC" type="button"><span>🪙 PhatCoin</span><b id="hPCv">0</b></button>
       <button class="chip" id="hName" type="button"><span>Name</span><b id="hNameV">Player</b></button>
     </div>
   </div>
@@ -94,6 +100,7 @@ canvas{display:block;width:100%;touch-action:none}
     <button class="bb world" id="bWorld" type="button">🌍 Worlds<small id="bWorldS">Everything multi</small></button>
     <button class="bb reb" id="bReb" type="button">♻️ Rebirth<small id="bRebS"></small></button>
     <button class="bb friend" id="bFriend" type="button">👀 Visit a friend<small>Steal their animals</small></button>
+    <button class="bb phat" id="bPhat" type="button">🪙 PhatCoin Shop<small id="bPhatS">Boosts and eggs</small></button>
   </div>
   <div class="msg" id="msg">Tap an animal on the road to buy it. Run into other bases, grab an animal and bring it home!</div>
   <div class="panel">
@@ -108,6 +115,7 @@ canvas{display:block;width:100%;touch-action:none}
       <li>Tap one of your own animals to sell it.</li>
       <li>Use the 🍀 Luck Upgrader to get rarer animals and more mutations. Luck keeps when you rebirth.</li>
       <li>There are 48 kinds of animal, 8 in every rarity.</li>
+      <li>🪙 <b>PhatCoin</b> is the coin for all of GH Games. Get 2 for stealing from a computer base, 5 for stealing from a friend, 25 for a rebirth, a daily bonus, and up to 100 for being in today's top 10. Spend it in the PhatCoin Shop.</li>
     </ul>
   </div>
   <div id="lb"></div>
@@ -248,7 +256,7 @@ function validA(a) {
 
 // ---------------- save ----------------
 const SAVE_KEY = "stealanimal-save";
-const DEF = { coins: 500, v: 2, luck: 0, animals: [], pads: 6, guards: [], reb: 0, nid: 1, sec: "", seen: 0, lockUntil: 0, lockReady: 0, world: 0, worlds: 1, steals: 0 };
+const DEF = { coins: 500, v: 2, luck: 0, animals: [], pads: 6, guards: [], reb: 0, nid: 1, sec: "", seen: 0, lockUntil: 0, lockReady: 0, world: 0, worlds: 1, steals: 0, boostUntil: 0, luckyUntil: 0 };
 function randSecret() { const a = "abcdefghijkmnpqrstuvwxyz23456789"; let s = ""; for (let i = 0; i < 24; i++) s += a[Math.floor(Math.random() * a.length)]; return s; }
 function remapOld(a) { if (a && Number.isInteger(a.k) && a.k < 24) a.k = Math.floor(a.k / 4) * PER_TIER + a.k % 4; return a; }
 function fix(o) {
@@ -289,11 +297,13 @@ const myLocked = () => vip() || S.lockUntil > Date.now();
 // ---------------- multipliers ----------------
 const everyMul = () => D(2).pow(S.worlds - 1);
 const rebMul = () => D(2).pow(S.reb);
-const allMul = () => everyMul().mul(rebMul());
+const boosted = () => S.boostUntil > Date.now();
+const lucky = () => S.luckyUntil > Date.now();
+const allMul = () => everyMul().mul(rebMul()).mul(boosted() ? 2 : 1);
 // Luck upgrader: every level makes rarer animals and mutations turn up more often on the road
 // (and in the robbers' bases). It keeps through rebirths.
 const luckCost = l => D(500).mul(D(4).pow(l));
-const luck = () => 1 + 0.15 * S.reb + 0.1 * (S.worlds - 1) + 0.12 * S.luck;
+const luck = () => (1 + 0.15 * S.reb + 0.1 * (S.worlds - 1) + 0.12 * S.luck) * (lucky() ? 2 : 1);
 const rebCost = () => D(2e6).mul(D(10).pow(WSTEP * (S.worlds - 1))).mul(D(4).pow(S.reb));
 function income() {
   let t = D(0); for (const a of S.animals) t = t.add(aInc(a));
@@ -458,6 +468,7 @@ function deliver() {
         player.carry = null; addMine(c.a); S.steals++; save();
         b.coolUntil = Date.now() + 60000;
         setMsg("😎 You stole " + b.name + "'s " + aName(c.a) + "!", "good");
+        if (window.PhatCoin) PhatCoin.earn("win", 5, "robbing " + b.name);
       } else {
         const why = { locked: b.name + " locked their base just in time!", cooldown: b.name + " was robbed less than a minute ago.", last_one: "That was their last animal.", gone: "That animal was already gone!" }[r && r.error] || "Could not steal it. Try again.";
         player.carry = null;
@@ -468,7 +479,10 @@ function deliver() {
     return;
   }
   player.carry = null;
-  if (addMine(c.a)) { S.steals++; save(); setMsg("😎 You stole the " + aName(c.a) + " from " + b.name + "!", "good"); }
+  if (addMine(c.a)) {
+    S.steals++; save(); setMsg("😎 You stole the " + aName(c.a) + " from " + b.name + "!", "good");
+    if (window.PhatCoin) PhatCoin.earn("win", 2, "a steal");
+  }
 }
 
 // ---------------- NPC robbers ----------------
@@ -729,12 +743,18 @@ function draw() {
 
 // ---------------- HUD ----------------
 function renderHUD() {
+  const now = Date.now();
   $("hCoins").textContent = fmt(S.coins);
   $("hInc").textContent = fmt(income());
-  $("hMul").textContent = "×" + fmt(allMul());
+  $("hMul").textContent = "×" + fmt(allMul()) + (boosted() ? " ⚡" : "");
+  if (window.PhatCoin) $("hPCv").textContent = PhatCoin.balance().toLocaleString();
+  const left = u => Math.ceil((u - now) / 60000) + "m";
+  const act = [];
+  if (boosted()) act.push("⚡" + left(S.boostUntil));
+  if (lucky()) act.push("🍀" + left(S.luckyUntil));
+  $("bPhatS").textContent = act.length ? act.join(" ") + " active" : "Boosts and eggs";
   $("hWorld").textContent = WORLDS[S.world].e + " " + WORLDS[S.world].n + " (" + (S.world + 1) + "/" + WORLDS.length + ")";
   $("hNameV").textContent = NAME;
-  const now = Date.now();
   $("bLockS").textContent = vip() ? "Locked forever 👑" : S.lockUntil > now ? "Locked " + Math.ceil((S.lockUntil - now) / 1000) + "s" : S.lockReady > now ? "Ready in " + Math.ceil((S.lockReady - now) / 1000) + "s" : "60 seconds";
   $("bLock").disabled = vip() || S.lockReady > now;
   $("bLuckS").textContent = "Level " + S.luck + (S.luck < LUCK_MAX ? " · " + fmt(luckCost(S.luck)) : " · MAX");
@@ -879,6 +899,7 @@ $("bReb").onclick = () => {
     if (player.carry) caught("the rebirth");
     S.reb++; S.coins = D(500); S.animals = S.animals.filter(a => a.best).map(a => (a.p = 0, a)); S.pads = Math.min(MAX_PADS, 6 + S.reb); lbSent = 0; save();
     closeBox(); setMsg("♻️ Rebirth " + S.reb + "! Money is now ×" + fmt(rebMul()) + " forever.", "good");
+    if (window.PhatCoin) PhatCoin.earn("rebirth", 25, "rebirth " + S.reb);
   };
 };
 
@@ -981,6 +1002,57 @@ function openFriends() {
   }).catch(() => { const L = $("xList"); if (L) L.innerHTML = "<p>Could not load bases. Are you online?</p>"; });
 }
 $("bFriend").onclick = openFriends;
+
+// ---------------- PhatCoin Shop ----------------
+// PhatCoin is the one coin for all of GH Games (phatcoin.js). It lives in the
+// player's account, so spending it asks the server first, then gives the thing.
+const PC_ITEMS = [
+  { id: "coin-rush",  e: "⚡", n: "Coin Rush",    d: "Double money for 10 minutes", cost: 30 },
+  { id: "lucky",      e: "🍀", n: "Lucky Charm",  d: "Double luck for 10 minutes", cost: 40 },
+  { id: "time-warp",  e: "⏩", n: "Time Warp",    d: "Get 30 minutes of money right now", cost: 50 },
+  { id: "egg",        e: "🥚", n: "Mystery Egg",  d: "A Legendary or Mythic animal from this world, maybe mutated", cost: 60 },
+  { id: "super-lock", e: "🔐", n: "Super Lock",   d: "Lock your base for 10 minutes", cost: 25 }
+];
+function pcGive(it) {
+  const now = Date.now();
+  if (it.id === "coin-rush") { S.boostUntil = Math.max(now, S.boostUntil) + 600000; setMsg("⚡ Coin Rush! Double money for 10 minutes.", "good"); }
+  else if (it.id === "lucky") { S.luckyUntil = Math.max(now, S.luckyUntil) + 600000; setMsg("🍀 Lucky Charm! Double luck for 10 minutes.", "good"); }
+  else if (it.id === "time-warp") { const got = income().mul(1800); S.coins = S.coins.add(got); setMsg("⏩ Time Warp! You got " + fmt(got) + " coins.", "good"); }
+  else if (it.id === "egg") {
+    const tier = Math.random() < 0.25 ? 5 : 4;
+    const a = { k: tier * PER_TIER + Math.floor(Math.random() * PER_TIER), w: S.world, m: rollMut(3) };
+    addMine(a);
+    setMsg("🥚 The egg hatched: " + (a.m ? "✨ " : "") + KINDS[a.k][0] + " " + aName(a) + " (" + TIERS[tier].n + ")!", "good");
+  }
+  else if (it.id === "super-lock") { S.lockUntil = Math.max(now, S.lockUntil) + 600000; S.lockReady = S.lockUntil + 30000; pubT = 0; setMsg("🔐 Super Lock! Nobody can get in for 10 minutes.", "good"); }
+  save();
+}
+function openPhat() {
+  if (!window.PhatCoin) { setMsg("PhatCoin could not load. Check the internet and refresh.", "bad"); return; }
+  const bal = PhatCoin.balance(), logged = PhatCoin.loggedIn();
+  let h = `<h2>🪙 PhatCoin Shop</h2><p>You have <b>${bal.toLocaleString()}</b> PhatCoin${logged ? "" : " in your pocket"}. PhatCoin works in every GH Games game.</p>`;
+  if (!logged) h += `<p>Log in to spend PhatCoin (tap ☁️ at the bottom left). Your pocket coins move into your account.</p>`;
+  h += `<div class="list">`;
+  PC_ITEMS.forEach((it, i) => {
+    h += `<div class="item pcitem"><div class="e">${it.e}</div><div class="t"><b>${it.n}</b><small>${it.d}</small></div><button class="go" data-pc="${i}" ${logged && bal >= it.cost ? "" : "disabled"}>🪙 ${it.cost}</button></div>`;
+  });
+  h += `</div><p>Earn PhatCoin: 2 for stealing from a computer base, 5 for stealing from a friend, 25 for a rebirth, a daily bonus, and up to 100 for being in today's top 10.</p>`;
+  h += `<div class="row"><button class="go" id="xWallet">Daily bonus and wallet</button><button class="go grey" id="xClose">Close</button></div>`;
+  openBox(h);
+  $("xClose").onclick = closeBox;
+  $("xWallet").onclick = () => { closeBox(); PhatCoin.open(); };
+  $("box").querySelectorAll("[data-pc]").forEach(b => b.onclick = () => {
+    const it = PC_ITEMS[+b.dataset.pc];
+    if (it.id === "egg" && freePad() < 0) { setMsg("Your base is full! Make room before you hatch an egg.", "bad"); closeBox(); return; }
+    b.disabled = true; b.textContent = "…";
+    PhatCoin.spend(it.cost, it.id).then(ok => { if (ok) pcGive(it); openPhat(); renderHUD(); });
+  });
+}
+$("bPhat").onclick = openPhat;
+$("hPC").onclick = () => { if (window.PhatCoin) PhatCoin.open(); };
+// leaderboard reward: checks today's top 10 now and then; the server pays once a day
+setInterval(() => { if (window.PhatCoin && hasName() && lbSent > 0) PhatCoin.leaderboard(NAME, "desc"); }, 300000);
+setTimeout(() => { if (window.PhatCoin && hasName()) PhatCoin.leaderboard(NAME, "desc"); }, 20000);
 
 // ---------------- Guide Dog's special pet ----------------
 // Guide Dog gets the best animal in the whole game: a Rainbow Infinity VIII Dodo.

@@ -12,6 +12,7 @@ ghgames/
   site.css        shared look for the homepage and leaderboards page
   favicon.svg     the yellow GH logo
   account.js      player accounts + online saves (username/password, no email) — see below
+  phatcoin.js     PhatCoin, the one coin for every game, kept in the player's account — see below
   analytics.js    Google Analytics (set GA_ID inside; Frondi Clicker pages do not load it)
   blackhole.html  drag-and-release: fling stars into a black hole
   sparrow.html    flappy-style sparrow, with score + best
@@ -79,3 +80,14 @@ Make a free [GitHub](https://github.com) account, then a new **public** reposito
 - **Frondi Clicker is deliberately left out**: its privacy policy (and the iPhone app) promise no accounts.
 - Resetting a forgotten password (Ed, via the Supabase SQL editor):
   `update public.accounts set pass_hash = extensions.crypt('NEWPASS', extensions.gen_salt('bf', 8)), failed_logins = 0, locked_until = null where username = 'theirname';`
+
+## PhatCoin (the arcade coin)
+
+- One coin for all of GH Games, stored in the player's account on Supabase (`pc_wallets`, every change logged in `pc_log`), so it is the same on every device.
+- The server sets the limits, not the game: win up to 5 (one per 8 seconds), rebirth 25 (one a minute), daily bonus 20 rising by 10 a day in a row to 100 (Perth days), today's leaderboard top 10 once a day per game (100 / 50 / 20). Most from play in one day: 1000.
+- Not logged in: up to 200 sit in a pocket on that device and move into the account on first log-in. Spending needs an account.
+- It is not real money and cannot be bought or cashed out. Each game keeps its own in-game coins for its own balance; PhatCoin is the coin that works everywhere.
+- Add to a game: `<script src="phatcoin.js" data-game="<name>"></script>` after `account.js`, then call `PhatCoin.earn("win", n, "why")`, `PhatCoin.spend(cost, "item").then(ok => ...)`, `PhatCoin.leaderboard(nick, "desc")`. `data-pill="none"` hides the floating coin if the game shows it in its own HUD.
+- Live in: Steal an Animal (PhatCoin Shop: Coin Rush, Lucky Charm, Time Warp, Mystery Egg, Super Lock).
+- Give someone PhatCoin by hand (Supabase SQL editor):
+  `update public.pc_wallets w set balance = balance + 100 from public.accounts a where a.id = w.account_id and a.username = 'theirname';`

@@ -20,6 +20,7 @@ ghgames/
   size-simulator.html  eat-and-grow PvP: upgrades, rebirths, worlds bought with coins, pets, daily rewards, shared 10-minute events (online via Supabase Realtime)
   steal-an-animal.html  buy animals off the road, steal from computer bases and friends' bases (online via Supabase sta_* functions), guards, lock, 8 galaxies of 25 worlds, rebirths
   rugby-kicker.html  aim then power bar: kick a rugby ball as high as you can for Wins, goals pay double, upgrades, 11 stadiums up to the Galaxy Arena
+  drop-goal-hero.html  run, drop, kick: drop goals only with defenders charging; starts in the 2003 World Cup final (17-17, 26 seconds left), then Career mode with streaks, upgrades and 6 stadiums
   runway-stars.html  dress-up fashion show: outfits to a theme, everyone rates each other out of 5 stars, best rating wins, wins buy better clothes (online via Supabase Realtime, computer models fill spots)
   CNAME           contains "ghgames.au" — tells GitHub Pages the domain
   README.md       this file

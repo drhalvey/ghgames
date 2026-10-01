@@ -29,6 +29,7 @@
     "size-simulator": { title: "Size Simulator", keys: ["sizesim-save"] },
     "steal-an-animal": { title: "Steal an Animal", keys: ["stealanimal-save"] },
     "rugby-kicker": { title: "Rugby Kicker", keys: ["rugbykicker-save"] },
+    "drop-goal-hero": { title: "Drop Goal Hero", keys: ["dropgoal-save"] },
     "runway-stars": { title: "Runway Stars", keys: ["runwaystars-save"] },
     "log-clicker":  { title: "Log Clicker",   keys: ["logclicker_save"] },
     "sprig-rescue": { title: "Sprig Rescue",  keys: ["sprig_save"] },

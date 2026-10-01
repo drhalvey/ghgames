@@ -1,0 +1,1375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Drop Goal Hero</title>
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="drop-goal-hero"></script>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#0c1424; --panel:#16223a; --panel2:#1f2e4c; --line:#334a73;
+  --ink:#f2f6ff; --muted:#aebbd6; --gold:#ffc93c; --green:#4fcf6a; --red:#ff5d5d; --blue:#4aa8ff;
+  --display:"Lilita One","Arial Rounded MT Bold","Trebuchet MS",sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;touch-action:manipulation}
+button,a,canvas{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.stage,.stage *,button{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+html,body{background:var(--bg);margin:0}
+body{font-family:var(--body);color:var(--ink);padding:14px 14px 60px;font-size:15px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.home{font-weight:900;color:var(--muted);text-decoration:none;font-size:14px}
+.home:hover{color:var(--gold)}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);margin:0;line-height:1;color:var(--gold);text-shadow:0 3px 0 #9b2335,0 6px 0 rgba(0,0,0,.3)}
+.hud{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:6px 12px;display:flex;flex-direction:column;align-items:flex-start;min-width:84px}
+.chip span{font-size:11px;color:var(--muted);font-weight:800}
+.chip b{font-size:17px;font-weight:900}
+.chip.coins b{color:var(--gold)}
+.stage{position:relative;border-radius:20px;overflow:hidden;border:3px solid var(--line);background:#000}
+canvas{display:block;width:100%;touch-action:none;cursor:pointer}
+.ctrl{display:grid;grid-template-columns:1fr 3fr 1fr;gap:8px}
+.btns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media (max-width:620px){.btns{grid-template-columns:1fr 1fr}}
+.bb{font-family:var(--body);font-weight:900;font-size:16px;border:none;border-radius:14px;padding:12px 10px;color:#fff;cursor:pointer;background:var(--blue);box-shadow:0 4px 0 #1f5a9a}
+.bb small{display:block;font-size:11px;font-weight:800;opacity:.9}
+.bb:active{transform:translateY(3px);box-shadow:0 1px 0 #1f5a9a}
+.bb.act{background:#e8384f;box-shadow:0 4px 0 #8f1626;font-size:26px;font-family:var(--display);font-weight:400;letter-spacing:.5px;padding:14px 10px}
+.bb.act.drop{background:#2f9e5a;box-shadow:0 4px 0 #17603a}
+.bb.act.go{background:#e08a1e;box-shadow:0 4px 0 #8f5208}
+.bb.aim{background:#33476e;box-shadow:0 4px 0 #1b2742;font-size:26px}
+.bb.shop{background:#e8873a;box-shadow:0 4px 0 #9a4f12}
+.bb.world{background:#22a77f;box-shadow:0 4px 0 #11684e}
+.bb.mode{background:#7b4fd6;box-shadow:0 4px 0 #4a2a90}
+.bb.final{background:#c8102e;box-shadow:0 4px 0 #6e0718}
+.bb[disabled]{filter:grayscale(.7) brightness(.75);cursor:default}
+.msg{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:10px 14px;font-weight:800;min-height:44px}
+.msg.good{border-color:var(--green)}
+.msg.bad{border-color:var(--red)}
+.panel{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:14px 16px}
+.panel h2{font-family:var(--display);font-weight:400;margin:0 0 6px;font-size:24px;color:var(--gold)}
+.panel ul{margin:0;padding-left:20px;color:var(--muted);font-weight:700;line-height:1.5}
+.overlay{position:fixed;inset:0;background:rgba(4,8,16,.78);display:flex;align-items:center;justify-content:center;padding:14px;z-index:50}
+.overlay[hidden]{display:none}
+.box{background:var(--panel);border:3px solid var(--line);border-radius:20px;padding:16px;max-width:580px;width:100%;max-height:88vh;overflow:auto}
+.box h2{font-family:var(--display);font-weight:400;margin:0 0 8px;color:var(--gold);font-size:28px}
+.box p{margin:0 0 10px;color:var(--muted);font-weight:700}
+.row{display:flex;align-items:center;gap:10px;background:var(--panel2);border:2px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:8px}
+.row .ic{font-size:30px;width:40px;text-align:center;flex:none}
+.row .tx{flex:1;min-width:0}
+.row .tx b{display:block;font-size:16px}
+.row .tx small{display:block;color:var(--muted);font-weight:700;font-size:12.5px}
+.row.on{border-color:var(--gold)}
+.row.locked{opacity:.65}
+.sm{font-family:var(--body);font-weight:900;font-size:14px;border:none;border-radius:10px;padding:8px 12px;color:#fff;cursor:pointer;background:#3fae3f;box-shadow:0 3px 0 #1f6e1f;white-space:nowrap}
+.sm.go{background:#22a77f;box-shadow:0 3px 0 #11684e}
+.sm[disabled]{filter:grayscale(.8) brightness(.7);cursor:default}
+.close{margin-top:12px;width:100%}
+.modes{display:grid;gap:10px;margin:6px 0 12px}
+.mcard{display:block;width:100%;text-align:left;font-family:var(--body);color:#fff;border:3px solid transparent;border-radius:16px;padding:12px 14px;cursor:pointer}
+.mcard b{font-family:var(--display);font-weight:400;font-size:26px;display:block}
+.mcard small{font-weight:800;font-size:13px;opacity:.95}
+.mcard.final{background:linear-gradient(135deg,#c8102e,#7a0a1d);border-color:#fff}
+.mcard.career{background:linear-gradient(135deg,#2b7de0,#173f7a)}
+.dif{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dbtn{font-family:var(--body);font-weight:900;font-size:15px;border:3px solid transparent;border-radius:12px;padding:10px 6px;color:#fff;cursor:pointer}
+.dbtn small{display:block;font-size:11px;font-weight:800;opacity:.9}
+.dbtn.easy{background:#2e9d4a}.dbtn.medium{background:#e08a1e}.dbtn.hard{background:#d63048}
+.dbtn.on{border-color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <a class="home" href="index.html">&larr; GH Games</a>
+      <h1>Drop Goal Hero</h1>
+    </div>
+    <div class="hud">
+      <div class="chip coins"><span>COINS</span><b id="hCoins">0</b></div>
+      <div class="chip"><span>STREAK</span><b id="hStreak">0</b></div>
+      <div class="chip"><span>BEST STREAK</span><b id="hBest">0</b></div>
+      <div class="chip"><span>MODE</span><b id="hMode">2003 Final</b></div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+
+  <div class="ctrl">
+    <button class="bb aim" id="lBtn" aria-label="Aim left">&#9664;</button>
+    <button class="bb act" id="actBtn">GET READY</button>
+    <button class="bb aim" id="rBtn" aria-label="Aim right">&#9654;</button>
+  </div>
+  <div class="btns">
+    <button class="bb mode" id="modeBtn">Change Game<small id="modeHint">2003 Final or Career</small></button>
+    <button class="bb shop" id="upBtn">Upgrades<small>kick further</small></button>
+    <button class="bb world" id="stBtn">Stadiums<small id="stHint">Local Park</small></button>
+    <button class="bb final" id="diffBtn">Difficulty<small id="diffHint">Easy</small></button>
+  </div>
+
+  <div class="msg" id="msg">Aim with the arrows, tap DROP, then tap KICK just as the ball hits the grass.</div>
+
+  <div class="panel">
+    <h2>How to play</h2>
+    <ul>
+      <li>The scrum-half passes you the ball. Straight away the defenders start charging at you.</li>
+      <li>Aim with the arrow buttons, the arrow keys, or by dragging on the pitch.</li>
+      <li>Tap DROP (or space) to drop the ball. Time slows down.</li>
+      <li>Tap KICK when the ball touches the grass, right as the shrinking ring meets the ball. That's a PERFECT kick.</li>
+      <li>Kick too early and it's a punt, not a drop goal. Too late and it's a scuff, or you get charged down.</li>
+      <li>Watch the wind flag. It pushes the ball left or right.</li>
+      <li>2003 Final: 26 seconds left, 17-17. One kick to win the World Cup.</li>
+      <li>Career: every goal moves you further away. Coins buy a stronger leg and new stadiums.</li>
+    </ul>
+  </div>
+
+  <div id="lb"></div>
+</div>
+
+<!-- choose game -->
+<div class="overlay" id="startOv">
+  <div class="box">
+    <h2>Drop Goal Hero</h2>
+    <p>Pick your difficulty, then pick a game.</p>
+    <div class="dif" id="difRow">
+      <button class="dbtn easy" data-d="easy">Easy<small>slow defenders</small></button>
+      <button class="dbtn medium" data-d="medium">Medium<small>1.5&times; coins</small></button>
+      <button class="dbtn hard" data-d="hard">Hard<small>2.5&times; coins</small></button>
+    </div>
+    <div class="modes">
+      <button class="mcard final" data-m="final"><b>&#127942; 2003 World Cup Final</b><small>England v Australia, Sydney. Extra time, 17-17, 26 seconds left. The ball comes back to the No. 10...</small></button>
+      <button class="mcard career" data-m="career"><b>&#128200; Career</b><small>Kick after kick, further and wider each time. How long can your streak go?</small></button>
+    </div>
+  </div>
+</div>
+
+<!-- upgrades -->
+<div class="overlay" id="upOv" hidden>
+  <div class="box">
+    <h2>Upgrades</h2>
+    <p>You have <b id="upCoins" style="color:var(--gold)">0</b> coins.</p>
+    <div id="upList"></div>
+    <button class="bb close" data-close="upOv">Back to the pitch</button>
+  </div>
+</div>
+
+<!-- stadiums -->
+<div class="overlay" id="stOv" hidden>
+  <div class="box">
+    <h2>Stadiums</h2>
+    <p>Stadiums are for Career mode. The Final is always in Sydney.</p>
+    <div id="stList"></div>
+    <button class="bb close" data-close="stOv">Back to the pitch</button>
+  </div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const SAVE_KEY = "dropgoal-save";
+const D2R = Math.PI / 180;
+const rnd = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const fmt = n => n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e4 ? (n / 1e3).toFixed(1) + "K" : String(Math.floor(n));
+
+// ---------- settings ----------
+const DIFFS = {
+  easy:   { name: "Easy",   rush: 3.7, win: 0.075, wind: 0.5, defs: 2, pay: 1 },
+  medium: { name: "Medium", rush: 2.8, win: 0.055, wind: 1.0, defs: 3, pay: 1.5 },
+  hard:   { name: "Hard",   rush: 2.1, win: 0.040, wind: 1.5, defs: 4, pay: 2.5 }
+};
+const UPS = [
+  { id: "leg",   ic: "🦵", name: "Leg Power",   desc: "Kick further. Long kicks need this.",          max: 12, base: 40, grow: 1.65 },
+  { id: "sweet", ic: "🎯", name: "Sweet Spot",  desc: "Bigger PERFECT timing window.",               max: 8,  base: 60, grow: 1.8 },
+  { id: "quick", ic: "⚡", name: "Quick Hands", desc: "More time before the defenders reach you.",   max: 8,  base: 50, grow: 1.8 },
+  { id: "eye",   ic: "👀", name: "Eagle Eye",   desc: "Longer aiming line on the grass.",            max: 6,  base: 80, grow: 2.0 }
+];
+const upCost = (u, l) => Math.round(u.base * Math.pow(u.grow, l));
+
+const STADS = [
+  { id: "park",   name: "Local Park",  cost: 0,     desc: "Sunny Saturday morning.",
+    sky: ["#3f8fdc", "#a9d8ff"], stripes: ["#5cae4c", "#52a043"], outer: "#4b9440", stand: 0, far: "hills", crowd: ["#e74c3c", "#3498db", "#f1c40f", "#ecf0f1", "#2ecc71"] },
+  { id: "club",   name: "Club Ground", cost: 400,   desc: "Sunset, small stands, loud locals.",
+    sky: ["#3b3f8f", "#ff9a5a"], stripes: ["#4f9c45", "#47903d"], outer: "#3f8237", stand: 1, far: "trees", crowd: ["#c0392b", "#f39c12", "#ecf0f1", "#2c3e50", "#8e44ad"] },
+  { id: "big",    name: "Big Stadium", cost: 2500,  desc: "Floodlights and 60,000 fans.",
+    sky: ["#060b1e", "#1b2a55"], stripes: ["#3f8f3d", "#378435"], outer: "#2f6f2e", stand: 2, night: true, far: "city", crowd: ["#e74c3c", "#3498db", "#ecf0f1", "#f1c40f", "#9b59b6", "#1abc9c"] },
+  { id: "syd",    name: "Sydney 2003", cost: -1,    desc: "Win the 2003 Final to unlock. Rain, lights, history.",
+    sky: ["#04070f", "#18233d"], stripes: ["#2f7f3a", "#286f32"], outer: "#245f2c", stand: 2, night: true, rain: true, far: "city", crowd: ["#f4f4f4", "#f6c324", "#f4f4f4", "#f6c324", "#c8102e", "#0b6b3a"] },
+  { id: "snow",   name: "Snow Bowl",   cost: 12000, desc: "Snow falling on a frozen crowd.",
+    sky: ["#7f93ad", "#d9e4f0"], stripes: ["#6fa66a", "#669c61"], outer: "#e8eef5", stand: 2, snow: true, far: "snowhills", crowd: ["#e74c3c", "#ffffff", "#2980b9", "#f1c40f", "#16a085"] },
+  { id: "galaxy", name: "Galaxy Arena", cost: 60000, desc: "A stadium floating in space. Low gravity!",
+    sky: ["#05010f", "#2a0d4a"], stripes: ["#3a2f8f", "#30267a"], outer: "#1c1446", stand: 2, night: true, space: true, far: "space", crowd: ["#ff4fd8", "#4ff0ff", "#a6ff4f", "#ffd84f", "#b07bff"] }
+];
+const KITS = {
+  eng:  { shirt: "#f4f4f4", trim: "#c8102e", shorts: "#1d2a5c", socks: "#f4f4f4", band: "#1d2a5c", num: "#1d2a5c" },
+  aus:  { shirt: "#f6c324", trim: "#0b6b3a", shorts: "#0b6b3a", socks: "#f6c324", band: "#0b6b3a", num: "#0b6b3a" },
+  red:  { shirt: "#c62828", trim: "#fff",    shorts: "#fff",    socks: "#c62828", band: "#fff",    num: "#fff" },
+  blk:  { shirt: "#1b1b1f", trim: "#fff",    shorts: "#1b1b1f", socks: "#1b1b1f", band: "#fff",    num: "#fff" },
+  blue: { shirt: "#1f5fbf", trim: "#fff",    shorts: "#fff",    socks: "#1f5fbf", band: "#fff",    num: "#fff" },
+  grn:  { shirt: "#127a3e", trim: "#fff",    shorts: "#fff",    socks: "#127a3e", band: "#fff",    num: "#fff" }
+};
+const OPP = ["red", "blk", "blue", "grn", "aus"];
+const SKIN = ["#f1c7a3", "#e0ac84", "#c68a5e", "#8d5a3b", "#f5d2b5"];
+const HAIR = ["#2b1a10", "#5a3a1e", "#c9a25a", "#111", "#7a4a26"];
+
+// ---------- save ----------
+const FRESH = { v: 1, coins: 0, best: 0, goals: 0, kicks: 0, finalWins: 0, lv: { leg: 0, sweet: 0, quick: 0, eye: 0 },
+  owned: ["park"], stad: "park", diff: "easy", mode: "final", picked: false };
+let S = JSON.parse(JSON.stringify(FRESH));
+try {
+  const raw = JSON.parse(localStorage.getItem(SAVE_KEY));
+  if (raw && typeof raw === "object") {
+    S = Object.assign(S, raw);
+    S.lv = Object.assign({ leg: 0, sweet: 0, quick: 0, eye: 0 }, raw.lv || {});
+    if (!Array.isArray(S.owned)) S.owned = ["park"];
+  }
+} catch (e) {}
+if (!DIFFS[S.diff]) S.diff = "easy";
+if (S.mode !== "career") S.mode = "final";
+if (!S.owned.includes("park")) S.owned.push("park");
+if (!S.owned.includes(S.stad)) S.stad = "park";
+function saveNow() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+window.addEventListener("pagehide", saveNow);
+document.addEventListener("visibilitychange", () => { if (document.hidden) saveNow(); });
+
+// ---------- canvas ----------
+const cv = $("cv"), ctx = cv.getContext("2d");
+let W = 800, H = 500, DPR = 1;
+function resize() {
+  const w = $("stage").clientWidth;
+  const h = Math.round(Math.min(window.innerHeight * 0.68, Math.max(330, w * 0.6)));
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = w; H = h;
+  cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
+  cv.style.height = h + "px";
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  C.f = (H / 2) / Math.tan(26 * D2R);
+  C.cx = W / 2; C.cy = H * 0.5;
+  makeStars();
+}
+
+// ---------- camera + projection ----------
+const NEAR = 0.4;
+const C = { x: 0, y: 2.3, z: 40, yaw: 0, pitch: 0.1, f: 600, cx: 400, cy: 250, shake: 0 };
+function toCam(x, y, z) {
+  const dx = x - C.x, dy = y - C.y, dz = C.z - z;
+  const cy = Math.cos(C.yaw), sy = Math.sin(C.yaw);
+  const rx = dx * cy - dz * sy, rz = dx * sy + dz * cy;
+  const cp = Math.cos(C.pitch), sp = Math.sin(C.pitch);
+  return [rx, dy * cp + rz * sp, -dy * sp + rz * cp];
+}
+function scr(c) { const s = C.f / c[2]; return [C.cx + c[0] * s, C.cy - c[1] * s, s]; }
+function P(x, y, z) { const c = toCam(x, y, z); return c[2] < NEAR ? null : scr(c); }
+function clipNear(cs) {
+  const out = [];
+  for (let i = 0; i < cs.length; i++) {
+    const a = cs[i], b = cs[(i + 1) % cs.length], ia = a[2] >= NEAR, ib = b[2] >= NEAR;
+    if (ia) out.push(a);
+    if (ia !== ib) { const t = (NEAR - a[2]) / (b[2] - a[2]); out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, NEAR]); }
+  }
+  return out;
+}
+function poly(pts, fill, stroke, lw) {
+  const cs = clipNear(pts.map(p => toCam(p[0], p[1], p[2])));
+  if (cs.length < 3) return;
+  ctx.beginPath();
+  cs.forEach((c, i) => { const s = scr(c); i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1]); });
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1; ctx.stroke(); }
+}
+function seg(a, b, wM, col, minW) {
+  let ca = toCam(a[0], a[1], a[2]), cb = toCam(b[0], b[1], b[2]);
+  if (ca[2] < NEAR && cb[2] < NEAR) return;
+  if (ca[2] < NEAR) { const t = (NEAR - ca[2]) / (cb[2] - ca[2]); ca = [ca[0] + (cb[0] - ca[0]) * t, ca[1] + (cb[1] - ca[1]) * t, NEAR]; }
+  if (cb[2] < NEAR) { const t = (NEAR - cb[2]) / (ca[2] - cb[2]); cb = [cb[0] + (ca[0] - cb[0]) * t, cb[1] + (ca[1] - cb[1]) * t, NEAR]; }
+  const sa = scr(ca), sb = scr(cb);
+  ctx.strokeStyle = col; ctx.lineWidth = Math.max(minW || 1, wM * (sa[2] + sb[2]) / 2);
+  ctx.beginPath(); ctx.moveTo(sa[0], sa[1]); ctx.lineTo(sb[0], sb[1]); ctx.stroke();
+}
+const horizonY = () => C.cy - C.f * Math.tan(C.pitch);
+
+// ---------- scene (crowd etc) ----------
+let ST = STADS[0], CROWD = [], STARS = [], DROPS = [];
+function stadOf(id) { return STADS.find(s => s.id === id) || STADS[0]; }
+function buildScene(st) {
+  ST = st; CROWD = [];
+  if (!st.stand) return;
+  const big = st.stand === 2;
+  const rows = big ? 20 : 8, depth = big ? 30 : 9, h0 = 1.6, h1 = big ? 26 : 7;
+  const add = (x, y, z) => CROWD.push({ x, y, z, c: (Math.random() * st.crowd.length) | 0, p: Math.random() * 6.28, f: Math.random() });
+  for (let r = 0; r < rows; r++) {
+    const t = (r + 0.5) / rows, y = lerp(h0, h1, t) + 0.3;
+    // back stand (behind the posts)
+    const zb = -17 - depth * t;
+    for (let x = -56; x <= 56; x += big ? 1.45 : 1.7) add(x + rnd(-0.2, 0.2), y, zb);
+    // side stands
+    for (const side of [-1, 1]) {
+      const xs = side * (41 + depth * t);
+      for (let z = -15; z <= 95; z += big ? 1.85 : 2.2) add(xs, y, z + rnd(-0.3, 0.3));
+    }
+  }
+  CROWD.sort((a, b) => a.c - b.c);
+}
+function makeStars() {
+  STARS = [];
+  for (let i = 0; i < 160; i++) STARS.push({ x: Math.random(), y: Math.random() * 0.62, r: Math.random() * 1.4 + 0.3, t: Math.random() * 6 });
+  DROPS = [];
+  for (let i = 0; i < 240; i++) DROPS.push({ x: Math.random() * W, y: Math.random() * H, l: rnd(10, 22), v: rnd(700, 1000), r: rnd(1, 3), dx: rnd(-20, 20) });
+}
+
+// ---------- game state ----------
+const G = {
+  mode: S.mode, phase: "intro", t: 0, pt: 0, kick: null, aim: 0, aimDir: 0,
+  ball: { x: 0, y: 1, z: 0, vx: 0, vy: 0, vz: 0, spin: 0, rot: 0 }, trail: [],
+  defs: [], mates: [], ruck: [], dropT: 0, tg: Math.sqrt(2 * 0.85 / 9.81), rushT: 0, rushMax: 3,
+  clock: 26, streak: 0, result: null, banner: null, bannerT: 0, quality: null, crossed: false, valid: true,
+  cheer: 0, confetti: [], fireworks: [], fwT: 0, score: [17, 17], ts: 1, kickAnim: 0, flash: 0
+};
+
+function careerKick(n) {
+  const D = Math.min(58, 19 + n * 1.8 + rnd(0, 2));
+  const xm = Math.min(24, 2 + n * 1.3);
+  const x = n === 0 ? rnd(-3, 3) : rnd(-xm, xm);
+  const wind = (n < 2 ? 0 : rnd(-1, 1) * Math.min(2.2, 0.25 + n * 0.12)) * DIFFS[S.diff].wind;
+  return { D, x, wind };
+}
+
+function newKick() {
+  const dif = DIFFS[S.diff];
+  G.mode = S.mode;
+  if (G.mode === "final") {
+    buildScene(stadOf("syd"));
+    G.kick = { D: 25, x: -4.5, wind: 0.35 };
+    G.clock = 26; G.score = [17, 17];
+    G.opp = "aus";
+  } else {
+    buildScene(stadOf(S.stad));
+    G.kick = careerKick(G.streak);
+    G.opp = OPP[(G.streak + 2) % OPP.length];
+  }
+  const k = G.kick;
+  k.az0 = Math.atan2(-k.x, k.D);
+  k.dist = Math.hypot(k.x, k.D);
+  G.aim = 0; G.aimDir = 0; G.result = null; G.banner = null; G.quality = null; G.crossed = false; G.valid = true;
+  G.trail = []; G.finished = false; G.rushT = 0; G.dropT = 0; G.kickAnim = 0; G.ts = 1; G.flash = 0;
+  const n = G.mode === "final" ? 0 : G.streak;
+  G.rushMax = dif.rush + 0.2 * S.lv.quick - Math.min(0.7, n * 0.03);
+  // kicker, scrum-half, ruck, defenders
+  const kx = k.x, kz = k.D;
+  G.kicker = { x: kx, z: kz, kit: "eng", num: 10, face: "away", pose: "ready", run: 0, skin: 0, hair: 2 };
+  const side = kx > 0 ? 1 : -1;
+  const rx = clamp(kx - side * 7, -30, 30), rz = kz - 3.5;
+  G.sh = { x: rx + side * 0.9, z: rz + 1.4, kit: "eng", num: 9, face: "away", pose: "crouch", run: 0, skin: 1, hair: 0 };
+  G.ruck = [];
+  for (let i = 0; i < 5; i++) G.ruck.push({ x: rx + rnd(-1.1, 1.1), z: rz - rnd(0, 1.3), kit: i % 2 ? G.opp : "eng", skin: (i * 3) % SKIN.length, hair: i % HAIR.length });
+  G.mates = [
+    { x: kx + side * 6, z: kz + 1.5, kit: "eng", num: 12, face: "away", pose: "stand", run: 0, skin: 2, hair: 1 },
+    { x: kx + side * 12, z: kz + 3, kit: "eng", num: 13, face: "away", pose: "stand", run: 0, skin: 4, hair: 3 }
+  ];
+  G.defs = [];
+  const nd = Math.max(G.mode === "final" ? 3 : 0, dif.defs);
+  for (let i = 0; i < nd; i++) {
+    const sx = kx + (i - (nd - 1) / 2) * 3.2 + rnd(-0.6, 0.6) - side * 2;
+    const sz = rz - 3.2 - rnd(0, 1.2);
+    const lead = i === Math.floor(nd / 2);
+    const tx = kx + (lead ? -0.15 : (sx < kx ? -1.4 : 1.4) + rnd(-0.4, 0.4));
+    G.defs.push({ sx, sz, x: sx, z: sz, tx, tz: kz - (lead ? 0.75 : 1.6), kit: G.opp, face: "toward", pose: "set", run: rnd(0, 6),
+      skin: (i * 2 + 1) % SKIN.length, hair: (i + 2) % HAIR.length, spd: lead ? 1 : rnd(0.86, 0.95), lead });
+  }
+  // camera behind the kicker, a little to the right
+  C.x = kx + 1.6; C.y = 2.35; C.z = kz + 7.5; C.pitch = 0.085; C.yaw = Math.atan2(0 - C.x, C.z) * 0.55;
+  G.camT = { x: C.x, y: C.y, z: C.z, pitch: C.pitch, yaw: C.yaw };
+  setPhase("intro");
+  if (G.mode === "final") say("Sydney, 22 November 2003. Extra time, 17-17, 26 seconds left. The ball is coming back to you...", "");
+  else say(`Kick ${G.streak + 1}: ${Math.round(k.dist)} m out${Math.abs(k.x) > 4 ? ", " + Math.round(Math.abs(k.x)) + " m " + (k.x < 0 ? "left" : "right") + " of the posts" : ""}. ${windText(k.wind)}`, "");
+  updateUI();
+}
+
+function windText(w) { const kmh = Math.round(Math.abs(w) * 12); return kmh < 2 ? "No wind." : `Wind ${kmh} km/h blowing ${w > 0 ? "right" : "left"}.`; }
+
+function setPhase(p) {
+  G.phase = p; G.pt = 0;
+  const b = $("actBtn");
+  b.className = "bb act";
+  b.disabled = false;
+  if (p === "intro" || p === "pass") { b.textContent = "GET READY"; b.disabled = true; }
+  else if (p === "aim") { b.textContent = "DROP"; b.classList.add("drop"); }
+  else if (p === "drop") { b.textContent = "KICK!"; }
+  else if (p === "flight") { b.textContent = "..."; b.disabled = true; }
+  else if (p === "result") {
+    b.classList.add("go");
+    if (G.mode === "final") b.textContent = G.result === "goal" ? "PLAY AGAIN" : "TRY AGAIN";
+    else b.textContent = G.result === "goal" ? "NEXT KICK" : "NEW CAREER";
+  }
+}
+
+function action() {
+  if (G.phase === "aim") {
+    setPhase("drop"); G.dropT = 0; G.kicker.pose = "drop";
+    const k = G.kick;
+    G.ball.x = k.x + 0.14; G.ball.y = 0.95; G.ball.z = k.D - 0.5; G.ball.vx = 0; G.ball.vy = 0; G.ball.vz = 0; G.ball.rot = -0.9; G.ball.spin = 0.6;
+    say("Now KICK when the ball touches the grass!", "");
+  } else if (G.phase === "drop") {
+    doKick();
+  } else if (G.phase === "result") {
+    if (G.mode === "career" && G.result !== "goal") G.streak = 0;
+    newKick();
+  }
+}
+
+function doKick() {
+  const dif = DIFFS[S.diff], k = G.kick, b = G.ball;
+  const e = G.dropT - G.tg;
+  const W1 = dif.win + 0.007 * S.lv.sweet;
+  let q, label;
+  G.valid = true;
+  if (e < -W1 * 1.8) { G.valid = false; q = 0.55; label = "PUNT"; }
+  else if (Math.abs(e) <= W1) { q = 1; label = "PERFECT"; }
+  else if (e < 0) { q = clamp(0.85 - ((-e - W1) / (W1 * 0.8)) * 0.25, 0.55, 0.85); label = "EARLY"; }
+  else { q = clamp(1 - (e - W1) / (0.24 - W1), 0, 1) * 0.9; label = q > 0.6 ? "GOOD" : q > 0.3 ? "LATE" : "SCUFFED"; }
+  G.quality = { q, label, e };
+  const legV = G.mode === "final" ? 25 + S.lv.leg * 0.4 : 21 + 1.1 * S.lv.leg;
+  const v = legV * (0.68 + 0.32 * q);
+  const el = (33 + (e < 0 ? 7 * (1 - q) : -10 * (1 - q))) * D2R;
+  const errSign = Math.random() < 0.5 ? -1 : 1;
+  const err = (1 - q) * (4 + Math.random() * 7) * errSign + (Math.random() - 0.5) * 0.7;
+  const az = k.az0 + (G.aim + err) * D2R;
+  b.y = Math.max(0.12, b.y);
+  b.vx = v * Math.cos(el) * Math.sin(az);
+  b.vz = -v * Math.cos(el) * Math.cos(az);
+  b.vy = v * Math.sin(el);
+  b.spin = -(8 + q * 6);
+  G.kicker.pose = "kick"; G.kickAnim = 0;
+  C.shake = 0.35 * q;
+  G.flash = q === 1 ? 1 : 0;
+  S.kicks++;
+  setPhase("flight");
+  G.flightT = 0;
+  if (!G.valid) setBanner("PUNT!", "#ff9a3c");
+  else setBanner(label + "!", q === 1 ? "#ffd84f" : q > 0.6 ? "#9fe7a8" : "#ffb38a", 0.9);
+}
+
+function chargeDown() {
+  const b = G.ball;
+  G.result = "charged";
+  G.kicker.pose = "kick";
+  const d = G.defs.find(d => d.lead) || G.defs[0];
+  if (d) d.pose = "dive";
+  b.vx = rnd(-3, 3); b.vy = rnd(4, 6); b.vz = rnd(4, 7); b.spin = 10; b.y = Math.max(b.y, 0.6);
+  G.valid = false; G.crossed = true;
+  setPhase("flight"); G.flightT = 0;
+  C.shake = 0.6;
+  setBanner("CHARGED DOWN!", "#ff5d5d");
+  finish("charged");
+}
+
+function setBanner(text, col, life) { G.banner = { text, col }; G.bannerT = life || 99; }
+
+function finish(res, detail) {
+  if (G.finished) return;
+  G.finished = true;
+  G.result = res;
+  const dif = DIFFS[S.diff];
+  if (res === "goal") {
+    S.goals++;
+    G.cheer = 1;
+    let coins, line;
+    if (G.mode === "final") {
+      G.score = [20, 17];
+      const first = S.finalWins === 0;
+      S.finalWins++;
+      coins = first ? 500 : Math.round(60 * dif.pay);
+      if (!S.owned.includes("syd")) S.owned.push("syd");
+      setBanner("WORLD CHAMPIONS!", "#ffd84f");
+      line = `IT'S OVER! 20-17 and England win the World Cup! +${coins} coins${first ? " and the Sydney 2003 stadium is unlocked for Career!" : "."}`;
+      for (let i = 0; i < 6; i++) setTimeout(() => burstFirework(), i * 380);
+    } else {
+      G.streak++;
+      const perfect = G.quality && G.quality.q === 1;
+      coins = Math.round((10 + 1.3 * G.kick.dist + (perfect ? 12 : 0)) * dif.pay * (1 + G.streak * 0.08));
+      if (G.streak > S.best) {
+        S.best = G.streak;
+        if (window.Leaderboard && Leaderboard.getName()) Leaderboard.submit(S.best);
+      }
+      setBanner(detail === "post" ? "IN OFF THE POST!" : "IT'S OVER!", "#ffd84f");
+      line = `Drop goal! Streak ${G.streak}. +${coins} coins.`;
+    }
+    S.coins += coins;
+    burstConfetti();
+    say(line, "good");
+  } else {
+    const why = {
+      wideL: "Wide left!", wideR: "Wide right!", short: "Short! You need more leg power or a better strike.",
+      bar: "Off the crossbar! So close.", post: "Off the post and out!", charged: "Charged down! Be quicker before the defenders get to you.",
+      punt: "That's a punt! A drop goal has to touch the grass first.", fumble: "Too slow! The ball bounced away.",
+      clock: "Full-time whistle! The clock ran out."
+    }[res] || "Missed!";
+    if (res !== "charged") setBanner(why.split("!")[0].toUpperCase() + "!", "#ff7a7a");
+    if (G.mode === "career") say(`${why} Your streak ends at ${G.streak}.${G.streak && G.streak >= S.best ? " New best!" : ""}`, "bad");
+    else say(`${why} Australia survive... for now. Have another go.`, "bad");
+  }
+  saveNow();
+  updateUI();
+  setTimeout(() => { if (G.finished && G.phase === "flight") setPhase("result"); }, res === "goal" && G.mode === "final" ? 2200 : 1500);
+}
+
+// ---------- effects ----------
+function burstConfetti() {
+  const cols = ["#ffd84f", "#ffffff", "#e8384f", "#4aa8ff", "#4fcf6a"];
+  for (let i = 0; i < 170; i++) G.confetti.push({ x: rnd(0, W), y: rnd(-H * 0.4, -10), vx: rnd(-40, 40), vy: rnd(80, 220), r: rnd(0, 6.28), vr: rnd(-8, 8), w: rnd(5, 10), c: cols[i % cols.length], life: rnd(2.5, 4) });
+}
+function burstFirework() {
+  const x = rnd(W * 0.15, W * 0.85), y = rnd(H * 0.08, H * 0.3);
+  const cols = ["#ffd84f", "#ffffff", "#e8384f", "#ff9a3c"];
+  const c = cols[(Math.random() * cols.length) | 0];
+  for (let i = 0; i < 60; i++) { const a = i / 60 * 6.283, sp = rnd(60, 160); G.fireworks.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: rnd(0.9, 1.5), c }); }
+}
+
+// ---------- update ----------
+function step(dtReal) {
+  G.t += dtReal;
+  let ts = 1;
+  if (G.phase === "drop") ts = 0.3;
+  if (G.phase === "flight" && !G.crossed && G.ball.z < 6 && G.ball.z > -1 && G.valid) ts = 0.45;
+  G.ts = lerp(G.ts, ts, Math.min(1, dtReal * 10));
+  const dt = dtReal * G.ts;
+  G.pt += dtReal;
+  const k = G.kick, b = G.ball, dif = DIFFS[S.diff];
+
+  // final clock
+  if (G.mode === "final" && (G.phase === "pass" || G.phase === "aim" || G.phase === "drop")) {
+    G.clock = Math.max(0, G.clock - dtReal);
+    if (G.clock <= 0 && !G.finished) { G.finished = false; G.ball.vx = 0; setPhase("flight"); G.flightT = 0; G.valid = false; G.crossed = true; finish("clock"); }
+  }
+
+  if (G.phase === "intro") {
+    G.finished = false;
+    b.x = G.sh.x; b.y = 0.15; b.z = G.sh.z - 0.6;
+    if (G.pt > (G.mode === "final" ? 1.6 : 0.9)) { setPhase("pass"); G.passFrom = { x: b.x, y: 0.3, z: b.z }; }
+  } else if (G.phase === "pass") {
+    G.sh.pose = "pass";
+    const T = 0.62, t = Math.min(1, G.pt / T);
+    const to = { x: k.x + 0.32, y: 1.15, z: k.D - 0.45 };
+    b.x = lerp(G.passFrom.x, to.x, t); b.z = lerp(G.passFrom.z, to.z, t);
+    b.y = lerp(G.passFrom.y, to.y, t) + Math.sin(t * Math.PI) * 1.3;
+    b.rot = t * 9;
+    if (t >= 1) { setPhase("aim"); G.kicker.pose = "hold"; say("Aim, then tap DROP!", ""); }
+  } else if (G.phase === "aim") {
+    G.aim = clamp(G.aim + G.aimDir * 15 * dtReal, -14, 14);
+    b.x = k.x + 0.32; b.y = 1.15; b.z = k.D - 0.45; b.rot = -0.9;
+  } else if (G.phase === "drop") {
+    G.dropT += dt;
+    const t = G.dropT;
+    if (t < G.tg) { b.y = 0.95 - 0.5 * 9.81 * t * t + 0.0; }
+    else { const tb = t - G.tg; b.y = Math.max(0.1, 0.1 + 2.2 * tb - 0.5 * 9.81 * tb * tb); }
+    b.y = Math.max(0.1, b.y);
+    b.rot = lerp(-0.9, -1.25, Math.min(1, t / G.tg));
+    if (G.dropT > G.tg + 0.26) { G.ball.vz = 1.5; G.ball.vy = 1.6; G.ball.vx = rnd(-1, 1); G.valid = false; G.crossed = true; setPhase("flight"); G.flightT = 0; finish("fumble"); }
+  }
+
+  // defenders rush during pass/aim/drop
+  if (G.phase === "aim" || G.phase === "drop") {
+    G.rushT += dt;
+    if (G.rushT >= G.rushMax && !G.finished) chargeDown();
+  }
+  for (const d of G.defs) {
+    if (G.phase === "aim" || G.phase === "drop" || (G.phase === "flight" && G.flightT < 0.5)) {
+      const p = clamp((G.rushT / G.rushMax) * d.spd, 0, 1);
+      const e = p * p * (3 - 2 * p) * 0.35 + p * 0.65;
+      d.x = lerp(d.sx, d.tx, e); d.z = lerp(d.sz, d.tz, e);
+      if (d.pose !== "dive") { d.pose = p >= 0.97 && d.lead ? "dive" : "run"; }
+      d.run += dt * 13;
+    } else if (G.phase === "intro" || G.phase === "pass") { d.pose = "set"; }
+    else if (d.pose === "run") { d.pose = "stand"; }
+  }
+  if (G.phase === "aim" || G.phase === "drop") for (const m of G.mates) { m.pose = "stand"; }
+
+  // ball flight
+  if (G.phase === "flight" || G.phase === "result") {
+    G.flightT += dt;
+    G.kickAnim += dtReal;
+    const sub = 6, h = dt / sub;
+    const g = ST.space && G.mode !== "final" ? 6.5 : 9.81;
+    for (let i = 0; i < sub; i++) {
+      const sp = Math.hypot(b.vx, b.vy, b.vz), kd = 0.0045;
+      const airborne = b.y > 0.12;
+      if (airborne) {
+        b.vx += (-kd * sp * b.vx + (k.wind || 0)) * h;
+        b.vy += (-g - kd * sp * b.vy) * h;
+        b.vz += (-kd * sp * b.vz) * h;
+      }
+      const pz = b.z, py = b.y, px = b.x;
+      b.x += b.vx * h; b.y += b.vy * h; b.z += b.vz * h;
+      // crossing the goal line plane
+      if (!G.crossed && pz > 0 && b.z <= 0) {
+        const t = pz / (pz - b.z), cx = px + (b.x - px) * t, cy = py + (b.y - py) * t;
+        G.crossed = true;
+        judge(cx, cy);
+      }
+      if (b.y < 0.12 && b.vy < 0) {
+        b.y = 0.12;
+        if (Math.abs(b.vy) > 2) { b.vy = -b.vy * 0.42; b.vx *= 0.7; b.vz *= 0.7; b.spin *= -0.6; }
+        else { b.vy = 0; b.vx *= 0.96; b.vz *= 0.96; }
+        if (!G.crossed && b.z > 0) { G.crossed = true; finish(G.valid ? "short" : "punt"); }
+      }
+    }
+    b.rot += b.spin * dt;
+    if (G.phase === "flight") { G.trail.push([b.x, b.y, b.z]); if (G.trail.length > 40) G.trail.shift(); }
+    if (G.flightT > 7 && !G.finished) { G.crossed = true; finish("short"); }
+  }
+
+  // kicker animation timer for non-kick poses
+  if (G.phase !== "flight" && G.phase !== "result") G.kickAnim = 0;
+
+  // camera
+  const kz = k.D;
+  if (G.phase === "flight" || G.phase === "result") {
+    const tz = clamp(b.z + 13, 17, kz + 7.5);
+    const ty = clamp(2.3 + b.y * 0.35, 2.3, 9);
+    const tx = lerp(k.x + 1.6, b.x + 1.2, 0.6);
+    G.camT.z = tz; G.camT.y = ty; G.camT.x = tx;
+    const look = Math.atan2(C.y - (b.y + 1), C.z - b.z);
+    G.camT.pitch = clamp(lerp(0.085, look, 0.75), -0.45, 0.2);
+    G.camT.yaw = Math.atan2(lerp(0, b.x, 0.5) - C.x, C.z - Math.min(b.z, 0)) * 0.7;
+  }
+  const cr = Math.min(1, dtReal * (G.phase === "flight" ? 2.6 : 4));
+  C.x = lerp(C.x, G.camT.x, cr); C.y = lerp(C.y, G.camT.y, cr); C.z = lerp(C.z, G.camT.z, cr);
+  C.pitch = lerp(C.pitch, G.camT.pitch, cr); C.yaw = lerp(C.yaw, G.camT.yaw, cr);
+  C.shake = Math.max(0, C.shake - dtReal * 1.6);
+
+  // effects
+  G.cheer = Math.max(0, G.cheer - dtReal * 0.18);
+  G.flash = Math.max(0, G.flash - dtReal * 3);
+  if (G.bannerT < 99) G.bannerT -= dtReal;
+  for (const c of G.confetti) { c.x += c.vx * dtReal; c.y += c.vy * dtReal; c.r += c.vr * dtReal; c.vx += Math.sin(G.t * 3 + c.w) * 30 * dtReal; c.life -= dtReal; }
+  G.confetti = G.confetti.filter(c => c.life > 0 && c.y < H + 20);
+  for (const f of G.fireworks) { f.x += f.vx * dtReal; f.y += f.vy * dtReal; f.vy += 60 * dtReal; f.vx *= 0.985; f.vy *= 0.985; f.life -= dtReal; }
+  G.fireworks = G.fireworks.filter(f => f.life > 0);
+  if (G.mode === "final" && G.result === "goal") { G.fwT -= dtReal; if (G.fwT <= 0) { burstFirework(); G.fwT = rnd(0.5, 1.1); } }
+}
+
+function judge(x, y) {
+  const half = 2.8, bar = 3.0, pr = 0.2, top = 16;
+  if (!G.valid) { finish("punt"); return; }
+  const ax = Math.abs(x);
+  const b = G.ball;
+  if (Math.abs(ax - half) < pr && y > bar - 0.1 && y < top) {
+    // hits an upright
+    C.shake = 0.4;
+    if (ax < half) { b.vx *= -0.3; b.vz *= 0.5; finish("goal", "post"); }
+    else { b.vx = -b.vx * 0.5 + (x > 0 ? 3 : -3); b.vz = -b.vz * 0.35; finish("post"); }
+    return;
+  }
+  if (ax < half && Math.abs(y - bar) < 0.16) {
+    C.shake = 0.4;
+    if (y >= bar) { b.vy = Math.abs(b.vy) * 0.5 + 1; finish("goal", "post"); }
+    else { b.vz = -b.vz * 0.35; b.vy = Math.abs(b.vy) * 0.3; finish("bar"); }
+    return;
+  }
+  if (y < bar) { finish(ax < half ? "short" : x < 0 ? "wideL" : "wideR"); return; }
+  if (ax >= half) { finish(x < 0 ? "wideL" : "wideR"); return; }
+  finish("goal");
+}
+
+// ---------- drawing ----------
+function draw() {
+  const sh = C.shake;
+  ctx.save();
+  if (sh > 0) ctx.translate(rnd(-1, 1) * sh * 10, rnd(-1, 1) * sh * 10);
+  drawSky();
+  drawFar();
+  drawGround();
+  drawStands();
+  drawBoards();
+  drawObjects();
+  drawWeather();
+  if (ST.night) drawGlows();
+  ctx.restore();
+  drawFX();
+  drawHUD();
+}
+
+function drawSky() {
+  const hy = horizonY();
+  const g = ctx.createLinearGradient(0, Math.min(0, hy - H), 0, hy);
+  g.addColorStop(0, ST.sky[0]); g.addColorStop(1, ST.sky[1]);
+  ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, H + 40);
+  const par = -C.yaw * C.f;
+  if (ST.night || ST.space) {
+    for (const s of STARS) {
+      const x = ((s.x * W * 1.6 + par * 0.3) % (W * 1.6) + W * 1.6) % (W * 1.6) - W * 0.3;
+      const y = s.y * hy;
+      ctx.globalAlpha = ST.rain ? 0.15 : 0.5 + 0.5 * Math.sin(G.t * 2 + s.t);
+      ctx.fillStyle = "#fff"; ctx.fillRect(x, y, s.r, s.r);
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (ST.space) {
+    // ringed planet + nebula
+    const px = W * 0.78 + par * 0.15, py = hy * 0.35, r = Math.min(W, H) * 0.12;
+    const ng = ctx.createRadialGradient(W * 0.3 + par * 0.1, hy * 0.4, 0, W * 0.3 + par * 0.1, hy * 0.4, W * 0.45);
+    ng.addColorStop(0, "rgba(255,80,200,.28)"); ng.addColorStop(1, "rgba(255,80,200,0)");
+    ctx.fillStyle = ng; ctx.fillRect(0, 0, W, hy);
+    const pg = ctx.createRadialGradient(px - r * 0.4, py - r * 0.4, r * 0.1, px, py, r);
+    pg.addColorStop(0, "#ffd08a"); pg.addColorStop(1, "#c4552c");
+    ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(px, py, r, 0, 6.283); ctx.fill();
+    ctx.strokeStyle = "rgba(255,230,180,.8)"; ctx.lineWidth = r * 0.12;
+    ctx.beginPath(); ctx.ellipse(px, py, r * 1.8, r * 0.38, -0.25, 0, 6.283); ctx.stroke();
+  } else if (ST.night && !ST.rain) {
+    ctx.fillStyle = "#f3f0dc"; ctx.beginPath(); ctx.arc(W * 0.82 + par * 0.2, hy * 0.25, 16, 0, 6.283); ctx.fill();
+  } else if (!ST.night && !ST.snow) {
+    // sun + clouds
+    const sx = W * 0.8 + par * 0.2, sy = hy * 0.25;
+    const sg = ctx.createRadialGradient(sx, sy, 4, sx, sy, 90);
+    sg.addColorStop(0, "rgba(255,250,210,1)"); sg.addColorStop(0.25, "rgba(255,240,170,.6)"); sg.addColorStop(1, "rgba(255,240,170,0)");
+    ctx.fillStyle = sg; ctx.fillRect(sx - 90, sy - 90, 180, 180);
+    ctx.fillStyle = "rgba(255,255,255,.85)";
+    for (let i = 0; i < 5; i++) {
+      const cx = ((i * 0.23 * W + G.t * 6 + par * 0.25) % (W * 1.3)) - W * 0.15, cy = hy * (0.2 + (i % 3) * 0.15);
+      ctx.beginPath(); ctx.ellipse(cx, cy, 46, 13, 0, 0, 6.283); ctx.ellipse(cx + 26, cy - 8, 28, 13, 0, 0, 6.283); ctx.ellipse(cx - 24, cy - 4, 22, 10, 0, 0, 6.283); ctx.fill();
+    }
+  }
+  if (ST.rain) {
+    ctx.fillStyle = "rgba(120,140,180,.12)";
+    ctx.fillRect(0, 0, W, hy);
+  }
+}
+
+function drawFar() {
+  const hy = horizonY(), par = -C.yaw * C.f * 0.6;
+  ctx.save();
+  if (ST.far === "hills" || ST.far === "snowhills") {
+    ctx.fillStyle = ST.far === "snowhills" ? "#c9d6e6" : "#6aa35a";
+    ctx.beginPath(); ctx.moveTo(-20, hy + 2);
+    for (let x = -20; x <= W + 20; x += 20) ctx.lineTo(x, hy - 26 - Math.sin((x - par) * 0.012) * 16 - Math.sin((x - par) * 0.031) * 7);
+    ctx.lineTo(W + 20, hy + 2); ctx.fill();
+    ctx.fillStyle = ST.far === "snowhills" ? "#e8eef6" : "#4f8a45";
+    ctx.beginPath(); ctx.moveTo(-20, hy + 2);
+    for (let x = -20; x <= W + 20; x += 20) ctx.lineTo(x, hy - 10 - Math.sin((x - par * 1.4) * 0.02 + 1) * 8);
+    ctx.lineTo(W + 20, hy + 2); ctx.fill();
+  } else if (ST.far === "trees") {
+    ctx.fillStyle = "#2b3a3a";
+    for (let x = -40; x < W + 40; x += 14) { const xx = x + (par % 14), hh = 18 + Math.abs(Math.sin(x * 0.7)) * 22; ctx.beginPath(); ctx.ellipse(xx, hy - hh * 0.5, 12, hh * 0.6, 0, 0, 6.283); ctx.fill(); }
+  } else if (ST.far === "city") {
+    for (let i = 0; i < 40; i++) {
+      const x = ((i * 47 + par * 0.5) % (W + 80) + W + 80) % (W + 80) - 40, hh = 20 + ((i * 73) % 60);
+      ctx.fillStyle = "#0d1430"; ctx.fillRect(x, hy - hh, 34, hh);
+      ctx.fillStyle = "rgba(255,220,140,.5)";
+      for (let wy = hy - hh + 5; wy < hy - 4; wy += 7) for (let wx = x + 4; wx < x + 30; wx += 8) if (((wx * 7 + wy * 3) | 0) % 5 === 0) ctx.fillRect(wx, wy, 3, 3);
+    }
+  }
+  ctx.restore();
+}
+
+function drawGround() {
+  // big outer ground
+  poly([[-200, 0, -200], [200, 0, -200], [200, 0, 200], [-200, 0, 200]], ST.outer);
+  // stripes, dead ball line (-12) to past halfway
+  const [a, b] = ST.stripes;
+  for (let z = -12, i = 0; z < 110; z += 5, i++) {
+    poly([[-35, 0, z], [35, 0, z], [35, 0, z + 5], [-35, 0, z + 5]], i % 2 ? a : b);
+  }
+  // in-goal slightly darker
+  poly([[-35, 0, -12], [35, 0, -12], [35, 0, 0], [-35, 0, 0]], "rgba(0,0,0,.08)");
+  // wet sheen
+  if (ST.rain) {
+    const s = P(0, 0, 10);
+    if (s) {
+      const gg = ctx.createRadialGradient(s[0], s[1], 4, s[0], s[1], W * 0.6);
+      gg.addColorStop(0, "rgba(200,220,255,.10)"); gg.addColorStop(1, "rgba(200,220,255,0)");
+      ctx.fillStyle = gg; ctx.fillRect(0, horizonY(), W, H);
+    }
+  }
+  const L = "rgba(255,255,255,.92)", w = 0.12;
+  // touchlines
+  seg([-35, 0, -12], [-35, 0, 110], w, L); seg([35, 0, -12], [35, 0, 110], w, L);
+  seg([-35, 0, -12], [35, 0, -12], w, L);
+  seg([-35, 0, 0], [35, 0, 0], w * 1.4, L);               // try line
+  seg([-35, 0, 22], [35, 0, 22], w, L);                   // 22
+  seg([-35, 0, 50], [35, 0, 50], w, L);                   // halfway
+  for (let x = -33; x < 33; x += 4) { seg([x, 0, 40], [x + 2, 0, 40], w, L); } // 10 m (dashed)
+  for (let z = 5; z < 110; z += 5) { if (z === 22 || z === 50) continue; seg([-30, 0, z], [-29, 0, z], w, L); seg([29, 0, z], [30, 0, z], w, L); seg([-15, 0, z], [-14, 0, z], w, L); seg([14, 0, z], [15, 0, z], w, L); }
+  for (let z = 1; z < 110; z += 4) { seg([-30, 0, z], [-30, 0, z + 2], w, L); seg([30, 0, z], [30, 0, z + 2], w, L); }
+  // 22 / halfway numbers painted on the grass
+  paintText("22", -24, 23.5, 2.6); paintText("22", 24, 23.5, 2.6);
+}
+function paintText(t, x, z, size) {
+  const p = P(x, 0, z); if (!p || p[2] < 3) return;
+  const q = P(x, 0, z - size);
+  ctx.save(); ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = `900 ${size * p[2]}px Nunito, sans-serif`;
+  ctx.textAlign = "center"; ctx.translate(p[0], p[1]); ctx.scale(1, q ? Math.max(0.12, (p[1] - q[1]) / (size * p[2])) : 0.3);
+  ctx.fillText(t, 0, 0); ctx.restore();
+}
+
+function standGeo() {
+  const big = ST.stand === 2;
+  return { depth: big ? 30 : 9, h0: 1.6, h1: big ? 26 : 7, big };
+}
+function drawStands() {
+  if (!ST.stand) {
+    // trees and a fence for the park
+    for (let x = -60; x <= 60; x += 7) tree(x + ((x * 13) % 3), -24 - ((x * 7) % 5));
+    for (let z = -10; z < 90; z += 9) { tree(-46 - ((z * 3) % 4), z); tree(46 + ((z * 5) % 4), z); }
+    seg([-40, 1, -16], [40, 1, -16], 0.08, "#e8e0cf"); seg([-40, 0.5, -16], [40, 0.5, -16], 0.08, "#e8e0cf");
+    return;
+  }
+  const g = standGeo();
+  const wall = ST.space ? "#140a2e" : "#20263a", seat = ST.space ? "#2a1a55" : ST.snow ? "#8090a8" : "#39425e";
+  const zi = -17, zo = -17 - g.depth;
+  // back stand
+  poly([[-58, 0, zi + 0.6], [58, 0, zi + 0.6], [58, g.h0, zi], [-58, g.h0, zi]], wall);
+  poly([[-58, g.h0, zi], [58, g.h0, zi], [58, g.h1, zo], [-58, g.h1, zo]], seat);
+  // side stands
+  for (const s of [-1, 1]) {
+    const xi = s * 41, xo = s * (41 + g.depth);
+    poly([[xi + s * 0.6, 0, -16], [xi + s * 0.6, 0, 96], [xi, g.h0, 96], [xi, g.h0, -16]], wall);
+    poly([[xi, g.h0, -16], [xi, g.h0, 96], [xo, g.h1, 96], [xo, g.h1, -16]], seat);
+    // corner fill
+    poly([[xi, g.h0, -16], [xo, g.h1, -16], [s * 58, g.h1, zo], [s * 58, g.h0, zi]], seat);
+  }
+  // crowd dots
+  const cols = ST.crowd, ch = G.cheer;
+  let lastC = -1;
+  for (let i = 0; i < CROWD.length; i++) {
+    const p = CROWD[i];
+    const bob = ch > 0 ? Math.max(0, Math.sin(G.t * 11 + p.p)) * 0.5 * ch : Math.sin(G.t * 1.5 + p.p) * 0.04;
+    const c = toCam(p.x, p.y + bob, p.z);
+    if (c[2] < 1) continue;
+    const s = C.f / c[2], sx = C.cx + c[0] * s, sy = C.cy - c[1] * s;
+    if (sx < -5 || sx > W + 5 || sy < -5 || sy > H + 5) continue;
+    if (p.c !== lastC) { ctx.fillStyle = cols[p.c]; lastC = p.c; }
+    const w = Math.max(1, 0.5 * s), h = Math.max(1, 0.62 * s);
+    ctx.fillRect(sx - w / 2, sy - h, w, h);
+    if (h > 3) { ctx.fillStyle = SKIN[i % 5]; ctx.beginPath(); ctx.arc(sx, sy - h * 1.2, w * 0.3, 0, 6.283); ctx.fill(); lastC = -1; }
+    else if (h > 1.6) ctx.fillRect(sx - w * 0.25, sy - h * 1.4, w * 0.5, h * 0.4);
+  }
+  // camera flashes (more when cheering)
+  const nflash = (ST.night ? 6 : 1) + Math.round(ch * 30);
+  ctx.fillStyle = "#fff";
+  for (let i = 0; i < nflash; i++) {
+    const p = CROWD[(Math.random() * CROWD.length) | 0]; if (!p) break;
+    const q = P(p.x, p.y + 0.4, p.z); if (q) { const r = Math.max(1.5, q[2] * 0.35); ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.arc(q[0], q[1], r, 0, 6.283); ctx.fill(); }
+  }
+  ctx.globalAlpha = 1;
+  // roofs
+  if (g.big) {
+    const roof = ST.space ? "#0a0418" : "#151a28";
+    poly([[-58, g.h1 + 5, zo], [58, g.h1 + 5, zo], [58, g.h1 + 7, zo + 8], [-58, g.h1 + 7, zo + 8]], roof);
+    for (const s of [-1, 1]) {
+      const xo = s * (41 + g.depth);
+      poly([[xo, g.h1 + 5, -16], [xo, g.h1 + 5, 96], [xo - s * 8, g.h1 + 7, 96], [xo - s * 8, g.h1 + 7, -16]], roof);
+    }
+    // roof-edge lights
+    if (ST.night) {
+      for (let x = -54; x <= 54; x += 6) { const q = P(x, g.h1 + 6.6, zo + 7.6); if (q) { ctx.fillStyle = "#fffbe8"; ctx.fillRect(q[0] - q[2] * 0.9, q[1] - q[2] * 0.4, q[2] * 1.8, q[2] * 0.8); } }
+    }
+    if (ST.space) {
+      seg([-58, g.h1 + 7, zo + 8], [58, g.h1 + 7, zo + 8], 0.4, "#ff4fd8", 1.5);
+      for (const s of [-1, 1]) seg([s * (33 + g.depth), g.h1 + 7, -16], [s * (33 + g.depth), g.h1 + 7, 96], 0.4, "#4ff0ff", 1.5);
+    }
+    // big screen
+    bigScreen(0, g.h1 + 8, zo + 6);
+  }
+  // floodlight towers
+  if (ST.night && !ST.space) for (const s of [-1, 1]) tower(s * 60, -40);
+}
+function tree(x, z) {
+  const b = P(x, 0, z), t = P(x, 9, z); if (!b || !t) return;
+  const s = b[2];
+  ctx.fillStyle = "#5b3b22"; ctx.fillRect(b[0] - 0.3 * s, b[1] - 3 * s, 0.6 * s, 3 * s);
+  ctx.fillStyle = ST.snow ? "#dfe8f2" : ST.id === "club" ? "#2f4a33" : "#3e7d3a";
+  ctx.beginPath(); ctx.ellipse(b[0], b[1] - 5.5 * s, 2.6 * s, 3.4 * s, 0, 0, 6.283); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.beginPath(); ctx.ellipse(b[0] - 0.8 * s, b[1] - 6.6 * s, 1.2 * s, 1.5 * s, 0, 0, 6.283); ctx.fill();
+}
+function tower(x, z) {
+  seg([x, 0, z], [x, 48, z], 0.9, "#2a3040");
+  const q = P(x, 50, z); if (!q) return;
+  const s = q[2];
+  ctx.fillStyle = "#2a3040"; ctx.fillRect(q[0] - 5 * s, q[1] - 3 * s, 10 * s, 6 * s);
+  ctx.fillStyle = "#fffdf0";
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 5; c++) ctx.fillRect(q[0] - 4.5 * s + c * 1.9 * s, q[1] - 2.6 * s + r * 1.9 * s, 1.5 * s, 1.5 * s);
+}
+function bigScreen(x, y, z) {
+  const a = P(x - 11, y + 7, z), b = P(x + 11, y, z); if (!a || !b) return;
+  const w = b[0] - a[0], h = b[1] - a[1];
+  ctx.fillStyle = "#05070c"; ctx.fillRect(a[0] - w * 0.03, a[1] - h * 0.05, w * 1.06, h * 1.1);
+  const gr = ctx.createLinearGradient(0, a[1], 0, b[1]); gr.addColorStop(0, "#0d2a5c"); gr.addColorStop(1, "#071431");
+  ctx.fillStyle = gr; ctx.fillRect(a[0], a[1], w, h);
+  if (w < 40) return;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#fff";
+  let top, bot;
+  if (G.mode === "final") { top = `ENGLAND ${G.score[0]} - ${G.score[1]} AUSTRALIA`; bot = G.result === "goal" ? "WORLD CHAMPIONS!" : "RUGBY WORLD CUP FINAL"; }
+  else { top = G.result === "goal" ? "DROP GOAL!" : `STREAK ${G.streak}`; bot = ST.name.toUpperCase(); }
+  ctx.font = `900 ${h * 0.32}px Nunito, sans-serif`; ctx.fillText(top, a[0] + w / 2, a[1] + h * 0.38, w * 0.92);
+  ctx.fillStyle = "#ffd84f"; ctx.font = `900 ${h * 0.22}px Nunito, sans-serif`; ctx.fillText(bot, a[0] + w / 2, a[1] + h * 0.76, w * 0.9);
+  ctx.textBaseline = "alphabetic";
+}
+function drawBoards() {
+  const words = ["GH GAMES", "GEORGE'S ARCADE", "DROP GOAL HERO", "GH GAMES"];
+  const cols = ST.space ? ["#ff4fd8", "#4ff0ff", "#a6ff4f", "#b07bff"] : ["#c8102e", "#1d4fa8", "#0f7a45", "#e08a1e"];
+  if (!ST.stand) return;
+  for (let i = 0, x = -40; x < 40; x += 10, i++) {
+    poly([[x, 0, -14], [x + 10, 0, -14], [x + 10, 1, -14], [x, 1, -14]], cols[i % 4]);
+    const p = P(x + 5, 0.5, -14);
+    if (p && p[2] * 10 > 50) {
+      ctx.fillStyle = "#fff"; ctx.font = `900 ${p[2] * 0.62}px Nunito, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(words[i % 4], p[0], p[1], p[2] * 9.2); ctx.textBaseline = "alphabetic";
+    }
+  }
+}
+
+// depth-sorted things on the pitch
+function drawObjects() {
+  const list = [];
+  list.push({ z: 0, fn: drawPosts });
+  list.push({ z: G.kicker.z, fn: () => drawPlayer(G.kicker) });
+  list.push({ z: G.sh.z, fn: () => drawPlayer(G.sh) });
+  for (const r of G.ruck) list.push({ z: r.z, fn: () => drawRuckBody(r) });
+  for (const m of G.mates) list.push({ z: m.z, fn: () => drawPlayer(m) });
+  for (const d of G.defs) list.push({ z: d.z, fn: () => drawPlayer(d) });
+  const b = G.ball;
+  list.push({ z: b.z - 0.01, fn: drawBall });
+  list.push({ z: -999, fn: drawAimGuide, first: true });
+  list.sort((a, c) => (a.first ? -1 : c.first ? 1 : a.z - c.z));
+  for (const o of list) o.fn();
+}
+
+function drawAimGuide() {
+  const k = G.kick;
+  if (G.phase !== "aim" && G.phase !== "drop" && G.phase !== "pass") return;
+  const L = 9 + 4 * S.lv.eye + (S.diff === "easy" ? 6 : 0);
+  const az = k.az0 + G.aim * D2R;
+  const sx = k.x + 0.14, sz = k.D - 0.5;
+  const pulse = 0.6 + 0.4 * Math.sin(G.t * 6);
+  for (let d = 1.5; d < L; d += 1.1) {
+    const x = sx + Math.sin(az) * d, z = sz - Math.cos(az) * d;
+    const p = P(x, 0.02, z); if (!p) continue;
+    ctx.fillStyle = `rgba(255,216,79,${(0.95 - d / L * 0.75) * pulse})`;
+    ctx.beginPath(); ctx.ellipse(p[0], p[1], 0.22 * p[2], 0.09 * p[2], 0, 0, 6.283); ctx.fill();
+  }
+  // chevron at the end
+  const ex = sx + Math.sin(az) * L, ez = sz - Math.cos(az) * L;
+  const tip = P(ex + Math.sin(az) * 1.2, 0.02, ez - Math.cos(az) * 1.2), l = P(ex - Math.cos(az) * 0.8, 0.02, ez - Math.sin(az) * 0.8), r = P(ex + Math.cos(az) * 0.8, 0.02, ez + Math.sin(az) * 0.8);
+  if (tip && l && r) { ctx.fillStyle = "rgba(255,216,79,.9)"; ctx.beginPath(); ctx.moveTo(tip[0], tip[1]); ctx.lineTo(l[0], l[1]); ctx.lineTo(r[0], r[1]); ctx.fill(); }
+}
+
+function drawPosts() {
+  const post = ST.space ? "#e9e2ff" : "#ffffff", pad = G.mode === "final" ? "#1d2a5c" : ST.space ? "#ff4fd8" : "#c8102e";
+  for (const x of [-2.8, 2.8]) {
+    // shadow
+    const s0 = P(x, 0, 0);
+    if (s0) { ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(s0[0], s0[1], 0.5 * s0[2], 0.15 * s0[2], 0, 0, 6.283); ctx.fill(); }
+    seg([x, 0, 0], [x, 16, 0], 0.16, post, 1.5);
+    seg([x + 0.04, 0.2, 0.02], [x + 0.04, 15.8, 0.02], 0.04, "rgba(0,0,0,.18)", 0.5);
+    // pad
+    const a = P(x - 0.32, 2.0, 0), b = P(x + 0.32, 0, 0);
+    if (a && b) {
+      ctx.fillStyle = pad; ctx.fillRect(a[0], a[1], b[0] - a[0], b[1] - a[1]);
+      ctx.fillStyle = "rgba(255,255,255,.18)"; ctx.fillRect(a[0], a[1], (b[0] - a[0]) * 0.3, b[1] - a[1]);
+    }
+    // flag
+    const f = P(x, 16, 0);
+    if (f) { const s = f[2]; ctx.fillStyle = G.mode === "final" ? "#f4f4f4" : "#ffd84f"; ctx.beginPath(); ctx.moveTo(f[0], f[1]); ctx.lineTo(f[0] + Math.sign(G.kick.wind || 0.01) * 0.9 * s * (0.6 + 0.4 * Math.sin(G.t * 8)), f[1] + 0.3 * s); ctx.lineTo(f[0], f[1] + 0.6 * s); ctx.fill(); }
+  }
+  seg([-2.8, 3, 0], [2.8, 3, 0], 0.15, post, 1.5);
+}
+
+function drawBall() {
+  const b = G.ball;
+  if (G.phase === "aim" || (G.phase === "pass" && false)) { /* held: drawn with kicker */ }
+  // shadow
+  const sh = P(b.x, 0.01, b.z);
+  if (sh) { const a = clamp(0.35 - b.y * 0.012, 0.06, 0.35); ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.beginPath(); ctx.ellipse(sh[0], sh[1], 0.22 * sh[2], 0.07 * sh[2], 0, 0, 6.283); ctx.fill(); }
+  // timing ring during the drop
+  if (G.phase === "drop" && sh) {
+    const left = G.tg - G.dropT;
+    const r = Math.max(0.24, 0.24 + left * 3.2);
+    const good = Math.abs(left) <= DIFFS[S.diff].win + 0.007 * S.lv.sweet;
+    ctx.strokeStyle = good ? "#ffd84f" : "rgba(255,255,255,.9)"; ctx.lineWidth = good ? 4 : 2.5;
+    ctx.beginPath(); ctx.ellipse(sh[0], sh[1], r * sh[2], r * 0.32 * sh[2], 0, 0, 6.283); ctx.stroke();
+    ctx.strokeStyle = "rgba(255,216,79,.55)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(sh[0], sh[1], 0.24 * sh[2], 0.08 * sh[2], 0, 0, 6.283); ctx.stroke();
+  }
+  // trail
+  if (G.trail.length > 2 && (G.phase === "flight" || G.phase === "result")) {
+    ctx.lineCap = "round";
+    for (let i = 1; i < G.trail.length; i++) {
+      const a = P(...G.trail[i - 1]), c = P(...G.trail[i]); if (!a || !c) continue;
+      ctx.strokeStyle = `rgba(255,255,255,${(i / G.trail.length) * 0.45})`; ctx.lineWidth = Math.max(1, 0.12 * c[2]);
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(c[0], c[1]); ctx.stroke();
+    }
+  }
+  const p = P(b.x, b.y, b.z); if (!p) return;
+  const s = Math.max(p[2], 40);
+  const rx = 0.16 * s, ry = 0.1 * s;
+  ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(b.rot);
+  const scaleY = 0.55 + 0.45 * Math.abs(Math.cos(b.rot * 1.7));
+  ctx.scale(1, scaleY);
+  const g = ctx.createRadialGradient(-rx * 0.3, -ry * 0.5, ry * 0.1, 0, 0, rx);
+  g.addColorStop(0, "#ffffff"); g.addColorStop(0.7, "#efe9da"); g.addColorStop(1, "#c9c0aa");
+  ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, 6.283); ctx.fill();
+  ctx.strokeStyle = "#2a2a35"; ctx.lineWidth = Math.max(1, s * 0.012); ctx.stroke();
+  ctx.strokeStyle = G.mode === "final" ? "#c8102e" : "#1d4fa8"; ctx.lineWidth = Math.max(1, s * 0.025);
+  ctx.beginPath(); ctx.moveTo(-rx * 0.35, -ry * 0.9); ctx.lineTo(-rx * 0.35, ry * 0.9); ctx.moveTo(rx * 0.35, -ry * 0.9); ctx.lineTo(rx * 0.35, ry * 0.9); ctx.stroke();
+  ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = Math.max(0.8, s * 0.008);
+  ctx.beginPath(); ctx.moveTo(-rx * 0.1, 0); ctx.lineTo(rx * 0.1, 0); ctx.stroke();
+  ctx.restore();
+}
+
+// a player, drawn in metres around their feet
+function drawPlayer(p) {
+  const base = P(p.x, 0, p.z); if (!base) return;
+  const s = base[2]; if (s < 1.2) return;
+  const kit = KITS[p.kit], skin = SKIN[p.skin || 0], hair = HAIR[p.hair || 0];
+  ctx.save();
+  ctx.translate(base[0], base[1]);
+  // shadow
+  ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(0, 0, 0.45 * s, 0.13 * s, 0, 0, 6.283); ctx.fill();
+  ctx.scale(s, s); ctx.lineCap = "round"; ctx.lineJoin = "round";
+  const back = p.face === "away";
+  let lean = 0, crouch = 0, armL = 0, armR = 0, legL = 0, legR = 0, kickLeg = 0, jump = 0;
+  const ph = p.run || 0;
+  if (p.pose === "run") { legL = Math.max(0, Math.sin(ph)) * 0.32; legR = Math.max(0, Math.sin(ph + Math.PI)) * 0.32; armL = Math.sin(ph) * 0.25; armR = -armL; jump = Math.abs(Math.sin(ph)) * 0.06; crouch = 0.06; }
+  else if (p.pose === "set") { crouch = 0.18; }
+  else if (p.pose === "crouch") { crouch = 0.42; }
+  else if (p.pose === "pass") { crouch = 0.3; armL = 0.5; armR = 0.5; }
+  else if (p.pose === "dive") { jump = 0.25; armL = 1; armR = 1; legL = 0.25; }
+  else if (p.pose === "hold") { armL = 0.35; armR = 0.35; }
+  else if (p.pose === "drop") { armL = 0.15; armR = 0.15; }
+  else if (p.pose === "kick") {
+    const t = clamp(G.kickAnim / 0.35, 0, 1);
+    kickLeg = Math.sin(Math.min(1, t) * Math.PI * 0.85);
+    armL = 0.9; armR = -0.2; lean = -0.06 * kickLeg;
+  }
+  const hip = -0.95 + crouch * 0.6 - jump, sh = -1.5 + crouch - jump, head = -1.73 + crouch - jump;
+  // legs
+  const leg = (sx, lift, isKick) => {
+    let fx = sx * 1.1, fy = -jump;
+    let kx = sx * 1.05, ky = hip + 0.47 - lift * 0.6;
+    if (lift) { fy = -jump - lift; }
+    if (isKick && kickLeg > 0) {
+      // from behind, the kicking leg swings forward and up, so it looks shorter and higher
+      fy = -0.15 - kickLeg * 0.75; fx = sx * 0.6; ky = hip + 0.3 - kickLeg * 0.35;
+    }
+    ctx.strokeStyle = skin; ctx.lineWidth = 0.13;
+    ctx.beginPath(); ctx.moveTo(sx, hip + 0.1); ctx.lineTo(kx, ky); ctx.stroke();
+    ctx.strokeStyle = kit.socks; ctx.lineWidth = 0.12;
+    ctx.beginPath(); ctx.moveTo(kx, ky + 0.06); ctx.lineTo(fx, fy - 0.08); ctx.stroke();
+    ctx.strokeStyle = kit.band; ctx.lineWidth = 0.125;
+    ctx.beginPath(); ctx.moveTo(lerp(kx, fx, 0.15), lerp(ky, fy, 0.15) + 0.06); ctx.lineTo(lerp(kx, fx, 0.25), lerp(ky, fy, 0.25) + 0.06); ctx.stroke();
+    ctx.fillStyle = "#111"; ctx.beginPath(); ctx.ellipse(fx, fy - 0.03, 0.08, 0.05, 0, 0, 6.283); ctx.fill();
+  };
+  leg(-0.1, legL, false);
+  leg(0.1, legR, true);
+  // shorts
+  ctx.fillStyle = kit.shorts;
+  ctx.beginPath(); ctx.moveTo(-0.2, hip - 0.12); ctx.lineTo(0.2, hip - 0.12); ctx.lineTo(0.23, hip + 0.2); ctx.lineTo(0.01, hip + 0.2); ctx.lineTo(0, hip + 0.08); ctx.lineTo(-0.01, hip + 0.2); ctx.lineTo(-0.23, hip + 0.2); ctx.closePath(); ctx.fill();
+  // torso
+  ctx.save(); ctx.translate(0, hip); ctx.rotate(lean); ctx.translate(0, -hip);
+  const tg = ctx.createLinearGradient(-0.28, 0, 0.28, 0);
+  tg.addColorStop(0, shade(kit.shirt, -0.18)); tg.addColorStop(0.45, kit.shirt); tg.addColorStop(1, shade(kit.shirt, -0.25));
+  ctx.fillStyle = tg;
+  ctx.beginPath(); ctx.moveTo(-0.27, sh); ctx.quadraticCurveTo(0, sh - 0.06, 0.27, sh); ctx.lineTo(0.22, hip - 0.08); ctx.lineTo(-0.22, hip - 0.08); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = kit.trim; ctx.lineWidth = 0.035;
+  ctx.beginPath(); ctx.moveTo(-0.27, sh + 0.02); ctx.lineTo(-0.24, sh + 0.2); ctx.moveTo(0.27, sh + 0.02); ctx.lineTo(0.24, sh + 0.2); ctx.stroke();
+  if (back && p.num && s > 25) {
+    ctx.save(); ctx.scale(1 / s, 1 / s);
+    ctx.fillStyle = kit.num; ctx.font = `900 ${0.26 * s}px Nunito, Arial, sans-serif`; ctx.textAlign = "center";
+    ctx.fillText(String(p.num), 0, (sh + 0.36) * s);
+    ctx.restore();
+  } else if (!back) {
+    ctx.strokeStyle = kit.trim; ctx.lineWidth = 0.03; ctx.beginPath(); ctx.moveTo(-0.08, sh - 0.01); ctx.lineTo(0, sh + 0.09); ctx.lineTo(0.08, sh - 0.01); ctx.stroke();
+  }
+  // arms
+  const arm = (sx, up) => {
+    const ex = sx * 1.35 + sx * up * 0.15, ey = sh + 0.28 - up * 0.3;
+    const hx = sx * (1.2 - up * 0.5), hy = sh + 0.55 - up * 0.75;
+    ctx.strokeStyle = kit.shirt; ctx.lineWidth = 0.12;
+    ctx.beginPath(); ctx.moveTo(sx * 0.95, sh + 0.05); ctx.lineTo(lerp(sx * 0.95, ex, 0.45), lerp(sh + 0.05, ey, 0.45)); ctx.stroke();
+    ctx.strokeStyle = skin; ctx.lineWidth = 0.09;
+    ctx.beginPath(); ctx.moveTo(lerp(sx * 0.95, ex, 0.4), lerp(sh + 0.05, ey, 0.4)); ctx.lineTo(ex, ey); ctx.lineTo(hx, hy); ctx.stroke();
+  };
+  arm(-0.24, armL); arm(0.24, armR);
+  // head
+  ctx.fillStyle = skin; ctx.fillRect(-0.05, sh - 0.1, 0.1, 0.1);
+  ctx.beginPath(); ctx.ellipse(0, head, 0.115, 0.135, 0, 0, 6.283); ctx.fill();
+  ctx.fillStyle = hair;
+  if (back) { ctx.beginPath(); ctx.ellipse(0, head - 0.02, 0.12, 0.125, 0, Math.PI * 1.05, Math.PI * 1.95 + 0.6); ctx.fill(); ctx.beginPath(); ctx.ellipse(0, head - 0.03, 0.118, 0.11, 0, 0, 6.283); ctx.fill(); }
+  else {
+    ctx.beginPath(); ctx.ellipse(0, head - 0.07, 0.12, 0.08, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = "#1a1a1a"; ctx.beginPath(); ctx.arc(-0.04, head - 0.005, 0.014, 0, 6.283); ctx.arc(0.04, head - 0.005, 0.014, 0, 6.283); ctx.fill();
+    ctx.strokeStyle = "rgba(90,30,30,.7)"; ctx.lineWidth = 0.014; ctx.beginPath(); ctx.moveTo(-0.035, head + 0.065); ctx.lineTo(0.035, head + 0.065); ctx.stroke();
+  }
+  // ears
+  ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(-0.115, head, 0.025, 0, 6.283); ctx.arc(0.115, head, 0.025, 0, 6.283); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+  // ball in hands (held, viewed from behind it shows to the right of the body)
+  if (p === G.kicker && G.phase === "aim") { /* the ball object draws itself */ }
+}
+function drawRuckBody(r) {
+  const base = P(r.x, 0, r.z); if (!base) return;
+  const s = base[2]; if (s < 1) return;
+  const kit = KITS[r.kit];
+  ctx.save(); ctx.translate(base[0], base[1]); ctx.scale(s, s);
+  ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(0, 0, 0.7, 0.16, 0, 0, 6.283); ctx.fill();
+  ctx.strokeStyle = SKIN[r.skin]; ctx.lineWidth = 0.13; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(-0.15, -0.55); ctx.lineTo(-0.25, 0); ctx.moveTo(0.15, -0.55); ctx.lineTo(0.3, 0); ctx.stroke();
+  ctx.fillStyle = kit.shorts; ctx.fillRect(-0.24, -0.72, 0.48, 0.24);
+  const g = ctx.createLinearGradient(0, -1.15, 0, -0.6); g.addColorStop(0, kit.shirt); g.addColorStop(1, shade(kit.shirt, -0.25));
+  ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, -0.86, 0.42, 0.26, 0.1, 0, 6.283); ctx.fill();
+  ctx.fillStyle = HAIR[r.hair]; ctx.beginPath(); ctx.arc(0.36, -0.86, 0.11, 0, 6.283); ctx.fill();
+  ctx.restore();
+}
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  let r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const f = v => clamp(Math.round(amt < 0 ? v * (1 + amt) : v + (255 - v) * amt), 0, 255);
+  return `rgb(${f(r)},${f(g)},${f(b)})`;
+}
+
+function drawWeather() {
+  const dt = 1 / 60;
+  if (ST.rain) {
+    ctx.strokeStyle = "rgba(200,215,255,.32)"; ctx.lineWidth = 1; ctx.beginPath();
+    for (const d of DROPS) {
+      d.y += d.v * dt * G.ts; d.x += (d.dx - 60) * dt * G.ts;
+      if (d.y > H) { d.y = -20; d.x = Math.random() * (W + 100); }
+      if (d.x < -20) d.x = W + 20;
+      ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - 3, d.y + d.l);
+    }
+    ctx.stroke();
+  } else if (ST.snow) {
+    ctx.fillStyle = "rgba(255,255,255,.9)";
+    for (let i = 0; i < 160; i++) {
+      const d = DROPS[i];
+      d.y += d.v * 0.06 * dt * G.ts; d.x += Math.sin(G.t + i) * 0.5;
+      if (d.y > H) { d.y = -5; d.x = Math.random() * W; }
+      ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, 6.283); ctx.fill();
+    }
+  }
+}
+function drawGlows() {
+  ctx.save(); ctx.globalCompositeOperation = "lighter";
+  const g = standGeo();
+  const spots = ST.space ? [] : [[-60, 50, -40], [60, 50, -40]];
+  if (ST.stand === 2 && !ST.space) for (let x = -50; x <= 50; x += 25) spots.push([x, g.h1 + 6.6, -17 - g.depth + 7.6]);
+  for (const sp of spots) {
+    const q = P(...sp); if (!q) continue;
+    const r = Math.max(30, q[2] * 22);
+    const gg = ctx.createRadialGradient(q[0], q[1], 0, q[0], q[1], r);
+    gg.addColorStop(0, "rgba(255,250,220,.55)"); gg.addColorStop(0.2, "rgba(255,240,200,.18)"); gg.addColorStop(1, "rgba(255,240,200,0)");
+    ctx.fillStyle = gg; ctx.fillRect(q[0] - r, q[1] - r, r * 2, r * 2);
+  }
+  ctx.restore();
+}
+
+function drawFX() {
+  // slow-motion vignette
+  const slow = 1 - G.ts;
+  if (slow > 0.05) {
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
+    vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, `rgba(0,0,0,${0.55 * slow})`);
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  }
+  if (G.flash > 0) { ctx.fillStyle = `rgba(255,255,255,${G.flash * 0.35})`; ctx.fillRect(0, 0, W, H); }
+  ctx.globalCompositeOperation = "lighter";
+  for (const f of G.fireworks) { ctx.globalAlpha = clamp(f.life, 0, 1); ctx.fillStyle = f.c; ctx.beginPath(); ctx.arc(f.x, f.y, 2.6, 0, 6.283); ctx.fill(); ctx.globalAlpha *= 0.25; ctx.beginPath(); ctx.arc(f.x, f.y, 7, 0, 6.283); ctx.fill(); }
+  ctx.globalCompositeOperation = "source-over";
+  ctx.globalAlpha = 1;
+  for (const c of G.confetti) { ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.r); ctx.fillStyle = c.c; ctx.fillRect(-c.w / 2, -c.w / 4, c.w, c.w / 2); ctx.restore(); }
+}
+
+function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+function drawHUD() {
+  const sc = clamp(W / 900, 0.72, 1.15);
+  ctx.save(); ctx.scale(sc, sc);
+  const w = W / sc;
+  // broadcast scoreboard
+  ctx.font = "900 15px Nunito, sans-serif"; ctx.textBaseline = "middle";
+  if (G.mode === "final") {
+    const x = 14, y = 14;
+    ctx.fillStyle = "rgba(8,12,24,.85)"; rr(x, y, 250, 34, 8); ctx.fill();
+    ctx.fillStyle = "#f4f4f4"; rr(x + 4, y + 4, 60, 26, 5); ctx.fill();
+    ctx.fillStyle = "#c8102e"; ctx.fillRect(x + 4, y + 4, 5, 26);
+    ctx.fillStyle = "#1d2a5c"; ctx.textAlign = "center"; ctx.fillText("ENG", x + 37, y + 17);
+    ctx.fillStyle = "#fff"; ctx.font = "900 18px Nunito, sans-serif"; ctx.fillText(`${G.score[0]} - ${G.score[1]}`, x + 98, y + 18);
+    ctx.fillStyle = "#f6c324"; rr(x + 132, y + 4, 60, 26, 5); ctx.fill();
+    ctx.fillStyle = "#0b6b3a"; ctx.fillRect(x + 187, y + 4, 5, 26);
+    ctx.font = "900 15px Nunito, sans-serif"; ctx.fillText("AUS", x + 160, y + 17);
+    const el = 100 * 60 - Math.ceil(G.clock);
+    ctx.fillStyle = G.clock < 10 ? "#ff6b6b" : "#ffd84f"; ctx.fillText(`${Math.floor(el / 60)}:${String(el % 60).padStart(2, "0")}`, x + 222, y + 18);
+    ctx.fillStyle = "rgba(8,12,24,.75)"; rr(x, y + 38, 250, 20, 6); ctx.fill();
+    ctx.fillStyle = "#cfd8ee"; ctx.font = "800 11px Nunito, sans-serif"; ctx.fillText("RUGBY WORLD CUP FINAL  ·  EXTRA TIME", x + 125, y + 48);
+  } else {
+    const x = 14, y = 14;
+    ctx.fillStyle = "rgba(8,12,24,.85)"; rr(x, y, 230, 34, 8); ctx.fill();
+    ctx.textAlign = "left"; ctx.fillStyle = "#ffd84f"; ctx.fillText(`KICK ${G.streak + 1}`, x + 12, y + 18);
+    ctx.fillStyle = "#fff"; ctx.fillText(`${Math.round(G.kick.dist)} m`, x + 90, y + 18);
+    ctx.fillStyle = "#9fe7a8"; ctx.fillText(`STREAK ${G.streak}`, x + 145, y + 18);
+    ctx.fillStyle = "rgba(8,12,24,.75)"; rr(x, y + 38, 230, 20, 6); ctx.fill();
+    ctx.fillStyle = "#cfd8ee"; ctx.font = "800 11px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText(ST.name.toUpperCase() + "  ·  " + DIFFS[S.diff].name.toUpperCase(), x + 115, y + 48);
+  }
+  // wind
+  const wv = G.kick.wind || 0, kmh = Math.round(Math.abs(wv) * 12);
+  const wx = w - 150, wy = 14;
+  ctx.fillStyle = "rgba(8,12,24,.85)"; rr(wx, wy, 136, 34, 8); ctx.fill();
+  ctx.textAlign = "left"; ctx.fillStyle = "#cfd8ee"; ctx.font = "800 11px Nunito, sans-serif"; ctx.fillText("WIND", wx + 10, wy + 18);
+  ctx.fillStyle = "#fff"; ctx.font = "900 15px Nunito, sans-serif"; ctx.fillText(kmh < 2 ? "calm" : `${kmh} km/h`, wx + 46, wy + 18);
+  if (kmh >= 2) {
+    const ax = wx + 116, ay = wy + 17, d = Math.sign(wv);
+    ctx.strokeStyle = "#4aa8ff"; ctx.fillStyle = "#4aa8ff"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(ax - 10 * d, ay); ctx.lineTo(ax + 8 * d, ay); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ax + 12 * d, ay); ctx.lineTo(ax + 4 * d, ay - 6); ctx.lineTo(ax + 4 * d, ay + 6); ctx.fill();
+  }
+  // defence meter
+  if (G.phase === "aim" || G.phase === "drop") {
+    const p = clamp(G.rushT / G.rushMax, 0, 1);
+    const bx = w / 2 - 110, by = 14;
+    ctx.fillStyle = "rgba(8,12,24,.85)"; rr(bx, by, 220, 30, 8); ctx.fill();
+    ctx.fillStyle = "#cfd8ee"; ctx.font = "800 11px Nunito, sans-serif"; ctx.textAlign = "left"; ctx.fillText("DEFENCE", bx + 10, by + 16);
+    ctx.fillStyle = "rgba(255,255,255,.15)"; rr(bx + 72, by + 9, 136, 12, 6); ctx.fill();
+    ctx.fillStyle = p > 0.75 ? "#ff5d5d" : p > 0.5 ? "#ffb13c" : "#4fcf6a"; rr(bx + 72, by + 9, Math.max(12, 136 * p), 12, 6); ctx.fill();
+  }
+  // aim readout
+  if (G.phase === "aim") {
+    ctx.textAlign = "center"; ctx.font = "900 14px Nunito, sans-serif"; ctx.fillStyle = "rgba(255,255,255,.85)";
+    const a = Math.round(G.aim);
+    ctx.fillText(a === 0 ? "AIM: straight at the posts" : `AIM: ${Math.abs(a)}° ${a < 0 ? "left" : "right"}`, w / 2, H / sc - 18);
+  } else if (G.phase === "drop") {
+    ctx.textAlign = "center"; ctx.font = "900 16px Nunito, sans-serif"; ctx.fillStyle = "#ffd84f";
+    ctx.fillText("KICK when the ring hits the ball!", w / 2, H / sc - 18);
+  }
+  ctx.restore();
+  // big banner
+  if (G.banner && G.bannerT > 0) {
+    const t = G.banner.text, size = clamp(W / Math.max(7, t.length) * 1.25, 26, 84);
+    const pop = 1 + Math.max(0, 0.25 - (G.pt * 1.5)) * 0;
+    ctx.save(); ctx.translate(W / 2, H * 0.36); ctx.scale(pop, pop);
+    ctx.font = `400 ${size}px "Lilita One", "Arial Rounded MT Bold", sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.lineWidth = size * 0.16; ctx.strokeStyle = "rgba(10,14,30,.9)"; ctx.lineJoin = "round"; ctx.strokeText(t, 0, 0);
+    ctx.fillStyle = G.banner.col; ctx.fillText(t, 0, 0);
+    if (G.quality && G.result && G.result !== "charged" && G.valid) {
+      ctx.font = `900 ${size * 0.3}px Nunito, sans-serif`; ctx.lineWidth = 5; ctx.strokeText(`${G.quality.label} STRIKE`, 0, size * 0.7); ctx.fillStyle = "#fff"; ctx.fillText(`${G.quality.label} STRIKE`, 0, size * 0.7);
+    }
+    ctx.restore();
+  }
+  if (G.phase === "intro" && G.mode === "final") {
+    ctx.save(); ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(0, H * 0.62, W, 54);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#fff"; ctx.font = `400 ${clamp(W / 22, 20, 34)}px "Lilita One", sans-serif`;
+    ctx.fillText("26 SECONDS LEFT · 17-17 · ONE KICK", W / 2, H * 0.62 + 27);
+    ctx.restore();
+  }
+}
+
+// ---------- UI ----------
+function say(text, cls) { const m = $("msg"); m.textContent = text; m.className = "msg" + (cls ? " " + cls : ""); }
+function updateUI() {
+  $("hCoins").textContent = fmt(S.coins);
+  $("hStreak").textContent = G.streak;
+  $("hBest").textContent = S.best;
+  $("hMode").textContent = S.mode === "final" ? "2003 Final" : "Career";
+  $("stHint").textContent = stadOf(S.stad).name;
+  $("diffHint").textContent = DIFFS[S.diff].name;
+}
+function renderUps() {
+  $("upCoins").textContent = fmt(S.coins);
+  const list = $("upList"); list.innerHTML = "";
+  for (const u of UPS) {
+    const l = S.lv[u.id], maxed = l >= u.max, c = upCost(u, l);
+    const row = document.createElement("div"); row.className = "row";
+    row.innerHTML = `<div class="ic">${u.ic}</div><div class="tx"><b>${u.name} <span style="color:var(--gold)">Lv ${l}/${u.max}</span></b><small>${u.desc}</small></div>`;
+    const bt = document.createElement("button"); bt.className = "sm";
+    bt.textContent = maxed ? "MAX" : `${fmt(c)} coins`; bt.disabled = maxed || S.coins < c;
+    bt.onclick = () => { if (S.coins >= c && S.lv[u.id] < u.max) { S.coins -= c; S.lv[u.id]++; saveNow(); renderUps(); updateUI(); } };
+    row.appendChild(bt); list.appendChild(row);
+  }
+}
+function renderStads() {
+  const list = $("stList"); list.innerHTML = "";
+  for (const st of STADS) {
+    const own = S.owned.includes(st.id), on = S.stad === st.id;
+    const row = document.createElement("div"); row.className = "row" + (on ? " on" : "") + (own ? "" : " locked");
+    const ic = { park: "🌳", club: "🏟️", big: "💡", syd: "🏆", snow: "❄️", galaxy: "🪐" }[st.id];
+    row.innerHTML = `<div class="ic">${ic}</div><div class="tx"><b>${st.name}</b><small>${st.desc}</small></div>`;
+    const bt = document.createElement("button"); bt.className = "sm" + (own ? " go" : "");
+    if (own) { bt.textContent = on ? "PLAYING" : "PLAY HERE"; bt.disabled = on; bt.onclick = () => { S.stad = st.id; saveNow(); renderStads(); updateUI(); if (S.mode === "career" && G.phase !== "flight") newKick(); }; }
+    else if (st.cost < 0) { bt.textContent = "Win the Final"; bt.disabled = true; }
+    else { bt.textContent = `${fmt(st.cost)} coins`; bt.disabled = S.coins < st.cost; bt.onclick = () => { if (S.coins >= st.cost) { S.coins -= st.cost; S.owned.push(st.id); S.stad = st.id; saveNow(); renderStads(); updateUI(); if (S.mode === "career" && G.phase !== "flight") newKick(); } }; }
+    row.appendChild(bt); list.appendChild(row);
+  }
+}
+function showStart() {
+  document.querySelectorAll("#difRow .dbtn").forEach(b => b.classList.toggle("on", b.dataset.d === S.diff));
+  $("startOv").hidden = false;
+}
+document.querySelectorAll("#difRow .dbtn").forEach(b => b.onclick = () => { S.diff = b.dataset.d; saveNow(); showStart(); updateUI(); });
+document.querySelectorAll(".mcard").forEach(b => b.onclick = () => {
+  S.mode = b.dataset.m; S.picked = true; saveNow();
+  $("startOv").hidden = true; G.streak = 0; newKick();
+});
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => { $(b.dataset.close).hidden = true; });
+$("modeBtn").onclick = showStart;
+$("diffBtn").onclick = showStart;
+$("upBtn").onclick = () => { renderUps(); $("upOv").hidden = false; };
+$("stBtn").onclick = () => { renderStads(); $("stOv").hidden = false; };
+$("actBtn").onclick = action;
+for (const [id, d] of [["lBtn", -1], ["rBtn", 1]]) {
+  const b = $(id);
+  b.addEventListener("pointerdown", e => { e.preventDefault(); G.aimDir = d; });
+  for (const ev of ["pointerup", "pointerleave", "pointercancel"]) b.addEventListener(ev, () => { if (G.aimDir === d) G.aimDir = 0; });
+}
+document.addEventListener("keydown", e => {
+  if (!$("startOv").hidden || !$("upOv").hidden || !$("stOv").hidden) return;
+  if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+  if (e.code === "ArrowLeft") { G.aimDir = -1; e.preventDefault(); }
+  else if (e.code === "ArrowRight") { G.aimDir = 1; e.preventDefault(); }
+  else if ((e.code === "Space" || e.code === "Enter") && !e.repeat) { e.preventDefault(); if (!$("actBtn").disabled) action(); }
+});
+document.addEventListener("keyup", e => { if (e.code === "ArrowLeft" || e.code === "ArrowRight") G.aimDir = 0; });
+// drag on the pitch to aim, tap to act
+let drag = null;
+cv.addEventListener("pointerdown", e => { drag = { x: e.clientX, moved: 0 }; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener("pointermove", e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x; drag.moved += Math.abs(dx); drag.x = e.clientX;
+  if (G.phase === "aim" || G.phase === "pass") G.aim = clamp(G.aim + dx * 0.08, -14, 14);
+});
+cv.addEventListener("pointerup", () => { if (drag && drag.moved < 8 && !$("actBtn").disabled) action(); drag = null; });
+cv.addEventListener("pointercancel", () => { drag = null; });
+
+window.addEventListener("resize", resize);
+
+// ---------- loop ----------
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  step(dt); draw();
+  requestAnimationFrame(frame);
+}
+resize();
+newKick();
+updateUI();
+if (!S.picked) showStart();
+requestAnimationFrame(frame);
+
+// ---------- leaderboard ----------
+if (window.Leaderboard) {
+  Leaderboard.mount({ el: "lb", game: "drop-goal-hero", dir: "desc", unit: "goals", title: "Drop Goal Hero: longest Career streak" });
+  if (Leaderboard.getName() && S.best >= 1) Leaderboard.submit(S.best);
+}
+</script>
+</body>
+</html>

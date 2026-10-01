@@ -1,0 +1,1236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Plains of Abraham</title>
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="plains-of-abraham"></script>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#12100f; --panel:#221c19; --panel2:#2e2622; --line:#4a3c33;
+  --ink:#f7f1e6; --muted:#c7b8a3; --gold:#f2c14e; --green:#5fcf6f; --red:#e0383f; --blue:#4f7fd6;
+  --display:"Lilita One","Arial Rounded MT Bold","Trebuchet MS",sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;touch-action:manipulation}
+button,a,canvas{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.stage,.stage *,button{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+html,body{background:var(--bg);margin:0}
+body{font-family:var(--body);color:var(--ink);padding:14px 14px 60px;font-size:15px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.home{font-weight:900;color:var(--muted);text-decoration:none;font-size:14px}
+.home:hover{color:var(--gold)}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);margin:0;line-height:1;color:var(--gold);text-shadow:0 3px 0 #8e1b22,0 6px 0 rgba(0,0,0,.35)}
+.sub{color:var(--muted);font-weight:800;font-size:13px;margin-top:4px}
+.hud{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.chip{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:6px 12px;display:flex;flex-direction:column;align-items:flex-start;min-width:80px}
+.chip span{font-size:11px;color:var(--muted);font-weight:800}
+.chip b{font-size:17px;font-weight:900}
+.chip.coins b{color:var(--gold)}
+.mute{font-size:20px;background:var(--panel);border:2px solid var(--line);border-radius:14px;color:var(--ink);padding:0 12px;cursor:pointer}
+.stage{position:relative;border-radius:18px;overflow:hidden;border:3px solid var(--line);background:#000}
+canvas{display:block;width:100%;touch-action:none}
+.orders{display:grid;grid-template-columns:1fr 1fr 1.3fr 1fr;gap:8px}
+.orders2{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
+.btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media (max-width:640px){.orders{grid-template-columns:1fr 1fr}.orders2{grid-template-columns:1fr 1fr}.orders2 .drill{grid-column:1/3}}
+.bb{font-family:var(--body);font-weight:900;font-size:16px;border:none;border-radius:14px;padding:12px 8px;color:#fff;cursor:pointer;background:#4a5a7a;box-shadow:0 4px 0 #262f44;line-height:1.1}
+.bb small{display:block;font-size:11px;font-weight:800;opacity:.88;margin-top:3px}
+.bb:active{transform:translateY(3px);box-shadow:0 1px 0 #262f44}
+.bb[disabled]{filter:grayscale(.75) brightness(.6);cursor:default}
+.bb.big{font-family:var(--display);font-weight:400;font-size:24px;letter-spacing:.5px}
+.bb.lie{background:#5b6b3a;box-shadow:0 4px 0 #343f1f}
+.bb.ready{background:#b07a1c;box-shadow:0 4px 0 #6a480c}
+.bb.fire{background:#c4202c;box-shadow:0 4px 0 #6e0d14;font-size:32px}
+.bb.fire.now{animation:pulse .5s infinite alternate}
+@keyframes pulse{from{filter:brightness(1)}to{filter:brightness(1.35)}}
+.bb.steady{background:#2f6fb8;box-shadow:0 4px 0 #18406e}
+.bb.drill{background:#3c4f45;box-shadow:0 4px 0 #1f2a24;position:relative}
+.bb.adv{background:#7a5a8f;box-shadow:0 4px 0 #463252}
+.bb.charge{background:#1f5a3a;box-shadow:0 4px 0 #0e331f}
+.bb.charge.go{background:#2f9e5a;box-shadow:0 4px 0 #17603a;animation:pulse .5s infinite alternate}
+.bb.shop{background:#e0873a;box-shadow:0 4px 0 #8e4c12}
+.bb.again{background:#c4202c;box-shadow:0 4px 0 #6e0d14}
+.bb.mode{background:#6b4fc8;box-shadow:0 4px 0 #3f2c80}
+.dbar{display:block;position:relative;height:14px;margin:6px 4px 0;background:#1a211d;border-radius:8px;overflow:hidden;border:2px solid #0e1310}
+.dbar .zone{position:absolute;top:0;bottom:0;background:#4fcf6a}
+.dbar .mark{position:absolute;top:-2px;bottom:-2px;width:5px;margin-left:-2px;background:#fff;border-radius:3px;box-shadow:0 0 6px #fff}
+.msg{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:10px 14px;font-weight:800;min-height:44px}
+.msg.good{border-color:var(--green)}
+.msg.bad{border-color:var(--red)}
+.panel{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:14px 16px}
+.panel h2{font-family:var(--display);font-weight:400;margin:0 0 6px;font-size:24px;color:var(--gold)}
+.panel ul{margin:0;padding-left:20px;color:var(--muted);font-weight:700;line-height:1.5}
+.panel li b{color:var(--ink)}
+.overlay{position:fixed;inset:0;background:rgba(8,6,4,.8);display:flex;align-items:center;justify-content:center;padding:14px;z-index:50}
+.overlay[hidden]{display:none}
+.box{background:var(--panel);border:3px solid var(--line);border-radius:20px;padding:16px;max-width:600px;width:100%;max-height:90vh;overflow:auto}
+.box h2{font-family:var(--display);font-weight:400;margin:0 0 8px;color:var(--gold);font-size:30px}
+.box p{margin:0 0 10px;color:var(--muted);font-weight:700}
+.box p b{color:var(--ink)}
+.row{display:flex;align-items:center;gap:10px;background:var(--panel2);border:2px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:8px}
+.row .ic{font-size:28px;width:40px;text-align:center;flex:none}
+.row .tx{flex:1;min-width:0}
+.row .tx b{display:block;font-size:16px}
+.row .tx small{display:block;color:var(--muted);font-weight:700;font-size:12.5px}
+.pips{color:var(--gold);font-size:12px;letter-spacing:2px}
+.sm{font-family:var(--body);font-weight:900;font-size:14px;border:none;border-radius:10px;padding:8px 12px;color:#fff;cursor:pointer;background:#3fae3f;box-shadow:0 3px 0 #1f6e1f;white-space:nowrap}
+.sm[disabled]{filter:grayscale(.8) brightness(.7);cursor:default}
+.close{margin-top:12px;width:100%}
+.dif{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 10px}
+.dbtn{font-family:var(--body);font-weight:900;font-size:15px;border:3px solid transparent;border-radius:12px;padding:10px 6px;color:#fff;cursor:pointer}
+.dbtn small{display:block;font-size:11px;font-weight:800;opacity:.9}
+.dbtn.recruit{background:#2e9d4a}.dbtn.redcoat{background:#c4202c}.dbtn.wolfe{background:#6b2fa0}
+.dbtn.on{border-color:#fff;box-shadow:0 0 0 2px var(--gold)}
+.toggle{display:flex;align-items:center;gap:10px;background:var(--panel2);border:2px solid var(--line);border-radius:14px;padding:10px 12px;cursor:pointer;font-weight:800;margin-bottom:10px}
+.toggle input{width:24px;height:24px;accent-color:#c4202c;flex:none}
+.toggle small{display:block;color:var(--muted);font-weight:700;font-size:12.5px}
+.stars{font-size:44px;text-align:center;letter-spacing:6px;margin:4px 0 8px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.stats div{background:var(--panel2);border-radius:10px;padding:8px 10px;font-weight:800;font-size:13px;color:var(--muted)}
+.stats b{display:block;color:var(--ink);font-size:18px}
+.hist{border-left:4px solid var(--gold);padding:8px 12px;background:#2a221d;border-radius:8px;color:var(--muted);font-weight:700;font-size:14px;margin-bottom:10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#lb{margin-top:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <a class="home" href="index.html">&larr; GH Games</a>
+      <h1>Plains of Abraham</h1>
+      <div class="sub">Quebec · 13 September 1759 · Hold the line</div>
+    </div>
+    <div class="hud">
+      <div class="chip coins"><span>SHILLINGS</span><b id="hCoins">0</b></div>
+      <div class="chip"><span>VICTORIES</span><b id="hWins">0</b></div>
+      <div class="chip"><span>PERFECT VOLLEYS</span><b id="hPerf">0</b></div>
+      <div class="chip"><span>BEST SCORE</span><b id="hBest">0</b></div>
+      <button class="mute" id="muteBtn" aria-label="Sound on or off">🔊</button>
+    </div>
+  </div>
+
+  <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+
+  <div class="orders">
+    <button class="bb lie" id="lieBtn">LIE DOWN<small>hide from snipers · L</small></button>
+    <button class="bb ready" id="readyBtn">MAKE READY<small>raise muskets · R</small></button>
+    <button class="bb fire big" id="fireBtn">FIRE!<small style="font-family:var(--body)">all together · space</small></button>
+    <button class="bb steady" id="steadyBtn">STEADY, LADS!<small id="steadyHint">calm the men · S</small></button>
+  </div>
+  <div class="orders2">
+    <button class="bb drill" id="drillBtn">RELOAD DRILL<span class="dbar"><i class="zone" id="dzone"></i><i class="mark" id="dmark"></i></span><small id="drillHint">tap when the marker is in the green · D</small></button>
+    <button class="bb adv" id="advBtn">ADVANCE<small>15 yards, out of the smoke · A</small></button>
+    <button class="bb charge" id="chargeBtn">CHARGE!<small id="chargeHint">bayonets · C</small></button>
+  </div>
+  <div class="btns">
+    <button class="bb again" id="newBtn">New Battle<small>start again</small></button>
+    <button class="bb shop" id="upBtn">Upgrades<small>spend shillings</small></button>
+    <button class="bb mode" id="diffBtn">Difficulty<small id="diffHint">Recruit</small></button>
+  </div>
+  <div class="msg" id="msg">Form the line!</div>
+
+  <div class="panel">
+    <h2>How to play</h2>
+    <ul>
+      <li>French sharpshooters hide in the bushes and cannon fire from far away. <b>Lie down</b> while you wait so fewer men get hit.</li>
+      <li>When the drums beat, the French columns attack. <b>Stand up</b>, then <b>hold your fire</b>. Shooting too far away hardly hits anyone.</li>
+      <li>Watch the range. At about <b>40 yards</b> press <b>MAKE READY</b>, then <b>FIRE!</b> If every battalion fires at the same moment you get a <b>PERFECT VOLLEY</b>, which smashes the French courage.</li>
+      <li>Waiting is scary. Each battalion has a <b>discipline</b> bar. Low discipline means they fire raggedly, or <b>fire without orders</b>, or even run away. Shout <b>STEADY, LADS!</b> to calm them.</li>
+      <li>After a volley, tap <b>RELOAD DRILL</b> when the white marker is in the green to reload faster. Your smoke spoils the next shot, so <b>ADVANCE</b> through it.</li>
+      <li>When the French are wavering, <b>CHARGE!</b> Charge too early against steady troops and your men get pushed back.</li>
+      <li>Win to earn shillings and buy upgrades. Get all three stars with a perfect volley, no broken battalions and nobody firing without orders.</li>
+    </ul>
+  </div>
+
+  <div class="panel">
+    <h2>What really happened</h2>
+    <ul>
+      <li>On the night of 12 September 1759, General James Wolfe's British army climbed the steep cliffs at the Anse-au-Foulon and formed up on the Plains of Abraham, just outside the walls of Quebec.</li>
+      <li>Wolfe stretched his line across the plain only <b>two ranks deep</b> instead of the usual three. While they waited, his men <b>lay down</b> to shelter from Canadian militia and First Nations warriors firing from the bushes and cornfields.</li>
+      <li>Many soldiers loaded <b>two musket balls</b> for a deadlier first shot at close range.</li>
+      <li>The Marquis de Montcalm's French army attacked in columns. As they came on, their ranks became jumbled when militia stopped to fire and dropped down to reload.</li>
+      <li>The British held their fire until the French were about <b>40 yards</b> away. Their volley went off so close together that it sounded like one huge gun. The historian Sir John Fortescue later called it "the most perfect volley ever fired on battlefield".</li>
+      <li>The British stepped forward through the smoke, fired again, then charged. The 78th Fraser's Highlanders charged with broadswords. The main fight lasted only about fifteen minutes.</li>
+      <li>Both generals were mortally wounded: Wolfe on the field, Montcalm the next morning. Quebec surrendered five days later.</li>
+    </ul>
+  </div>
+
+  <div id="lb"></div>
+</div>
+
+<!-- start -->
+<div class="overlay" id="startOv">
+  <div class="box">
+    <h2>Plains of Abraham, 1759</h2>
+    <p>Dawn outside Quebec. Your redcoats have climbed the cliffs in the dark and formed a long red line on the plain. Montcalm's French army is coming out to fight. <b>Hold your nerve, hold your fire, and give them the perfect volley.</b></p>
+    <div class="dif" id="difPick">
+      <button class="dbtn recruit" data-d="recruit">Recruit<small>slower French</small></button>
+      <button class="dbtn redcoat" data-d="redcoat">Redcoat<small>like the real thing</small></button>
+      <button class="dbtn wolfe" data-d="wolfe">General Wolfe<small>very hard</small></button>
+    </div>
+    <label class="toggle"><input type="checkbox" id="dblTog"><span>Load two musket balls<small>Deadly at 60 yards or closer for your first volley. Worse if you fire from further away.</small></span></label>
+    <div class="two">
+      <button class="bb shop" id="startUp">Upgrades<small id="startCoins">0 shillings</small></button>
+      <button class="bb again big" id="goBtn">To battle!</button>
+    </div>
+  </div>
+</div>
+
+<!-- upgrades -->
+<div class="overlay" id="upOv" hidden>
+  <div class="box">
+    <h2>Upgrades</h2>
+    <p>You have <b id="upCoins">0</b> shillings.</p>
+    <div id="upList"></div>
+    <button class="bb close" data-close="upOv">Back</button>
+  </div>
+</div>
+
+<!-- end -->
+<div class="overlay" id="endOv" hidden>
+  <div class="box">
+    <h2 id="endTitle">Victory!</h2>
+    <div class="stars" id="endStars"></div>
+    <div class="stats" id="endStats"></div>
+    <div class="hist" id="endHist"></div>
+    <div class="two">
+      <button class="bb shop" id="endUp">Upgrades</button>
+      <button class="bb again big" id="endAgain">Fight again</button>
+    </div>
+  </div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const W = 1000, H = 620, LINE_Y = 500;
+
+// ---------- settings ----------
+const DIFFS = {
+  recruit: { name: "Recruit",       morale: 85,  speed: 7.5, fire: 0.7, sk: 0.3,  art: 9,   rows: 5, drain: 0.75, mult: 1 },
+  redcoat: { name: "Redcoat",       morale: 100, speed: 9,   fire: 1.0, sk: 0.5,  art: 7,   rows: 5, drain: 1.0,  mult: 1.5 },
+  wolfe:   { name: "General Wolfe", morale: 118, speed: 10.5,fire: 1.3, sk: 0.7,  art: 5.5, rows: 6, drain: 1.25, mult: 2 }
+};
+const UPS = [
+  { id: "drill",    ic: "🥁", name: "Drill Sergeants",     desc: "Faster reloading and a wider green zone", max: 5, cost: 40 },
+  { id: "vets",     ic: "🎖️", name: "Hardened Veterans",   desc: "Men lose less discipline under fire",     max: 5, cost: 50 },
+  { id: "musket",   ic: "🎯", name: "Brown Bess Care",     desc: "Clean muskets and dry powder: more hits", max: 5, cost: 45 },
+  { id: "officers", ic: "⚔️", name: "Brave Officers",      desc: "STEADY, LADS! comes back faster and calms more", max: 5, cost: 40 },
+  { id: "high",     ic: "🗡️", name: "Fraser's Broadswords",desc: "Your charge can break steadier French troops", max: 4, cost: 60 },
+  { id: "reinf",    ic: "➕", name: "Reinforcements",      desc: "More men in every battalion",            max: 3, cost: 120 }
+];
+const BATDEFS = [
+  { name: "Louisbourg Grenadiers", short: "Grenadiers", kind: "gren", x: 130 },
+  { name: "28th Foot",  short: "28th", kind: "red",  x: 278 },
+  { name: "43rd Foot",  short: "43rd", kind: "red",  x: 426 },
+  { name: "78th Fraser's Highlanders", short: "78th Highlanders", kind: "high", x: 574 },
+  { name: "47th Foot",  short: "47th", kind: "red",  x: 722 },
+  { name: "58th Foot",  short: "58th", kind: "red",  x: 870 }
+];
+const COLDEFS = [
+  { name: "The left column",   x: 250, delay: 0.9 },
+  { name: "The centre column", x: 500, delay: 0 },
+  { name: "The right column",  x: 750, delay: 1.7 }
+];
+
+// ---------- save ----------
+const SAVE_KEY = "plains-save";
+function defaults() { return { coins: 0, up: { drill: 0, vets: 0, musket: 0, officers: 0, high: 0, reinf: 0 }, wins: 0, battles: 0, perfect: 0, best: 0, diff: "recruit", dbl: true, mute: false }; }
+function load() {
+  const d = defaults();
+  try {
+    const s = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (s && typeof s === "object") return Object.assign(d, s, { up: Object.assign(d.up, s.up || {}) });
+  } catch (e) {}
+  return d;
+}
+let S = load();
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+const upCost = u => Math.round(u.cost * Math.pow(1.8, S.up[u.id] || 0));
+const vetMul = () => 1 - 0.12 * S.up.vets;
+const reloadTime = () => Math.max(3.5, 9 - S.up.drill);
+const chargeThr = () => 55 + 8 * S.up.high;
+
+// ---------- perspective ----------
+function yOf(d) { return d >= 0 ? LINE_Y - 470 * Math.pow(Math.min(d, 640) / 600, 0.7) : LINE_Y - d * 1.4; }
+function sOf(d) { return 1.1 - 0.55 * clamp(d / 600, 0, 1); }
+function xOf(x, d) { return 500 + (x - 500) * (1 - 0.35 * clamp(d / 600, 0, 1)); }
+
+// ---------- audio ----------
+let AC = null, NB = null;
+function audio() {
+  if (S.mute) return null;
+  if (!AC) {
+    try {
+      AC = new (window.AudioContext || window.webkitAudioContext)();
+      const len = AC.sampleRate * 1.6; NB = AC.createBuffer(1, len, AC.sampleRate);
+      const ch = NB.getChannelData(0); for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+    } catch (e) { return null; }
+  }
+  if (AC.state === "suspended") AC.resume();
+  return AC;
+}
+function noise(dur, freq, type, vol, q) {
+  const a = audio(); if (!a) return;
+  const t = a.currentTime, src = a.createBufferSource(); src.buffer = NB;
+  const f = a.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q || 1;
+  const g = a.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(f); f.connect(g); g.connect(a.destination); src.start(t); src.stop(t + dur + 0.05);
+}
+const sfx = {
+  volley(n) { noise(0.5 + 0.12 * n, 700, "lowpass", Math.min(0.95, 0.22 + 0.13 * n)); noise(0.2, 2600, "bandpass", Math.min(0.5, 0.12 + 0.06 * n), 0.7); },
+  pop(v) { noise(0.25, 2000, "bandpass", v || 0.07, 0.9); },
+  boom() { noise(1.3, 160, "lowpass", 0.6); },
+  thud() { noise(0.35, 120, "lowpass", 0.35); },
+  drum(acc, v) { noise(acc ? 0.16 : 0.1, acc ? 260 : 420, "lowpass", (acc ? 0.32 : 0.16) * v); },
+  cheer() { noise(1.6, 650, "bandpass", 0.25, 0.6); noise(1.2, 1100, "bandpass", 0.15, 0.8); },
+  good() { const a = audio(); if (!a) return; const o = a.createOscillator(), g = a.createGain(); o.frequency.value = 880; g.gain.setValueAtTime(0.08, a.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.12); o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + 0.13); }
+};
+
+// ---------- canvas ----------
+const cv = $("cv"), ctx = cv.getContext("2d");
+let DPR = 1;
+function resize() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  const w = $("stage").clientWidth;
+  cv.width = Math.round(w * DPR); cv.height = Math.round(w * H / W * DPR);
+  cv.style.height = (w * H / W) + "px";
+}
+// seeded random for the static background
+function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const BG = document.createElement("canvas");
+function buildBG() {
+  BG.width = W * 2; BG.height = H * 2;
+  const c = BG.getContext("2d"); c.scale(2, 2);
+  const R = mulberry(1759);
+  // overcast sky
+  let g = c.createLinearGradient(0, 0, 0, 80); g.addColorStop(0, "#7d8c9c"); g.addColorStop(1, "#c3cbd0");
+  c.fillStyle = g; c.fillRect(0, 0, W, 82);
+  c.fillStyle = "rgba(255,255,255,.18)";
+  for (let i = 0; i < 9; i++) { c.beginPath(); c.ellipse(R() * W, 10 + R() * 30, 80 + R() * 90, 10 + R() * 8, 0, 0, Math.PI * 2); c.fill(); }
+  // Quebec on the skyline
+  c.fillStyle = "#6c7076";
+  c.fillRect(250, 56, 500, 22);
+  for (let i = 0; i < 26; i++) { const x = 255 + i * 19 + R() * 6, h = 8 + R() * 14; c.fillStyle = R() < 0.5 ? "#5a5e66" : "#676b72"; c.fillRect(x, 56 - h, 14, h); c.fillStyle = "#3f434a"; c.beginPath(); c.moveTo(x - 1, 56 - h); c.lineTo(x + 7, 50 - h); c.lineTo(x + 15, 56 - h); c.fill(); }
+  c.fillStyle = "#4f535a"; c.fillRect(468, 18, 10, 40); c.beginPath(); c.moveTo(466, 18); c.lineTo(473, 2); c.lineTo(480, 18); c.fill();
+  c.fillRect(612, 28, 8, 30); c.beginPath(); c.moveTo(610, 28); c.lineTo(616, 14); c.lineTo(622, 28); c.fill();
+  // walls with bastions
+  c.fillStyle = "#8a8578";
+  c.beginPath(); c.moveTo(230, 82); c.lineTo(250, 66); c.lineTo(330, 66); c.lineTo(345, 74); c.lineTo(360, 66); c.lineTo(640, 66); c.lineTo(655, 74); c.lineTo(670, 66); c.lineTo(750, 66); c.lineTo(770, 82); c.fill();
+  c.fillStyle = "#6f6a5f"; c.fillRect(230, 78, 540, 4);
+  // fields
+  g = c.createLinearGradient(0, 80, 0, H); g.addColorStop(0, "#8a9a5a"); g.addColorStop(0.4, "#6f8f41"); g.addColorStop(1, "#557d33");
+  c.fillStyle = g; c.fillRect(0, 80, W, H - 80);
+  // cornfield patches on the flanks
+  c.fillStyle = "rgba(214,184,92,.55)";
+  c.beginPath(); c.moveTo(60, 120); c.lineTo(220, 112); c.lineTo(150, 300); c.lineTo(40, 320); c.fill();
+  c.beginPath(); c.moveTo(800, 110); c.lineTo(950, 118); c.lineTo(960, 330); c.lineTo(860, 300); c.fill();
+  // grass strokes
+  for (let i = 0; i < 1400; i++) {
+    const y = 84 + Math.pow(R(), 0.8) * (H - 84), x = R() * W, s = 0.4 + (y / H);
+    c.strokeStyle = R() < 0.5 ? "rgba(40,70,20,.25)" : "rgba(170,190,110,.22)"; c.lineWidth = s;
+    c.beginPath(); c.moveTo(x, y); c.lineTo(x + (R() - 0.5) * 3 * s, y - 4 * s); c.stroke();
+  }
+  // bushes / tree lines on both flanks
+  for (let side = 0; side < 2; side++) {
+    for (let i = 0; i < 46; i++) {
+      const t = i / 45, y = 92 + t * 380, s = 0.5 + t * 1.1;
+      const x = side ? W - (8 + R() * 50 * s) : 8 + R() * 50 * s;
+      c.fillStyle = ["#2f4a22", "#38552a", "#2a4120", "#41602e"][Math.floor(R() * 4)];
+      c.beginPath(); c.arc(x, y, (10 + R() * 12) * s, 0, Math.PI * 2); c.fill();
+    }
+  }
+  // cliff and the St Lawrence behind the British line
+  c.fillStyle = "#4e6d2c"; c.fillRect(0, 560, W, 60);
+  c.fillStyle = "#7a6a52";
+  c.beginPath(); c.moveTo(0, 590); for (let x = 0; x <= W; x += 25) c.lineTo(x, 586 + R() * 8); c.lineTo(W, 620); c.lineTo(0, 620); c.fill();
+  g = c.createLinearGradient(0, 600, 0, 620); g.addColorStop(0, "#4f7392"); g.addColorStop(1, "#3a5a78");
+  c.fillStyle = g; c.beginPath(); c.moveTo(0, 604); for (let x = 0; x <= W; x += 25) c.lineTo(x, 600 + R() * 5); c.lineTo(W, 620); c.lineTo(0, 620); c.fill();
+}
+buildBG();
+
+// ---------- soldiers ----------
+const COAT = { red: "#c4202c", gren: "#c4202c", high: "#c4202c", fr: "#e7e2d4", mil: "#7d5f3f" };
+function drawSoldier(x, y, s, kind, pose, flash) {
+  const c = ctx;
+  if (pose === "lie") { // prone, seen from behind
+    c.fillStyle = "#2a2a2a"; c.fillRect(x - 2.2 * s, y - 3 * s, 4.4 * s, 3 * s);
+    c.fillStyle = COAT[kind]; c.fillRect(x - 2.8 * s, y - 10 * s, 5.6 * s, 7.5 * s);
+    c.fillStyle = kind === "high" ? "#22305c" : "#141414"; c.beginPath(); c.ellipse(x, y - 11 * s, 3 * s, 1.6 * s, 0, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = "#5a3a1e"; c.lineWidth = 1.1 * s; c.beginPath(); c.moveTo(x + 2.5 * s, y - 3 * s); c.lineTo(x + 1 * s, y - 15 * s); c.stroke();
+    return;
+  }
+  const french = kind === "fr" || kind === "mil";
+  // legs
+  c.fillStyle = french ? "#d9d3c2" : (kind === "high" ? "#e2b48c" : "#d9cfae");
+  c.fillRect(x - 3 * s, y - 8 * s, 2.5 * s, 4 * s); c.fillRect(x + 0.5 * s, y - 8 * s, 2.5 * s, 4 * s);
+  c.fillStyle = kind === "high" ? "#b8323a" : "#232323";
+  c.fillRect(x - 3 * s, y - 4 * s, 2.5 * s, 4 * s); c.fillRect(x + 0.5 * s, y - 4 * s, 2.5 * s, 4 * s);
+  // coat
+  c.fillStyle = COAT[kind];
+  c.fillRect(x - 3.8 * s, y - 16 * s, 7.6 * s, 9 * s);
+  if (kind === "high") { c.fillStyle = "#1e3a2b"; c.fillRect(x - 3.9 * s, y - 9 * s, 7.8 * s, 3.6 * s); c.fillStyle = "#2b2f55"; c.fillRect(x - 3.9 * s, y - 7.6 * s, 7.8 * s, 0.8 * s); }
+  if (french) { if (kind === "fr") { c.fillStyle = "#2d4f9e"; c.fillRect(x - 1.2 * s, y - 15.5 * s, 2.4 * s, 7 * s); } }
+  else { c.strokeStyle = "#f2efe6"; c.lineWidth = 0.9 * s; c.beginPath(); c.moveTo(x - 3.4 * s, y - 15.5 * s); c.lineTo(x + 3.4 * s, y - 8.5 * s); c.moveTo(x + 3.4 * s, y - 15.5 * s); c.lineTo(x - 3.4 * s, y - 8.5 * s); c.stroke(); }
+  // head
+  c.fillStyle = french ? "#e8b893" : "#8a6a4a"; // British seen from behind: hair
+  c.beginPath(); c.arc(x, y - 18 * s, 2.3 * s, 0, Math.PI * 2); c.fill();
+  if (french) { c.fillStyle = "#2b1d14"; c.fillRect(x - 1.1 * s, y - 18.4 * s, 0.7 * s, 0.7 * s); c.fillRect(x + 0.4 * s, y - 18.4 * s, 0.7 * s, 0.7 * s); }
+  // hats
+  if (kind === "gren") { c.fillStyle = "#c4202c"; c.beginPath(); c.moveTo(x - 2.6 * s, y - 19.5 * s); c.lineTo(x, y - 27 * s); c.lineTo(x + 2.6 * s, y - 19.5 * s); c.fill(); c.fillStyle = "#f2efe6"; c.fillRect(x - 2.6 * s, y - 20.3 * s, 5.2 * s, 1 * s); }
+  else if (kind === "high") { c.fillStyle = "#22305c"; c.beginPath(); c.ellipse(x, y - 20 * s, 3.3 * s, 1.5 * s, 0, 0, Math.PI * 2); c.fill(); }
+  else if (kind === "mil") { c.fillStyle = "#b8322f"; c.beginPath(); c.moveTo(x - 2.4 * s, y - 19.5 * s); c.quadraticCurveTo(x + 4 * s, y - 24 * s, x + 2.4 * s, y - 19.5 * s); c.fill(); }
+  else { c.fillStyle = "#151515"; c.beginPath(); c.ellipse(x, y - 20.2 * s, 3.6 * s, 1.6 * s, 0, 0, Math.PI * 2); c.fill(); if (kind === "fr") { c.strokeStyle = "#f1ead2"; c.lineWidth = 0.5 * s; c.stroke(); } }
+  // musket
+  c.lineWidth = 1.2 * s; c.strokeStyle = "#5a3a1e";
+  c.beginPath();
+  if (pose === "present" || pose === "fire") { c.moveTo(x + 2.5 * s, y - 15 * s); c.lineTo(x + 0.8 * s, y - 27 * s); }
+  else if (pose === "charge") { c.moveTo(x + 3 * s, y - 11 * s); c.lineTo(x - 2 * s, y - 25 * s); }
+  else if (french) { c.moveTo(x - 3.6 * s, y - 9 * s); c.lineTo(x - 4.6 * s, y - 27 * s); }
+  else { c.moveTo(x + 3.6 * s, y - 9 * s); c.lineTo(x + 4.6 * s, y - 27 * s); }
+  c.stroke();
+  if (pose === "charge") { c.strokeStyle = "#d8dde4"; c.lineWidth = 0.8 * s; c.beginPath(); c.moveTo(x - 2 * s, y - 25 * s); c.lineTo(x - 3 * s, y - 29 * s); c.stroke(); }
+  if (pose === "present" || pose === "fire") { c.fillStyle = COAT[kind]; c.fillRect(x + 1.2 * s, y - 17 * s, 2.4 * s, 4 * s); }
+  if (flash) {
+    c.fillStyle = "rgba(255,226,120,.95)"; c.beginPath(); c.arc(x + 0.8 * s, y - 28.5 * s, 3.4 * s, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "rgba(255,140,40,.8)"; c.beginPath(); c.arc(x + 0.8 * s, y - 29 * s, 1.8 * s, 0, Math.PI * 2); c.fill();
+  }
+}
+function drawBody(b) {
+  const s = sOf(b.d), x = xOf(b.x, b.d), y = yOf(b.d) + b.py * s;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(b.rot);
+  ctx.fillStyle = "rgba(0,0,0,.18)"; ctx.fillRect(-7 * s, -1 * s, 14 * s, 4 * s);
+  ctx.fillStyle = COAT[b.kind]; ctx.fillRect(-5 * s, -2.5 * s, 8 * s, 4.5 * s);
+  ctx.fillStyle = b.kind === "mil" ? "#b8322f" : (b.kind === "high" ? "#22305c" : "#151515"); ctx.fillRect(3 * s, -2.2 * s, 3 * s, 3.6 * s);
+  ctx.fillStyle = "#2a2a2a"; ctx.fillRect(-8 * s, -1.6 * s, 3.4 * s, 2.6 * s);
+  ctx.restore();
+}
+function drawFlag(x, y, s, french, t) {
+  ctx.strokeStyle = "#3d2a17"; ctx.lineWidth = 1.4 * s;
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 40 * s); ctx.stroke();
+  const fw = 20 * s, fh = 13 * s, fx = x, fy = y - 40 * s, wave = Math.sin(t * 4 + x) * 1.5 * s;
+  ctx.save(); ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx + fw, fy + wave); ctx.lineTo(fx + fw, fy + fh + wave); ctx.lineTo(fx, fy + fh); ctx.closePath(); ctx.clip();
+  if (french) {
+    ctx.fillStyle = "#f6f3ea"; ctx.fillRect(fx, fy - 3 * s, fw, fh + 6 * s);
+    ctx.fillStyle = "#c9a43a"; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(fx + 5 * s + i * 5 * s, fy + 6.5 * s + wave * 0.5, 1.2 * s, 0, Math.PI * 2); ctx.fill(); }
+  } else { // 1707 Union flag: St George and St Andrew (no St Patrick's cross yet)
+    ctx.fillStyle = "#1d3b8a"; ctx.fillRect(fx, fy - 3 * s, fw, fh + 6 * s);
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2.6 * s; ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx + fw, fy + fh + wave); ctx.moveTo(fx + fw, fy + wave); ctx.lineTo(fx, fy + fh); ctx.stroke();
+    ctx.fillStyle = "#fff"; ctx.fillRect(fx, fy + fh / 2 - 2.6 * s + wave / 2, fw, 5.2 * s); ctx.fillRect(fx + fw / 2 - 2.6 * s, fy - 3 * s, 5.2 * s, fh + 6 * s);
+    ctx.fillStyle = "#c8102e"; ctx.fillRect(fx, fy + fh / 2 - 1.5 * s + wave / 2, fw, 3 * s); ctx.fillRect(fx + fw / 2 - 1.5 * s, fy - 3 * s, 3 * s, fh + 6 * s);
+  }
+  ctx.restore();
+}
+
+// ---------- battle state ----------
+let G = null;
+function makeBatFigs(perRank) {
+  const f = [];
+  for (let rank = 0; rank < 2; rank++) for (let i = 0; i < perRank; i++) f.push({ ox: (i - (perRank - 1) / 2) * 6.4 + (rank ? 3.2 : 0), rank, alive: true, flash: 0 });
+  return f;
+}
+function makeColFigs(rows) {
+  const f = [];
+  for (let r = 0; r < rows; r++) for (let c = 0; c < 10; c++) f.push({ c: c - 4.5, r, alive: true, mil: r > 0 && Math.random() < 0.3, jx: rnd(-1, 1), jy: rnd(-0.3, 1), ph: Math.random() * 6 });
+  return f;
+}
+function newBattle() {
+  const D = DIFFS[S.diff], perRank = 18 + 2 * S.up.reinf;
+  G = {
+    phase: "wait", t: 0, waitT: 16, D, b: 0, advT: 0, advFrom: 0,
+    charging: false, chargeT: 0, chargeFrom: 0, chargeTo: 0,
+    bats: BATDEFS.map(def => ({ def, x: def.x, figs: makeBatFigs(perRank), disc: 100, state: "stand", st: 0, loaded: true, reloading: false, reload: 0, dbl: S.dbl, smokeT: 0, fireAt: -1, ordered: false, flee: 0 })),
+    cols: COLDEFS.map(c => ({ name: c.name, x: c.x, d: 560, delay: c.delay, figs: makeColFigs(D.rows), morale: D.morale, state: "form", fired: false, fireR: rnd(125, 165), disorder: 0, halt: 0, routT: 0, contact: 0, wavered: false })),
+    bodies: [], smoke: [], balls: [], banners: [], volley: null,
+    volleys: 0, perfects: 0, crashing: 0, noOrders: 0, lost: 0, killed: 0,
+    steadyCd: 0, drillCd: 0, drillPh: 0, artT: 4, skVis: 0.5, drumT: 0, drumI: 0, soundQ: 0,
+    result: null, endT: 0, ended: false, firstVolleyDone: false, sayWait: 0, flankPuffs: [], shakeT: 0
+  };
+  G.bats.forEach(b => { b.disc = 100; });
+}
+
+const aliveB = b => b.figs.reduce((n, f) => n + (f.alive ? 1 : 0), 0);
+const aliveC = c => c.figs.reduce((n, f) => n + (f.alive ? 1 : 0), 0);
+const activeCols = () => G.cols.filter(c => c.state !== "rout" && c.state !== "gone");
+const liveBats = () => G.bats.filter(b => b.state !== "broken");
+const brokenCount = () => G.bats.filter(b => b.state === "broken").length;
+function minRange() { let m = 9999; for (const c of activeCols()) m = Math.min(m, c.d - G.b); return m; }
+const isLying = b => b.state === "lie" || b.state === "lying";
+const isUp = b => b.state === "stand" || b.state === "present" || b.state === "presenting" || b.state === "firing";
+
+// ---------- messages ----------
+let msgT = 0;
+function msg(text, kind) { const m = $("msg"); m.textContent = text; m.className = "msg" + (kind ? " " + kind : ""); msgT = G ? G.t : 0; }
+function banner(text, color, size) {
+  const cur = G.banners[0];
+  if (cur && cur.t > 0.7) cur.life = Math.min(cur.life, cur.t + 0.25); // hurry the old one off
+  if (G.banners.length > 3) G.banners.splice(1, 1);
+  G.banners.push({ text, color: color || "#fff", size: size || 64, t: 0, life: 2.2 });
+}
+
+// ---------- British actions ----------
+function hitBat(bat, discLoss) {
+  const alive = bat.figs.filter(f => f.alive); if (!alive.length) return;
+  const front = alive.filter(f => f.rank === 0);
+  const f = (front.length && Math.random() < 0.65) ? pick(front) : pick(alive);
+  f.alive = false; G.lost++;
+  G.bodies.push({ x: bat.x + f.ox, d: G.b, py: f.rank * 11, kind: bat.def.kind, rot: rnd(-0.5, 0.5) });
+  bat.disc -= discLoss * vetMul() * G.D.drain;
+}
+function killCol(col, k) {
+  const alive = col.figs.filter(f => f.alive).sort((a, b) => (a.r + Math.random() * 2.5) - (b.r + Math.random() * 2.5));
+  k = Math.min(k, alive.length);
+  const spread = 1 + col.disorder * 0.6;
+  for (let i = 0; i < k; i++) {
+    const f = alive[i]; f.alive = false;
+    G.bodies.push({ x: col.x + f.c * 9 * spread + f.jx * col.disorder * 6, d: col.d + f.r * 1.6, py: 0, kind: f.mil ? "mil" : "fr", rot: rnd(-0.6, 0.6) });
+  }
+  G.killed += k;
+  return k;
+}
+function targetCol(bat) {
+  let best = null, bd = 1e9;
+  for (const c of activeCols()) { const dx = Math.abs(c.x - bat.x); if (dx < bd) { bd = dx; best = c; } }
+  return best;
+}
+function spawnSmoke(x, d, n, big) {
+  for (let i = 0; i < n; i++) G.smoke.push({ x: x + rnd(-62, 62), d: d + rnd(1, big ? 10 : 4), r: rnd(10, big ? 26 : 14), a: rnd(0.55, 0.85), life: rnd(5, 8), age: 0, vx: rnd(2, 7) });
+}
+function fireBat(bat, ordered) {
+  const col = targetCol(bat);
+  bat.loaded = false; bat.reloading = true; bat.reload = 0; bat.state = "firing"; bat.st = 0.35;
+  bat.figs.forEach(f => { if (f.alive) f.flash = rnd(0.08, 0.16); });
+  let kills = 0, range = 999;
+  if (col) {
+    range = col.d - G.b;
+    let p = 0.5 * Math.exp(-range / 45) * (1 + 0.1 * S.up.musket);
+    if (bat.dbl) p *= range <= 60 ? 1.6 : 0.8;
+    if (bat.smokeT > 0) p *= 0.55;
+    p = Math.min(p, 0.62);
+    const n = aliveB(bat);
+    for (let i = 0; i < n; i++) if (Math.random() < p) kills++;
+    kills = killCol(col, kills);
+    col.morale -= kills * 1.1;
+  }
+  bat.dbl = false; bat.smokeT = 4;
+  spawnSmoke(bat.x, G.b, 8, true);
+  G.soundQ++;
+  if (!ordered) {
+    G.noOrders++;
+    msg("The " + bat.def.short + " fired without orders!" + (range > 100 ? " Wasted at long range." : " Shout STEADY, LADS!"), "bad");
+  } else if (G.volley) G.volley.shots.push({ t: G.t, kills, range });
+  return kills;
+}
+
+function orderLie() {
+  if (!G || G.result || G.charging) return;
+  const live = liveBats(); if (!live.length) return;
+  const anyUp = live.some(isUp);
+  if (anyUp) {
+    live.forEach(b => { if (isUp(b)) { b.state = "lying"; b.st = 0.5; b.fireAt = -1; } });
+    msg("Down, lads! The men lie flat in the grass.", "good");
+  } else {
+    live.forEach(b => { if (isLying(b)) { b.state = "rising"; b.st = 1.1; } });
+    msg("On your feet! The line stands up.", "");
+  }
+}
+function orderReady() {
+  if (!G || G.result || G.charging || G.advT > 0) return;
+  let n = 0, lying = 0, empty = 0;
+  liveBats().forEach(b => {
+    if (isLying(b) || b.state === "rising") { lying++; return; }
+    if (!b.loaded) { empty++; return; }
+    if (b.state === "stand") { b.state = "presenting"; b.st = 0.5; n++; }
+  });
+  if (n) msg("Make ready! " + n + " battalion" + (n > 1 ? "s" : "") + " raise their muskets. Arms get heavy, so don't wait too long!", "");
+  else if (lying) msg("Your men are lying down. Stand them up first!", "bad");
+  else if (empty) msg("Still reloading! Use the RELOAD DRILL.", "bad");
+}
+function orderFire() {
+  if (!G || G.result || G.charging) return;
+  if (G.advT > 0) { msg("Wait until the line has finished advancing!", "bad"); return; }
+  let n = 0, lying = 0;
+  const fresh = !G.volley;
+  if (fresh) G.volley = { shots: [], until: G.t + 1.7 };
+  liveBats().forEach(b => {
+    if (b.fireAt >= 0) return;
+    if (isLying(b) || b.state === "rising") { lying++; return; }
+    if (!b.loaded) return;
+    if (b.state === "present") b.fireAt = G.t + 0.02 + Math.random() * (1 - b.disc / 100) * 0.55;
+    else { // had to raise muskets first, so the volley comes out ragged
+      if (b.state === "stand") { b.state = "presenting"; b.st = 0.5; }
+      b.fireAt = G.t + 0.55 + Math.random() * 0.9;
+    }
+    b.ordered = true; n++;
+  });
+  if (!n && fresh && !liveBats().some(b => b.fireAt >= 0)) { G.volley = null; msg(lying ? "They can't fire lying down! Stand up first." : "Nobody is loaded! Use the RELOAD DRILL.", "bad"); }
+}
+function orderSteady() {
+  if (!G || G.result || G.steadyCd > 0) return;
+  const boost = 22 + 4 * S.up.officers;
+  liveBats().forEach(b => b.disc = Math.min(100, b.disc + boost));
+  G.steadyCd = Math.max(4, 10 - 1.2 * S.up.officers);
+  banner("STEADY, LADS!", "#9fd0ff", 44);
+  msg("\"Steady, lads, steady! Wait for the word!\" The officers calm the line.", "good");
+}
+function drillZone() { const w = 0.18 + 0.035 * S.up.drill; return [0.5 - w / 2, 0.5 + w / 2]; }
+function drillPos() { const p = G ? G.drillPh % 2 : 0; return p < 1 ? p : 2 - p; }
+function orderDrill() {
+  if (!G || G.result || G.drillCd > 0) return;
+  const rel = liveBats().filter(b => b.reloading); if (!rel.length) return;
+  G.drillCd = 0.22;
+  const p = drillPos(), [a, z] = drillZone();
+  if (p >= a && p <= z) {
+    rel.forEach(b => { b.reload += 0.22; b.disc = Math.min(100, b.disc + 2); });
+    sfx.good();
+    $("drillHint").textContent = pick(["Smartly done!", "Bite! Pour! Ram!", "Like clockwork!", "Prime and load!"]);
+  } else {
+    rel.forEach(b => { b.disc -= 1.5; });
+    $("drillHint").textContent = "Fumbled the cartridge!";
+  }
+}
+function canAdvance() { return G && G.phase === "battle" && !G.result && !G.charging && G.advT <= 0 && minRange() > 30 && G.b < 70 && liveBats().length && liveBats().every(b => b.state === "stand"); }
+function orderAdvance() {
+  if (!G || G.result) return;
+  if (!canAdvance()) {
+    if (G.phase !== "battle") msg("Not yet. Wait for the French to come to you.", "bad");
+    else if (minRange() <= 30) msg("Too close to advance! Fire or charge!", "bad");
+    else msg("Every battalion must be standing, not lying down or raising muskets, to advance.", "bad");
+    return;
+  }
+  G.advT = 2.5; G.advFrom = G.b;
+  msg("The line steps forward through its own smoke...", "");
+}
+function canCharge() { return G && G.phase === "battle" && !G.result && !G.charging && G.advT <= 0 && activeCols().length && minRange() <= 120 && liveBats().length; }
+function orderCharge() {
+  if (!canCharge()) { if (G && G.phase === "battle" && !G.result) msg("The French are too far away to charge.", "bad"); return; }
+  G.charging = true; G.chargeT = 0; G.chargeFrom = G.b; G.chargeTo = G.b + Math.max(0, minRange() - 6);
+  liveBats().forEach(b => { b.state = "charge"; b.fireAt = -1; });
+  banner("CHARGE!", "#ffd166", 80);
+  msg("Fix bayonets! The Highlanders draw their broadswords and the whole line charges!", "good");
+  sfx.cheer();
+}
+function resolveCharge() {
+  G.charging = false;
+  const thr = chargeThr(); let failed = false, routed = 0;
+  for (const col of activeCols()) {
+    if (col.d - G.b > 40) continue;
+    const facing = liveBats().filter(b => Math.abs(b.x - col.x) < 170);
+    if (col.morale < thr) { killCol(col, Math.round(aliveC(col) * 0.12)); routCol(col, true); routed++; }
+    else {
+      col.morale -= 30; killCol(col, Math.round(aliveC(col) * 0.08));
+      facing.forEach(b => { for (let i = 0; i < 3; i++) hitBat(b, 2); });
+      if (col.morale < thr) { routCol(col, true); routed++; } else failed = true;
+    }
+  }
+  liveBats().forEach(b => { if (b.state === "charge") b.state = "stand"; });
+  if (failed) {
+    liveBats().forEach(b => b.disc -= 20 * vetMul());
+    G.b = Math.max(0, G.b - 12);
+    banner("THEY HELD!", "#ff7b7b", 54);
+    msg("The French were too steady and pushed the charge back. Reform the line, reload and volley again!", "bad");
+  }
+}
+function breakBat(bat) {
+  if (bat.state === "broken") return;
+  bat.state = "broken"; bat.fireAt = -1; bat.flee = 0;
+  banner(bat.def.short.toUpperCase() + " RUN!", "#ff7b7b", 46);
+  msg("The " + bat.def.name + " have lost their nerve and run away!", "bad");
+  liveBats().forEach(b => b.disc -= 10 * vetMul());
+}
+
+// ---------- French ----------
+function routCol(col, charged) {
+  if (col.state === "rout" || col.state === "gone") return;
+  col.state = "rout"; col.routT = 0;
+  banner(charged ? "THEY RUN!" : "THEY BREAK!", "#ffd166", 58);
+  msg(col.name + " breaks and runs back towards Quebec!", "good");
+  activeCols().forEach(c => { c.morale -= 12; });
+  liveBats().forEach(b => b.disc = Math.min(100, b.disc + 10));
+}
+function frenchVolley(col, frac) {
+  const r = col.d - G.b, n = Math.round(aliveC(col) * frac);
+  const p = 0.3 * Math.exp(-r / 60) * G.D.fire;
+  let hits = 0; for (let i = 0; i < n; i++) if (Math.random() < p) hits++;
+  const near = liveBats().sort((a, b) => Math.abs(a.x - col.x) - Math.abs(b.x - col.x)).slice(0, 2);
+  if (!near.length) return;
+  for (let i = 0; i < hits; i++) {
+    const bat = pick(near);
+    if (isLying(bat) && Math.random() < 0.75) continue;
+    hitBat(bat, 3);
+  }
+  near.forEach(b => b.disc -= 3 * frac * vetMul() * G.D.drain);
+  col.flashT = 0.15; col.flashFrac = frac;
+  for (let i = 0; i < Math.max(1, Math.round(4 * frac)); i++) G.smoke.push({ x: col.x + rnd(-45, 45), d: col.d - rnd(1, 4), r: rnd(8, 15), a: rnd(0.4, 0.6), life: rnd(3, 5), age: 0, vx: rnd(2, 6) });
+  if (frac >= 0.5) sfx.volley(2); else sfx.pop(0.12);
+}
+function fireCannon() {
+  const live = liveBats(); if (!live.length) return;
+  const bat = pick(live), gx = pick([400, 600]);
+  G.balls.push({ gx, bat, t: 0, dur: 1.2, tx: bat.x + rnd(-50, 50) });
+  G.smoke.push({ x: gx, d: 548, r: 16, a: 0.8, life: 4, age: 0, vx: 4 });
+  sfx.boom();
+}
+
+// ---------- step ----------
+function paused() { return !$("startOv").hidden || !$("upOv").hidden || !$("endOv").hidden; }
+function step(dt) {
+  if (!G) return;
+  stepFx(dt);
+  if (paused()) return;
+  G.t += dt;
+  G.steadyCd = Math.max(0, G.steadyCd - dt);
+  G.drillCd = Math.max(0, G.drillCd - dt);
+  G.drillPh += dt / (0.85 - 0.04 * S.up.drill);
+
+  if (G.phase === "wait") {
+    G.waitT -= dt;
+    if (G.waitT <= 0) {
+      G.phase = "battle";
+      banner("THE FRENCH ADVANCE!", "#fff", 54);
+      msg("The French drums beat the charge! Their columns are coming. Stand up and HOLD YOUR FIRE...", "bad");
+    }
+  }
+  if (G.advT > 0) {
+    G.advT -= dt;
+    G.b = G.advFrom + 15 * (1 - Math.max(0, G.advT) / 2.5);
+    if (G.advT <= 0) { G.bats.forEach(b => b.smokeT = 0); msg("Through the smoke! A clear shot at the French.", "good"); }
+  }
+  if (G.charging) {
+    G.chargeT += dt;
+    const k = Math.min(1, G.chargeT / 1.3);
+    G.b = G.chargeFrom + (G.chargeTo - G.chargeFrom) * k;
+    if (k >= 1) resolveCharge();
+  }
+
+  stepBats(dt);
+  stepCols(dt);
+  stepEnemyFire(dt);
+
+  if (G.volley && G.t > G.volley.until) { evaluateVolley(); G.volley = null; }
+  if (G.soundQ) { sfx.volley(G.soundQ); G.shakeT = Math.min(0.5, 0.08 * G.soundQ + 0.05); G.soundQ = 0; }
+
+  // drums while any column is advancing
+  const adv = G.cols.filter(c => c.state === "advance" || c.state === "halt");
+  if (adv.length && !G.result) {
+    G.drumT -= dt;
+    if (G.drumT <= 0) {
+      G.drumT = 0.2;
+      const pat = [1, 0, 1, 0, 1, 1, 1, 0];
+      const v = 0.4 + 0.6 * clamp(1 - minRange() / 500, 0, 1);
+      if (pat[G.drumI % 8]) sfx.drum(G.drumI % 8 === 0, v);
+      G.drumI++;
+    }
+  }
+
+  // end of battle
+  if (!G.result && G.phase === "battle") {
+    if (!activeCols().length) {
+      G.result = "win"; G.endT = 3.2;
+      banner("VICTORY!", "#ffd166", 90);
+      msg("Huzzah! The French army is running back to Quebec. The Plains of Abraham are yours!", "good");
+      sfx.cheer();
+    } else if (brokenCount() >= 3) {
+      G.result = "lose"; G.endT = 3.2;
+      banner("THE LINE IS BROKEN", "#ff7b7b", 56);
+      msg("Too many battalions ran away. The French have won the day.", "bad");
+    }
+  }
+  if (G.result && !G.ended) { G.endT -= dt; if (G.endT <= 0) { G.ended = true; showEnd(); } }
+}
+
+function stepBats(dt) {
+  const r = minRange();
+  for (const bat of G.bats) {
+    bat.figs.forEach(f => { if (f.flash > 0) f.flash -= dt; });
+    if (bat.state === "broken") { bat.flee += dt; continue; }
+    bat.st -= dt;
+    if (bat.state === "lying" && bat.st <= 0) bat.state = "lie";
+    if (bat.state === "rising" && bat.st <= 0) bat.state = "stand";
+    if (bat.state === "presenting" && bat.st <= 0) bat.state = "present";
+    if (bat.state === "firing" && bat.st <= 0) bat.state = "stand";
+    if (bat.reloading) {
+      bat.reload += dt / reloadTime();
+      if (bat.reload >= 1) { bat.reloading = false; bat.loaded = true; bat.reload = 0; }
+    }
+    bat.smokeT = Math.max(0, bat.smokeT - dt);
+    if (bat.fireAt >= 0 && G.t >= bat.fireAt) {
+      bat.fireAt = -1;
+      if (bat.loaded && (isUp(bat))) fireBat(bat, bat.ordered);
+      bat.ordered = false;
+    }
+    if (G.result) continue;
+    // discipline
+    let dd = 0;
+    if (G.phase === "battle" && r < 130 && bat.loaded && isUp(bat) && bat.state !== "firing") dd -= (130 - r) / 130 * 3.2 * G.D.drain * vetMul();
+    if (bat.state === "present") dd -= 1.2 * G.D.drain * vetMul();
+    if (G.phase === "battle" && r > 250) dd += 1.5;
+    if (G.phase === "wait" && isLying(bat)) dd += 0.6;
+    bat.disc = clamp(bat.disc + dd * dt, 0, 100);
+    // nervous men fire without orders
+    if (G.phase === "battle" && !G.charging && bat.disc < 35 && r < 170 && bat.loaded && bat.fireAt < 0 && (bat.state === "stand" || bat.state === "present")) {
+      if (Math.random() < (35 - bat.disc) / 35 * 0.5 * dt) fireBat(bat, false);
+    }
+    if (bat.disc <= 0 || aliveB(bat) < bat.figs.length * 0.25) breakBat(bat);
+  }
+}
+
+function stepCols(dt) {
+  for (const col of G.cols) {
+    const r = col.d - G.b;
+    if (col.flashT > 0) col.flashT -= dt;
+    if (col.state === "form") {
+      if (G.phase === "battle") { col.delay -= dt; if (col.delay <= 0) col.state = "advance"; }
+    } else if (col.state === "advance") {
+      if (r > 7.5) { col.d -= G.D.speed * (1 - 0.35 * col.disorder) * (r > 220 ? 2 : 1) * dt; col.contact = 0; }
+      else {
+        col.d = G.b + 7;
+        col.contact += dt;
+        // hand-to-hand at the line
+        if (Math.random() < 1.6 * dt) { const fb = liveBats().filter(b => Math.abs(b.x - col.x) < 150); if (fb.length) hitBat(pick(fb), 3); }
+        liveBats().filter(b => Math.abs(b.x - col.x) < 150).forEach(b => b.disc -= 7 * dt * vetMul() * G.D.drain);
+        if (Math.random() < 0.6 * dt) killCol(col, 1);
+        col.morale -= 2 * dt;
+        if (col.contact > 0 && col.contact - dt <= 0) msg(col.name + " has reached your line! Fire point-blank or charge!", "bad");
+      }
+      if (!col.fired && r < col.fireR) {
+        col.state = "halt"; col.halt = 1.6; col.fired = true; col.disorder = 0.6;
+        frenchVolley(col, 1);
+        if (!G.firstFrench) { G.firstFrench = true; msg("The French fire first, from far away! Their ranks get jumbled as the militia drop down to reload. HOLD YOUR FIRE...", "bad"); }
+      } else if (col.fired && r < 140 && Math.random() < 1.2 * dt) frenchVolley(col, 0.12);
+      if (col.morale < 30) { col.state = "waver"; col.wavered = true; msg(col.name + " is wavering! Volley again or CHARGE!", "good"); }
+    } else if (col.state === "halt") {
+      col.halt -= dt; if (col.halt <= 0) col.state = "advance";
+    } else if (col.state === "waver") {
+      if (Math.random() < 0.8 * dt) frenchVolley(col, 0.1);
+      col.morale += 2.2 * dt;
+      if (col.morale >= 42) { col.state = "advance"; msg(col.name + " has rallied and comes on again!", "bad"); }
+    } else if (col.state === "rout") {
+      col.routT += dt; col.d += 26 * dt;
+      if (col.d - G.b > 420) col.state = "gone";
+    }
+    if (col.state !== "rout" && col.state !== "gone" && col.state !== "form") {
+      if (col.morale <= 12 || aliveC(col) < col.figs.length * 0.3) routCol(col, false);
+    }
+  }
+}
+
+function stepEnemyFire(dt) {
+  if (G.result) return;
+  // sharpshooters in the bushes
+  G.skVis -= dt;
+  if (G.skVis <= 0) {
+    G.skVis = rnd(0.25, 0.8);
+    const side = Math.random() < 0.5 ? 0 : 1, d = rnd(30, 330);
+    G.flankPuffs.push({ x: side ? rnd(935, 975) : rnd(25, 65), d, age: 0 });
+    if (Math.random() < 0.4) sfx.pop(0.05);
+  }
+  const skRate = G.D.sk * (G.phase === "battle" ? 0.6 : 1.6);
+  if (Math.random() < skRate * dt) {
+    const live = liveBats();
+    if (live.length) {
+      const bat = Math.random() < 0.5 ? (Math.random() < 0.5 ? live[0] : live[live.length - 1]) : pick(live);
+      if (!(isLying(bat) && Math.random() < 0.75)) hitBat(bat, 2.5);
+    }
+  }
+  // cannon
+  if (activeCols().length) {
+    G.artT -= dt;
+    if (G.artT <= 0) { G.artT = G.D.art * rnd(0.8, 1.25); fireCannon(); }
+  }
+  if (G.phase === "wait") {
+    G.sayWait -= dt;
+    if (G.sayWait <= 0 && liveBats().some(isUp) && G.t > 2) { G.sayWait = 6; msg("Sharpshooters are firing from the bushes! Order LIE DOWN to save your men.", "bad"); }
+  }
+}
+
+function evaluateVolley() {
+  const v = G.volley; if (!v.shots.length) return;
+  v.shots.sort((a, b) => a.t - b.t);
+  const t0 = v.shots[0].t, sync = v.shots.filter(s => s.t - t0 <= 0.3).length;
+  const range = v.shots.reduce((a, s) => a + s.range, 0) / v.shots.length;
+  const kills = v.shots.reduce((a, s) => a + s.kills, 0);
+  const all = liveBats().length;
+  G.volleys++;
+  let shock = 0, text, color, note;
+  const perfect = sync >= all && all >= 4 && range <= 50;
+  if (range <= 75 && sync >= 3) shock = sync * 3.5 * (range <= 50 ? 1.5 : 1) + (perfect ? 15 : 0);
+  if (perfect) {
+    G.perfects++; text = "PERFECT VOLLEY!"; color = "#ffd166";
+    note = "\"The most perfect volley ever fired on battlefield!\" " + kills * 10 + " French soldiers fall at " + Math.round(range) + " yards.";
+    liveBats().forEach(b => b.disc = Math.min(100, b.disc + 15));
+  } else if (range > 110) {
+    text = "WASTED!"; color = "#ff9b9b"; note = "Fired at " + Math.round(range) + " yards: far too far. Almost every ball missed and the French cheer! Wait until they are close.";
+  } else if (sync >= 4 && range <= 75) {
+    G.crashing++; text = "CRASHING VOLLEY!"; color = "#fff"; note = sync + " battalions fired together at " + Math.round(range) + " yards. " + kills * 10 + " French soldiers hit.";
+  } else if (range <= 75) {
+    text = "RAGGED VOLLEY"; color = "#ffcf9b"; note = "Only " + sync + " battalion" + (sync > 1 ? "s" : "") + " fired together. MAKE READY first and keep discipline high for a crashing volley.";
+  } else {
+    text = "TOO EARLY"; color = "#ffcf9b"; note = "Fired at " + Math.round(range) + " yards. Closer is deadlier: about 40 yards is best.";
+  }
+  if (shock) activeCols().forEach(c => { if (c.d - G.b < 160) c.morale -= shock; });
+  if (range > 110) activeCols().forEach(c => { c.morale += 8; }); // the French cheer when a volley misses
+  banner(text, color, perfect ? 70 : 52);
+  msg(note, perfect || text === "CRASHING VOLLEY!" ? "good" : "bad");
+}
+
+function stepFx(dt) {
+  for (const s of G.smoke) { s.age += dt; s.x += s.vx * dt; s.r += 3 * dt; }
+  G.smoke = G.smoke.filter(s => s.age < s.life);
+  for (const p of G.flankPuffs) p.age += dt;
+  G.flankPuffs = G.flankPuffs.filter(p => p.age < 2.5);
+  if (G.banners.length) {
+    const cur = G.banners[0]; cur.t += dt;
+    if (G.banners.length > 1 && cur.t > 0.9) cur.life = Math.min(cur.life, 1.2);
+    if (cur.t >= cur.life) G.banners.shift();
+  }
+  if (G.shakeT > 0) G.shakeT -= dt;
+  if (paused()) return;
+  for (const ball of G.balls) {
+    ball.t += dt;
+    if (ball.t >= ball.dur && !ball.done) {
+      ball.done = true; sfx.thud();
+      const bat = ball.bat;
+      if (bat.state !== "broken" && !G.result) {
+        const n = isLying(bat) ? (Math.random() < 0.3 ? 1 : 0) : 1 + Math.floor(Math.random() * 2.5);
+        for (let i = 0; i < n; i++) hitBat(bat, 4);
+      }
+      for (let i = 0; i < 4; i++) G.smoke.push({ x: ball.tx + rnd(-10, 10), d: G.b + rnd(-2, 3), r: rnd(5, 10), a: 0.5, life: 1.5, age: 0, vx: rnd(-6, 6), dust: true });
+    }
+  }
+  G.balls = G.balls.filter(b => b.t < b.dur + 0.6);
+}
+
+// ---------- draw ----------
+function draw() {
+  const k = cv.width / W;
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+  if (G && G.shakeT > 0) ctx.translate(rnd(-1, 1) * G.shakeT * 10, rnd(-1, 1) * G.shakeT * 6);
+  ctx.drawImage(BG, 0, 0, W, H);
+  if (!G) return;
+
+  // range ruler: where the French would be at each distance
+  ctx.font = "800 11px Nunito, sans-serif"; ctx.textAlign = "right";
+  const y40 = yOf(G.b + 50), y30 = yOf(G.b + 30);
+  ctx.fillStyle = "rgba(79,207,106,.18)"; ctx.fillRect(84, y40, 832, y30 - y40);
+  for (const m of [200, 100, 60, 40]) {
+    const y = yOf(G.b + m);
+    ctx.strokeStyle = m === 40 ? "rgba(120,255,140,.8)" : "rgba(255,255,255,.35)"; ctx.lineWidth = m === 40 ? 2 : 1;
+    ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(90, y); ctx.lineTo(910, y); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = m === 40 ? "#b8ffc4" : "rgba(255,255,255,.75)";
+    ctx.fillText(m + " yds", 912 + 36, y + 4);
+  }
+
+  // bodies
+  for (const b of G.bodies) drawBody(b);
+
+  // French guns
+  for (const gx of [400, 600]) {
+    const s = sOf(550), x = xOf(gx, 550), y = yOf(550);
+    ctx.fillStyle = "#3a2c1e"; ctx.fillRect(x - 7 * s, y - 4 * s, 14 * s, 3 * s);
+    ctx.fillStyle = "#222"; ctx.fillRect(x - 2 * s, y - 9 * s, 4 * s, 7 * s);
+    ctx.strokeStyle = "#5a4230"; ctx.lineWidth = 1.5 * s; ctx.beginPath(); ctx.arc(x - 6 * s, y - 2 * s, 3 * s, 0, 7); ctx.arc(x + 6 * s, y - 2 * s, 3 * s, 0, 7); ctx.stroke();
+  }
+
+  // French columns: back rows first
+  for (const col of G.cols) {
+    if (col.state === "gone") continue;
+    const spread = 1 + col.disorder * 0.6;
+    const order = col.figs.filter(f => f.alive).sort((a, b) => b.r - a.r);
+    for (const f of order) {
+      let x = col.x + f.c * 9 * spread + f.jx * col.disorder * 6, d = col.d + f.r * 1.6;
+      let pose = "stand";
+      if (col.state === "rout") { x += f.jx * col.routT * 20; d += f.jy * col.routT * 6; }
+      const s = sOf(d), sx = xOf(x, d);
+      let sy = yOf(d);
+      if (col.state === "advance" || col.state === "rout") sy -= Math.abs(Math.sin(G.t * (col.state === "rout" ? 14 : 8) + f.ph)) * 1.5 * s;
+      if (col.state === "rout") { // backs turned
+        ctx.fillStyle = f.mil ? COAT.mil : COAT.fr; ctx.fillRect(sx - 3.6 * s, sy - 16 * s, 7.2 * s, 9 * s);
+        ctx.fillStyle = "#232323"; ctx.fillRect(sx - 3 * s, sy - 7 * s, 2.5 * s, 7 * s); ctx.fillRect(sx + 0.5 * s, sy - 7 * s, 2.5 * s, 7 * s);
+        ctx.fillStyle = f.mil ? "#b8322f" : "#151515"; ctx.beginPath(); ctx.arc(sx, sy - 18.5 * s, 2.6 * s, 0, 7); ctx.fill();
+      } else {
+        drawSoldier(sx, sy, s, f.mil ? "mil" : "fr", pose, col.flashT > 0 && f.r <= 1 && Math.random() < col.flashFrac + 0.1);
+      }
+    }
+    if (col.state !== "rout" && aliveC(col)) {
+      const fd = col.d + 2.5, s = sOf(fd);
+      drawFlag(xOf(col.x, fd), yOf(fd) - 18 * s, s, true, G.t);
+    }
+    // morale label
+    if (col.state !== "rout" && col.state !== "gone" && G.phase === "battle") {
+      const fd = col.d, s = sOf(fd), x = xOf(col.x, fd), y = yOf(fd + 6 * 1.6) - 34 * s;
+      const m = clamp(col.morale / G.D.morale, 0, 1);
+      ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillRect(x - 31, y - 4, 62, 8);
+      ctx.fillStyle = col.state === "waver" ? "#ffd166" : "#6ea8ff"; ctx.fillRect(x - 30, y - 3, 60 * m, 6);
+      if (col.state === "waver") { ctx.fillStyle = "#ffd166"; ctx.font = "900 12px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("WAVERING", x, y - 7); }
+    }
+  }
+
+  // cannonballs
+  for (const ball of G.balls) {
+    if (ball.t > ball.dur) continue;
+    const k2 = ball.t / ball.dur, d = 548 + (G.b - 548) * k2, x = ball.gx + (ball.tx - ball.gx) * k2;
+    const s = sOf(d), sy = yOf(d) - Math.sin(k2 * Math.PI) * 60 * (1 - k2 * 0.4) - Math.abs(Math.sin(k2 * 9)) * 6 * k2;
+    ctx.fillStyle = "#151515"; ctx.beginPath(); ctx.arc(xOf(x, d), sy, 2.6 * s + 1, 0, 7); ctx.fill();
+  }
+
+  // British line
+  for (let i = 0; i < G.bats.length; i++) drawBat(G.bats[i]);
+
+  // smoke
+  for (const s of G.smoke) {
+    const a = s.a * (1 - s.age / s.life);
+    ctx.fillStyle = s.dust ? "rgba(120,100,70," + a + ")" : "rgba(236,238,240," + a + ")";
+    ctx.beginPath(); ctx.arc(xOf(s.x, s.d), yOf(s.d) - 18 * sOf(s.d), s.r * sOf(s.d), 0, 7); ctx.fill();
+  }
+  for (const p of G.flankPuffs) {
+    const a = 0.6 * (1 - p.age / 2.5), s = sOf(p.d);
+    if (p.age < 0.08) { ctx.fillStyle = "rgba(255,220,120,.95)"; ctx.beginPath(); ctx.arc(p.x, yOf(p.d) - 10 * s, 3 * s, 0, 7); ctx.fill(); }
+    ctx.fillStyle = "rgba(235,235,235," + a + ")"; ctx.beginPath(); ctx.arc(p.x + p.age * 6, yOf(p.d) - 12 * s - p.age * 4, (5 + p.age * 6) * s, 0, 7); ctx.fill();
+  }
+
+  drawHUD();
+}
+
+function drawBat(bat) {
+  const b = G.b;
+  const n = bat.figs.length;
+  const ranks = [0, 1];
+  let flee = bat.state === "broken" ? bat.flee : 0;
+  if (flee > 6) return;
+  const chargeBob = bat.state === "charge";
+  for (const rank of ranks) {
+    for (let i = 0; i < n; i++) {
+      const f = bat.figs[i];
+      if (f.rank !== rank || !f.alive) continue;
+      let x = bat.x + f.ox, d = b;
+      const s = sOf(d);
+      let sy = yOf(d) + rank * 11 * s;
+      let sx = xOf(x, d);
+      if (flee) { sy += flee * 60 + Math.sin(i) * 8 * flee; sx += Math.cos(i * 1.7) * 25 * flee; }
+      let pose = "stand";
+      if (isLying(bat)) pose = "lie";
+      else if (bat.state === "present" || bat.state === "presenting") pose = "present";
+      else if (bat.state === "firing") pose = "fire";
+      else if (chargeBob) pose = "charge";
+      if (chargeBob) sy -= Math.abs(Math.sin(G.t * 14 + i)) * 3;
+      if (G.result === "win" && !flee) sy -= Math.max(0, Math.sin(G.t * 6 + i * 0.7)) * 4;
+      if (bat.state === "rising") sy += 0;
+      drawSoldier(sx, sy, s * (rank ? 1.04 : 1), bat.def.kind, pose, f.flash > 0);
+    }
+  }
+  if (bat.state === "broken") return;
+  // King's colour in the centre
+  const s = sOf(b);
+  if (!isLying(bat)) drawFlag(xOf(bat.x, b) - 2, yOf(b) - 20 * s, s, false, G.t);
+  // label: name, discipline and loaded state
+  const lx = xOf(bat.x, b), ly = yOf(b) + 22 * s + 6;
+  ctx.fillStyle = "rgba(10,8,6,.72)"; roundRect(lx - 62, ly, 124, 38, 7); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.font = "900 11px Nunito, sans-serif"; ctx.textAlign = "center";
+  ctx.fillText(bat.def.short + "  ·  " + aliveB(bat) * 10 + " men", lx, ly + 12);
+  const dc = bat.disc / 100;
+  ctx.fillStyle = "#2b2b2b"; ctx.fillRect(lx - 56, ly + 16, 112, 7);
+  ctx.fillStyle = dc > 0.6 ? "#4fcf6a" : dc > 0.35 ? "#f2c14e" : "#e0383f"; ctx.fillRect(lx - 56, ly + 16, 112 * dc, 7);
+  ctx.font = "800 9.5px Nunito, sans-serif";
+  if (bat.reloading) {
+    ctx.fillStyle = "#3a3026"; ctx.fillRect(lx - 56, ly + 27, 112, 6);
+    ctx.fillStyle = "#e0873a"; ctx.fillRect(lx - 56, ly + 27, 112 * clamp(bat.reload, 0, 1), 6);
+  } else {
+    ctx.fillStyle = bat.loaded ? "#b8ffc4" : "#ffb0b0";
+    ctx.fillText((bat.loaded ? "LOADED" + (bat.dbl ? " ×2 BALLS" : "") : "EMPTY") + (bat.state === "present" ? " · READY" : "") + (isLying(bat) ? " · DOWN" : ""), lx, ly + 34);
+  }
+}
+function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+function drawHUD() {
+  // range box
+  const r = minRange();
+  ctx.fillStyle = "rgba(10,8,6,.72)"; roundRect(10, 10, 230, 84, 10); ctx.fill();
+  ctx.textAlign = "left"; ctx.fillStyle = "#c7b8a3"; ctx.font = "800 11px Nunito, sans-serif";
+  ctx.fillText(G.phase === "wait" ? "FRENCH ATTACK IN" : "NEAREST FRENCH COLUMN", 20, 27);
+  let big, adv, col;
+  if (G.phase === "wait") { big = Math.ceil(G.waitT) + "s"; adv = "Lie down and wait"; col = "#fff"; }
+  else if (r > 1000) { big = "-"; adv = "They're running!"; col = "#ffd166"; }
+  else {
+    big = Math.round(r) + " yds";
+    if (r > 110) { adv = "HOLD YOUR FIRE"; col = "#fff"; }
+    else if (r > 60) { adv = "Hold... hold..."; col = "#f2c14e"; }
+    else if (r > 50) { adv = "MAKE READY!"; col = "#ffb04e"; }
+    else if (r >= 25) { adv = "FIRE NOW!"; col = "#7dff95"; }
+    else { adv = "Point blank! Fire or charge!"; col = "#ff7b7b"; }
+  }
+  ctx.fillStyle = col; ctx.font = "400 30px 'Lilita One', sans-serif"; ctx.fillText(big, 20, 58);
+  ctx.font = "900 14px Nunito, sans-serif"; ctx.fillText(adv, 20, 82);
+  // difficulty tag
+  ctx.textAlign = "right"; ctx.fillStyle = "rgba(10,8,6,.6)"; roundRect(W - 150, 10, 140, 24, 8); ctx.fill();
+  ctx.fillStyle = "#f2c14e"; ctx.font = "900 12px Nunito, sans-serif"; ctx.fillText(G.D.name + " · Quebec 1759", W - 18, 26);
+  // banners
+  ctx.textAlign = "center";
+  for (const b of G.banners.slice(0, 1)) {
+    const k = b.t < 0.2 ? b.t / 0.2 : 1, fade = b.t > b.life - 0.5 ? (b.life - b.t) / 0.5 : 1;
+    ctx.save(); ctx.globalAlpha = clamp(fade, 0, 1);
+    ctx.translate(W / 2, 250); ctx.scale(0.6 + 0.4 * k, 0.6 + 0.4 * k);
+    ctx.font = "400 " + b.size + "px 'Lilita One', sans-serif";
+    ctx.lineWidth = 8; ctx.strokeStyle = "#1a0d08"; ctx.strokeText(b.text, 0, 0);
+    ctx.fillStyle = b.color; ctx.fillText(b.text, 0, 0);
+    ctx.restore();
+  }
+}
+
+// ---------- UI ----------
+const cache = {};
+function setT(id, v) { if (cache[id] !== v) { cache[id] = v; $(id).textContent = v; } }
+function setD(id, v) { const k = id + ":d"; if (cache[k] !== v) { cache[k] = v; $(id).disabled = v; } }
+function fmt(n) { return Math.round(n).toLocaleString("en-AU"); }
+function ui() {
+  setT("hCoins", fmt(S.coins)); setT("hWins", fmt(S.wins)); setT("hPerf", fmt(S.perfect)); setT("hBest", fmt(S.best));
+  setT("diffHint", DIFFS[S.diff].name);
+  $("muteBtn").textContent = S.mute ? "🔇" : "🔊";
+  if (!G) return;
+  const done = !!G.result, live = liveBats();
+  const anyUp = live.some(isUp);
+  $("lieBtn").firstChild.nodeValue = anyUp ? "LIE DOWN" : "STAND UP";
+  setD("lieBtn", done || G.charging);
+  setD("readyBtn", done || G.charging || !live.some(b => b.state === "stand" && b.loaded));
+  setD("fireBtn", done || G.charging || !live.some(b => b.loaded && !isLying(b)));
+  const r = minRange();
+  $("fireBtn").classList.toggle("now", !done && G.phase === "battle" && r <= 50 && r >= 20 && live.some(b => b.loaded && isUp(b)));
+  setD("steadyBtn", done || G.steadyCd > 0);
+  setT("steadyHint", G.steadyCd > 0 ? "ready in " + Math.ceil(G.steadyCd) + "s" : "calm the men · S");
+  const rel = live.some(b => b.reloading);
+  setD("drillBtn", done || !rel);
+  const [a, z] = drillZone();
+  $("dzone").style.left = (a * 100) + "%"; $("dzone").style.width = ((z - a) * 100) + "%";
+  $("dmark").style.left = (drillPos() * 100) + "%";
+  if (!rel && cache.drillIdle !== true) { cache.drillIdle = true; $("drillHint").textContent = "tap when the marker is in the green · D"; }
+  if (rel) cache.drillIdle = false;
+  setD("advBtn", !canAdvance());
+  const cc = canCharge();
+  setD("chargeBtn", !cc);
+  const wav = cc && activeCols().some(c => c.d - G.b <= 120 && c.morale < chargeThr());
+  $("chargeBtn").classList.toggle("go", wav);
+  setT("chargeHint", !cc ? "bayonets · C" : wav ? "they're wavering!" : "they look steady...");
+}
+
+function showStart() {
+  document.querySelectorAll("#difPick .dbtn").forEach(b => b.classList.toggle("on", b.dataset.d === S.diff));
+  $("dblTog").checked = S.dbl;
+  $("startCoins").textContent = fmt(S.coins) + " shillings";
+  $("startOv").hidden = false;
+}
+function startBattle() {
+  audio();
+  S.dbl = $("dblTog").checked; save();
+  newBattle();
+  $("startOv").hidden = true; $("endOv").hidden = true;
+  msg("French sharpshooters are firing from the bushes and their cannon are booming. Order LIE DOWN and wait for the attack.", "");
+}
+function renderUps() {
+  $("upCoins").textContent = fmt(S.coins);
+  const list = $("upList"); list.innerHTML = "";
+  for (const u of UPS) {
+    const lvl = S.up[u.id] || 0, max = lvl >= u.max, cost = upCost(u);
+    const row = document.createElement("div"); row.className = "row";
+    row.innerHTML = '<div class="ic">' + u.ic + '</div><div class="tx"><b>' + u.name + '</b><small>' + u.desc + '</small><span class="pips">' + "●".repeat(lvl) + "○".repeat(u.max - lvl) + '</span></div>';
+    const btn = document.createElement("button"); btn.className = "sm";
+    btn.textContent = max ? "MAX" : cost + " s";
+    btn.disabled = max || S.coins < cost;
+    btn.onclick = () => { if (S.coins >= cost && !max) { S.coins -= cost; S.up[u.id] = lvl + 1; save(); renderUps(); ui(); } };
+    row.appendChild(btn); list.appendChild(row);
+  }
+}
+function showEnd() {
+  const win = G.result === "win";
+  const alive = G.bats.reduce((n, b) => n + (b.state === "broken" ? 0 : aliveB(b)), 0);
+  const broke = brokenCount();
+  let stars = 0, score;
+  if (win) {
+    stars = 1 + (G.perfects > 0 ? 1 : 0) + (broke === 0 && G.noOrders === 0 ? 1 : 0);
+    score = Math.round((1000 + alive * 8 + G.perfects * 400 + G.crashing * 100 - G.noOrders * 60 + (broke === 0 ? 300 : 0)) * G.D.mult);
+  } else score = Math.round(G.killed * 10 * G.D.mult);
+  score = Math.max(0, score);
+  const coins = win ? Math.round((40 + stars * 25) * G.D.mult) : Math.round((8 + G.killed / 6) * G.D.mult);
+  S.coins += coins; S.battles++; if (win) S.wins++; S.perfect += G.perfects;
+  const newBest = score > S.best; if (newBest) S.best = score;
+  save();
+  if (window.Leaderboard && Leaderboard.getName() && score > 0) Leaderboard.submit(score);
+  $("endTitle").textContent = win ? "Victory at Quebec!" : "Defeat on the Plains";
+  $("endStars").textContent = win ? "★".repeat(stars) + "☆".repeat(3 - stars) : "☆☆☆";
+  $("endStats").innerHTML =
+    '<div>Score<b>' + fmt(score) + (newBest ? " · best!" : "") + '</b></div>' +
+    '<div>Shillings earned<b>+' + fmt(coins) + '</b></div>' +
+    '<div>Perfect volleys<b>' + G.perfects + '</b></div>' +
+    '<div>Volleys fired<b>' + G.volleys + '</b></div>' +
+    '<div>Fired without orders<b>' + G.noOrders + '</b></div>' +
+    '<div>Battalions that ran<b>' + broke + '</b></div>' +
+    '<div>Your men lost<b>' + fmt(G.lost * 10) + '</b></div>' +
+    '<div>French soldiers hit<b>' + fmt(G.killed * 10) + '</b></div>';
+  let tip = "";
+  if (win && stars < 3) tip = stars === 1 ? " For more stars: get a PERFECT VOLLEY by pressing MAKE READY at about 50 yards and FIRE at 40." : " For the third star: no battalion may run and nobody may fire without orders. Use STEADY, LADS!";
+  $("endHist").textContent = win
+    ? "That is just how it went in 1759. As the French broke, General Wolfe was hit for the third time. Told the enemy were running, he said \"Now, God be praised, I will die in peace.\" Montcalm was also mortally wounded, and Quebec surrendered five days later." + tip
+    : "In the real battle the British line held its nerve until the French were about 40 yards away. Try again: lie down while you wait, keep discipline up with STEADY, LADS!, and do not fire until they are close.";
+  $("endOv").hidden = false;
+  ui();
+}
+
+// ---------- input ----------
+const tap = (id, fn) => $(id).addEventListener("click", e => { e.preventDefault(); audio(); fn(); });
+tap("lieBtn", orderLie); tap("readyBtn", orderReady); tap("fireBtn", orderFire); tap("steadyBtn", orderSteady);
+tap("advBtn", orderAdvance); tap("chargeBtn", orderCharge);
+$("drillBtn").addEventListener("pointerdown", e => { e.preventDefault(); audio(); orderDrill(); });
+tap("newBtn", showStart);
+tap("upBtn", () => { renderUps(); $("upOv").hidden = false; });
+tap("diffBtn", showStart);
+tap("startUp", () => { renderUps(); $("upOv").hidden = false; });
+tap("endUp", () => { renderUps(); $("upOv").hidden = false; });
+tap("endAgain", startBattle);
+tap("goBtn", startBattle);
+tap("muteBtn", () => { S.mute = !S.mute; save(); ui(); });
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => { $(b.dataset.close).hidden = true; if (!$("startOv").hidden) showStart(); });
+document.querySelectorAll("#difPick .dbtn").forEach(b => b.onclick = () => { S.diff = b.dataset.d; save(); showStart(); ui(); });
+document.addEventListener("keydown", e => {
+  if (paused() || e.repeat) return;
+  if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+  const k = e.key.toLowerCase();
+  if (e.code === "Space") { e.preventDefault(); audio(); orderFire(); }
+  else if (k === "l") orderLie(); else if (k === "r") orderReady(); else if (k === "s") orderSteady();
+  else if (k === "d") orderDrill(); else if (k === "a") orderAdvance(); else if (k === "c") orderCharge();
+});
+window.addEventListener("resize", resize);
+
+// ---------- loop ----------
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  step(dt); draw(); ui();
+  requestAnimationFrame(frame);
+}
+resize();
+newBattle();
+showStart();
+ui();
+requestAnimationFrame(frame);
+
+// ---------- leaderboard ----------
+if (window.Leaderboard) {
+  Leaderboard.mount({ el: "lb", game: "plains-of-abraham", dir: "desc", unit: "pts", title: "Plains of Abraham: best battle score" });
+  if (Leaderboard.getName() && S.best >= 1) Leaderboard.submit(S.best);
+}
+</script>
+</body>
+</html>

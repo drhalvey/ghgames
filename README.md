@@ -23,6 +23,7 @@ ghgames/
   rugby-kicker.html  aim then power bar: kick a rugby ball as high as you can for Wins, goals pay double, upgrades, 11 stadiums up to the Galaxy Arena
   drop-goal-hero.html  run, drop, kick: drop goals only with defenders charging; starts in the 2003 World Cup final (17-17, 26 seconds left), then Career mode with streaks, upgrades and 6 stadiums
   runway-stars.html  dress-up fashion show: outfits to a theme, everyone rates each other out of 5 stars, best rating wins, wins buy better clothes (online via Supabase Realtime, computer models fill spots)
+  plains-of-abraham.html  Quebec 1759: hold the British line, lie down under sniper fire, hold fire until 40 yards, give the perfect volley, reload drill, advance and charge; upgrades, stars, leaderboard
   CNAME           contains "ghgames.au" — tells GitHub Pages the domain
   README.md       this file
 ```

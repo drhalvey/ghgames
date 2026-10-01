@@ -33,6 +33,7 @@
     "runway-stars": { title: "Runway Stars", keys: ["runwaystars-save"] },
     "plains-of-abraham": { title: "Plains of Abraham", keys: ["plains-save"] },
     "save-your-rabbit": { title: "Save Your Rabbit", keys: ["saverabbit-save"] },
+    "iron-command": { title: "Iron Command", keys: ["ironcommand-save", "ironcommand-battle"] },
     "log-clicker":  { title: "Log Clicker",   keys: ["logclicker_save"] },
     "sprig-rescue": { title: "Sprig Rescue",  keys: ["sprig_save"] },
     "click-frenzy": { title: "Click Frenzy",  keys: ["frenzy_best"], merge: "max" },

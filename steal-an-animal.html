@@ -408,6 +408,7 @@ function buyRoad(a) {
   setMsg("You bought the " + aName(a) + "! It makes " + fmt(myInc(a)) + " coins a second.", "good");
 }
 function askSell(a) {
+  if (a.best) { setMsg("👑 That's your special animal. It can't be sold.", "good"); return; }
   const val = aPrice(a).mul(0.5);
   openBox(`<h2>${KINDS[a.k][0]} ${esc(aName(a))}</h2>
     <p>${TIERS[tierOf(a.k)].n} · makes ${fmt(myInc(a))} a second</p>
@@ -865,7 +866,7 @@ $("bReb").onclick = () => {
   $("xYes").onclick = () => {
     if (S.coins.lt(rebCost())) return;
     if (player.carry) caught("the rebirth");
-    S.reb++; S.coins = D(500); S.animals = []; S.pads = Math.min(MAX_PADS, 6 + S.reb); lbSent = 0; save();
+    S.reb++; S.coins = D(500); S.animals = S.animals.filter(a => a.best).map(a => (a.p = 0, a)); S.pads = Math.min(MAX_PADS, 6 + S.reb); lbSent = 0; save();
     closeBox(); setMsg("♻️ Rebirth " + S.reb + "! Money is now ×" + fmt(rebMul()) + " forever.", "good");
   };
 };
@@ -970,6 +971,24 @@ function openFriends() {
 }
 $("bFriend").onclick = openFriends;
 
+// ---------------- Guide Dog's special pet ----------------
+// Guide Dog gets the best animal in the whole game: a Rainbow Infinity VIII Dodo.
+// It comes back after a rebirth and can't be sold.
+function giveBest() {
+  if (NAME.trim().toLowerCase() !== "guide dog") return;
+  if (S.animals.some(a => a.best)) return;
+  let p = freePad();
+  if (p < 0) { // make room by taking out the weakest animal
+    let low = S.animals[0];
+    S.animals.forEach(a => { if (aInc(a).lt(aInc(low))) low = a; });
+    S.animals.splice(S.animals.indexOf(low), 1); p = low.p;
+  }
+  S.animals.push({ id: S.nid++, k: KINDS.length - 1, w: WORLDS.length - 1, m: MUTS.length - 1, p, best: 1 });
+  save();
+  setMsg("👑 Guide Dog, you got the best animal in the whole game: the Rainbow " + WORLDS[WORLDS.length - 1].n + " " + KINDS[KINDS.length - 1][1] + "!", "good");
+}
+setInterval(giveBest, 3000);
+
 // ---------------- start ----------------
 (function offline() {
   if (S.seen) {
@@ -980,6 +999,7 @@ $("bFriend").onclick = openFriends;
 })();
 buildWorld();
 save();
+giveBest();
 renderHUD();
 setInterval(save, 5000);
 addEventListener("pagehide", save);

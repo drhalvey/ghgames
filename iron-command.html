@@ -70,8 +70,8 @@ body.battle .gha-pill{display:none!important}
 .modes{display:grid;grid-template-columns:1fr 1fr;gap:4px}
 .mb{background:linear-gradient(#333d34,#1f261f);border:2px solid #000;outline:1px solid #556556;border-radius:7px;color:var(--ink);font-size:13px;padding:6px 2px;cursor:pointer}
 .mb.on{background:linear-gradient(#ffcd5a,#e39a10);color:#111}
-.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
-.tab{position:relative;background:#232b24;border:2px solid #000;border-radius:7px 7px 3px 3px;color:var(--muted);font-size:16px;padding:5px 0;cursor:pointer;line-height:1}
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+.tab{position:relative;background:#232b24;border:2px solid #000;border-radius:7px 7px 3px 3px;color:var(--muted);font-size:15px;padding:5px 0;cursor:pointer;line-height:1}
 .tab.on{background:#4b5c4c;color:#fff;outline:1px solid #9fb6a0}
 .tab.flash::after{content:"";position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--amber);animation:blink .6s infinite alternate}
 @keyframes blink{from{opacity:1}to{opacity:.2}}
@@ -177,6 +177,7 @@ body.demo #side,body.demo #hud,body.demo #cmd,body.demo #eva{display:none}
       <button class="cb" id="cAtk" type="button" hidden><i>⚔</i>Attack</button>
       <button class="cb" id="cStop" type="button" hidden><i>■</i>Stop</button>
       <button class="cb" id="cDeploy" type="button" hidden><i>⚙</i>Deploy</button>
+      <button class="cb" id="cUnload" type="button" hidden><i>⬇</i>Unload</button>
       <button class="cb" id="cSell" type="button" hidden><i>$</i>Sell</button>
       <button class="cb" id="cFix" type="button" hidden><i>🔧</i>Repair</button>
       <button class="cb" id="cDesel" type="button" hidden><i>✕</i>Clear</button>
@@ -197,6 +198,7 @@ body.demo #side,body.demo #hud,body.demo #cmd,body.demo #eva{display:none}
       <button class="tab" data-tab="def" type="button" title="Defences">🛡</button>
       <button class="tab" data-tab="inf" type="button" title="Infantry">🪖</button>
       <button class="tab" data-tab="veh" type="button" title="Vehicles">🚚</button>
+      <button class="tab" data-tab="sea" type="button" title="Ships">⚓</button>
     </div>
     <div id="bgrid"></div>
   </aside>
@@ -210,7 +212,7 @@ body.demo #side,body.demo #hud,body.demo #cmd,body.demo #eva{display:none}
     <div class="sub">Build your base. Mine the ore. Crush the enemy.</div>
     <div class="stats"><div><b id="stM">0</b>missions won</div><div><b id="stK">0</b>enemies destroyed</div><div><b id="stW">0</b>battles won</div></div>
     <button class="big go" id="mContinue" type="button" hidden>Continue battle<small id="contInfo"></small></button>
-    <button class="big" id="mCampaign" type="button">Campaign<small>12 missions. Your progress is saved.</small></button>
+    <button class="big" id="mCampaign" type="button">Campaign<small>14 missions. Your progress is saved.</small></button>
     <button class="big" id="mSkirmish" type="button">Skirmish<small>Pick the map, the enemies and how hard they are</small></button>
     <button class="big" id="mCoop" type="button">Play together<small>Team up on your own iPads and phones against the computer</small></button>
     <button class="big" id="mHelp" type="button">How to play<small>Controls for iPad, phone and computer</small></button>
@@ -306,6 +308,8 @@ body.demo #side,body.demo #hud,body.demo #cmd,body.demo #eva{display:none}
       <li><b>Helicopters</b> come from a Helipad. When they run out of ammo they fly home to reload. Only Rocket Troopers, Flak Cannons, rifles and towers can hit them.</li>
       <li><b>Walls</b>: pick Wall on the shield tab, then drag across the map. Press Done when finished.</li>
       <li>The <b>Missile Silo</b> (Red) and <b>Sky Laser</b> (Blue) charge up. When the red button on the right says READY, tap it, then tap the target.</li>
+      <li><b>Ships</b>: build a <b>Naval Yard</b> on the water (buildings tab), then ships from the ⚓ tab. Gunboats are quick, Destroyers (Blue) and Submarines (Red) fight other ships, Cruisers shell the shore from far away. Submarines hide under water until they fire.</li>
+      <li><b>Transports</b> carry 5 units: select soldiers or tanks, tap the Transport to load them, sail to the shore and press <b>Unload</b>.</li>
       <li><b>Attack Dogs</b> (Red) hunt soldiers. <b>Medics</b> (Blue) heal soldiers. The <b>Commando</b> (Blue) blows up buildings.</li>
     </ul>
     <h3>Play together</h3>
@@ -396,17 +400,18 @@ const SIDES = {
 /* ---------------- weapons vs armour ---------------- */
 // 0 means "cannot hit that at all" (so tanks cannot shoot helicopters, flak cannot shoot tanks)
 const WH = {
-  bullet: { inf: 1,    light: .55, heavy: .2,  bld: .22, air: .45 },
-  snipe:  { inf: 1.7,  light: .12, heavy: .05, bld: .04, air: 0 },
-  shell:  { inf: .38,  light: .9,  heavy: 1,   bld: .75, air: 0 },
-  rocket: { inf: .32,  light: 1,   heavy: .95, bld: .65, air: 1.1 },
-  arty:   { inf: 1,    light: .7,  heavy: .45, bld: 1,   air: 0 },
-  flame:  { inf: 1.3,  light: .7,  heavy: .35, bld: .85, air: 0 },
-  beam:   { inf: 1,    light: 1,   heavy: .9,  bld: .7,  air: .8 },
-  zap:    { inf: 1.2,  light: 1,   heavy: .9,  bld: .6,  air: .8 },
-  bite:   { inf: 1,    light: 0,   heavy: 0,   bld: 0,   air: 0 },
-  flak:   { inf: 0,    light: 0,   heavy: 0,   bld: 0,   air: 1 },
-  chain:  { inf: 1.1,  light: .6,  heavy: .3,  bld: .3,  air: .3 }
+  bullet: { inf: 1,    light: .55, heavy: .2,  bld: .22, air: .45, ship: .25 },
+  snipe:  { inf: 1.7,  light: .12, heavy: .05, bld: .04, air: 0,   ship: 0 },
+  shell:  { inf: .38,  light: .9,  heavy: 1,   bld: .75, air: 0,   ship: .9 },
+  rocket: { inf: .32,  light: 1,   heavy: .95, bld: .65, air: 1.1, ship: .75 },
+  arty:   { inf: 1,    light: .7,  heavy: .45, bld: 1,   air: 0,   ship: .8 },
+  flame:  { inf: 1.3,  light: .7,  heavy: .35, bld: .85, air: 0,   ship: .25 },
+  beam:   { inf: 1,    light: 1,   heavy: .9,  bld: .7,  air: .8,  ship: .9 },
+  zap:    { inf: 1.2,  light: 1,   heavy: .9,  bld: .6,  air: .8,  ship: 1 },
+  bite:   { inf: 1,    light: 0,   heavy: 0,   bld: 0,   air: 0,   ship: 0 },
+  flak:   { inf: 0,    light: 0,   heavy: 0,   bld: 0,   air: 1,   ship: 0 },
+  chain:  { inf: 1.1,  light: .6,  heavy: .3,  bld: .3,  air: .3,  ship: .35 },
+  torp:   { inf: 0,    light: 0,   heavy: 0,   bld: .6,  air: 0,   ship: 1 }
 };
 
 /* ---------------- units ---------------- */
@@ -429,6 +434,11 @@ const U = {
   storm:    { name: "Storm Launcher", side: "blue", cat: "veh", cost: 1300, hp: 280, speed: 46, armor: "light", sight: 7, r: 12, turn: 3, req: ["factory", "tech"], wp: { dmg: 32, rof: 4.5, range: 8, type: "rocket", salvo: 4 } },
   hawk:     { name: "Hawk Gunship", side: "blue", cat: "air", cost: 1200, hp: 240, speed: 120, armor: "air", sight: 7, r: 14, req: ["helipad"], air: true, ammo: 6, wp: { dmg: 42, rof: 1.1, range: 5, type: "rocket" } },
   bear:     { name: "Bear Gunship", side: "red", cat: "air", cost: 1200, hp: 300, speed: 105, armor: "air", sight: 7, r: 15, req: ["helipad"], air: true, ammo: 40, wp: { dmg: 13, rof: .2, range: 4.5, type: "chain" } },
+  gunboat:  { name: "Gunboat", cat: "sea", cost: 600, hp: 320, speed: 72, armor: "ship", sight: 6, r: 12, turn: 3, req: ["shipyard"], sea: true, turret: true, wp: { dmg: 14, rof: .35, range: 5.5, type: "chain" } },
+  transport:{ name: "Transport", cat: "sea", cost: 800, hp: 520, speed: 62, armor: "ship", sight: 5, r: 15, turn: 2.5, req: ["shipyard"], sea: true, carry: 5 },
+  destroyer:{ name: "Destroyer", side: "blue", cat: "sea", cost: 1200, hp: 650, speed: 56, armor: "ship", sight: 7, r: 17, turn: 2.5, req: ["shipyard"], sea: true, turret: true, wp: { dmg: 42, rof: 1.3, range: 7, type: "shell" } },
+  sub:      { name: "Submarine", side: "red", cat: "sea", cost: 1000, hp: 480, speed: 52, armor: "ship", sight: 6, r: 14, turn: 2.5, req: ["shipyard"], sea: true, stealth: true, wp: { dmg: 95, rof: 2.4, range: 6, type: "torp" } },
+  cruiser:  { name: "Cruiser", cat: "sea", cost: 2200, hp: 1150, speed: 38, armor: "ship", sight: 8, r: 21, turn: 1.8, req: ["shipyard", "tech"], sea: true, turret: true, wp: { dmg: 115, rof: 4.4, range: 11, min: 3, type: "arty", splash: 44 } },
   titan:    { name: "Titan Tank", side: "red", cat: "veh", cost: 1800, hp: 1150, speed: 30, armor: "heavy", sight: 6, r: 17, turn: 2, req: ["factory", "tech"], turret: true, heal: true, wp: { dmg: 46, rof: 1.6, range: 5.5, type: "shell", twin: true } }
 };
 
@@ -443,6 +453,7 @@ const B = {
   apower:   { name: "Big Power Plant", cat: "bld", w: 3, h: 2, hp: 800, cost: 600, power: 220, sight: 3, req: ["radar"] },
   depot:    { name: "Repair Depot", cat: "bld", w: 2, h: 2, hp: 700, cost: 1000, power: -30, sight: 3, req: ["factory"] },
   tech:     { name: "Tech Centre", cat: "bld", w: 2, h: 2, hp: 900, cost: 1500, power: -100, sight: 4, req: ["factory", "radar"] },
+  shipyard: { name: "Naval Yard", cat: "bld", w: 3, h: 3, hp: 1200, cost: 1500, power: -30, sight: 6, req: ["refinery"], naval: true },
   helipad:  { name: "Helipad", cat: "bld", w: 2, h: 2, hp: 700, cost: 1200, power: -10, sight: 4, req: ["radar"] },
   silo:     { name: "Missile Silo", side: "red", cat: "bld", w: 2, h: 2, hp: 1000, cost: 2500, power: -100, sight: 4, req: ["tech"], limit: 1, sw: { charge: 360, kind: "missile", name: "Missile" } },
   uplink:   { name: "Sky Laser Uplink", side: "blue", cat: "bld", w: 2, h: 2, hp: 1000, cost: 2500, power: -100, sight: 4, req: ["tech"], limit: 1, sw: { charge: 300, kind: "laser", name: "Sky Laser" } },
@@ -453,7 +464,7 @@ const B = {
   beam:     { name: "Beam Tower", side: "blue", cat: "def", w: 1, h: 1, hp: 700, cost: 1300, power: -80, sight: 8, req: ["tech"], needPower: true, wp: { dmg: 115, rof: 2.6, range: 7, type: "beam" } },
   zap:      { name: "Lightning Tower", side: "red", cat: "def", w: 1, h: 1, hp: 750, cost: 1400, power: -100, sight: 7, req: ["tech"], needPower: true, wp: { dmg: 125, rof: 2.8, range: 6.5, type: "zap" } }
 };
-const PRODUCER = { bld: "yard", def: "yard", inf: "barracks", veh: "factory", air: "helipad" };
+const PRODUCER = { bld: "yard", def: "yard", inf: "barracks", veh: "factory", air: "helipad", sea: "shipyard" };
 function defOf(t) { return U[t] || B[t]; }
 function buildTime(def) { return Math.max(3, def.cost / 95); }
 
@@ -517,7 +528,15 @@ const MISSIONS = [
   { name: "Final Assault", sub: "Three enemies. Win the war", size: 84, theme: "green", layout: "open", ore: 1.2, seed: 1212,
     you: { start: "base", credits: 10000, units: ["htank", "htank", "htank", "ltank", "ltank", "arty", "rocket", "rocket", "rocket", "engineer"] },
     foes: [{ start: "base2", lvl: 2 }, { start: "base2", lvl: 2 }, { start: "base3", lvl: 3 }],
-    brief: "This is it, Commander. Three enemy armies hold the last of the land.\n\nDestroy all three to win the war." }
+    brief: "This is it, Commander. Three enemy armies hold the last of the land.\n\nDestroy all three to win the war." },
+  { name: "Naval Strike", sub: "Rule the sea", size: 72, theme: "green", layout: "sea", ore: 1.2, seed: 1313,
+    you: { start: "base", credits: 10000, units: ["htank", "htank", "ltank", "rocket", "rocket", "rifle", "rifle"] },
+    foes: [{ start: "base2", lvl: 2, navy: true }],
+    brief: "A great inland sea lies between you and the enemy, and they are building warships.\n\nBuild a Naval Yard on the water (it is on the buildings tab). Gunboats and Destroyers or Submarines fight at sea. Cruisers fire huge shells at the shore from far away.\n\nDestroy the enemy base." },
+  { name: "Island Fortress", sub: "No bridges. Get across the water", size: 72, theme: "desert", layout: "islands", ore: 1.3, seed: 1414,
+    you: { start: "base", credits: 12000, units: ["htank", "ltank", "ltank", "rocket", "rocket", "rifle", "rifle", "engineer"] },
+    foes: [{ start: "base2", lvl: 2, navy: true }],
+    brief: "The enemy has built a fortress on an island. There is no way across by land.\n\nBuild a Naval Yard and a Transport. Select some tanks and soldiers, then tap the Transport to load them. Sail it to the island and press Unload.\n\nHelicopters and Cruisers can also hit the island.\n\nDestroy the enemy." }
 ];
 
 /* =====================================================================
@@ -555,8 +574,28 @@ function genMap(cfg) {
     if (t === 0 && R() < .012) t = 3;
     terr[i] = t;
   }
+  const gen2 = (cfg.gen || 1) >= 2;
+  const bridges = [];
+  // gen 2: wide rivers with bridges, a big inland sea, or islands
+  let riverPh = 0, riverAmp = 0;
+  if (gen2 && lay === "river") {
+    riverPh = R() * TAU; riverAmp = 2 + R() * 3;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const d = (x - y) / Math.SQRT2 + Math.sin((x + y) / 9 + riverPh) * riverAmp;
+      if (Math.abs(d) < 3.8) terr[y * W + x] = 1; else if (Math.abs(d) < 5 && terr[y * W + x] === 1) terr[y * W + x] = 0;
+    }
+  }
+  if (gen2 && lay === "sea") {
+    const nS = makeNoise(R, 5);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const d = Math.hypot(x - W / 2, y - H / 2) / W, i = y * W + x;
+      if (d < .3 + (nS(x / W, y / H) - .5) * .16) terr[i] = 1; else if (terr[i] === 1) terr[i] = 0;
+    }
+    // a channel out to two edges so ships can roam
+    for (let k = 0; k < 2; k++) { const a = R() * TAU; for (let s = 0; s < W; s += .5) { const x = W / 2 + Math.cos(a) * s, y = H / 2 + Math.sin(a) * s; for (let oy = -2; oy <= 2; oy++) for (let ox = -2; ox <= 2; ox++) { const tx = Math.round(x + ox), ty = Math.round(y + oy); if (tx >= 0 && ty >= 0 && tx < W && ty < H) terr[ty * W + tx] = 1; } } }
+  }
   // river: a wavy band across the map between the two main corners
-  if (lay === "river") {
+  if (!gen2 && lay === "river") {
     const ph = R() * TAU, amp = 2 + R() * 3;
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const d = (x - y) / Math.SQRT2 + Math.sin((x + y) / 9 + ph) * amp;
@@ -599,14 +638,73 @@ function genMap(cfg) {
     roads.push({ pts, w: rad });
   }
   const nPl = cfg.players;
+  const wet = gen2 && (lay === "river" || lay === "sea" || lay === "islands");
+  if (gen2 && lay === "islands") {
+    // everything is sea, then land around each base and a few small islands
+    const nI = makeNoise(R, 8);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let land = false;
+      for (let p = 0; p < nPl; p++) if (Math.hypot(x - starts[p].x, y - starts[p].y) < 14 + (nI(x / W, y / H) - .5) * 8) land = true;
+      const i = y * W + x;
+      if (!land) terr[i] = 1; else if (terr[i] === 1) terr[i] = 0;
+    }
+    for (let k = 0; k < 4; k++) { const ix = 8 + R() * (W - 16), iy = 8 + R() * (H - 16); let near = false; for (let p = 0; p < nPl; p++) if (Math.hypot(ix - starts[p].x, iy - starts[p].y) < 22) near = true; if (!near) carveDisc(ix, iy, 3 + R() * 3); }
+  }
   for (let p = 0; p < nPl; p++) {
     const s = starts[p];
     carveDisc(s.x, s.y, 8.5);
-    carveLine(s.x, s.y, cx, cy, 1.6, lay === "river");
+    if (!(gen2 && lay === "islands")) carveLine(s.x, s.y, cx, cy, 1.6, lay === "river" || wet);
   }
-  if (lay !== "river") carveDisc(cx, cy, 3.5);
+  if (lay !== "river" && !wet) carveDisc(cx, cy, 3.5);
+  // bridges over the river (gen 2)
+  function bridgeLine(x0, y0, x1, y1, half) {
+    const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 3);
+    let first = null, last = null;
+    const ux = (x1 - x0), uy = (y1 - y0), L = Math.hypot(ux, uy) || 1, px = -uy / L, py = ux / L;
+    for (let s = 0; s <= n; s++) {
+      const t = s / n, bx = lerp(x0, x1, t), by = lerp(y0, y1, t);
+      for (let o = -half; o <= half; o += .5) {
+        const tx = Math.round(bx + px * o), ty = Math.round(by + py * o);
+        if (tx < 0 || ty < 0 || tx >= W || ty >= H) continue;
+        const i = ty * W + tx;
+        if (terr[i] === 1 || terr[i] === 4) { terr[i] = 4; if (!first) first = [bx, by]; last = [bx, by]; }
+      }
+    }
+    if (first) bridges.push({ x0: first[0], y0: first[1], x1: last[0], y1: last[1], w: half * 2 + 1 });
+  }
+  if (gen2 && lay === "river") {
+    const nb = W > 64 ? 3 : 2;
+    for (let b = 0; b < nb; b++) {
+      const t = nb === 2 ? (b ? .7 : .3) : (b + .5) / nb;
+      // find the river centre near the diagonal point, then span it along the normal
+      const c0 = t * W;
+      let best = c0, bd = 1e9; for (let k = -8; k <= 8; k += .25) { const x = c0 + k, y = c0 + k; const d = Math.abs(Math.sin((x + y) / 9 + riverPh) * riverAmp); const dd = Math.abs((x - y) / Math.SQRT2 + Math.sin((x + y) / 9 + riverPh) * riverAmp); if (dd < bd) { bd = dd; best = x; } }
+      const bx = best, by = best, nx = 1 / Math.SQRT2, ny = -1 / Math.SQRT2;
+      bridgeLine(bx - nx * 9, by - ny * 9, bx + nx * 9, by + ny * 9, .6);
+    }
+    // and one shallow ford
+    const ft = .5 + (R() - .5) * .2, fx = ft * W;
+    for (let y = Math.floor(fx - 4); y <= fx + 4; y++) for (let x = Math.floor(fx - 4); x <= fx + 4; x++) if (x >= 0 && y >= 0 && x < W && y < H && Math.hypot(x - fx, y - fx) < 2.2 && terr[y * W + x] === 1) terr[y * W + x] = 0;
+  }
   // connections between neighbouring starts too, so there is more than one way in
-  for (let p = 0; p < nPl; p++) for (let q = p + 1; q < nPl; q++) if (R() < .5) carveLine(starts[p].x, starts[p].y, starts[q].x, starts[q].y, 1.2, lay === "river");
+  if (!(gen2 && lay === "islands")) for (let p = 0; p < nPl; p++) for (let q = p + 1; q < nPl; q++) if (R() < .5) carveLine(starts[p].x, starts[p].y, starts[q].x, starts[q].y, 1.2, lay === "river" || wet);
+  // a small harbour near each base on river and sea maps, joined to the big water by a channel
+  if (gen2 && (lay === "river" || lay === "sea")) {
+    for (let p = 0; p < nPl; p++) {
+      const s = starts[p];
+      let near = 1e9;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (terr[y * W + x] === 1) { const d = Math.hypot(x - s.x, y - s.y); if (d < near) near = d; }
+      if (near <= 13) continue;
+      const a0 = Math.atan2(cy - s.y, cx - s.x) + (p % 2 ? 1.15 : -1.15);
+      const hx = clamp(s.x + Math.cos(a0) * 12, 4, W - 5), hy = clamp(s.y + Math.sin(a0) * 12, 4, H - 5);
+      let tx = hx, ty = hy, bd = 1e9;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (terr[y * W + x] === 1) { const d = Math.hypot(x - hx, y - hy); if (d < bd) { bd = d; tx = x; ty = y; } }
+      const wetDisc = (x0, y0, r) => { for (let y = Math.floor(y0 - r); y <= y0 + r; y++) for (let x = Math.floor(x0 - r); x <= x0 + r; x++) if (x >= 0 && y >= 0 && x < W && y < H && Math.hypot(x - x0, y - y0) <= r && terr[y * W + x] !== 4) terr[y * W + x] = 1; };
+      wetDisc(hx, hy, 3.8);
+      const n = Math.ceil(bd * 2);
+      for (let k = 0; k <= n; k++) wetDisc(lerp(hx, tx, k / n), lerp(hy, ty, k / n), 1.9);
+    }
+  }
   // ore fields
   const rich = cfg.ore;
   function oreField(x0, y0, rad, gemField) {
@@ -638,16 +736,21 @@ function genMap(cfg) {
     const s = starts[p];
     for (let y = s.y - 6; y <= s.y + 6; y++) for (let x = s.x - 6; x <= s.x + 6; x++) if (x >= 0 && y >= 0 && x < W && y < H && Math.hypot(x - s.x, y - s.y) < 6.5) oreMax[y * W + x] = 0;
   }
-  // make sure every start can reach the first one by land
-  for (let tries = 0; tries < 4; tries++) {
+  // make sure every start can reach the first one by land (islands maps are meant to be cut off)
+  const isLand = t => t === 0 || t === 4;
+  for (let tries = 0; tries < 4 && !(gen2 && lay === "islands"); tries++) {
     const seen = new Uint8Array(N), st = [starts[0].y * W + starts[0].x]; seen[st[0]] = 1;
     while (st.length) { const i = st.pop(), x = i % W, y = (i / W) | 0;
-      if (x > 0 && !seen[i - 1] && terr[i - 1] === 0) { seen[i - 1] = 1; st.push(i - 1); }
-      if (x < W - 1 && !seen[i + 1] && terr[i + 1] === 0) { seen[i + 1] = 1; st.push(i + 1); }
-      if (y > 0 && !seen[i - W] && terr[i - W] === 0) { seen[i - W] = 1; st.push(i - W); }
-      if (y < H - 1 && !seen[i + W] && terr[i + W] === 0) { seen[i + W] = 1; st.push(i + W); } }
+      if (x > 0 && !seen[i - 1] && isLand(terr[i - 1])) { seen[i - 1] = 1; st.push(i - 1); }
+      if (x < W - 1 && !seen[i + 1] && isLand(terr[i + 1])) { seen[i + 1] = 1; st.push(i + 1); }
+      if (y > 0 && !seen[i - W] && isLand(terr[i - W])) { seen[i - W] = 1; st.push(i - W); }
+      if (y < H - 1 && !seen[i + W] && isLand(terr[i + W])) { seen[i + W] = 1; st.push(i + W); } }
     let ok = true;
-    for (let p = 1; p < nPl; p++) if (!seen[starts[p].y * W + starts[p].x]) { ok = false; carveLine(starts[0].x, starts[0].y, starts[p].x, starts[p].y, 1.6, false); }
+    for (let p = 1; p < nPl; p++) if (!seen[starts[p].y * W + starts[p].x]) {
+      ok = false;
+      if (wet) { carveLine(starts[0].x, starts[0].y, starts[p].x, starts[p].y, 1.6, true); bridgeLine(starts[0].x, starts[0].y, starts[p].x, starts[p].y, .6); }
+      else carveLine(starts[0].x, starts[0].y, starts[p].x, starts[p].y, 1.6, false);
+    }
     if (ok) {
       // wipe little pockets nobody can reach so ore never sits on an island
       for (let i = 0; i < N; i++) if (!seen[i] && terr[i] === 0) { oreMax[i] = 0; }
@@ -655,7 +758,7 @@ function genMap(cfg) {
     }
   }
   for (let i = 0; i < N; i++) if (terr[i] !== 0) { oreMax[i] = 0; gem[i] = 0; }
-  return { W, H, terr, oreMax, gem, tint, roads, starts: starts.slice(0, nPl) };
+  return { W, H, terr, oreMax, gem, tint, roads, bridges, starts: starts.slice(0, nPl) };
 }
 
 /* ---------------- terrain painting ---------------- */
@@ -717,7 +820,7 @@ function paintTerrain(map, theme) {
   // soft dark ground under rocks and trees so they sit in the land
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const t = map.terr[y * W + x]; if (t === 2 || t === 3) { const g = c.createRadialGradient((x + .6) * TILE, (y + .65) * TILE, 0, (x + .6) * TILE, (y + .65) * TILE, TILE * .95); g.addColorStop(0, "rgba(20,25,15,.28)"); g.addColorStop(1, "rgba(20,25,15,0)"); c.fillStyle = g; c.fillRect((x - .4) * TILE, (y - .3) * TILE, TILE * 2, TILE * 2); } }
   // water: shore ring, then water, then highlights
-  const isW = (x, y) => x >= 0 && y >= 0 && x < W && y < H && map.terr[y * W + x] === 1;
+  const isW = (x, y) => x >= 0 && y >= 0 && x < W && y < H && (map.terr[y * W + x] === 1 || map.terr[y * W + x] === 4);
   c.fillStyle = T.shore;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (isW(x, y)) { c.beginPath(); c.arc((x + .5) * TILE, (y + .5) * TILE, TILE * .95, 0, TAU); c.fill(); }
   c.fillStyle = T.water;
@@ -732,6 +835,21 @@ function paintTerrain(map, theme) {
     const px = (x + R()) * TILE, py = (y + R()) * TILE; c.beginPath(); c.moveTo(px - 6, py); c.quadraticCurveTo(px, py - 3, px + 6, py); c.stroke();
   }
   c.globalAlpha = 1;
+  // bridges: a concrete deck with rails, drawn over the water
+  for (const b of (map.bridges || [])) {
+    const x0 = (b.x0 + .5) * TILE, y0 = (b.y0 + .5) * TILE, x1 = (b.x1 + .5) * TILE, y1 = (b.y1 + .5) * TILE;
+    const a = Math.atan2(y1 - y0, x1 - x0), L = Math.hypot(x1 - x0, y1 - y0) + TILE * 1.6, w = b.w * TILE * .75;
+    c.save(); c.translate((x0 + x1) / 2, (y0 + y1) / 2); c.rotate(a);
+    c.fillStyle = "rgba(0,0,0,.35)"; c.fillRect(-L / 2 + 6, -w / 2 + 8, L, w);
+    for (let s = -L / 2 + 20; s < L / 2 - 10; s += 44) { c.fillStyle = "#5c5f58"; c.fillRect(s, -w / 2 - 3, 10, w + 6); }
+    const g = c.createLinearGradient(0, -w / 2, 0, w / 2); g.addColorStop(0, "#b7b4a8"); g.addColorStop(1, "#8a877c");
+    c.fillStyle = g; c.fillRect(-L / 2, -w / 2, L, w);
+    c.strokeStyle = "rgba(0,0,0,.15)"; c.lineWidth = 1; for (let s = -L / 2 + 8; s < L / 2; s += 8) { c.beginPath(); c.moveTo(s, -w / 2); c.lineTo(s, w / 2); c.stroke(); }
+    c.strokeStyle = "rgba(255,255,255,.35)"; c.setLineDash([12, 10]); c.beginPath(); c.moveTo(-L / 2, 0); c.lineTo(L / 2, 0); c.stroke(); c.setLineDash([]);
+    c.fillStyle = "#4b4d47"; c.fillRect(-L / 2, -w / 2 - 3, L, 4); c.fillRect(-L / 2, w / 2 - 1, L, 4);
+    c.fillStyle = "#d8d6cc"; for (let s = -L / 2; s < L / 2; s += 12) { c.fillRect(s, -w / 2 - 4, 3, 3); c.fillRect(s, w / 2 + 1, 3, 3); }
+    c.restore();
+  }
   // rocks
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (map.terr[y * W + x] === 2) {
     const n = 2 + (R() * 2 | 0);
@@ -794,14 +912,24 @@ function noteTeam(team, text, key, snd) { for (const p of G.players) if (p.team 
 function tileAt(px, py) { return [Math.floor(px / TILE), Math.floor(py / TILE)]; }
 function inMap(x, y) { return x >= 0 && y >= 0 && x < G.W && y < G.H; }
 function idx(x, y) { return y * G.W + x; }
-function passable(x, y) { if (!inMap(x, y)) return false; const i = y * G.W + x; return G.terr[i] === 0 && G.occ[i] === 0; }
+// land units walk on open ground and bridges (4); ships sail on water (1) and under bridges
+function passable(x, y) { if (!inMap(x, y)) return false; const i = y * G.W + x, t = G.terr[i]; return (t === 0 || t === 4) && G.occ[i] === 0; }
+function waterOk(x, y) { if (!inMap(x, y)) return false; const i = y * G.W + x, t = G.terr[i]; return (t === 1 || t === 4) && G.occ[i] === 0; }
+let PASS = passable;      // which rule the path finder is using right now
+function isSea(e) { return e.k === "u" && !!U[e.t].sea; }
 function buildableTile(x, y) { if (!inMap(x, y)) return false; const i = y * G.W + x; return G.terr[i] === 0 && G.occ[i] === 0 && G.ore[i] === 0; }
 function hostile(a, b) { return G.players[a].team !== G.players[b].team; }
 function mine(e) { return e.o === ME; }
 function friendly(e) { return G.players[e.o].team === G.players[ME].team; }
 function ent(id) { const e = G.byId.get(id); return e && !e.dead ? e : null; }
 function armorOf(t) { return t.k === "b" ? "bld" : U[t.t].armor; }
-function canHit(wp, t) { return !!wp && WH[wp.type][armorOf(t)] > 0; }
+function canHit(wp, t) {
+  if (!wp || !(WH[wp.type][armorOf(t)] > 0)) return false;
+  if (wp.type === "torp" && t.k === "b" && !B[t.t].naval) return false;   // torpedoes only hit things in the water
+  return true;
+}
+// enemy submarines can only be seen when they surface (after firing) or when something is right next to them
+function subHidden(t) { return t.k === "u" && !!U[t.t].stealth && !(t.surf > 0 || t.det); }
 function isAir(e) { return e.k === "u" && !!U[e.t].air; }
 function isWall(e) { return e.k === "b" && !!B[e.t].wall; }
 
@@ -810,7 +938,7 @@ function makePlayer(i, side, color, o) {
   return {
     i, side, col: teamCol(color), color, team: o.team != null ? o.team : (i === 0 ? 0 : 1), credits: 0, ai: o.ai ? newAI(o.lvl) : null,
     human: !!o.human, name: o.name || "",
-    q: { bld: newQ(), def: newQ(), inf: newQ(), veh: newQ(), air: newQ() },
+    q: { bld: newQ(), def: newQ(), inf: newQ(), veh: newQ(), air: newQ(), sea: newQ() },
     has: {}, pw: { p: 0, d: 0 }, low: false, alive: true, kills: 0, losses: 0, built: 0, lastAlert: -99, harvested: 0, sw: { charge: 0, ready: false }
   };
 }
@@ -834,19 +962,20 @@ function addBuilding(type, o, tx, ty, rise, noPush) {
   // push ground units out of the footprint
   for (const u of G.ents) if (u.k === "u" && !u.dead && !U[u.t].air) {
     const [ux, uy] = tileAt(u.x, u.y);
-    if (ux >= tx && ux < tx + d.w && uy >= ty && uy < ty + d.h) { const f = freeTileNear(ux, uy, 6); if (f) { u.x = (f[0] + .5) * TILE; u.y = (f[1] + .5) * TILE; u.path = null; } }
+    if (ux >= tx && ux < tx + d.w && uy >= ty && uy < ty + d.h) { const f = freeTileNear(ux, uy, 6, false, U[u.t].sea); if (f) { u.x = (f[0] + .5) * TILE; u.y = (f[1] + .5) * TILE; u.path = null; } }
   }
   return e;
 }
 function unblock(b) { for (let y = b.ty; y < b.ty + b.h; y++) for (let x = b.tx; x < b.tx + b.w; x++) if (G.occ[idx(x, y)] === b.id) G.occ[idx(x, y)] = 0; }
 
-function freeTileNear(x, y, maxR, avoidUnits) {
+function freeTileNear(x, y, maxR, avoidUnits, water) {
+  const ok = water ? waterOk : passable;
   for (let r = 0; r <= maxR; r++) {
     let best = null, bd = 1e9;
     for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
       if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
       const tx = x + dx, ty = y + dy;
-      if (!passable(tx, ty)) continue;
+      if (!ok(tx, ty)) continue;
       if (avoidUnits && unitOnTile(tx, ty)) continue;
       const dd = dx * dx + dy * dy; if (dd < bd) { bd = dd; best = [tx, ty]; }
     }
@@ -855,7 +984,7 @@ function freeTileNear(x, y, maxR, avoidUnits) {
   return null;
 }
 function unitOnTile(tx, ty) {
-  for (const u of G.ents) if (u.k === "u" && !u.dead && !U[u.t].air && Math.floor(u.x / TILE) === tx && Math.floor(u.y / TILE) === ty) return true;
+  for (const u of G.ents) if (u.k === "u" && !u.dead && !U[u.t].air && !u.inside && Math.floor(u.x / TILE) === tx && Math.floor(u.y / TILE) === ty) return true;
   return false;
 }
 
@@ -893,10 +1022,14 @@ function pfInit() {
   const N = G.W * G.H;
   PF = { g: new Float32Array(N), from: new Int32Array(N), stamp: new Uint32Array(N), closed: new Uint32Array(N), gen: 0, heap: new Int32Array(N * 8 + 16), f: new Float32Array(N) };
 }
-function findPath(sx, sy, gx, gy, maxNodes) {
+function findPath(sx, sy, gx, gy, maxNodes, water) {
+  PASS = water ? waterOk : passable;
+  try { return findPath0(sx, sy, gx, gy, maxNodes, water); } finally { PASS = passable; }
+}
+function findPath0(sx, sy, gx, gy, maxNodes, water) {
   const W = G.W, H = G.H;
   if (!inMap(gx, gy)) { gx = clamp(gx, 0, W - 1); gy = clamp(gy, 0, H - 1); }
-  if (!passable(gx, gy)) { const f = freeTileNear(gx, gy, 8); if (!f) return null; gx = f[0]; gy = f[1]; }
+  if (!PASS(gx, gy)) { const f = freeTileNear(gx, gy, 8, false, water); if (!f) return null; gx = f[0]; gy = f[1]; }
   const start = sy * W + sx, goal = gy * W + gx;
   if (start === goal) return [goal];
   const P = PF; P.gen++; const gen = P.gen;
@@ -924,8 +1057,8 @@ function findPath(sx, sy, gx, gy, maxNodes) {
       if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
       const ni = ny * W + nx;
       if (P.closed[ni] === gen) continue;
-      if (G.terr[ni] !== 0 || (G.occ[ni] !== 0)) continue;
-      if (k >= 4) { if (!passable(cx + DX[k], cy) || !passable(cx, cy + DY[k])) continue; }
+      if (!PASS(nx, ny)) continue;
+      if (k >= 4) { if (!PASS(cx + DX[k], cy) || !PASS(cx, cy + DY[k])) continue; }
       const ng = P.g[cur] + (k >= 4 ? 1.4142 : 1);
       if (P.stamp[ni] !== gen || ng < P.g[ni]) {
         P.stamp[ni] = gen; P.g[ni] = ng; P.from[ni] = cur; P.f[ni] = ng + hfun(ni) * 1.05;
@@ -954,7 +1087,7 @@ function clearLine(x0, y0, x1, y1) {
   const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) * 3;
   for (let s = 1; s <= n; s++) {
     const t = s / n, x = x0 + .5 + (x1 - x0) * t, y = y0 + .5 + (y1 - y0) * t;
-    for (const [ox, oy] of [[-.3, -.3], [.3, -.3], [-.3, .3], [.3, .3]]) if (!passable(Math.floor(x + ox), Math.floor(y + oy))) return false;
+    for (const [ox, oy] of [[-.3, -.3], [.3, -.3], [-.3, .3], [.3, .3]]) if (!PASS(Math.floor(x + ox), Math.floor(y + oy))) return false;
   }
   return true;
 }
@@ -968,8 +1101,9 @@ function servicePaths() {
     u.pq = false; n++;
     const [sx, sy] = tileAt(u.x, u.y), [gx, gy] = tileAt(u.mx, u.my);
     let sxx = sx, syy = sy;
-    if (!passable(sx, sy)) { const f = freeTileNear(sx, sy, 3); if (f) { sxx = f[0]; syy = f[1]; } }
-    const p = findPath(sxx, syy, gx, gy);
+    const wet = !!U[u.t].sea;
+    if (!(wet ? waterOk : passable)(sx, sy)) { const f = freeTileNear(sx, sy, 3, false, wet); if (f) { sxx = f[0]; syy = f[1]; } }
+    const p = findPath(sxx, syy, gx, gy, 0, wet);
     u.path = p || []; u.pi = 0; u.stuck = 0;
     if (p && p.length) { const last = p[p.length - 1]; if (last % G.W !== gx || ((last / G.W) | 0) !== gy) { u.mx = (last % G.W + .5) * TILE; u.my = (((last / G.W) | 0) + .5) * TILE; } }
   }
@@ -997,6 +1131,7 @@ function inRange(e, wp, t) { const d = distTo(e, t); return d <= wpRange(e, wp) 
 // can this device's team see it?
 function seenByPlayer(e) {
   if (G.players[e.o].team === G.players[ME].team) return true;
+  if (subHidden(e)) return false;
   if (e.k === "b") {
     for (let y = e.ty; y < e.ty + e.h; y++) for (let x = e.tx; x < e.tx + e.w; x++) if (G.vis[idx(x, y)]) return true;
     return false;
@@ -1012,7 +1147,8 @@ function findTarget(e, rangeTiles, wp) {
     if (t.dead || !hostile(e.o, t.o)) continue;
     if (t.k === "b" && t.sell) continue;
     const m = wp ? WH[wp.type][armorOf(t)] : 1;
-    if (!m) continue;
+    if (!m || subHidden(t)) continue;
+    if (wp && wp.type === "torp" && t.k === "b" && !B[t.t].naval) continue;
     const d = distTo(e, t);
     if (d > R) continue;
     if (wp && wp.min && d < wp.min * TILE) continue;
@@ -1057,6 +1193,11 @@ function fire(e, wp, t) {
       if (wp.type !== "snipe" && rnd() < .5) G.fx.push({ t: "spark", x: t.x + (rnd() - .5) * 10, y: ty + (rnd() - .5) * 10, life: .2, max: .2 });
       damage(t, dmg, wp.type, e);
       if (vis) sfx(wp.type === "snipe" ? "snipe" : "mg", mx, my);
+      break;
+    case "torp":
+      e.surf = 3;
+      G.proj.push({ t: "torp", x: mx, y: my, tid: t.id, lx: t.x, ly: t.y, sp: 170, dmg, w: "torp", o: e.o, src: e.id });
+      if (vis) sfx("torp", mx, my);
       break;
     case "bite":
       damage(t, dmg, "bite", e);
@@ -1203,6 +1344,12 @@ function kill(t, src) {
     if (d.cat === "inf") {
       G.fx.push({ t: "body", x: t.x, y: t.y, a: t.dir, c: G.players[t.o].col.d, dog: !!d.dog, life: 5, max: 5 });
       if (vis) sfx(d.dog ? "yelp" : "die", t.x, t.y);
+    } else if (d.sea) {
+      boomFx(t.x, t.y, 2);
+      G.fx.push({ t: "sink", x: t.x, y: t.y, a: t.dir, type: t.t, o: t.o, life: 3.5, max: 3.5 });
+      for (let k = 0; k < 8; k++) G.fx.push({ t: "splash", x: t.x + (rnd() - .5) * d.r * 2, y: t.y + (rnd() - .5) * d.r, life: .8, max: .8, delay: rnd() * .4 });
+      if (vis) { sfx("boom", t.x, t.y); shake(3); }
+      if (t.pass && t.pass.length && host) { owner.losses += t.pass.length; note(t.o, "Transport lost with everyone on board", "tlost"); }
     } else if (d.air) {
       boomFx(t.x, t.y - (t.z || 0) * 20, 2);
       G.fx.push({ t: "husk", x: t.x, y: t.y, a: t.dir, type: t.t, o: t.o, life: 9, max: 9 });
@@ -1269,7 +1416,7 @@ function moveStep(u, dt) {
 function canStand(u, x, y) {
   const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE);
   if (!inMap(tx, ty)) return false;
-  if (passable(tx, ty)) return true;
+  if ((U[u.t].sea ? waterOk : passable)(tx, ty)) return true;
   const cx = Math.floor(u.x / TILE), cy = Math.floor(u.y / TILE);
   return cx === tx && cy === ty;
 }
@@ -1283,6 +1430,7 @@ function chase(u, t, dt) {
 
 /* ---------------- helicopters ---------------- */
 function flyTo(u, x, y, dt, stop) {
+  if (!isFinite(x) || !isFinite(y)) return true;
   const d = U[u.t], dx = x - u.x, dy = y - u.y, dist = Math.hypot(dx, dy);
   if (dist <= (stop || 4)) { u.bank = (u.bank || 0) * .9; return true; }
   const a = Math.atan2(dy, dx);
@@ -1376,10 +1524,26 @@ function updUnit(u, dt) {
   if (u.hit > 0) u.hit -= dt;
   if (u.flash > 0) u.flash -= dt;
   if (d.heal && u.hp < u.mhp * .5) u.hp = Math.min(u.mhp * .5, u.hp + 5 * dt);
+  if (d.stealth) {
+    if (u.surf > 0) u.surf -= dt;
+    u.dt2 = (u.dt2 || 0) - dt;
+    if (u.dt2 <= 0) { u.dt2 = .5; u.det = G.ents.some(o => !o.dead && hostile(o.o, u.o) && !isAir(o) && (o.k === "b" ? distTo(u, o) : Math.hypot(o.x - u.x, o.y - u.y)) < 2.6 * TILE); }
+  }
   if (u.rank >= 2 && u.hp < u.mhp) u.hp = Math.min(u.mhp, u.hp + u.mhp * .008 * dt);
   const o = u.ord, wp = d.wp;
   switch (o.c) {
     case "deploy": tryDeploy(u); return;
+    case "board": {
+      const t = ent(o.tid);
+      if (!t || t.o !== u.o || !U[t.t].carry || (t.pass || []).length >= U[t.t].carry) { goIdle(u); return; }
+      if (Math.hypot(t.x - u.x, t.y - u.y) < TILE * 1.9) { boardUnit(t, u); return; }
+      chase(u, t, dt); return;
+    }
+    case "unload": {
+      if (tryUnload(u)) { goIdle(u); return; }
+      if (moveStep(u, dt) === "arrived") { if (!tryUnload(u)) note(u.o, "Can't unload here", "nounload"); goIdle(u); }
+      return;
+    }
     case "harvest": harvest(u, d, dt); return;
     case "capture": {
       const t = ent(o.tid);
@@ -1475,6 +1639,44 @@ function medic(u, d, dt) {
   u.path = null; u.dir = Math.atan2(t.y - u.y, t.x - u.x);
   t.hp = Math.min(t.mhp, t.hp + 14 * dt);
   if (rnd() < dt * 3) G.fx.push({ t: "heal", x: t.x, y: t.y - 8, life: .7, max: .7 });
+}
+/* ---------------- transports ---------------- */
+function boardUnit(t, u) {
+  t.pass = t.pass || [];
+  t.pass.push(serUnit(u));
+  u.dead = true; u.boarded = true; removeSel(u.id); G.dirty = true;
+  if (u.o === ME) sfx("ack");
+}
+function landNear(x, y, r) {
+  const [tx, ty] = tileAt(x, y);
+  return freeTileNear(tx, ty, r || 2, true, false);
+}
+function tryUnload(t) {
+  if (!t.pass || !t.pass.length) return true;
+  const f0 = landNear(t.x, t.y, 2);
+  if (!f0) return false;
+  const [tx, ty] = tileAt(t.x, t.y);
+  while (t.pass.length) {
+    const f = freeTileNear(f0[0], f0[1], 4, true, false) || freeTileNear(tx, ty, 4, false, false);
+    if (!f) break;
+    const o = t.pass.shift();
+    o.x = (f[0] + .5) * TILE; o.y = (f[1] + .5) * TILE;
+    const u = unserUnit(o); goIdle(u);
+  }
+  G.dirty = true;
+  note(t.o, "Unloaded", "unload", "ack");
+  return !t.pass.length;
+}
+// the nearest water tile next to land, to sail a transport up to the shore
+function shoreSpot(x, y) {
+  const [cx, cy] = tileAt(x, y);
+  for (let r = 0; r < 14; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+    const tx = cx + dx, ty = cy + dy;
+    if (!waterOk(tx, ty)) continue;
+    for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (passable(tx + ox, ty + oy)) return [tx, ty];
+  }
+  return null;
 }
 function goIdle(u) { u.ord = { c: "idle" }; u.gx = u.x; u.gy = u.y; u.path = null; u.tgt = 0; }
 function opportunist(u, wp, dt) {
@@ -1642,6 +1844,10 @@ function updBuilding(b, dt) {
     b.tgt = t ? t.id : 0;
     if (t && aim(b, t, dt) && b.cd <= 0) { fire(b, d.wp, t); b.cd = d.wp.rof; }
   }
+  if (b.t === "shipyard") {
+    for (const u of G.ents) if (!u.dead && u.k === "u" && u.o === b.o && U[u.t].sea && u.hp < u.mhp && Math.hypot(u.x - b.x, u.y - b.y) < TILE * 3) { const h = 30 * dt; u.hp = Math.min(u.mhp, u.hp + h); p.credits -= h * .3; b.working = .3; break; }
+    if (b.working > 0) b.working -= dt;
+  }
   if (b.t === "depot") {
     let best = null;
     for (const u of G.ents) if (!u.dead && u.k === "u" && u.o === b.o && U[u.t].cat === "veh" && u.hp < u.mhp && Math.hypot(u.x - b.x, u.y - b.y) < TILE * 2) { best = u; break; }
@@ -1678,6 +1884,7 @@ function cosmetic(dt) {
       e.lx = e.x; e.ly = e.y;
       if (d.cat === "veh" && e.mvd > 7) { e.mvd = 0; if (onScreen || rnd() < .3) G.decalQ.push({ track: true, x: e.x, y: e.y, a: e.dir, w: d.r * .8, wheels: !d.turret && e.t !== "ltank" }); }
       if (d.air) e.rot = (e.rot || 0) + dt * (e.z > .05 ? 28 : 3);
+      if (d.sea && mv > .2 && onScreen && rnd() < dt * 14) { const bx = e.x - Math.cos(e.dir) * d.r * .9, by = e.y - Math.sin(e.dir) * d.r * .9; G.fx.push({ t: "wake", x: bx, y: by, a: e.dir, life: 1.4, max: 1.4, s: d.r / 14 }); }
       if (!onScreen) continue;
       if (d.cat !== "inf" && e.hp < e.mhp * .4 && rnd() < dt * (e.hp < e.mhp * .2 ? 8 : 3)) G.fx.push({ t: "smoke", x: e.x + (rnd() - .5) * 8, y: e.y - (d.air ? (e.z || 0) * 20 : 0), life: 1.2, max: 1.2, r: 4, dark: true });
       if (d.harvester && e.hs === "mine" && rnd() < dt * 3) G.fx.push({ t: "dust", x: e.x + Math.cos(e.dir) * 16, y: e.y + Math.sin(e.dir) * 16, life: .6, max: .6, c: "#d9b860" });
@@ -1717,11 +1924,13 @@ function updProj(dt) {
     const dx = q.lx - q.x, dy = q.ly - q.y, d = Math.hypot(dx, dy);
     let a = Math.atan2(dy, dx);
     if (q.t === "rocket") { q.a = q.a == null ? a : turnTo(q.a, a, 6 * dt); a = q.a; if (rnd() < .8) G.fx.push({ t: "puff", x: q.x, y: q.y, life: .5, max: .5, r: 2.5 }); }
+    if (q.t === "torp" && rnd() < .7) G.fx.push({ t: "foam", x: q.x, y: q.y, life: .9, max: .9, r: 2 });
     q.ang = a;
     const st = q.sp * dt;
     if (d <= Math.max(8, st)) {
       q.done = true;
       if (t) { const src = ent(q.src) || { o: q.o, x: q.x, y: q.y, k: "x" }; damage(t, q.dmg, q.w, src); }
+      if (q.t === "torp") { for (let k = 0; k < 6; k++) G.fx.push({ t: "splash", x: q.lx + (rnd() - .5) * 14, y: q.ly + (rnd() - .5) * 10, life: .8, max: .8, delay: rnd() * .2 }); }
       boomFx(q.lx + (rnd() - .5) * 6, q.ly + (rnd() - .5) * 6, q.t === "rocket" ? 1.2 : 1);
       if (t && t.k === "b") G.fx.push({ t: "debris", x: q.lx, y: q.ly, vx: (rnd() - .5) * 120, vy: (rnd() - .5) * 120, z: 0, vz: 60, life: .7, max: .7 });
       if (inView(q.lx, q.ly) && rnd() < .5) sfx("hit", q.lx, q.ly);
@@ -1828,7 +2037,8 @@ function cancelItem(p, cat) {
 }
 function updProduction(p, dt) {
   if (!p.q.air) p.q.air = newQ();
-  for (const cat of ["bld", "def", "inf", "veh", "air"]) {
+  if (!p.q.sea) p.q.sea = newQ();
+  for (const cat of ["bld", "def", "inf", "veh", "air", "sea"]) {
     const q = p.q[cat];
     if (!q.items.length || q.ready) continue;
     const type = q.items[0], def = defOf(type);
@@ -1852,6 +2062,15 @@ function spawnUnit(p, type) {
     else if (!fac || b.primary) fac = b;
   }
   if (!fac) return false;
+  if (d.sea) {
+    const f = freeTileNear(fac.tx + 1, fac.ty + fac.h, 6, true, true) || freeTileNear(fac.tx + 1, fac.ty + 1, 8, false, true);
+    if (!f) return false;
+    const u = addUnit(type, p.i, (f[0] + .5) * TILE, (f[1] + .5) * TILE, Math.PI / 2);
+    G.dirty = true;
+    if (fac.rally) { u.ord = { c: "move" }; setMove(u, fac.rally.x, fac.rally.y); } else goIdle(u);
+    if (p.ai && !p.human) aiNewUnit(p, u);
+    return u;
+  }
   if (d.air) {
     const taken = G.ents.some(o => !o.dead && o.k === "u" && U[o.t].air && o.pad === fac.id);
     const u = addUnit(type, p.i, fac.x, fac.y, -Math.PI / 2);
@@ -1883,8 +2102,17 @@ function nearOwn(p, tx, ty, w, h, gap) {
   }
   return false;
 }
+function waterSpotOk(tx, ty, w, h) {
+  for (let y = ty; y < ty + h; y++) for (let x = tx; x < tx + w; x++) { if (!inMap(x, y)) return false; const i = idx(x, y); if (G.terr[i] !== 1 || G.occ[i]) return false; }
+  return true;
+}
 function canPlace(p, type, tx, ty) {
   const d = B[type];
+  if (d.naval) {
+    if (!waterSpotOk(tx, ty, d.w, d.h)) return false;
+    for (const u of G.ents) if (!u.dead && u.k === "u" && U[u.t].sea && hostile(u.o, p.i)) { const [ux, uy] = tileAt(u.x, u.y); if (ux >= tx && ux < tx + d.w && uy >= ty && uy < ty + d.h) return false; }
+    return nearOwn(p, tx, ty, d.w, d.h, 7);
+  }
   for (let y = ty; y < ty + d.h; y++) for (let x = tx; x < tx + d.w; x++) if (!buildableTile(x, y)) return false;
   for (const u of G.ents) if (!u.dead && u.k === "u" && !U[u.t].air && (hostile(u.o, p.i) || d.wall)) { const [ux, uy] = tileAt(u.x, u.y); if (ux >= tx && ux < tx + d.w && uy >= ty && uy < ty + d.h) return false; }
   return nearOwn(p, tx, ty, d.w, d.h, d.wall ? 2 : 3);
@@ -1911,7 +2139,7 @@ function setTimeout0(fn, delay) { G.timers.push({ at: G.time + delay, fn }); }
 /* =====================================================================
    COMPUTER PLAYER
    ===================================================================== */
-const AI_ORDER = ["power", "refinery", "barracks", "power", "factory", "pillbox", "radar", "power", "turret", "refinery", "apower", "helipad", "flakgun", "tech", "depot", "special", "turret", "super", "pillbox", "special", "apower", "factory", "flakgun", "turret", "special", "barracks", "apower", "turret", "special", "apower"];
+const AI_ORDER = ["power", "refinery", "barracks", "power", "factory", "shipyard", "pillbox", "radar", "power", "turret", "refinery", "apower", "helipad", "flakgun", "tech", "depot", "special", "turret", "super", "pillbox", "special", "apower", "factory", "flakgun", "turret", "special", "barracks", "apower", "turret", "special", "apower"];
 function newAI(lvl) { return { lvl, wave: 0, nextWave: AIL[lvl].first, alert: -99, ax: 0, ay: 0, passive: false, rush: false, th: rnd(), swAt: 0 }; }
 function specialFor(p) { return p.side === "blue" ? "beam" : "zap"; }
 function superFor(p) { return p.side === "blue" ? "uplink" : "silo"; }
@@ -2009,6 +2237,7 @@ function aiBuild(p, L) {
         cnt[t] = (cnt[t] || 0) + 1;
         if (d.cat !== "bld") continue;
         if ((t === "helipad" || t === "silo" || t === "uplink") && p.ai.lvl < 2) continue;
+        if (t === "shipyard" && !aiWaterSpot(p)) continue;
         if ((p.has[t] || 0) < cnt[t]) { if (hasReq(p, d) && p.credits >= d.cost * .3 && canQueue(p, t)) queueItem(p, t); break; }
       }
     }
@@ -2033,7 +2262,7 @@ function aiTrain(p, L) {
   const ai = p.ai;
   const refs = p.has.refinery || 0, harvs = (p.has.harvester || 0) + p.q.veh.items.filter(t => t === "harvester").length;
   if (p.has.factory && refs && harvs < Math.min(refs * (ai.lvl >= 3 ? 2 : 1), 4) && p.credits > 500) { if (p.q.veh.prog > 0) p.q.veh.items.splice(1, 0, "harvester"); else p.q.veh.items.unshift("harvester"); }
-  const queued = p.q.inf.items.length + p.q.veh.items.length + p.q.air.items.length;
+  const queued = p.q.inf.items.length + p.q.veh.items.length + p.q.air.items.length + (p.q.sea ? p.q.sea.items.length : 0);
   if (p.army + queued >= L.cap) return;
   if (p.has.barracks && p.q.inf.items.length < 2 && p.credits > (p.has.factory ? 1000 : 250)) {
     const opts = [["rifle", 5], ["rocket", 4], ["sniper", 1.5], ["flamer", 2], ["dog", 1.5], ["medic", 1], ["commando", .5], ["engineer", ai.lvl >= 2 ? .4 : 0]];
@@ -2044,6 +2273,10 @@ function aiTrain(p, L) {
     const opts = [["ltank", 4], ["htank", 4], ["arty", 1.5], ["buggy", 1.2], ["storm", 2.5], ["titan", 2.5]];
     const t = wpick(opts.filter(o => canQueue(p, o[0])));
     if (t) queueItem(p, t);
+  }
+  if (p.has.shipyard && !p.q.sea.items.length && p.credits > 900) {
+    const ships = G.ents.filter(e => !e.dead && e.o === p.i && e.k === "u" && U[e.t].sea).length;
+    if (ships < 2 + ai.lvl) { const t = wpick([["gunboat", 3], ["destroyer", 3], ["sub", 3], ["cruiser", ai.lvl >= 2 ? 2 : 0]].filter(o => canQueue(p, o[0]))); if (t) queueItem(p, t); }
   }
   if (p.has.helipad && !p.q.air.items.length && p.credits > 1400 && p.nAir < Math.min(4, ai.lvl)) {
     const t = p.side === "blue" ? "hawk" : "bear";
@@ -2060,8 +2293,26 @@ function aiNewUnit(p, u) {
   u.ord = { c: "move" }; setMove(u, clamp(rx, TILE, (G.W - 1) * TILE), clamp(ry, TILE, (G.H - 1) * TILE));
 }
 // find a building spot near home; defences lean towards the enemy
+// a spot for a Naval Yard on a big stretch of water near the base (cached)
+function aiWaterSpot(p) {
+  const ai = p.ai || (p.ai0 = p.ai0 || {});
+  if (ai.wsT && G.time - ai.wsT < 40 && ai.ws !== undefined) { if (!ai.ws || waterSpotOk(ai.ws[0], ai.ws[1], 3, 3)) return ai.ws; }
+  ai.wsT = G.time; ai.ws = null;
+  const cx = Math.floor(p.home.x / TILE), cy = Math.floor(p.home.y / TILE);
+  for (let r = 3; r < 20 && !ai.ws; r++) for (let dy = -r; dy <= r && !ai.ws; dy++) for (let dx = -r; dx <= r; dx++) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+    const tx = cx + dx - 1, ty = cy + dy - 1;
+    if (!waterSpotOk(tx, ty, 3, 3) || !nearOwn(p, tx, ty, 3, 3, 7)) continue;
+    // only worth it if the water is big
+    const seen = new Set([idx(tx, ty)]), q = [idx(tx, ty)]; let n = 0;
+    while (q.length && n < 260) { const i = q.pop(); n++; const x = i % G.W, y = (i / G.W) | 0; for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + ox, ny = y + oy; if (!inMap(nx, ny)) continue; const j = idx(nx, ny); if (!seen.has(j) && (G.terr[j] === 1 || G.terr[j] === 4)) { seen.add(j); q.push(j); } } }
+    if (n >= 260) { ai.ws = [tx, ty]; break; }
+  }
+  return ai.ws;
+}
 function aiSpot(p, type, setup) {
   const d = B[type], h = p.home;
+  if (d.naval) return aiWaterSpot(p);
   let cx = h.x / TILE, cy = h.y / TILE;
   if (d.cat === "def") {
     const foe = aiTarget(p, h.x, h.y, true) || { x: G.W * TILE / 2, y: G.H * TILE / 2 };
@@ -2097,28 +2348,28 @@ const HUMAN_COLS = ["#3d8bff", "#2fc65a", "#f2c230", "#c056e0"];
 const FOE_COLS = ["#e8383d", "#ff8a1f", "#8f5bd8"];
 function makeCfgMission(mi, diff) {
   const m = MISSIONS[mi];
-  return { mode: "camp", mi, diff, side: profile.side, size: m.size, theme: m.theme, layout: m.layout, ore: m.ore, seed: m.seed,
+  return { mode: "camp", gen: 2, mi, diff, side: profile.side, size: m.size, theme: m.theme, layout: m.layout, ore: m.ore, seed: m.seed,
     you: m.you, foes: m.foes.map(f => ({ start: f.start, lvl: clamp(f.lvl + diff - 1, 0, 5), rush: !!f.rush })), survive: m.survive || 0 };
 }
 function makeCfgSkirmish(o) {
   const seed = 1 + Math.floor(Math.random() * 1e6);
-  const layouts = ["open", "lakes", "river", "canyon"];
-  const layout = o.layout === "random" ? layouts[seed % 4] : o.layout;
+  const layouts = ["open", "lakes", "river", "canyon", "sea"];
+  const layout = o.layout === "random" ? layouts[seed % 5] : o.layout;
   const foes = [];
   for (let i = 0; i < o.foes; i++) foes.push({ start: o.start === "base" ? "base1" : "mcv", lvl: o.lvl, rush: false });
-  return { mode: "sk", side: o.side, size: o.size, theme: o.theme, layout, ore: o.ore, seed, survive: 0,
+  return { mode: "sk", gen: 2, side: o.side, size: o.size, theme: o.theme, layout, ore: o.ore, seed, survive: 0,
     you: { start: o.start === "base" ? "base" : "mcv", credits: o.credits, units: ["ltank", "ltank", "rifle", "rifle", "rifle", "rocket"] }, foes, credits: o.credits };
 }
 // humans: [{name, side}] in seat order
 function makeCfgCoop(o, humans) {
   const seed = 1 + Math.floor(Math.random() * 1e6);
-  const layouts = ["open", "lakes", "river", "canyon"];
-  const layout = o.layout === "random" ? layouts[seed % 4] : o.layout;
+  const layouts = ["open", "lakes", "river", "canyon", "sea"];
+  const layout = o.layout === "random" ? layouts[seed % 5] : o.layout;
   const foeSide = humans.filter(h => h.side === "blue").length >= humans.length / 2 ? "red" : "blue";
   const foes = [];
   for (let i = 0; i < o.foes; i++) foes.push({ start: o.start === "base" ? "base1" : "mcv", lvl: o.lvl, rush: false, side: foeSide, color: FOE_COLS[i] });
   const size = Math.max(o.size, 56 + 8 * (humans.length + o.foes));
-  return { mode: "coop", coop: true, side: humans[0].side, size, theme: o.theme, layout, ore: o.ore * (1 + .15 * (humans.length - 1)), seed, survive: 0,
+  return { mode: "coop", gen: 2, coop: true, side: humans[0].side, size, theme: o.theme, layout, ore: o.ore * (1 + .15 * (humans.length - 1)), seed, survive: 0,
     humans: humans.map((h, i) => ({ name: h.name, side: h.side, color: HUMAN_COLS[i] })),
     you: { start: o.start === "base" ? "base" : "mcv", credits: o.credits, units: ["ltank", "ltank", "rifle", "rifle", "rifle", "rocket"] }, foes, credits: o.credits };
 }
@@ -2126,7 +2377,7 @@ function makeCfgCoop(o, humans) {
 function blankBattle(cfg) {
   const nH = cfg.coop ? cfg.humans.length : 1;
   const nPl = nH + cfg.foes.length;
-  const map = genMap({ size: cfg.size, seed: cfg.seed, layout: cfg.layout, ore: cfg.ore, players: nPl, coop: cfg.coop ? [nH, cfg.foes.length] : null });
+  const map = genMap({ size: cfg.size, seed: cfg.seed, layout: cfg.layout, ore: cfg.ore, players: nPl, coop: cfg.coop ? [nH, cfg.foes.length] : null, gen: cfg.gen || 1 });
   const N = map.W * map.H;
   G = { cfg, map, W: map.W, H: map.H, terr: map.terr, ore: new Uint8Array(map.oreMax), occ: new Int32Array(N), explored: new Uint8Array(N), vis: new Uint8Array(N),
     ents: [], byId: new Map(), nextId: 1, time: 0, proj: [], fx: [], scorch: [], decalQ: [], oreDirty: new Set(), sel: [], players: [], pathQ: [], timers: [],
@@ -2214,15 +2465,26 @@ function checkEnd() {
 /* =====================================================================
    SAVING (a whole battle fits in a few tens of KB)
    ===================================================================== */
-const UKEYS = ["id", "t", "o", "x", "y", "hp", "dir", "tdir", "ord", "gx", "gy", "rank", "kills", "cargo", "ox", "oy", "ax", "ay", "hunt", "mx", "my", "ammo", "pad", "z"];
+const UKEYS = ["id", "t", "o", "x", "y", "hp", "dir", "tdir", "ord", "gx", "gy", "rank", "kills", "cargo", "ox", "oy", "ax", "ay", "hunt", "mx", "my", "ammo", "pad", "z", "pass"];
+function serUnit(e) { const o = { k: "u" }; for (const k of UKEYS) if (e[k] != null && e[k] !== false && e[k] !== 0 || k === "id" || k === "o") o[k] = k === "pass" ? e.pass : r1(e[k]); if (o.pass && !o.pass.length) delete o.pass; return o; }
+// put a saved unit back on the map
+function unserUnit(o) {
+  const u = addUnit(o.t, o.o, o.x, o.y, o.dir || 0);
+  G.byId.delete(u.id); u.id = o.id; G.byId.set(u.id, u);
+  if (G.nextId <= u.id) G.nextId = u.id + 1;
+  Object.assign(u, { hp: o.hp, tdir: o.tdir || 0, ord: o.ord || { c: "idle" }, gx: o.gx || o.x, gy: o.gy || o.y, rank: o.rank || 0, kills: o.kills || 0, cargo: o.cargo || 0,
+    ox: o.ox, oy: o.oy, ax: o.ax, ay: o.ay, hunt: !!o.hunt, mx: o.mx, my: o.my, pad: o.pad || 0, z: o.z || 0, pass: o.pass || null });
+  return u;
+}
 const BKEYS = ["id", "t", "o", "tx", "ty", "hp", "rise", "tdir", "fix", "rally", "primary"];
 function r1(v) { return typeof v === "number" ? Math.round(v * 10) / 10 : v; }
 function serialize() {
   const ents = [];
   for (const e of G.ents) {
     if (e.dead) continue;
+    if (e.k === "u") { ents.push(serUnit(e)); continue; }
     const o = { k: e.k };
-    for (const k of (e.k === "u" ? UKEYS : BKEYS)) if (e[k] != null && e[k] !== false && e[k] !== 0 || k === "id" || k === "o") o[k] = r1(e[k]);
+    for (const k of BKEYS) if (e[k] != null && e[k] !== false && e[k] !== 0 || k === "id" || k === "o") o[k] = r1(e[k]);
     ents.push(o);
   }
   let ore = ""; for (let i = 0; i < G.ore.length; i++) ore += G.ore[i].toString(16);
@@ -2239,7 +2501,7 @@ function restore(s) {
   for (let i = 0; i < G.explored.length; i += 4) { const v = parseInt(s.ex[i >> 2] || "0", 16); G.explored[i] = v & 1; G.explored[i + 1] = v >> 1 & 1; G.explored[i + 2] = v >> 2 & 1; G.explored[i + 3] = v >> 3 & 1; }
   s.players.forEach((sp, i) => {
     const p = G.players[i]; if (!p) return;
-    const q = sp.q || {}; for (const c of ["bld", "def", "inf", "veh", "air"]) if (!q[c]) q[c] = newQ();
+    const q = sp.q || {}; for (const c of ["bld", "def", "inf", "veh", "air", "sea"]) if (!q[c]) q[c] = newQ();
     Object.assign(p, { credits: sp.credits, q, kills: sp.kills, losses: sp.losses, built: sp.built, harvested: sp.harvested || 0, alive: sp.alive !== false, sw: sp.sw || { charge: 0, ready: false }, away: !!sp.away });
     if (sp.ai) p.ai = Object.assign(newAI(sp.ai.lvl), sp.ai); else if (p.team === 0 && p.human) p.ai = null;
   });
@@ -2254,10 +2516,7 @@ function restore(s) {
   }
   for (const o of s.ents) {
     if (o.k !== "u" || !U[o.t]) continue;
-    const u = addUnit(o.t, o.o, o.x, o.y, o.dir || 0);
-    G.byId.delete(u.id); u.id = o.id; G.byId.set(u.id, u);
-    Object.assign(u, { hp: o.hp, tdir: o.tdir || 0, ord: o.ord || { c: "idle" }, gx: o.gx || o.x, gy: o.gy || o.y, rank: o.rank || 0, kills: o.kills || 0, cargo: o.cargo || 0,
-      ox: o.ox, oy: o.oy, ax: o.ax, ay: o.ay, hunt: !!o.hunt, mx: o.mx, my: o.my, pad: o.pad || 0, z: o.z || 0 });
+    const u = unserUnit(o);
     if (U[o.t].air) { u.ammo = o.ammo != null ? o.ammo : U[o.t].ammo; if (u.ord.c === "attack" && !G.byId.get(u.ord.tid)) u.ord = { c: "idle" }; continue; }
     if ((u.ord.c === "move" || u.ord.c === "amove" || u.ord.c === "dock") && u.mx != null) setMove(u, u.mx, u.my);
     else if (u.ord.c !== "harvest" && u.ord.c !== "attack" && u.ord.c !== "capture") goIdle(u);
@@ -2492,6 +2751,21 @@ function bArt(c, type, col, W, H) {
       c.strokeStyle = "#444"; c.lineWidth = 2; c.beginPath(); c.moveTo(54, 36); c.lineTo(57, -2); c.stroke();
       break;
     }
+    case "shipyard": {
+      // concrete piers standing in the water around a dry dock
+      c.fillStyle = "rgba(0,0,0,.3)"; c.fillRect(4, 6, W - 2, H - 4);
+      c.fillStyle = "#6f726a"; c.fillRect(0, 0, W, 16); c.fillRect(0, 0, 16, H - 6); c.fillRect(W - 16, 0, 16, H - 6);
+      c.fillStyle = vgrad(c, 0, 16, "#a3a69c", "#83867e"); c.fillRect(1, 1, W - 2, 13); c.fillRect(1, 1, 13, H - 8); c.fillRect(W - 14, 1, 13, H - 8);
+      c.strokeStyle = "rgba(0,0,0,.25)"; for (let x = 8; x < W; x += 12) { c.beginPath(); c.moveTo(x, 1); c.lineTo(x, 14); c.stroke(); }
+      hazard(c, 14, 14, W - 28, 3);
+      c.fillStyle = "#2f5f80"; c.fillRect(16, 17, W - 32, H - 23);
+      c.strokeStyle = "rgba(200,230,255,.25)"; for (let y = 24; y < H - 8; y += 9) { c.beginPath(); c.moveTo(20, y); c.lineTo(W - 20, y); c.stroke(); }
+      block(c, 22, -8, 30, 20, 8, METAL, METAL_D, { panels: 10 }); windows(c, 25, 4, 3, 5, 4, 3, true);
+      c.fillStyle = col.c; c.fillRect(22, -8, 30, 3);
+      for (const x of [4, W - 12]) { c.fillStyle = "#3a3d37"; c.fillRect(x, 20, 8, 50); c.fillStyle = col.c; c.fillRect(x, 20, 8, 3); }
+      for (const [x, y] of [[3, H - 8], [W - 11, H - 8]]) { c.fillStyle = "#555"; c.beginPath(); c.arc(x + 4, y, 4, 0, TAU); c.fill(); }
+      break;
+    }
     case "helipad": {
       c.fillStyle = "#3a3d37"; rr(c, 1, 1, W - 2, H - 2, 4); c.fill();
       c.fillStyle = vgrad(c, 0, H, "#62665e", "#4a4d46"); rr(c, 3, 3, W - 6, H - 6, 3); c.fill();
@@ -2612,6 +2886,16 @@ function drawBuilding(c, type, col, x, y, o) {
       break;
     }
     case "tech": lamp(c, x + 57, y - 2, Math.sin(t * 5) > 0 && !low, "rgb(255,80,80)"); if (!low) { c.fillStyle = "rgba(255,255,255," + (.15 + Math.sin(t * 2) * .1) + ")"; c.beginPath(); c.arc(x + 32, y + 34, 22, Math.PI, 0); c.fill(); } break;
+    case "shipyard": {
+      // a gantry crane that slides along the dock
+      const cx = x + 30 + Math.sin(t * .4) * 26;
+      c.fillStyle = "rgba(0,0,0,.25)"; c.fillRect(cx - 4, y + 22, 14, 60);
+      c.fillStyle = "#f2c230"; c.fillRect(cx - 8, y + 8, 4, 72); c.fillRect(cx + 8, y + 8, 4, 72);
+      c.fillRect(cx - 8, y + 8, 20, 5);
+      c.fillStyle = "#1b1b1b"; c.fillRect(cx + 1, y + 13, 1.5, 18 + Math.sin(t) * 6);
+      lamp(c, x + 8, y + H - 8, Math.sin(t * 3) > 0, "rgb(255,80,60)"); lamp(c, x + W - 8, y + H - 8, Math.sin(t * 3) < 0, "rgb(80,255,120)");
+      break;
+    }
     case "helipad": for (let i = 0; i < 4; i++) { const a = i / 4 * TAU + Math.PI / 4; lamp(c, x + 32 + Math.cos(a) * 26, y + 32 + Math.sin(a) * 26, Math.floor(t * 3) % 4 === i, "rgb(120,200,255)"); } break;
     case "silo": {
       const k = o.swk || 0, open = o.ready ? 1 : 0;
@@ -2685,7 +2969,8 @@ function drawBuildingSprite(c, type, col, x, y, o) { drawBuilding(c, type, col, 
 const VS = {
   ltank: { L: 24, W: 14, tr: 5 }, htank: { L: 30, W: 18, tr: 6 }, titan: { L: 38, W: 24, tr: 7 }, harvester: { L: 30, W: 20, tr: 6 },
   mcv: { L: 34, W: 20, tr: 0 }, buggy: { L: 20, W: 12, tr: 0 }, arty: { L: 26, W: 14, tr: 0 }, storm: { L: 26, W: 14, tr: 0 },
-  hawk: { L: 30, W: 10, tr: 0 }, bear: { L: 32, W: 14, tr: 0 }
+  hawk: { L: 30, W: 10, tr: 0 }, bear: { L: 32, W: 14, tr: 0 },
+  gunboat: { L: 28, W: 11, tr: 0 }, transport: { L: 34, W: 16, tr: 0 }, destroyer: { L: 40, W: 13, tr: 0 }, sub: { L: 34, W: 9, tr: 0 }, cruiser: { L: 50, W: 17, tr: 0 }
 };
 function facing(a) { return ((Math.round(a / TAU * 32) % 32) + 32) % 32; }
 function lightPass(c, S) {
@@ -2711,9 +2996,41 @@ function plate(c, x, y, w, h, r, col) {
   c.fillStyle = col.c; rr(c, x + 1.5, y + 1.5, w - 3, h - 3, Math.max(1, r - 1)); c.fill();
   c.fillStyle = "rgba(255,255,255,.22)"; c.fillRect(x + 2, y + 1.5, w - 4, 1.4);
 }
+function shipHull(c, L, W, col, deck) {
+  c.beginPath(); c.moveTo(L / 2, 0); c.quadraticCurveTo(L / 2 - 4, -W / 2, L / 2 - 12, -W / 2); c.lineTo(-L / 2 + 3, -W / 2); c.quadraticCurveTo(-L / 2, -W / 2, -L / 2, -W / 2 + 3); c.lineTo(-L / 2, W / 2 - 3); c.quadraticCurveTo(-L / 2, W / 2, -L / 2 + 3, W / 2); c.lineTo(L / 2 - 12, W / 2); c.quadraticCurveTo(L / 2 - 4, W / 2, L / 2, 0); c.closePath();
+  c.fillStyle = col.x; c.fill();
+  c.save(); c.clip();
+  c.fillStyle = hgrad(c, -L / 2, L / 2, deck || "#8d9188", shade(deck || "#8d9188", .15)); c.fillRect(-L / 2 + 1.5, -W / 2 + 1.5, L - 3, W - 3);
+  c.fillStyle = col.c; c.fillRect(-L / 2, -W / 2, L, 2); c.fillRect(-L / 2, W / 2 - 2, L, 2);
+  c.restore();
+}
 function hullArt(c, type, col) {
   const v = VS[type];
   switch (type) {
+    case "gunboat": shipHull(c, v.L, v.W, col); block0(c, -6, -4, 10, 8, col); c.fillStyle = "#9fd6ff"; c.fillRect(2, -3, 2, 6); break;
+    case "transport":
+      shipHull(c, v.L, v.W, col, "#6d7068");
+      c.fillStyle = "#4e514a"; c.fillRect(-10, -6, 22, 12); c.strokeStyle = "rgba(0,0,0,.35)"; for (let x = -8; x < 12; x += 4) { c.beginPath(); c.moveTo(x, -6); c.lineTo(x, 6); c.stroke(); }
+      block0(c, -16, -5, 6, 10, col); hazard(c, 13, -6, 3, 12);
+      break;
+    case "destroyer":
+      shipHull(c, v.L, v.W, col);
+      block0(c, -6, -4.5, 12, 9, col); c.fillStyle = "#9fd6ff"; c.fillRect(4, -3.5, 2, 7);
+      c.fillStyle = "#3a3d38"; c.beginPath(); c.ellipse(-10, 0, 3.5, 2.5, 0, 0, TAU); c.fill(); c.fillStyle = col.c; c.fillRect(-12, -2.5, 1.5, 5);
+      c.fillStyle = "#2c2f2a"; c.beginPath(); c.arc(-16, 0, 3, 0, TAU); c.fill(); c.fillRect(-26, -.8, 10, 1.6);
+      break;
+    case "sub":
+      c.beginPath(); c.ellipse(0, 0, v.L / 2, v.W / 2, 0, 0, TAU); c.fillStyle = "#1d2226"; c.fill();
+      c.fillStyle = hgrad(c, -v.L / 2, v.L / 2, "#2f383f", "#4a565e"); c.beginPath(); c.ellipse(0, 0, v.L / 2 - 1.5, v.W / 2 - 1.5, 0, 0, TAU); c.fill();
+      c.fillStyle = "#14181b"; rr(c, -2, -2.5, 8, 5, 2); c.fill(); c.fillStyle = col.c; c.fillRect(-14, -1, 6, 2);
+      c.fillStyle = "#2a3238"; c.fillRect(-v.L / 2 - 2, -3, 3, 6);
+      break;
+    case "cruiser":
+      shipHull(c, v.L, v.W, col);
+      block0(c, -8, -5.5, 16, 11, col); block0(c, -4, -3.5, 7, 7, col); c.fillStyle = "#9fd6ff"; c.fillRect(6, -4.5, 2, 9);
+      c.fillStyle = "#3a3d38"; c.beginPath(); c.ellipse(-13, 0, 3, 2.5, 0, 0, TAU); c.fill();
+      for (const tx of [-20]) { c.fillStyle = "#2c2f2a"; c.fillRect(tx - 12, -1.6, 12, 1.4); c.fillRect(tx - 12, .4, 12, 1.4); c.fillStyle = col.d; c.beginPath(); c.arc(tx, 0, 4.5, 0, TAU); c.fill(); }
+      break;
     case "ltank": case "htank": case "titan": {
       const L = v.L, W = v.W;
       plate(c, -L / 2, -W / 2, L, W, 3, col);
@@ -2774,8 +3091,22 @@ function hullArt(c, type, col) {
     }
   }
 }
+function block0(c, x, y, w, h, col) {
+  c.fillStyle = "rgba(0,0,0,.35)"; c.fillRect(x + 1.5, y + 1.5, w, h);
+  c.fillStyle = hgrad(c, x, x + w, "#c8ccc2", "#8e9389"); c.fillRect(x, y, w, h);
+  c.fillStyle = "rgba(255,255,255,.4)"; c.fillRect(x, y, w, 1);
+}
 function turretArt(c, type, col) {
   switch (type) {
+    case "gunboat":
+      c.fillStyle = "#1e1e1e"; c.fillRect(0, -1, 11, 2); c.fillStyle = col.d; c.beginPath(); c.arc(0, 0, 3.5, 0, TAU); c.fill(); c.fillStyle = col.c; c.beginPath(); c.arc(-.4, -.4, 2.6, 0, TAU); c.fill();
+      break;
+    case "destroyer":
+      c.fillStyle = "#2c2f2a"; c.fillRect(2, -1.4, 14, 2.8); c.fillStyle = col.x; rr(c, -5.5, -5, 11, 10, 3); c.fill(); plate(c, -5, -4.5, 10, 9, 3, col);
+      break;
+    case "cruiser":
+      c.fillStyle = "#2c2f2a"; c.fillRect(3, -3.4, 17, 2.4); c.fillRect(3, 1, 17, 2.4); c.fillStyle = col.x; rr(c, -7.5, -6.5, 15, 13, 3); c.fill(); plate(c, -7, -6, 14, 12, 3, col);
+      break;
     case "ltank":
       c.fillStyle = "#2c2f2a"; c.fillRect(3, -1.8, 15, 3.6); c.fillStyle = "#1a1b19"; c.fillRect(16, -2.2, 3, 4.4);
       c.fillStyle = col.x; c.beginPath(); c.arc(0, 0, 7.4, 0, TAU); c.fill();
@@ -2810,12 +3141,21 @@ function drawVehicle(c, type, col, x, y, dir, tdir, anim, o) {
   o = o || {};
   const d = U[type], v = VS[type], f = facing(dir), a = f / 32 * TAU, S = Math.ceil(d.r * 2 + 22);
   if (d.air) { drawHeli(c, type, col, x, y, dir, o); return; }
+  if (d.sea) {
+    // ships sit in the water: no ground shadow, a little bob, and a foam line around the hull
+    c.save(); c.translate(x, y); c.rotate(a);
+    c.strokeStyle = "rgba(230,245,255,.35)"; c.lineWidth = 2; c.beginPath(); c.ellipse(1, 0, v.L / 2 + 1.5, v.W / 2 + 1.5, 0, 0, TAU); c.stroke();
+    c.restore();
+    if (type === "sub" && o.sub) c.globalAlpha = .45;
+  }
   c.save(); c.translate(x, y); c.rotate(a);
   c.fillStyle = "rgba(0,0,0,.32)"; rr(c, -v.L / 2 + 2, -v.W / 2 - v.tr + 3, v.L + 2, v.W + v.tr * 2, 4); c.fill();
   if (v.tr) tracks(c, v.L, v.W, v.tr, anim);
   c.restore();
   const hs = vehSprite(type, col, "hull", f, o.husk);
   c.drawImage(hs, x - S / 2, y - S / 2, S, S);
+  if (type === "transport" && o.cargo) { for (let i = 0; i < o.cargo; i++) { c.fillStyle = "#ffd23a"; c.fillRect(x - 10 + i * 5, y - v.W / 2 - 9, 4, 4); } }
+  if (type === "sub" && o.sub) c.globalAlpha = 1;
   if (type === "harvester" && o.cargo) {
     const k = o.cargo / HARV_CAP; c.save(); c.translate(x, y); c.rotate(a);
     c.fillStyle = "#c79b2c"; c.beginPath(); c.ellipse(-5, 0, 2 + 6 * k, 1.5 + 5 * k, 0, 0, TAU); c.fill();
@@ -2824,10 +3164,15 @@ function drawVehicle(c, type, col, x, y, dir, tdir, anim, o) {
   if (d.turret) {
     const tf = facing(tdir);
     const ts = vehSprite(type, col, "tur", tf, o.husk);
-    c.drawImage(ts, x - S / 2, y - S / 2, S, S);
+    const fwd = type === "gunboat" ? 7 : type === "destroyer" ? 11 : type === "cruiser" ? 14 : 0;
+    const ox = Math.cos(a) * fwd, oy = Math.sin(a) * fwd;
+    c.drawImage(ts, x + ox - S / 2, y + oy - S / 2, S, S);
+    if (o.flash > 0 && fwd) { const ta = tf / 32 * TAU; c.fillStyle = "rgba(255,240,170,.95)"; c.beginPath(); c.arc(x + ox + Math.cos(ta) * 18, y + oy + Math.sin(ta) * 18, 4, 0, TAU); c.fill(); }
     if (o.flash > 0) { const ta = tf / 32 * TAU, L = type === "titan" ? 27 : type === "htank" ? 24 : type === "buggy" ? 12 : 20; c.fillStyle = "rgba(255,240,170,.95)"; c.beginPath(); c.arc(x + Math.cos(ta) * L, y + Math.sin(ta) * L, type === "buggy" ? 2.5 : 4.5, 0, TAU); c.fill(); }
+    if (d.sea) c.globalAlpha = 1;
   } else if (o.flash > 0 && type === "arty") { c.fillStyle = "rgba(255,240,170,.95)"; c.beginPath(); c.arc(x + Math.cos(a) * 26, y + Math.sin(a) * 26, 6, 0, TAU); c.fill(); }
 }
+function drawShipExtras() {}
 function drawHeli(c, type, col, x, y, dir, o) {
   const d = U[type], f = facing(dir), z = o.z || 0, S = Math.ceil(d.r * 2 + 22), lift = z * 20;
   // shadow on the ground
@@ -2914,6 +3259,7 @@ function paintDecals() {
   if (!G.decalQ.length) return;
   const c = G.terrCtx || (G.terrCtx = G.terrCv.getContext("2d"));
   for (const s of G.decalQ) {
+    if (!isFinite(s.x) || !isFinite(s.y) || (!s.track && !isFinite(s.r))) continue;
     if (s.track) {
       c.save(); c.translate(s.x, s.y); c.rotate(s.a);
       c.fillStyle = s.wheels ? "rgba(40,30,20,.07)" : "rgba(30,25,18,.09)";
@@ -2942,7 +3288,7 @@ function miniBase() {
   const img = new ImageData(W, H);
   for (let i = 0; i < W * H; i++) {
     const t = G.terr[i];
-    const c = t === 1 ? hexToRgb(T.water) : t === 2 ? hexToRgb(T.rock) : t === 3 ? hexToRgb(T.tree) : T.mini;
+    const c = t === 1 ? hexToRgb(T.water) : t === 4 ? [150, 140, 120] : t === 2 ? hexToRgb(T.rock) : t === 3 ? hexToRgb(T.tree) : T.mini;
     img.data[i * 4] = c[0]; img.data[i * 4 + 1] = c[1]; img.data[i * 4 + 2] = c[2]; img.data[i * 4 + 3] = 255;
   }
   G.miniImg = img;
@@ -3039,7 +3385,7 @@ function updFx(dt) {
 }
 function drawFx(c, layer) {
   for (const f of G.fx) {
-    if (f.delay > 0) continue;
+    if (f.delay > 0 || !isFinite(f.x) && f.t !== "zap") continue;
     const k = 1 - f.life / f.max; // 0 -> 1
     if (layer === 0) {
       if (f.t === "body") {
@@ -3047,6 +3393,9 @@ function drawFx(c, layer) {
         if (f.dog) { c.fillStyle = "#6b4a2a"; c.beginPath(); c.ellipse(0, 0, 6, 3, 0, 0, TAU); c.fill(); }
         else { c.fillStyle = "#7a1a1a"; c.beginPath(); c.ellipse(-2, 2, 5, 2.6, 0, 0, TAU); c.fill(); c.fillStyle = f.c; c.beginPath(); c.ellipse(0, 0, 5, 3, 0, 0, TAU); c.fill(); c.fillStyle = "#e7b98f"; c.beginPath(); c.arc(4, 0, 2, 0, TAU); c.fill(); }
         c.restore(); c.globalAlpha = 1;
+      } else if (f.t === "sink") {
+        c.save(); c.globalAlpha = Math.max(0, 1 - k * 1.1); c.translate(f.x, f.y); c.scale(1 - k * .3, 1 - k * .3); drawVehicle(c, f.type, G.players[f.o] ? G.players[f.o].col : teamCol("#555555"), 0, 0, f.a + k * .5, f.a + k * .5, 0, { husk: true }); c.restore();
+        if (rnd() < .3) G.fx.push({ t: "foam", x: f.x + (rnd() - .5) * 20, y: f.y + (rnd() - .5) * 10, life: .8, max: .8, r: 3 });
       } else if (f.t === "husk") {
         c.globalAlpha = Math.min(1, f.life / 2); drawVehicle(c, f.type, G.players[f.o] ? G.players[f.o].col : teamCol("#555555"), f.x, f.y, f.a, f.a, 0, { husk: true }); c.globalAlpha = 1;
       }
@@ -3084,6 +3433,9 @@ function drawFx(c, layer) {
       case "fire": c.globalCompositeOperation = "lighter"; c.fillStyle = "rgba(255," + (110 + rnd() * 100 | 0) + ",30," + (1 - k) + ")"; c.beginPath(); c.arc(f.x, f.y, 3 + rnd() * 4, 0, TAU); c.fill(); c.globalCompositeOperation = "source-over"; break;
       case "debris": c.fillStyle = "rgba(0,0,0,.3)"; c.fillRect(f.x - 1, f.y - 1, 3, 3); c.fillStyle = "#2a2a28"; c.fillRect(f.x - 2, f.y - f.z - 2, 4, 4); break;
       case "spark": c.fillStyle = "#ffe066"; c.fillRect(f.x - 1, f.y - 1 - k * 6, 2, 2); break;
+      case "wake": { c.save(); c.translate(f.x, f.y); c.rotate(f.a); c.strokeStyle = "rgba(235,248,255," + (1 - k) * .55 + ")"; c.lineWidth = 1.6; const sp = 4 + k * 16 * f.s; c.beginPath(); c.moveTo(0, -3); c.lineTo(-k * 14 * f.s, -sp); c.moveTo(0, 3); c.lineTo(-k * 14 * f.s, sp); c.stroke(); c.restore(); break; }
+      case "foam": c.fillStyle = "rgba(235,248,255," + (1 - k) * .6 + ")"; c.beginPath(); c.arc(f.x, f.y, f.r + k * 3, 0, TAU); c.fill(); break;
+      case "splash": c.fillStyle = "rgba(220,240,255," + (1 - k) * .8 + ")"; c.beginPath(); c.ellipse(f.x, f.y - k * 10, 3 + k * 6, 4 + k * 10 * (1 - k), 0, 0, TAU); c.fill(); c.strokeStyle = "rgba(220,240,255," + (1 - k) * .6 + ")"; c.beginPath(); c.ellipse(f.x, f.y + 2, 4 + k * 12, 2 + k * 5, 0, 0, TAU); c.stroke(); break;
       case "heal": c.globalAlpha = 1 - k; c.fillStyle = "#4be35a"; c.fillRect(f.x - 3, f.y - 1, 6, 2); c.fillRect(f.x - 1, f.y - 3, 2, 6); c.globalAlpha = 1; break;
       case "dust": c.fillStyle = f.c; c.globalAlpha = (1 - k) * .8; c.beginPath(); c.arc(f.x + k * 6, f.y - k * 8, 2 + k * 3, 0, TAU); c.fill(); c.globalAlpha = 1; break;
       case "flame": {
@@ -3147,6 +3499,7 @@ function drawProj(c) {
     if (q.delay > 0) continue;
     if (q.t === "shell") { c.fillStyle = "#ffd77a"; c.beginPath(); c.arc(q.x, q.y, 2.4, 0, TAU); c.fill(); c.strokeStyle = "rgba(255,200,100,.5)"; c.lineWidth = 1.5; c.beginPath(); c.moveTo(q.x, q.y); c.lineTo(q.x - Math.cos(q.ang || 0) * 9, q.y - Math.sin(q.ang || 0) * 9); c.stroke(); }
     else if (q.t === "rocket") { c.save(); c.translate(q.x, q.y); c.rotate(q.ang || 0); c.fillStyle = "#ddd"; c.fillRect(-4, -1.5, 8, 3); c.globalCompositeOperation = "lighter"; c.fillStyle = "#ff9a2a"; c.beginPath(); c.arc(-5, 0, 2.6, 0, TAU); c.fill(); c.restore(); c.globalCompositeOperation = "source-over"; }
+    else if (q.t === "torp") { c.save(); c.translate(q.x, q.y); c.rotate(q.ang || 0); c.fillStyle = "rgba(20,30,35,.8)"; rr(c, -6, -1.5, 12, 3, 1.5); c.fill(); c.restore(); }
     else if (q.t === "arty") { c.fillStyle = "rgba(0,0,0,.3)"; c.beginPath(); c.arc(q.x, q.y, 3, 0, TAU); c.fill(); c.fillStyle = "#333"; c.beginPath(); c.arc(q.x, q.y - (q.z || 0), 3.5, 0, TAU); c.fill(); }
     else if (q.t === "missile") {
       c.fillStyle = "rgba(0,0,0,.25)"; c.beginPath(); c.ellipse(q.x, q.y, 10, 4, 0, 0, TAU); c.fill();
@@ -3251,7 +3604,8 @@ function render() {
       if (e.primary && e.o === ME && (e.t === "factory" || e.t === "barracks" || e.t === "helipad") && ((p.has[e.t] || 0) > 1)) { c.fillStyle = "#ffd23a"; c.font = "bold 11px Rajdhani,sans-serif"; c.textAlign = "center"; c.fillText("PRIMARY", e.x, py + 10); }
       if (p.low && friendly(e) && B[e.t].power < 0 && Math.sin(t * 4) > 0) { c.font = "16px sans-serif"; c.textAlign = "center"; c.fillText("⚡", e.x + e.w * TILE * .3, e.y - e.h * TILE * .2); }
     } else {
-      drawUnitSprite(c, e.t, p.col, e.x, e.y, e.dir, e.tdir, e.anim, { flash: e.flash, cargo: e.cargo, z: e.z, rot: e.rot, bank: e.bank });
+      const ud = U[e.t];
+      drawUnitSprite(c, e.t, p.col, e.x, e.y, e.dir, e.tdir, e.anim, { flash: e.flash, cargo: ud.carry ? (e.pass ? e.pass.length : e.cargo || 0) : e.cargo, z: e.z, rot: e.rot, bank: e.bank, sub: ud.stealth && !(e.surf > 0 || e.det) });
       if (e.hit > 0 && U[e.t].cat !== "inf") { c.globalAlpha = .22; c.fillStyle = "#fff"; c.beginPath(); c.arc(e.x, e.y - (U[e.t].air ? (e.z || 0) * 20 : 0), U[e.t].r, 0, TAU); c.fill(); c.globalAlpha = 1; }
     }
   };
@@ -3309,7 +3663,8 @@ function render() {
     drawBuilding(c, G.place.type, p.col, G.place.tx * TILE, G.place.ty * TILE, { anim: t });
     c.globalAlpha = 1;
     for (let y = G.place.ty; y < G.place.ty + d.h; y++) for (let x = G.place.tx; x < G.place.tx + d.w; x++) {
-      c.fillStyle = buildableTile(x, y) && ok ? "rgba(70,255,110,.35)" : "rgba(255,50,50,.45)";
+      const tileOk = d.naval ? (inMap(x, y) && G.terr[idx(x, y)] === 1 && !G.occ[idx(x, y)]) : buildableTile(x, y);
+      c.fillStyle = tileOk && ok ? "rgba(70,255,110,.35)" : "rgba(255,50,50,.45)";
       c.fillRect(x * TILE + 1, y * TILE + 1, TILE - 2, TILE - 2);
     }
     c.strokeStyle = ok ? "#7dff9a" : "#ff6a5a"; c.lineWidth = 2; c.strokeRect(G.place.tx * TILE, G.place.ty * TILE, d.w * TILE, d.h * TILE);
@@ -3358,6 +3713,13 @@ const ACTS = {
   harvest(pi, ids, i) { for (const u of ownUnits(pi, ids)) if (U[u.t].harvester) { u.ord = { c: "harvest" }; u.hs = "go"; u.oreT = i; setMove(u, (i % G.W + .5) * TILE, (((i / G.W) | 0) + .5) * TILE); } },
   ret(pi, ids) { for (const u of ownUnits(pi, ids)) if (U[u.t].harvester) { u.ord = { c: "harvest" }; u.hs = "ret"; u.ref = 0; } },
   dock(pi, ids, did) { const b = ownB(pi, did); if (!b) return; const vs = ownUnits(pi, ids).filter(u => U[u.t].cat === "veh"); orderMove(vs, b.x, b.y + TILE * 1.6); for (const u of vs) u.ord = { c: "dock", tid: did }; },
+  board(pi, ids, tid) { const t = ent(tid); if (!t || t.o !== pi || !U[t.t].carry) return; for (const u of ownUnits(pi, ids)) if (!U[u.t].air && !U[u.t].sea) { u.ord = { c: "board", tid }; u.path = null; } },
+  unload(pi, ids) {
+    for (const t of ownUnits(pi, ids)) if (U[t.t].carry && t.pass && t.pass.length) {
+      if (tryUnload(t)) continue;
+      const s = shoreSpot(t.x, t.y); if (s) { t.ord = { c: "unload" }; setMove(t, (s[0] + .5) * TILE, (s[1] + .5) * TILE); }
+    }
+  },
   rearm(pi, ids, pad) { for (const u of ownUnits(pi, ids)) if (U[u.t].air) { u.ord = { c: "rearm" }; u.pad = pad; } },
   stop(pi, ids) { for (const u of ownUnits(pi, ids)) { if (U[u.t].air) u.ord = { c: "idle" }; else goIdle(u); } },
   deploy(pi, ids) { for (const u of ownUnits(pi, ids)) if (U[u.t].mcv) u.ord = { c: "deploy" }; },
@@ -3406,8 +3768,10 @@ function pickEntity(wx, wy) {
   for (const e of G.ents) if (!e.dead && e.k === "b" && (e.t === "beam" || e.t === "zap") && Math.abs(wx - e.x) < 14 && wy < e.y && wy > e.y - 50 && (friendly(e) || G.explored[idx(e.tx, e.ty)])) return e;
   return null;
 }
-function formationTiles(wx, wy, n) {
-  const [gx, gy] = tileAt(wx, wy);
+function formationTiles(wx, wy, n, water) {
+  const passable = water ? waterOk : window.passable;
+  let [gx, gy] = tileAt(wx, wy);
+  if (water && !waterOk(gx, gy)) { const f = freeTileNear(gx, gy, 10, false, true); if (f) [gx, gy] = f; }
   const out = [];
   for (let r = 0; r < 12 && out.length < n; r++) {
     const ring = [];
@@ -3419,7 +3783,11 @@ function formationTiles(wx, wy, n) {
 }
 function orderMove(us, wx, wy, amove) {
   if (!us.length) return;
-  const airs = us.filter(u => U[u.t].air), ground = us.filter(u => !U[u.t].air);
+  const airs = us.filter(u => U[u.t].air), ships = us.filter(u => U[u.t].sea), ground = us.filter(u => !U[u.t].air && !U[u.t].sea);
+  if (ships.length) {
+    const tiles = formationTiles(wx, wy, ships.length, true);
+    ships.forEach((u, i) => { const t = tiles[i] || tiles[0]; const x = t ? (t[0] + .5) * TILE : wx, y = t ? (t[1] + .5) * TILE : wy; if (amove && U[u.t].wp) orderAmove(u, x, y); else { u.ord = { c: "move" }; u.tgt = 0; setMove(u, x, y); } });
+  }
   airs.forEach((u, i) => { const a = i / Math.max(1, airs.length) * TAU, r = airs.length > 1 ? 22 : 0; const x = wx + Math.cos(a) * r, y = wy + Math.sin(a) * r; if (amove) orderAmove(u, x, y); else { u.ord = { c: "move" }; u.tgt = 0; u.mx = x; u.my = y; } });
   if (!ground.length) return;
   const tiles = formationTiles(wx, wy, ground.length);
@@ -3453,7 +3821,12 @@ function tap(wx, wy, dbl) {
       if (eng.length && hit.hp < hit.mhp) { act("capture", ids(eng), hit.id); marker(hit.x, hit.y, "#9dffb0"); return; }
       if (hit.t === "refinery" && us.some(u => U[u.t].harvester)) { act("ret", ids(us)); marker(hit.x, hit.y, "#9dffb0"); return; }
       if (hit.t === "depot" && us.some(u => U[u.t].cat === "veh")) { act("dock", ids(us), hit.id); marker(hit.x, hit.y, "#9dffb0"); return; }
+      if (hit.t === "shipyard" && us.some(u => U[u.t].sea)) { act("move", ids(us.filter(u => U[u.t].sea)), hit.x, hit.y + TILE * 2.5, false); marker(hit.x, hit.y, "#9dffb0"); return; }
       if (hit.t === "helipad" && us.some(u => U[u.t].air)) { act("rearm", ids(us), hit.id); marker(hit.x, hit.y, "#9dffb0"); return; }
+    }
+    if (hit.k === "u" && U[hit.t].carry && hit.o === ME && us.some(u => !U[u.t].air && !U[u.t].sea)) {
+      const land = us.filter(u => !U[u.t].air && !U[u.t].sea);
+      act("board", ids(land), hit.id); marker(hit.x, hit.y, "#9dffb0"); sfx("ack"); voice(land[0], "move"); return;
     }
     if (hit.o !== ME) { if (us.length) { act("move", ids(us), wx, wy, G.atk); marker(wx, wy, "#7dff9a"); voice(us[0], "move"); } return; }
     if (dbl && hit.k === "u") { selectOnly(G.ents.filter(e => !e.dead && e.o === ME && e.k === "u" && e.t === hit.t && inView(e.x, e.y))); return; }
@@ -3643,10 +4016,11 @@ function scrollCam(dt) {
    ===================================================================== */
 let curTab = "bld";
 const TAB_TYPES = {
-  bld: ["power", "refinery", "barracks", "factory", "radar", "apower", "helipad", "depot", "tech", "silo", "uplink"],
+  bld: ["power", "refinery", "barracks", "factory", "shipyard", "radar", "apower", "helipad", "depot", "tech", "silo", "uplink"],
   def: ["wall", "pillbox", "turret", "flakgun", "beam", "zap"],
   inf: ["rifle", "rocket", "engineer", "dog", "medic", "sniper", "flamer", "commando"],
-  veh: ["harvester", "buggy", "ltank", "htank", "arty", "storm", "titan", "mcv", "hawk", "bear"]
+  veh: ["harvester", "buggy", "ltank", "htank", "arty", "storm", "titan", "mcv", "hawk", "bear"],
+  sea: ["gunboat", "transport", "destroyer", "sub", "cruiser"]
 };
 const ICON_CACHE = {};
 function iconFor(type, side) {
@@ -3772,6 +4146,7 @@ function refreshCmd() {
   $("cAtk").hidden = !us.some(u => U[u.t].wp);
   $("cStop").hidden = !us.length;
   $("cDeploy").hidden = !us.some(u => U[u.t].mcv);
+  $("cUnload").hidden = !us.some(u => U[u.t].carry && ((u.pass && u.pass.length) || (isClient() && u.cargo)));
   $("cSell").hidden = !b; $("cFix").hidden = !b || b.hp >= b.mhp || B[b.t].wall;
   $("cDesel").hidden = !s.length && !G.place && !G.mode && !G.swAim;
   $("cDesel").innerHTML = G.place || G.mode || G.swAim ? "<i>✕</i>" + (G.place && B[G.place.type].wall ? "Done" : "Cancel") : "<i>✕</i>Clear";
@@ -3797,6 +4172,8 @@ function refreshCmd() {
     if (one && U[one.t].engineer) extra = "Tap an enemy building to take it";
     if (one && U[one.t].c4) extra = "Tap an enemy building to blow it up";
     if (one && U[one.t].medic) extra = "Heals soldiers near it";
+    if (one && U[one.t].carry) extra = "Carrying " + ((one.pass ? one.pass.length : one.cargo) || 0) + "/" + U[one.t].carry + " · select troops, then tap the Transport";
+    if (one && U[one.t].stealth) extra = "Hidden under water until it fires";
     info.innerHTML = `<span class="sn">${one ? U[one.t].name : us.length + " units"}</span><div class="hpb"><i style="width:${hp * 100}%;background:${hp > .55 ? "var(--green)" : hp > .28 ? "#ffd23a" : "var(--red)"}"></i></div><small>${extra}</small>`;
   }
 }
@@ -3810,6 +4187,7 @@ $("cArmy").onclick = () => selectArmy();
 $("cAtk").onclick = () => { G.atk = !G.atk; syncModes(); sfx("click"); };
 $("cStop").onclick = cmdStop;
 $("cDeploy").onclick = cmdDeploy;
+$("cUnload").onclick = () => { const ts = selUnits().filter(u => U[u.t].carry); if (ts.length) { act("unload", ids(ts)); sfx("click"); } };
 $("cSell").onclick = () => { const b = selEnts()[0]; if (b && b.k === "b" && b.rise >= 1) { act("sell", b.id); removeSel(b.id); sfx("cash"); } };
 $("cFix").onclick = () => { const b = selEnts()[0]; if (b && b.k === "b") { act("fix", b.id); sfx("click"); } };
 $("cDesel").onclick = () => { if (G.place || G.mode || G.swAim) { G.place = null; G.mode = null; G.atk = false; G.swAim = false; syncModes(); } else selectOnly([]); };
@@ -3867,6 +4245,7 @@ function sfx(name, x, y) {
       case "arty": noise(now, .4, .35 * v, "lowpass", 600, 80); tone(now, .3, .3 * v, "sine", 70, 30); break;
       case "flame": noise(now, .3, .18 * v, "bandpass", 700, 300); break;
       case "flak": noise(now, .12, .2 * v, "lowpass", 900); noise(now + .07, .12, .15 * v, "lowpass", 800); break;
+      case "torp": noise(now, .6, .12 * v, "lowpass", 400, 150); break;
       case "beam": tone(now, .35, .12 * v, "sawtooth", 1600, 200); tone(now, .35, .1 * v, "sine", 800, 100); break;
       case "zap": for (let i = 0; i < 4; i++) tone(now + i * .04, .05, .08 * v, "square", 300 + Math.random() * 1500); noise(now, .25, .12 * v, "highpass", 3000); break;
       case "bark": tone(now, .07, .12 * v, "sawtooth", 500, 300); tone(now + .1, .07, .1 * v, "sawtooth", 520, 280); break;
@@ -3893,37 +4272,65 @@ function sfx(name, x, y) {
     }
   } catch (e) {}
 }
-/* an original marching battle tune: drums, driving bass and stabs, made live */
-const MUS = { timer: null, next: 0, step: 0 };
+/* original battle music, made live: heavy drums, distorted power chords, bass and a lead line.
+   Three tracks take turns. */
+const MUS = { timer: null, next: 0, step: 0, track: 0, dist: null };
 const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);
-const PROG = [40, 40, 36, 38, 40, 40, 43, 35];          // E E C D E E G B (bass roots, one per bar)
+const TRACKS = [
+  { bpm: 132, prog: [40, 40, 43, 38, 40, 40, 36, 38], riff: [0, 0, 12, 0, 0, 0, 10, 0, 0, 0, 7, 0, 5, 0, 3, 0], kick: "x..xx...x..xx.x.", snare: "....x.......x...", lead: [64, 67, 71, 72, 71, 67, 66, 62] },
+  { bpm: 116, prog: [45, 45, 41, 43, 45, 45, 48, 47], riff: [0, -1, 0, -1, 0, 3, -1, 5, 0, -1, 0, -1, 7, 5, 3, -1], kick: "x.....x.x.....x.", snare: "....x.......x..x", lead: [69, 72, 76, 74, 72, 71, 69, 67] },
+  { bpm: 144, prog: [38, 38, 41, 36, 38, 38, 43, 45], riff: [0, 0, 0, 12, 0, 0, 10, 0, 0, 0, 0, 8, 0, 7, 0, 5], kick: "x.x.x.x.x.x.x.xx", snare: "....x.......x...", lead: [62, 65, 69, 70, 69, 65, 64, 60] }
+];
+function distCurve() { const n = 1024, c = new Float32Array(n), k = 60; for (let i = 0; i < n; i++) { const x = i * 2 / n - 1; c[i] = (1 + k) * x / (1 + k * Math.abs(x)); } return c; }
+function guitarBus() {
+  if (MUS.dist) return MUS.dist;
+  const ws = AC.createWaveShaper(); ws.curve = distCurve(); ws.oversample = "2x";
+  const lp = AC.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2600;
+  const g = AC.createGain(); g.gain.value = .16;
+  ws.connect(lp); lp.connect(g); g.connect(MUSG);
+  return MUS.dist = ws;
+}
+function chug(t, n, dur, vol) {
+  const bus = guitarBus();
+  for (const iv of [0, 7, 12]) for (const det of [-6, 6]) {
+    const o = AC.createOscillator(); o.type = "sawtooth"; o.frequency.value = NOTE(n + iv); o.detune.value = det;
+    const g = AC.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    o.connect(g); g.connect(bus); o.start(t); o.stop(t + dur + .02);
+  }
+}
 function musicStart() {
   if (!profile.music || !AC || MUS.timer || !G || G.demo) return;
-  MUS.next = AC.currentTime + .1;
+  MUS.next = AC.currentTime + .1; MUS.track = (Math.random() * TRACKS.length) | 0; MUS.step = 0;
   MUS.timer = setInterval(musicTick, 60);
 }
 function musicStop() { if (MUS.timer) { clearInterval(MUS.timer); MUS.timer = null; } }
 function musicTick() {
   if (!AC || AC.state !== "running") return;
-  const s16 = 60 / 124 / 4;
-  while (MUS.next < AC.currentTime + .3) { musicStep(MUS.step, MUS.next); MUS.next += s16; MUS.step = (MUS.step + 1) % 512; }
+  while (MUS.next < AC.currentTime + .3) {
+    const tr = TRACKS[MUS.track], s16 = 60 / tr.bpm / 4;
+    musicStep(tr, MUS.step, MUS.next); MUS.next += s16; MUS.step++;
+    if (MUS.step >= 16 * 8 * 6) { MUS.step = 0; MUS.track = (MUS.track + 1) % TRACKS.length; }
+  }
 }
-function musicStep(st, t) {
-  const bar = (st >> 4) % 8, phrase = (st >> 7) % 4, s = st % 16, root = PROG[bar];
-  const full = phrase > 0, out = MUSG;
+function musicStep(tr, st, t) {
+  const bar = (st >> 4) % 8, phrase = (st >> 7) % 6, s = st % 16, root = tr.prog[bar], out = MUSG;
+  const intro = phrase === 0, breakdown = phrase === 4 && bar < 4;
   try {
-    // kick + snare
-    if (s % 4 === 0) { tone(t, .22, .55, "sine", 120, 38, out); }
-    if (s === 4 || s === 12) noise(t, .16, .32, "bandpass", 1800, 900, out);
-    if (full && bar === 7 && s >= 12) noise(t, .08, .2, "bandpass", 2000, 1200, out);
-    // hats
-    if (full) noise(t, .03, s % 2 ? .05 : .09, "highpass", 7000, null, out);
-    // bass: driving eighths with an octave kick on the off beat
-    if (s % 2 === 0) { const n = (s === 6 || s === 14) ? root + 12 : root; tone(t, .16, .2, "sawtooth", NOTE(n), NOTE(n) * .99, out); tone(t, .16, .12, "square", NOTE(n - 12), null, out); }
-    // stabs
-    if (phrase >= 2 && (s === 3 || s === 7 || s === 11)) { for (const iv of [0, 7, 12]) tone(t, .12, .06, "square", NOTE(root + 24 + iv), null, out, .005); }
-    // melody line on the last phrase
-    if (phrase === 3 && s % 4 === 2) { const mel = [64, 67, 71, 69, 67, 64, 62, 59]; tone(t, .3, .07, "triangle", NOTE(mel[bar] + 12), null, out, .02); }
+    if (tr.kick[s] === "x" && !breakdown) { tone(t, .2, .7, "sine", 140, 40, out); noise(t, .02, .2, "highpass", 3000, null, out); }
+    if (tr.snare[s] === "x" && !intro) { noise(t, .18, .4, "bandpass", 1900, 1000, out); tone(t, .08, .15, "triangle", 220, 180, out); }
+    if (!intro && bar === 7 && s >= 12) noise(t, .07, .25, "bandpass", 2200, 1400, out);
+    if (s % 2 === 0 && !intro) noise(t, .03, s % 4 ? .05 : .08, "highpass", 8000, null, out);
+    if (s === 0 && bar === 0 && phrase > 0) noise(t, 1.2, .18, "highpass", 5000, null, out);
+    const r = tr.riff[s];
+    if (r >= 0 && !breakdown) {
+      chug(t, root + r - 12, r === 0 ? .1 : .22, .5);
+      tone(t, .14, .16, "square", NOTE(root + r - 24), null, out);
+    }
+    if (breakdown && s === 0) chug(t, root - 12, 1.6, .55);
+    if ((phrase === 2 || phrase === 3 || phrase === 5) && s % 4 === 0) {
+      const n = tr.lead[(bar + (s >> 2)) % 8] + (phrase === 5 ? 12 : 0);
+      tone(t, .45, .06, "sawtooth", NOTE(n), null, out, .01); tone(t, .45, .04, "square", NOTE(n) * 1.005, null, out, .01);
+    }
   } catch (e) {}
 }
 let evaT = null, evaLast = {}, speakAt = 0, VOICE = null, VOICE2 = null;
@@ -4108,7 +4515,7 @@ const CO_OPTS = [
   ["lvl", "How hard", [[1, "Easy"], [2, "Normal"], [3, "Hard"], [4, "Brutal"], [5, "Insane"]]],
   ["size", "Map size", [[64, "Medium"], [80, "Large"], [96, "Huge"]]],
   ["theme", "Land", [["green", "Grass"], ["desert", "Desert"], ["snow", "Snow"]]],
-  ["layout", "Map type", [["random", "Surprise me"], ["open", "Open"], ["lakes", "Lakes"], ["river", "River"], ["canyon", "Canyons"]]],
+  ["layout", "Map type", [["random", "Surprise me"], ["open", "Open"], ["lakes", "Lakes"], ["river", "River"], ["sea", "Sea"], ["islands", "Islands"], ["canyon", "Canyons"]]],
   ["start", "Start with", [["mcv", "Just an MCV"], ["base", "A small base"]]],
   ["credits", "Money", [[5000, "$5,000"], [8000, "$8,000"], [15000, "$15,000"], [30000, "$30,000"]]]
 ];
@@ -4148,7 +4555,7 @@ function onAct(m) {
 function snapUnits() {
   const u = [];
   for (const e of G.ents) if (!e.dead && e.k === "u")
-    u.push(e.id, TI[e.t], e.o, Math.round(e.x), Math.round(e.y), Math.round(e.dir * 100) / 100, Math.round(e.tdir * 100) / 100, Math.ceil(e.hp), (e.rank || 0) | (e.hit > 0 ? 4 : 0), U[e.t].air ? Math.round((e.z || 0) * 100) + (e.ammo || 0) * 1000 : e.cargo || 0);
+    u.push(e.id, TI[e.t], e.o, Math.round(e.x), Math.round(e.y), Math.round(e.dir * 100) / 100, Math.round(e.tdir * 100) / 100, Math.ceil(e.hp), (e.rank || 0) | (e.hit > 0 ? 4 : 0) | ((e.surf > 0 || e.det) ? 8 : 0), U[e.t].air ? Math.round((e.z || 0) * 100) + (e.ammo || 0) * 1000 : U[e.t].carry ? (e.pass || []).length : e.cargo || 0);
   return u;
 }
 function snapBuildings() {
@@ -4204,7 +4611,7 @@ function applyUnits(arr) {
     if (deadIds.has(id)) continue;
     let e = G.byId.get(id);
     if (!e || e.dead || e.k !== "u") { if (!U[type]) continue; e = clientUnit(id, type, o, x, y, dir); e.tdir = tdir; }
-    e.o = o; e.nx = x; e.ny = y; e.ndir = dir; e.ntdir = tdir; e.hp = hp; e.rank = fl & 3;
+    e.o = o; e.nx = x; e.ny = y; e.ndir = dir; e.ntdir = tdir; e.hp = hp; e.rank = fl & 3; e.det = !!(fl & 8); e.surf = 0;
     if (fl & 4) { e.hit = .12; e.lastHit = G.time; }
     if (U[type].air) { e.z = (ex % 1000) / 100; e.ammo = Math.floor(ex / 1000); } else e.cargo = ex;
     seen.add(id);
@@ -4237,7 +4644,7 @@ function applyBuildings(arr) {
 function applyPlayers(arr) {
   arr.forEach((s, i) => {
     const p = G.players[i]; if (!p) return;
-    p.credits = s.c; if (s.q) { for (const c of ["bld", "def", "inf", "veh", "air"]) if (!s.q[c]) s.q[c] = newQ(); p.q = s.q; }
+    p.credits = s.c; if (s.q) { for (const c of ["bld", "def", "inf", "veh", "air", "sea"]) if (!s.q[c]) s.q[c] = newQ(); p.q = s.q; }
     p.sw.charge = s.sw[0]; const was = p.sw.ready; p.sw.ready = !!s.sw[1]; if (!p.sw.ready && G.swAim && i === ME) G.swAim = false;
     p.kills = s.k; p.losses = s.l; p.away = !!s.a; p.harvested = s.h; p.built = s.b;
   });
@@ -4332,12 +4739,20 @@ function update(dt) {
   if (G.timers.length) { const due = G.timers.filter(t => t.at <= G.time); G.timers = G.timers.filter(t => t.at > G.time); for (const t of due) t.fn(); }
   G.recT -= dt;
   if (G.dirty || G.recT <= 0) { recount(); G.dirty = false; G.recT = .5; }
-  for (const p of G.players) { updProduction(p, dt); updSW(p, dt); }
+  for (const p of G.players) {
+    updProduction(p, dt); updSW(p, dt);
+    // computer players get a small trickle so they never get stuck with no money and no harvester
+    if (p.ai && (!p.human || p.away || G.demo) && p.nBld) p.credits += dt * 6 * AIL[p.ai.lvl].income;
+  }
   G.thinkT -= dt;
   if (G.thinkT <= 0) { G.thinkT = .5; for (const p of G.players) if (p.ai && p.alive && !(p.human && !p.away && !G.demo)) { p.ai.th -= .5; if (p.ai.th <= 0) { p.ai.th = 1; aiThink(p); } } }
   servicePaths();
   const n = G.ents.length;
-  for (let i = 0; i < n; i++) { const e = G.ents[i]; if (e.dead) continue; if (e.k === "u") updUnit(e, dt); else updBuilding(e, dt); }
+  for (let i = 0; i < n; i++) {
+    const e = G.ents[i]; if (e.dead) continue;
+    if (e.k === "u") { updUnit(e, dt); if (!isFinite(e.x) || !isFinite(e.y)) { console.warn("bad position", e.t, e.ord); e.x = isFinite(e.gx) ? e.gx : TILE * 2; e.y = isFinite(e.gy) ? e.gy : TILE * 2; goIdle(e); } }
+    else updBuilding(e, dt);
+  }
   separate();
   updProj(dt);
   if (G.ents.some(e => e.dead)) {
@@ -4396,7 +4811,7 @@ function refreshObjective() {
 function startDemo() {
   const prevME = ME; ME = 0;
   const seed = 1 + Math.floor(Math.random() * 1e6), themes = ["green", "desert", "snow"];
-  const cfg = { mode: "demo", side: Math.random() < .5 ? "blue" : "red", size: 40, theme: themes[seed % 3], layout: ["open", "lakes"][seed % 2], ore: 1.4, seed, survive: 0,
+  const cfg = { mode: "demo", gen: 2, side: Math.random() < .5 ? "blue" : "red", size: 40, theme: themes[seed % 3], layout: ["open", "lakes", "river", "sea"][seed % 4], ore: 1.4, seed, survive: 0,
     you: { start: "base", credits: 9000, units: ["ltank", "ltank", "htank", "rocket", "rifle", "rifle", "rifle"] }, foes: [{ start: "base2", lvl: 3 }], credits: 9000 };
   newBattle(cfg);
   G.demo = true;
@@ -4581,7 +4996,7 @@ const SK_OPTS = [
   ["side", "Your side", [["blue", "Blue Alliance"], ["red", "Red Legion"]]],
   ["size", "Map size", [[44, "Small"], [56, "Medium"], [72, "Large"], [90, "Huge"]]],
   ["theme", "Land", [["green", "Grass"], ["desert", "Desert"], ["snow", "Snow"]]],
-  ["layout", "Map type", [["random", "Surprise me"], ["open", "Open"], ["lakes", "Lakes"], ["river", "River"], ["canyon", "Canyons"]]],
+  ["layout", "Map type", [["random", "Surprise me"], ["open", "Open"], ["lakes", "Lakes"], ["river", "River"], ["sea", "Sea"], ["islands", "Islands"], ["canyon", "Canyons"]]],
   ["foes", "Enemies", [[1, "1"], [2, "2"], [3, "3"]]],
   ["lvl", "How hard", [[0, "Very easy"], [1, "Easy"], [2, "Normal"], [3, "Hard"], [4, "Brutal"], [5, "Insane"]]],
   ["start", "Start with", [["mcv", "Just an MCV"], ["base", "A small base"]]],

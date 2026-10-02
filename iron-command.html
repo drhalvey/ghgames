@@ -4408,11 +4408,14 @@ cv.addEventListener("pointerdown", e => {
   e.preventDefault();
   ac();
   try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  // a new first touch means no other finger is down: forget any finger whose lift we missed
+  if (e.isPrimary || e.pointerType === "mouse") { ptrs.clear(); gest = null; }
+  for (const [id, q] of ptrs) if (performance.now() - q.t > 4000) ptrs.delete(id);
   const [x, y] = evPos(e);
-  ptrs.set(e.pointerId, { x, y, sx: x, sy: y, btn: e.button, mouse: e.pointerType === "mouse" });
+  ptrs.set(e.pointerId, { x, y, sx: x, sy: y, btn: e.button, mouse: e.pointerType === "mouse", t: performance.now() });
   if (ptrs.size === 2) {
     const [a, b] = [...ptrs.values()];
-    gest = { type: "pinch", d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, z0: G.cam.z, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, w: toWorld((a.x + b.x) / 2, (a.y + b.y) / 2) };
+    gest = { type: "pinch", d0: Math.hypot(a.x - b.x, a.y - b.y), z0: G.cam.z, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, w: toWorld((a.x + b.x) / 2, (a.y + b.y) / 2) };
     G.boxRect = null;
   } else if (ptrs.size === 1) {
     gest = { type: "pending", cam: { x: G.cam.x, y: G.cam.y }, btn: e.button, mouse: e.pointerType === "mouse" };
@@ -4425,13 +4428,15 @@ cv.addEventListener("pointermove", e => {
   G.mouse = { x, y, in: true, isMouse: e.pointerType === "mouse" };
   const p = ptrs.get(e.pointerId);
   if (!p) { if (e.pointerType === "mouse") { if (G.place) setGhost(x, y); const [wx, wy] = toWorld(x, y), h = pickEntity(wx, wy); G.hoverId = h ? h.id : 0; } return; }
-  p.x = x; p.y = y;
+  p.x = x; p.y = y; p.t = performance.now();
   if (!gest) return;
   if (gest.type === "pinch" && ptrs.size >= 2) {
     const [a, b] = [...ptrs.values()];
     const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
     const [zmin, zmax] = zLimits();
-    G.cam.z = clamp(gest.z0 * d / gest.d0, zmin, zmax);
+    // softened so fingers that start close together do not zoom wildly
+    const k = (d + 90) / (gest.d0 + 90);
+    G.cam.z = clamp(gest.z0 * k, zmin, zmax);
     G.cam.x = gest.w[0] - mx / G.cam.z; G.cam.y = gest.w[1] - my / G.cam.z; clampCam();
     return;
   }
@@ -4452,7 +4457,12 @@ function endPtr(e) {
   if (!p) return;
   ptrs.delete(e.pointerId);
   if (!gest) return;
-  if (gest.type === "pinch") { if (ptrs.size === 0) gest = null; else gest = { type: "none" }; return; }
+  if (gest.type === "pinch") {
+    if (ptrs.size === 0) gest = null;
+    else if (ptrs.size === 1) { const r = [...ptrs.values()][0]; r.sx = r.x; r.sy = r.y; gest = { type: "pan", cam: { x: G.cam.x, y: G.cam.y } }; }
+    else { const [a, b] = [...ptrs.values()]; gest = { type: "pinch", d0: Math.hypot(a.x - b.x, a.y - b.y), z0: G.cam.z, w: toWorld((a.x + b.x) / 2, (a.y + b.y) / 2) }; }
+    return;
+  }
   if (e.type === "pointercancel") { gest = null; G.boxRect = null; return; }
   const [x, y] = [p.x, p.y];
   if (gest.type === "pending") {
@@ -4470,15 +4480,28 @@ function endPtr(e) {
 }
 cv.addEventListener("pointerup", endPtr);
 cv.addEventListener("pointercancel", endPtr);
+cv.addEventListener("lostpointercapture", e => { if (ptrs.has(e.pointerId)) endPtr({ pointerId: e.pointerId, type: "pointercancel" }); });
 cv.addEventListener("pointerleave", e => { if (G && G.mouse) G.mouse.in = false; });
 cv.addEventListener("contextmenu", e => e.preventDefault());
 cv.addEventListener("wheel", e => {
   if (!G || paused || G.demo) return;
   e.preventDefault();
   const [x, y] = evPos(e), w = toWorld(x, y), [zmin, zmax] = zLimits();
-  G.cam.z = clamp(G.cam.z * (e.deltaY < 0 ? 1.12 : 1 / 1.12), zmin, zmax);
+  const px = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1, dy = e.deltaY * px, dx = e.deltaX * px;
+  const notch = !e.ctrlKey && (e.deltaMode !== 0 || (dx === 0 && Math.abs(dy) >= 50 && Number.isInteger(dy)));
+  if (!e.ctrlKey && !notch) { G.cam.x += dx / G.cam.z; G.cam.y += dy / G.cam.z; clampCam(); return; }  // trackpad two-finger scroll: move the map
+  const f = e.ctrlKey ? Math.exp(-clamp(dy, -50, 50) * .01) : (dy < 0 ? 1.12 : 1 / 1.12);           // trackpad pinch: smooth; mouse wheel: one step
+  G.cam.z = clamp(G.cam.z * f, zmin, zmax);
   G.cam.x = w[0] - x / G.cam.z; G.cam.y = w[1] - y / G.cam.z; clampCam();
 }, { passive: false });
+// Safari on a Mac reports trackpad pinches as gesture events (on iPad the two touch points do the work instead)
+let gz0 = 1;
+cv.addEventListener("gesturestart", e => { if (G) gz0 = G.cam.z; });
+cv.addEventListener("gesturechange", e => {
+  if (!G || G.demo || ptrs.size >= 2 || !(e.scale > 0)) return;
+  const [x, y] = evPos(e), w = toWorld(x, y), [zmin, zmax] = zLimits();
+  G.cam.z = clamp(gz0 * e.scale, zmin, zmax); G.cam.x = w[0] - x / G.cam.z; G.cam.y = w[1] - y / G.cam.z; clampCam();
+});
 // radar: tap or drag to move the camera
 (() => {
   const mc = $("mini"); let down = false;

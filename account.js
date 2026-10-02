@@ -32,6 +32,7 @@
     "drop-goal-hero": { title: "Drop Goal Hero", keys: ["dropgoal-save"] },
     "runway-stars": { title: "Runway Stars", keys: ["runwaystars-save"] },
     "plains-of-abraham": { title: "Plains of Abraham", keys: ["plains-save"] },
+    "seven-years-war": { title: "Seven Years' War", keys: ["syw-save"] },
     "save-your-rabbit": { title: "Save Your Rabbit", keys: ["saverabbit-save"] },
     "iron-command": { title: "Iron Command", keys: ["ironcommand-save", "ironcommand-battle"] },
   };

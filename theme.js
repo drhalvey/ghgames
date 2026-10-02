@@ -7,9 +7,19 @@
     { id: "classic", name: "Classic", swatch: "#ffcc33" },
     { id: "67", name: "Six Seven", swatch: "#b8ff3c" },
     { id: "lava", name: "Lava", swatch: "#ff7a2f" },
-    { id: "ocean", name: "Ocean", swatch: "#37e2d5" }
+    { id: "ocean", name: "Ocean", swatch: "#37e2d5" },
+    // these three are bought with PhatCoin in the shop (me.html)
+    { id: "goldrush", name: "Gold Rush", swatch: "#ffd54a", paid: 250 },
+    { id: "galaxy", name: "Galaxy", swatch: "#b36bff", paid: 250 },
+    { id: "jungle", name: "Jungle", swatch: "#4fdc6a", paid: 250 }
   ];
-  function get() { try { return localStorage.getItem(KEY) || "classic"; } catch (e) { return "classic"; } }
+  function owns(id) {
+    var t = THEMES.filter(function (x) { return x.id === id; })[0];
+    if (!t || !t.paid) return true;
+    try { var l = JSON.parse(localStorage.getItem("ghacct_look") || "{}"); return (l.owned || []).indexOf("theme:" + id) >= 0 && !!localStorage.getItem("ghacct_token"); }
+    catch (e) { return false; }
+  }
+  function get() { var v = "classic"; try { v = localStorage.getItem(KEY) || "classic"; } catch (e) {} return owns(v) ? v : "classic"; }
   function set(t) { try { localStorage.setItem(KEY, t); } catch (e) {} }
   function apply(t) {
     if (t === "classic") document.documentElement.removeAttribute("data-theme");
@@ -37,6 +47,7 @@
     track("six_seven");
   }
   window.ghRain67 = rain;
+  window.ghTheme = { list: THEMES, get: get, set: function (id) { if (!owns(id)) return false; set(id); apply(id); return true; }, owns: owns };
 
   document.addEventListener("DOMContentLoaded", function () {
     // theme picker in the top bar
@@ -47,7 +58,8 @@
       wrap.innerHTML = '<button class="theme-btn" type="button" aria-label="Change theme" aria-haspopup="true"><span></span></button>'
         + '<div class="theme-menu" role="menu"><p>Theme</p>'
         + THEMES.map(function (t) {
-            return '<button type="button" role="menuitemradio" data-t="' + t.id + '"><i style="background:' + t.swatch + '"></i>' + t.name + "</button>";
+            return '<button type="button" role="menuitemradio" data-t="' + t.id + '"' + (t.paid ? ' data-paid="' + t.paid + '"' : "") + '><i style="background:' + t.swatch + '"></i>' + t.name
+              + (t.paid ? '<em class="lock">🔒 ' + t.paid + "</em>" : "") + "</button>";
           }).join("")
         + "</div>";
       var slot = document.getElementById("gh-account");
@@ -55,13 +67,18 @@
       var btn = wrap.querySelector(".theme-btn"), menu = wrap.querySelector(".theme-menu");
       function mark() {
         var cur = get();
-        menu.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", b.dataset.t === cur); });
+        menu.querySelectorAll("button").forEach(function (b) {
+          b.classList.toggle("on", b.dataset.t === cur);
+          var l = b.querySelector(".lock"); if (l) l.hidden = owns(b.dataset.t);
+        });
       }
+      window.ghThemeMark = function () { mark(); apply(get()); };
       mark();
-      btn.addEventListener("click", function (e) { e.stopPropagation(); menu.classList.toggle("open"); });
+      btn.addEventListener("click", function (e) { e.stopPropagation(); mark(); menu.classList.toggle("open"); });
       document.addEventListener("click", function () { menu.classList.remove("open"); });
       menu.addEventListener("click", function (e) {
         var b = e.target.closest("button[data-t]"); if (!b) return;
+        if (!owns(b.dataset.t)) { location.href = "me.html#shop-themes"; return; }
         set(b.dataset.t); apply(b.dataset.t); mark(); menu.classList.remove("open");
         track("theme_change", { theme: b.dataset.t });
         if (b.dataset.t === "67") rain();

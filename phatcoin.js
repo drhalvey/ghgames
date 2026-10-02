@@ -8,6 +8,8 @@
      rebirth      up to 25  (at most one a minute)
      daily bonus  20, 30, 40 ... up to 100 for days in a row (Perth time)
      leaderboard  100 for 1st today, 50 for top 3, 20 for top 10 (once a day per game)
+     playing      2 a minute while someone is actually playing (any game)
+     invite       100 to you, 50 to them, once a friend you invited has played a bit
      most earned from play in one day: 1000 (daily bonus and leaderboard on top)
    Players who aren't logged in collect up to 200 in their pocket on this
    device; it goes into their account the first time they log in.
@@ -60,7 +62,10 @@
 
   function refresh() {
     if (!token()) { bal = null; info = null; changed(); return Promise.resolve(); }
-    return rpc("gh_pc_get", { p_token: token() }).then(function (r) { info = r; setBal(r.balance); }, function () {});
+    return rpc("gh_pc_get", { p_token: token() }).then(function (r) {
+      info = r; setBal(r.balance);
+      if (window.GHAccount && r.lifetime != null) window.GHAccount.setLook({ level: r.level, lifetime: r.lifetime });
+    }, function () {});
   }
 
   // when someone logs in, put their pocket coins into the account
@@ -81,8 +86,46 @@
     deposit().then(refresh);
   }
 
+  // a little "+2" that floats up from the coin, for quiet earnings
+  function bump(n) {
+    if (!document.body) return;
+    var at = pill || document.querySelector(".gha-pill") || document.querySelector(".pc-hub-coin");
+    var d = document.createElement("div"); d.className = "pc-bump"; d.textContent = "+" + n;
+    if (at) { var r = at.getBoundingClientRect(); d.style.left = (r.left + r.width / 2) + "px"; d.style.top = r.top + "px"; }
+    else { d.style.right = "24px"; d.style.top = "24px"; }
+    document.body.appendChild(d); setTimeout(function () { d.remove(); }, 1300);
+  }
+
+  // ---------- PhatCoin for playing: 2 a minute while someone is actually playing ----------
+  var lastInput = Date.now();
+  ["pointerdown", "keydown", "touchstart", "mousemove", "wheel"].forEach(function (ev) {
+    window.addEventListener(ev, function () { lastInput = Date.now(); }, { passive: true, capture: true });
+  });
+  if (GAME !== "arcade") setInterval(function () {
+    if (document.hidden || Date.now() - lastInput > 90000) return;
+    earn("play", 2, "", true);
+  }, 60000);
+
+  // ---------- every leaderboard score checks today's top 10 for a PhatCoin prize ----------
+  function hookLeaderboard() {
+    var L = window.Leaderboard;
+    if (!L || L._pc || GAME === "arcade") return !!(L && L._pc);
+    var orig = L.submit;
+    L.submit = function (score) {
+      var p = orig.apply(L, arguments);
+      Promise.resolve(p).then(function () {
+        var nick = ""; try { nick = localStorage.getItem("ghgames_nick") || ""; } catch (e) {}
+        if (nick && token()) setTimeout(function () { leaderboard(nick, L._dir || "desc"); }, 1200);
+      });
+      return p;
+    };
+    L._pc = true;
+    return true;
+  }
+  if (!hookLeaderboard()) { var hk = setInterval(function () { if (hookLeaderboard()) clearInterval(hk); }, 1000); setTimeout(function () { clearInterval(hk); }, 20000); }
+
   // ---------- public API ----------
-  function earn(reason, amount, why) {
+  function earn(reason, amount, why, quiet) {
     amount = Math.max(0, Math.floor(amount || 0));
     if (!amount) return Promise.resolve(0);
     if (reason === "win") { var now = Date.now(); if (now - lastWin < 8000) return Promise.resolve(0); lastWin = now; }
@@ -90,14 +133,15 @@
       var p = pocket(), add = Math.min(amount, POCKET_MAX - p);
       if (add <= 0) { return Promise.resolve(0); }
       lsSet(POCKET, String(p + add));
-      toast("+" + add + " PhatCoin" + (why ? " for " + why : ""), p + add >= POCKET_MAX ? "Your pocket is full. Log in to keep earning!" : "Log in to keep it forever");
+      if (!quiet || p + add >= POCKET_MAX) toast("+" + add + " PhatCoin" + (why ? " for " + why : ""), p + add >= POCKET_MAX ? "Your pocket is full. Make an account to keep earning!" : "Make an account to keep it forever");
+      else bump(add);
       changed();
       return Promise.resolve(add);
     }
     return rpc("gh_pc_earn", { p_token: token(), p_game: GAME, p_reason: reason, p_amount: amount }).then(function (r) {
       setBal(r && r.balance);
-      if (r && r.amount > 0) toast("+" + r.amount + " PhatCoin" + (why ? " for " + why : ""));
-      else if (r && r.error === "daily_max") toast("PhatCoin daily max reached", "Come back tomorrow for more");
+      if (r && r.amount > 0) { if (quiet) bump(r.amount); else toast("+" + r.amount + " PhatCoin" + (why ? " for " + why : "")); }
+      else if (r && r.error === "daily_max" && !quiet) toast("PhatCoin daily max reached", "Come back tomorrow for more");
       return (r && r.amount) || 0;
     }, function () { return 0; });
   }
@@ -156,7 +200,11 @@
     + ".pc-btn.ghost{background:#3a2d0c;color:#fff8e0;box-shadow:none;border:1px solid #6b5418}"
     + ".pc-btn[disabled]{opacity:.5;cursor:default}"
     + ".pc-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}"
-    + ".pc-note{color:#ffd54a;font-weight:700;font-size:14px;margin:0 0 10px}";
+    + ".pc-note{color:#ffd54a;font-weight:700;font-size:14px;margin:0 0 10px}"
+    + ".pc-bump{position:fixed;z-index:2147483500;transform:translate(-50%,0);color:#ffd54a;font:900 18px/1 system-ui,sans-serif;text-shadow:0 2px 0 #8a5a00,0 0 8px rgba(0,0,0,.6);pointer-events:none;animation:pcBump 1.3s ease-out forwards}"
+    + "@keyframes pcBump{from{opacity:0;transform:translate(-50%,6px) scale(.8)}20%{opacity:1;transform:translate(-50%,-6px) scale(1.15)}to{opacity:0;transform:translate(-50%,-40px)}}"
+    + ".pc-lvl{height:10px;border-radius:99px;background:#3a2d0c;overflow:hidden;margin:2px 0 6px}.pc-lvl i{display:block;height:100%;background:linear-gradient(90deg,#ffc21a,#fff1a8)}"
+    + ".pc-small{font-size:12.5px;color:#c8b680}";
 
   var pill = null, toastEl = null, toastT = 0;
   function injectCSS() {
@@ -166,6 +214,12 @@
   }
   function fmt(n) { return Number(n || 0).toLocaleString(); }
   function esc(t) { var d = document.createElement("div"); d.textContent = t == null ? "" : String(t); return d.innerHTML; }
+
+  function lvlBar(life) {
+    var n = Math.floor(Math.sqrt(Math.max(0, life) / 25)) + 1, a = 25 * (n - 1) * (n - 1), b = 25 * n * n;
+    return '<p style="margin:0 0 2px"><b style="color:#ffd54a">Level ' + n + '</b> <span class="pc-small">' + fmt(life - a) + " / " + fmt(b - a) + ' to level ' + (n + 1) + '</span></p>'
+      + '<div class="pc-lvl"><i style="width:' + Math.round(100 * (life - a) / (b - a)) + '%"></i></div>';
+  }
 
   function paint() {
     if (!pill) return;
@@ -200,12 +254,13 @@
       + "<h2>" + COIN.replace(/18/g, "28") + "PhatCoin</h2>"
       + '<div class="pc-big">' + fmt(shown()) + "</div>"
       + (note ? '<p class="pc-note">' + esc(note) + "</p>" : "")
+      + (logged && info && info.lifetime != null ? lvlBar(info.lifetime) : "")
       + (logged ? "<p>The same PhatCoin in every GH Games game, on any device.</p>"
                 : "<p>These are in your pocket on this device (up to " + POCKET_MAX + "). Log in to keep them forever, spend them, and get a daily bonus.</p>")
-      + "<ul><li>Win: up to 5</li><li>Rebirth: 25</li><li>Daily bonus: 20, then 10 more each day in a row, up to 100</li>"
-      + "<li>Today's leaderboard: 100 for 1st, 50 for top 3, 20 for top 10</li></ul>"
+      + "<ul><li>Playing any game: 2 a minute</li><li>Win: up to 5</li><li>Rebirth: 25</li><li>Daily bonus: 20, then 10 more each day in a row, up to 100</li>"
+      + "<li>Today's leaderboard: 100 for 1st, 50 for top 3, 20 for top 10</li><li>Invite a friend: 100 when they start playing</li></ul>"
       + '<div class="pc-row">' + daily + "</div>"
-      + '<div class="pc-row">' + (logged ? "" : '<button class="pc-btn" id="pcLogin">Log in</button>')
+      + '<div class="pc-row">' + (logged ? '<a class="pc-btn" href="me.html#shop" style="text-align:center;text-decoration:none">🛍️ Shop</a>' : '<button class="pc-btn" id="pcLogin">Make an account</button>')
       + '<button class="pc-btn ghost" id="pcClose">Close</button></div></div>';
     document.body.appendChild(bg);
     bg.querySelector("#pcClose").onclick = close;
@@ -233,7 +288,7 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
 
   window.PhatCoin = {
-    earn: earn, spend: spend, leaderboard: leaderboard, open: open, refresh: refresh,
+    earn: earn, spend: spend, leaderboard: leaderboard, open: open, refresh: refresh, claimDaily: claimDaily, info: function () { return info; },
     balance: shown, loggedIn: function () { return !!token(); },
     onChange: function (f) { listeners.push(f); }
   };

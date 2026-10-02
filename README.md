@@ -12,8 +12,13 @@ ghgames/
   leaderboards.html  all the leaderboards on one page
   site.css        shared look for the homepage and leaderboards page
   favicon.svg     the yellow GH logo
-  account.js      player accounts + online saves (username/password, no email) — see below
+  account.js      player accounts, online saves, avatars/looks, invite links, share sheet, link-a-device — see below
   phatcoin.js     PhatCoin, the one coin for every game, kept in the player's account — see below
+  hub.js          homepage PhatCoin hub (wallet, daily bonus, shop teaser, friends) and "Continue playing"
+  me.html, me.js  the player's page: PhatCoin shop, friends + gifts, invite link, account settings
+  manifest.webmanifest, sw.js, icons/   "Add to Home Screen" app install (network-first, so updates show at once)
+  og/             link-preview pictures for iMessage/WhatsApp (one per game + home.png)
+  sql/            the database changes, kept for the record
   analytics.js    Google Analytics (set GA_ID inside; Frondi Clicker pages do not load it)
   crazy-dads.html dads vs kids chase: soda knockouts, then the Monica & Didi boss (online via Supabase Realtime)
   bro-got-slammed.html  Pedigreers vs Bro Got Slammed: 4-minute team fights, wins buy damage upgrades (online via Supabase Realtime)
@@ -62,7 +67,8 @@ Make a free [GitHub](https://github.com) account, then a new **public** reposito
 1. Build a self-contained game file (one file, plain HTML/JS), touch-friendly for iPad, saved as `<name>.html`.
 2. Put `<script src="analytics.js" defer></script>` under its `<title>` so visits are counted.
 3. In `index.html`, copy an existing `<a class="tile">` block to the top of the grid and change the link, the `--glow` colour, `data-tags`, the SVG cover art, the name, the one-line description and the two tags. The hero rail and the filters pick it up automatically. Give the newest game the `<span class="badge new">New</span>` badge and take it off the old one.
-4. If it saves progress, add `<script src="account.js" data-game="<name>"></script>` in `<head>` (before the game's code) and add the game's localStorage key(s) to `GAMES` at the top of `account.js`. Players who are logged in then get that game saved online too.
+4. Add `<script src="account.js" data-game="<name>"></script>` and then `<script src="phatcoin.js" data-game="<name>" data-pill="none"></script>` in `<head>` (before the game's code), and add the game's title and localStorage key(s) to `GAMES` at the top of `account.js`. The game then saves online, earns PhatCoin for play time and leaderboard places, and appears in "Continue playing". Call `PhatCoin.earn("win", 5, "why")` when someone wins.
+   Copy the og/link-preview `<meta>` block from another game and make `og/<name>.png` (1200x630).
 5. If it has a leaderboard, add a `<div id="lb-...">` and a `Leaderboard.mount(...)` line to `leaderboards.html`.
 6. Push to GitHub. Live in under a minute.
 
@@ -73,24 +79,25 @@ Make a free [GitHub](https://github.com) account, then a new **public** reposito
 
 ## Accounts and online saves
 
-- Players can make an account with just a **username and password** (no email, no real name). Playing without an account still works exactly as before.
-- Each game still saves in the browser. When logged in, `account.js` copies the save to Supabase every 15 seconds and when the page closes, and pulls it down on any other device.
-- If a device has different progress from the online save, the player is asked which one to keep.
-- Logging out saves everything online, then clears the games off that device so the next player starts fresh.
-- Five wrong passwords lock that account for 10 minutes. At most 5 new accounts per hour from one internet connection.
-- Nicknames on leaderboards and in Wall Hop gifts are still free text and are not tied to accounts.
+- Username + password only (no email, no real name). The sign-up box suggests a fun name (🎲) and shows the password on request.
+- At sign-up every player gets a **secret save code** (12 letters). "Forgot password?" takes the username + save code and sets a new password. A logged-in player can make a new code (needs their password).
+- **Log in on another device**: a logged-in player taps it and gets a 6-letter code that works once for 10 minutes. On the other device: Log in → "Got a code from another device?".
+- Each game still saves in the browser; logged in, `account.js` copies the save to Supabase every 15 seconds and when the page closes, and pulls it down on any other device. Different progress on two devices asks which to keep.
+- Logging out saves everything online, then clears the games off that device.
+- Five wrong passwords lock the account for 10 minutes. Ten wrong save codes or link codes from one connection lock those for 15 minutes. At most 5 new accounts per hour from one connection.
 - **Frondi Clicker is deliberately left out**: its privacy policy (and the iPhone app) promise no accounts.
-- Resetting a forgotten password (Ed, via the Supabase SQL editor):
+- Resetting a password by hand (Supabase SQL editor):
   `update public.accounts set pass_hash = extensions.crypt('NEWPASS', extensions.gen_salt('bf', 8)), failed_logins = 0, locked_until = null where username = 'theirname';`
 
-## PhatCoin (the arcade coin)
+## PhatCoin (the arcade coin, the heart of the site)
 
-- One coin for all of GH Games, stored in the player's account on Supabase (`pc_wallets`, every change logged in `pc_log`), so it is the same on every device.
-- The server sets the limits, not the game: win up to 5 (one per 8 seconds), rebirth 25 (one a minute), daily bonus 20 rising by 10 a day in a row to 100 (Perth days), today's leaderboard top 10 once a day per game (100 / 50 / 20). Most from play in one day: 1000.
-- Not logged in: up to 200 sit in a pocket on that device and move into the account on first log-in. Spending needs an account.
-- It is not real money and cannot be bought or cashed out. Each game keeps its own in-game coins for its own balance; PhatCoin is the coin that works everywhere.
-- Add to a game: `<script src="phatcoin.js" data-game="<name>"></script>` after `account.js`, then call `PhatCoin.earn("win", n, "why")`, `PhatCoin.spend(cost, "item").then(ok => ...)`, `PhatCoin.leaderboard(nick, "desc")`. `data-pill="none"` hides the floating coin if the game shows it in its own HUD.
-- Live in: Steal an Animal (PhatCoin Shop: Coin Rush, Lucky Charm, Time Warp, Mystery Egg, Super Lock).
-- Also earned in: Plains of Abraham (3 to 5 for a victory, by stars).
-- Give someone PhatCoin by hand (Supabase SQL editor):
-  `update public.pc_wallets w set balance = balance + 100 from public.accounts a where a.id = w.account_id and a.username = 'theirname';`
+- One coin for all of GH Games, stored in the player's account (`pc_wallets`, every change logged in `pc_log`, all credits go through `pc_credit`).
+- Earned (server-capped, so a game can't overpay): **playing any game 2 a minute** (only while someone is touching the screen), win up to 5 (one per 8 s), rebirth 25 (one a minute), daily bonus 20 rising 10 a day in a row to 100 (Perth days), today's top 10 once a day per game (100/50/20, checked automatically after every leaderboard score), **invites** (see below). Most from play in one day: 1000.
+- Not logged in: up to 200 sit in a pocket on that device and move into the account on first log-in.
+- **Level** = floor(sqrt(PhatCoin earned ever / 25)) + 1. Spending never lowers it.
+- **Shop** (`shop_items`, me.html): avatars, frames, name colours and 3 paid site themes (Gold Rush, Galaxy, Jungle; the old 4 themes stay free). Prices live in the `shop_items` table, so change a price or add an item there with no code change (new avatar emoji go in `AVATARS` in account.js; new frames/colours need CSS in account.js).
+- In-game shops still work: Steal an Animal's PhatCoin Shop uses `PhatCoin.spend`.
+- **Friends**: add by username → they accept → you see their level and what they're playing, a friends leaderboard, and can gift up to 100 PhatCoin a day. Gifts never count towards invite bonuses.
+- **Invites**: `ghgames.au/?invite=theirname` (any page). When the new player has earned 100 PhatCoin from actual play, the inviter gets 100 and the new player 50. Max 20 paid invites per player.
+- It is not real money and cannot be bought or cashed out.
+- Give someone PhatCoin by hand: `update public.pc_wallets w set balance = balance + 100 from public.accounts a where a.id = w.account_id and a.username = 'theirname';`

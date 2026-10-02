@@ -36,6 +36,7 @@
     "seven-years-war-classic": { title: "Seven Years' War Classic", keys: ["syw-classic-save"] },
     "save-your-rabbit": { title: "Save Your Rabbit", keys: ["saverabbit-save"] },
     "iron-command": { title: "Iron Command", keys: ["ironcommand-save", "ironcommand-battle"] },
+    "poo-simulator": { title: "Poo Simulator", keys: ["poosim-save"] },
   };
 
   var TOKEN = "ghacct_token", USER = "ghacct_user", NICK = "ghgames_nick";

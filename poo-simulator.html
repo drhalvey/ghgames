@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Poo Simulator</title>
+<meta property="og:title" content="Poo Simulator · GH Games">
+<meta property="og:description" content="Push out bigger and bigger poos for coins. Eat food for more release power, unlock 11 worlds, rebirth for multis and beat your biggest poo ever.">
+<meta property="og:image" content="https://ghgames.au/og/poo-simulator.png">
+<meta property="og:url" content="https://ghgames.au/poo-simulator.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#1a120b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Games">
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="poo-simulator"></script>
+<script src="phatcoin.js" data-game="poo-simulator"></script>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#1a120b; --panel:#2a1d12; --panel2:#3a2918; --line:#5e4327;
+  --ink:#fff8ef; --muted:#d3bfa6; --gold:#ffc93c; --green:#5fd36f; --red:#ff6262; --blue:#6cc0ff; --poo:#8a5a2b;
+  --display:"Lilita One","Arial Rounded MT Bold","Trebuchet MS",sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;touch-action:manipulation}
+button,a,canvas{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.stage,.stage *,button,#push{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+html,body{background:var(--bg);margin:0}
+body{font-family:var(--body);color:var(--ink);padding:14px 14px 60px;font-size:15px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.home{font-weight:900;color:var(--muted);text-decoration:none;font-size:14px}
+.home:hover{color:var(--gold)}
+h1{font-family:var(--display);font-weight:400;margin:0;font-size:30px;letter-spacing:.5px}
+h1 span{color:#c98a4b}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.hud{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:6px 12px;font-weight:900;white-space:nowrap}
+.chip b{color:var(--gold)}
+.stage{position:relative;width:100%;aspect-ratio:1000/520;background:#000;border-radius:16px;overflow:hidden;border:3px solid var(--line)}
+canvas{display:block;width:100%;height:100%}
+.toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(30,18,8,.92);border:2px solid var(--gold);border-radius:14px;padding:8px 14px;font-weight:900;max-width:88%;text-align:center;pointer-events:none;opacity:0;transition:opacity .25s;font-size:clamp(13px,2vw,17px)}
+.toast.on{opacity:1}
+.btn{font-family:var(--display);font-size:18px;border:0;border-radius:14px;padding:10px 18px;cursor:pointer;color:#24170a;background:var(--gold);box-shadow:0 5px 0 #a8740a}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #a8740a}
+.btn.alt{background:#8fd3ff;box-shadow:0 5px 0 #2f78a8}
+.btn.green{background:var(--green);box-shadow:0 5px 0 #23803a}
+.btn.pink{background:#ff8fc0;box-shadow:0 5px 0 #a8406d}
+.btn.small{font-size:15px;padding:7px 12px;border-radius:11px;box-shadow:0 4px 0 #a8740a}
+.btn.small.alt{box-shadow:0 4px 0 #2f78a8}
+.btn:disabled{opacity:.4;cursor:default}
+.controls{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap}
+#push{flex:1 1 300px;min-height:92px;font-family:var(--display);font-size:clamp(28px,6vw,44px);border:0;border-radius:22px;cursor:pointer;color:#fff;
+  background:linear-gradient(#a8703a,#7a4b20);box-shadow:0 8px 0 #4a2c10, inset 0 3px 0 rgba(255,255,255,.25);text-shadow:0 3px 0 #3d230b;letter-spacing:1px}
+#push.down{transform:translateY(5px);box-shadow:0 3px 0 #4a2c10, inset 0 3px 0 rgba(255,255,255,.25)}
+#push small{display:block;font-family:var(--body);font-weight:800;font-size:13px;opacity:.85;letter-spacing:0;text-shadow:none}
+.side{display:flex;flex-direction:column;gap:10px;flex:0 1 230px}
+.side .btn{width:100%}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{font:inherit;font-weight:900;font-size:15px;background:var(--panel);color:var(--muted);border:2px solid var(--line);border-radius:12px;padding:8px 14px;cursor:pointer}
+.tabs button.on{background:var(--gold);color:#24170a;border-color:var(--gold)}
+.panel{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:12px}
+.panel h3{margin:0 0 4px;font-family:var(--display);font-weight:400;font-size:22px;color:var(--gold)}
+.help{color:var(--muted);font-weight:700;font-size:14px;margin:0}
+.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin-top:10px}
+.item{background:var(--panel2);border:2px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.item.locked{opacity:.5}
+.item .hd{display:flex;align-items:center;gap:10px}
+.item .em{font-size:34px;line-height:1;width:42px;text-align:center}
+.item .nm{font-weight:900;font-size:16px}
+.item .sub{color:var(--muted);font-weight:800;font-size:13px}
+.item .row{display:flex;gap:6px}
+.item .row .btn{flex:1;white-space:nowrap}
+.item.cur{border-color:var(--gold)}
+.wsel{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.wsel button{font:inherit;font-weight:900;font-size:14px;background:var(--panel2);color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:5px 10px;cursor:pointer}
+.wsel button.on{border-color:var(--gold);color:var(--gold)}
+.big{font-family:var(--display);font-size:26px;color:var(--gold)}
+.modal{position:fixed;inset:0;background:rgba(10,6,2,.75);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal.on{display:flex}
+.modal .box{background:var(--panel);border:3px solid var(--gold);border-radius:20px;padding:18px 20px;width:min(440px,100%);text-align:center}
+.modal h2{font-family:var(--display);font-weight:400;font-size:30px;margin:0 0 10px;color:var(--gold)}
+.rec{background:var(--panel2);border-radius:14px;padding:12px;margin:8px 0}
+.rec .lbl{font-weight:900;color:var(--muted);font-size:14px}
+.rec .val{font-family:var(--display);font-size:34px;color:#e7a660}
+.rec .when{font-weight:700;color:var(--muted);font-size:13px}
+.sound{background:none;border:2px solid var(--line);color:var(--ink);border-radius:10px;font-size:18px;padding:4px 10px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="home" href="index.html">← GH Games</a>
+  <div class="top">
+    <h1>Poo <span>Simulator</span></h1>
+    <div class="hud">
+      <div class="chip">🪙 <b id="hCoins">0</b></div>
+      <div class="chip">💪 Power <b id="hPower">5</b></div>
+      <div class="chip">🌍 <b id="hWorld">1</b></div>
+      <div class="chip">♻️ Rebirths <b id="hReb">0</b></div>
+      <button class="sound" id="snd" title="Sound on or off">🔊</button>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <canvas id="cv" width="1000" height="520"></canvas>
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <div class="controls">
+    <button id="push">HOLD TO PUSH 💩<small>Let go in the gold zone for a PERFECT poo (2×). Space bar works too.</small></button>
+    <div class="side">
+      <button class="btn" id="bRec">🏆 Biggest poo</button>
+      <button class="btn alt" id="bAuto">🤖 Auto Poo</button>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button data-t="food" class="on">🍔 Food</button>
+    <button data-t="worlds">🌍 Worlds</button>
+    <button data-t="rebirth">♻️ Rebirth</button>
+  </div>
+
+  <div class="panel" id="pFood">
+    <h3>Food shop</h3>
+    <p class="help">Every bite gives you more release power. More power = bigger poo = more coins. Better food unlocks in higher worlds.</p>
+    <div class="wsel" id="foodWorlds"></div>
+    <div class="list" id="foods"></div>
+  </div>
+  <div class="panel" id="pWorlds" hidden>
+    <h3>Worlds</h3>
+    <p class="help">Worlds cost coins. Every world gives a bigger coin multi and better food. You keep your worlds when you rebirth.</p>
+    <div class="list" id="worlds"></div>
+  </div>
+  <div class="panel" id="pReb" hidden>
+    <h3>Rebirth</h3>
+    <p class="help">Rebirthing takes your coins and food back to zero, but every rebirth adds +1× to your food multi and your coin multi forever. You keep your worlds and Auto Poo.</p>
+    <div id="reb" style="margin-top:10px"></div>
+  </div>
+
+  <div id="lb"></div>
+</div>
+
+<div class="modal" id="mRec">
+  <div class="box">
+    <h2>🏆 Biggest poo</h2>
+    <div class="rec"><div class="lbl">BIGGEST POO EVER</div><div class="val" id="rEver">none yet</div><div class="when" id="rEverWhen"></div></div>
+    <div class="rec"><div class="lbl">BIGGEST POO THIS SESSION</div><div class="val" id="rSess">none yet</div><div class="when" id="rSessWhen"></div></div>
+    <div class="rec"><div class="lbl">POOS DONE</div><div class="val" id="rCount" style="font-size:26px">0</div></div>
+    <button class="btn" id="rClose">Back to pooing</button>
+  </div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script>
+(function(){
+"use strict";
+// =====================================================================
+// Poo Simulator: George's game. Poo for coins, eat food for release power,
+// buy worlds, rebirth for food and coin multis, beat your biggest poo.
+// =====================================================================
+const SAVE = "poosim-save";
+const cv = document.getElementById("cv"), X = cv.getContext("2d");
+const VW = 1000, VH = 520;
+const $ = id => document.getElementById(id);
+
+// ---------- George's big numbers: K M B T Qa Qi Sx Sp Oc No Dc, UDc ... NoDc, Vg ----------
+const SMALL = ["K","M","B","T","Qa","Qi","Sx","Sp","Oc","No"];
+const NU = ["","U","D","T","Qa","Qi","Sx","Sp","Oc","No"];
+const NT = ["","Dc","Vg","Tg","Qag","Qig","Sxg","Spg","Ocg","Nog"];
+const NH = ["","Ce","Du","Tr","Qd","Qn","Sc","St","Og","Nn"];
+function illion(N){ return N < 10 ? SMALL[N] : NU[N % 10] + NT[Math.floor(N / 10) % 10] + NH[Math.floor(N / 100) % 10]; }
+function fmt(n){
+  if (!isFinite(n)) return "MAX";
+  if (n < 1000) return n < 10 && n % 1 ? n.toFixed(1) : Math.floor(n).toLocaleString();
+  const e = Math.floor(Math.log10(n) / 3 + 1e-9);
+  const v = n / Math.pow(10, e * 3);
+  return (v >= 100 ? Math.floor(v) : v >= 10 ? v.toFixed(1) : v.toFixed(2)) + illion(e - 1);
+}
+const kg = n => fmt(n) + " kg";
+
+// ---------- worlds and foods ----------
+const WORLDS = [
+  { name:"Bathroom",          sky:["#bfe6ff","#e9f6ff"], ground:"#d9d2c4", tile:true, loo:"#ffffff", props:["🧻","🪥","🛁"],
+    foods:[["Toast","🍞"],["Banana","🍌"],["Baked Beans","🥫"],["Pizza","🍕"]] },
+  { name:"Backyard Dunny",    sky:["#7cc6ff","#d7f0ff"], ground:"#5fb04a", loo:"#efe6d0", props:["🌳","🕷️","🌻"],
+    foods:[["Sausage Sizzle","🌭"],["Meat Pie","🥧"],["Burger","🍔"],["Hot Chips","🍟"]] },
+  { name:"Camping Long Drop", sky:["#203a5e","#f39c5a"], ground:"#4d7a34", loo:"#c9b48a", props:["⛺","🔥","🌲"],
+    foods:[["Baked Potato","🥔"],["Damper","🥖"],["Chilli Con Carne","🌶️"],["Corn on the Cob","🌽"]] },
+  { name:"School Toilets",    sky:["#9ad0c9","#e6f4f1"], ground:"#b9b0a2", tile:true, loo:"#f3f3f3", props:["🎒","📚","🏫"],
+    foods:[["Chicken Nuggets","🍗"],["Spaghetti","🍝"],["Tacos","🌮"],["Burrito","🌯"]] },
+  { name:"Candy Land",        sky:["#ff9fd2","#ffe3f3"], ground:"#ffd1ea", loo:"#ffb3dd", props:["🍭","🍬","🧁"],
+    foods:[["Donut","🍩"],["Birthday Cake","🎂"],["Ice Cream","🍨"],["Mega Lollies","🍬"]] },
+  { name:"Under the Sea",     sky:["#0a4e8a","#2fb3d6"], ground:"#e4cf8f", loo:"#d4f2ff", props:["🐠","🐙","🪸"],
+    foods:[["Sushi","🍣"],["Fish and Chips","🐟"],["Prawns","🍤"],["Giant Crab","🦀"]] },
+  { name:"Dino Jungle",       sky:["#5aa36e","#c7ecb4"], ground:"#3f7a2c", loo:"#b9a27a", props:["🦖","🌴","🦕"],
+    foods:[["Coconut","🥥"],["Pineapple","🍍"],["Dino Drumstick","🍖"],["Dino Egg","🥚"]] },
+  { name:"Volcano",           sky:["#3a0d05","#d8481a"], ground:"#3b2a26", loo:"#5a4a44", props:["🌋","🔥","🪨"],
+    foods:[["Lava Curry","🍛"],["Ghost Chilli","🌶️"],["Fire Ramen","🍜"],["Volcano Wings","🍗"]] },
+  { name:"Space Station",     sky:["#05041a","#241a5c"], ground:"#8c93a8", loo:"#cfd6e6", props:["🚀","🛰️","👽"],
+    foods:[["Space Pouch","🧃"],["Moon Cheese","🧀"],["Star Fruit","⭐"],["Comet Cookies","🍪"]] },
+  { name:"Golden Palace",     sky:["#6b3fa0","#f1c75b"], ground:"#c99a2e", loo:"#ffd34d", props:["👑","💎","🏰"],
+    foods:[["Golden Steak","🥩"],["Royal Roast","🦃"],["Diamond Cake","🍰"],["King's Pudding","🍮"]] },
+  { name:"Galaxy Throne",     sky:["#000000","#3b0a6e"], ground:"#2a1450", loo:"#9f7bff", props:["🪐","🌌","☄️"],
+    foods:[["Planet Burger","🪐"],["Black Hole Beans","🌑"],["Supernova Pie","💥"],["Infinity Feast","♾️"]] },
+];
+const NF = WORLDS.length * 4;
+const BASE_POWER = 5;
+const FOOD_POWER = k => 5 * Math.pow(4, k);                 // power per bite of food k
+const FOOD_COST  = (k, n) => Math.ceil(15 * Math.pow(4.6, k) * Math.pow(1.17, n)); // nth bite of food k
+const WORLD_MULT = w => Math.pow(2.5, w);                    // coin multi for being in world w
+const WORLD_COST = w => w === 0 ? 0 : 60000 * Math.pow(3000, w - 1);   // each world costs way more
+const REB_COST   = r => 50000 * Math.pow(20, r);
+const REB_MULT   = r => 1 + r;                               // 1x, 2x, 3x ...
+const AUTO_COST  = 2000;
+
+// ---------- save ----------
+let S = { coins:0, foods:[], worlds:1, world:0, rebirths:0, auto:false, autoOn:true, sound:true,
+          best:0, bestAt:0, bestWorld:0, poos:0, total:0 };
+try { const j = JSON.parse(localStorage.getItem(SAVE)); if (j) Object.assign(S, j); } catch (e) {}
+while (S.foods.length < NF) S.foods.push(0);
+function save(){ try { localStorage.setItem(SAVE, JSON.stringify(S)); } catch (e) {} }
+setInterval(save, 4000); addEventListener("pagehide", save);
+let sess = { best:0, at:0, world:0 };
+
+function power(){
+  let p = BASE_POWER;
+  for (let k = 0; k < NF; k++) if (S.foods[k]) p += S.foods[k] * FOOD_POWER(k);
+  return p * REB_MULT(S.rebirths);
+}
+const coinMulti = () => WORLD_MULT(S.world) * REB_MULT(S.rebirths);
+
+// ---------- sound (made in the browser, no files) ----------
+let AC = null;
+function ac(){ if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (AC && AC.state === "suspended") AC.resume(); return AC; }
+function fart(size){
+  if (!S.sound) return; const a = ac(); if (!a) return;
+  const t = a.currentTime, dur = Math.min(2.2, 0.35 + Math.log10(size + 1) * 0.12);
+  const len = Math.floor(a.sampleRate * dur), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  const src = a.createBufferSource(); src.buffer = buf;
+  const lp = a.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 260; lp.Q.value = 8;
+  const osc = a.createOscillator(); osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(70 + Math.random() * 30, t); osc.frequency.linearRampToValueAtTime(45, t + dur);
+  const og = a.createGain(); og.gain.value = 0.35;
+  const wob = a.createOscillator(); wob.frequency.value = 18 + Math.random() * 14;
+  const wg = a.createGain(); wg.gain.value = 160; wob.connect(wg); wg.connect(lp.frequency);
+  const g = a.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.9, t + 0.04);
+  g.gain.setValueAtTime(0.8, t + dur * 0.7); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(lp); osc.connect(og); og.connect(lp); lp.connect(g); g.connect(a.destination);
+  src.start(t); osc.start(t); wob.start(t); src.stop(t + dur); osc.stop(t + dur); wob.stop(t + dur);
+}
+function plop(){
+  if (!S.sound) return; const a = ac(); if (!a) return; const t = a.currentTime;
+  const o = a.createOscillator(), g = a.createGain(); o.type = "sine";
+  o.frequency.setValueAtTime(700, t); o.frequency.exponentialRampToValueAtTime(140, t + 0.18);
+  g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + 0.25);
+}
+function ding(hi){
+  if (!S.sound) return; const a = ac(); if (!a) return; const t = a.currentTime;
+  [0, 0.08].forEach((dt, i) => { const o = a.createOscillator(), g = a.createGain(); o.type = "triangle";
+    o.frequency.value = (hi ? 1320 : 990) * (i ? 1.5 : 1); g.gain.setValueAtTime(0.18, t + dt); g.gain.exponentialRampToValueAtTime(0.001, t + dt + 0.25);
+    o.connect(g); g.connect(a.destination); o.start(t + dt); o.stop(t + dt + 0.3); });
+}
+function flush(){
+  if (!S.sound) return; const a = ac(); if (!a) return; const t = a.currentTime, dur = 0.9;
+  const len = Math.floor(a.sampleRate * dur), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  const s = a.createBufferSource(); s.buffer = buf; const f = a.createBiquadFilter(); f.type = "bandpass";
+  f.frequency.setValueAtTime(1800, t); f.frequency.exponentialRampToValueAtTime(300, t + dur);
+  const g = a.createGain(); g.gain.setValueAtTime(0.25, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  s.connect(f); f.connect(g); g.connect(a.destination); s.start(t); s.stop(t + dur);
+}
+
+// ---------- pushing ----------
+const CHARGE_TIME = 1.1;            // seconds to fill the meter
+const GOLD_LO = 0.84, GOLD_HI = 0.96;
+let charging = false, charge = 0, over = 0;
+let pooAnim = null, pile = null, parts = [], floats = [], shake = 0, t = 0, autoT = 0, lastPooAt = 0;
+
+function startPush(){ if (charging) return; ac(); charging = true; charge = 0; over = 0; $("push").classList.add("down"); }
+function endPush(){
+  if (!charging) return; charging = false; $("push").classList.remove("down");
+  let f, label = "";
+  if (charge >= GOLD_LO && charge <= GOLD_HI) { f = 2; label = "PERFECT!"; }
+  else f = 0.3 + 0.7 * Math.min(1, charge);
+  doPoo(f, label);
+}
+function doPoo(f, label){
+  const size = power() * f;
+  const coins = size * coinMulti();
+  S.coins += coins; S.total += coins; S.poos++;
+  lastPooAt = t;
+  if (pile) flushPile();
+  pooAnim = { size, coins, t:0, label: label || tierName(size) };
+  fart(size); shake = Math.min(18, 4 + Math.log10(size + 1) * 1.4);
+  let rec = "";
+  if (size > sess.best) { sess = { best:size, at:Date.now(), world:S.world }; }
+  if (size > S.best) {
+    const first = S.best === 0; S.best = size; S.bestAt = Date.now(); S.bestWorld = S.world; rec = "ever";
+    if (!first) newRecord(size);
+  }
+  pooAnim.rec = rec;
+  save(); updHud(); renderShop(false);
+}
+function tierName(s){
+  if (s < 50) return "plop"; if (s < 5e3) return "Nice poo!"; if (s < 1e6) return "BIG ONE!";
+  if (s < 1e10) return "MEGA DUMP!"; if (s < 1e16) return "ULTRA POO!"; if (s < 1e24) return "MONSTER POO!!";
+  return "GALAXY POO!!!";
+}
+let lastSubmit = 0;
+function newRecord(size){
+  toast("🏆 New biggest poo ever: " + kg(size) + "!");
+  ding(true);
+  if (window.PhatCoin) PhatCoin.earn("win", 2, "Poo Simulator new biggest poo");
+  const now = Date.now();
+  if (window.Leaderboard && Leaderboard.getName() && now - lastSubmit > 8000) {
+    lastSubmit = now;
+    Leaderboard.submit(Math.min(1e15, Math.round(size))).then(() => { if (window.PhatCoin) PhatCoin.leaderboard(Leaderboard.getName(), "desc"); });
+  }
+}
+function flushPile(){ if (pile) { pile.flushing = 0.0001; } }
+
+// ---------- input ----------
+const push = $("push");
+push.addEventListener("pointerdown", e => { e.preventDefault(); try { push.setPointerCapture(e.pointerId); } catch (_) {} startPush(); });
+push.addEventListener("pointerup", e => { e.preventDefault(); endPush(); });
+push.addEventListener("pointercancel", () => endPush());
+push.addEventListener("contextmenu", e => e.preventDefault());
+cv.addEventListener("pointerdown", e => { e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) {} startPush(); });
+cv.addEventListener("pointerup", e => { e.preventDefault(); endPush(); });
+cv.addEventListener("pointercancel", () => endPush());
+addEventListener("keydown", e => { if (e.code === "Space" && !e.repeat && !document.querySelector(".modal.on") && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); startPush(); } });
+addEventListener("keyup", e => { if (e.code === "Space") { e.preventDefault(); endPush(); } });
+
+// ---------- drawing ----------
+function rr(x,y,w,h,r){X.beginPath();X.moveTo(x+r,y);X.arcTo(x+w,y,x+w,y+h,r);X.arcTo(x+w,y+h,x,y+h,r);X.arcTo(x,y+h,x,y,r);X.arcTo(x,y,x+w,y,r);X.closePath();}
+function shade(hex, f){
+  const n = parseInt(hex.slice(1), 16); let r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  r = Math.max(0, Math.min(255, Math.round(r * f))); g = Math.max(0, Math.min(255, Math.round(g * f))); b = Math.max(0, Math.min(255, Math.round(b * f)));
+  return "rgb(" + r + "," + g + "," + b + ")";
+}
+const FLOOR = 430;
+
+function drawBackground(){
+  const W = WORLDS[S.world];
+  const g = X.createLinearGradient(0, 0, 0, FLOOR); g.addColorStop(0, W.sky[0]); g.addColorStop(1, W.sky[1]);
+  X.fillStyle = g; X.fillRect(0, 0, VW, FLOOR);
+  if (S.world >= 8) { // stars
+    X.fillStyle = "rgba(255,255,255,.8)";
+    for (let i = 0; i < 70; i++) { const x = (i * 137.5) % VW, y = (i * 71.3) % (FLOOR - 40); X.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(t * 1.5 + i)); X.fillRect(x, y, 2, 2); }
+    X.globalAlpha = 1;
+  }
+  if (W.tile) { // wall tiles
+    X.strokeStyle = "rgba(0,0,0,.08)"; X.lineWidth = 2;
+    for (let y = 40; y < FLOOR; y += 46) { X.beginPath(); X.moveTo(0, y); X.lineTo(VW, y); X.stroke(); }
+    for (let x = 0; x < VW; x += 46) { X.beginPath(); X.moveTo(x, 0); X.lineTo(x, FLOOR); X.stroke(); }
+  }
+  if (S.world === 5) { // bubbles
+    X.strokeStyle = "rgba(255,255,255,.5)"; X.lineWidth = 2;
+    for (let i = 0; i < 14; i++) { const x = (i * 83 + 40) % VW, y = FLOOR - ((t * 40 + i * 57) % FLOOR); X.beginPath(); X.arc(x + Math.sin(t + i) * 8, y, 4 + (i % 4) * 2, 0, 7); X.stroke(); }
+  }
+  X.fillStyle = W.ground; X.fillRect(0, FLOOR, VW, VH - FLOOR);
+  X.fillStyle = shade(W.ground.length === 7 ? W.ground : "#888888", 0.85); X.fillRect(0, FLOOR, VW, 8);
+  // props
+  X.textAlign = "center"; X.textBaseline = "alphabetic";
+  const P = W.props;
+  X.font = "64px serif"; X.fillText(P[0], 90, FLOOR + 6);
+  X.font = "48px serif"; X.fillText(P[1], 210, FLOOR + 4);
+  X.font = "80px serif"; X.fillText(P[2], 930, FLOOR + 8);
+  // world name banner
+  X.font = "26px 'Lilita One', Arial"; X.textAlign = "left"; X.fillStyle = "rgba(0,0,0,.35)"; rr(14, 14, X.measureText(W.name).width + 70, 40, 12); X.fill();
+  X.fillStyle = "#fff"; X.fillText("🌍 " + W.name, 26, 44);
+}
+
+function drawToilet(x, y, col){
+  // tank
+  X.fillStyle = shade(col, 0.92); rr(x - 70, y - 210, 140, 100, 14); X.fill();
+  X.fillStyle = shade(col, 0.8); rr(x - 76, y - 220, 152, 18, 8); X.fill();
+  X.fillStyle = "#c0c0c0"; rr(x + 34, y - 200, 26, 9, 4); X.fill();
+  // bowl
+  X.fillStyle = shade(col, 0.88); X.beginPath(); X.moveTo(x - 95, y - 110); X.lineTo(x + 95, y - 110);
+  X.quadraticCurveTo(x + 90, y - 30, x + 45, y - 20); X.lineTo(x + 40, y); X.lineTo(x - 40, y); X.lineTo(x - 45, y - 20);
+  X.quadraticCurveTo(x - 90, y - 30, x - 95, y - 110); X.fill();
+  X.fillStyle = shade(col, 0.75); rr(x - 102, y - 122, 204, 20, 10); X.fill();
+}
+
+function drawKid(x, y){
+  const c = charging ? Math.min(1.15, charge) : 0;
+  const jig = charging ? Math.sin(t * 60) * (1 + c * 3) : 0;
+  const after = pooAnim && pooAnim.t < 0.6;
+  X.save(); X.translate(x + jig, y);
+  // legs (shorts and knees forward, front view)
+  X.fillStyle = "#2f62c8"; rr(-62, -150, 52, 46, 14); X.fill(); rr(10, -150, 52, 46, 14); X.fill();
+  X.fillStyle = "#f2c39b"; rr(-56, -108, 34, 70, 14); X.fill(); rr(22, -108, 34, 70, 14); X.fill();
+  X.fillStyle = "#fff"; rr(-62, -46, 46, 24, 10); X.fill(); rr(16, -46, 46, 24, 10); X.fill();
+  X.fillStyle = "#e43b3b"; rr(-62, -30, 46, 10, 5); X.fill(); rr(16, -30, 46, 10, 5); X.fill();
+  // body
+  X.fillStyle = "#ff8a2b"; rr(-54, -250, 108, 110, 30); X.fill();
+  X.fillStyle = "#ffffff"; X.font = "bold 34px Arial"; X.textAlign = "center"; X.fillText("GH", 0, -186);
+  // arms gripping
+  X.fillStyle = "#ff8a2b"; rr(-84, -236, 32, 70, 14); X.fill(); rr(52, -236, 32, 70, 14); X.fill();
+  X.fillStyle = "#f2c39b"; X.beginPath(); X.arc(-68, -160, 15, 0, 7); X.fill(); X.beginPath(); X.arc(68, -160, 15, 0, 7); X.fill();
+  // head
+  const red = Math.min(1, c);
+  const skin = "rgb(" + Math.round(242 + (255 - 242) * red) + "," + Math.round(195 - 110 * red) + "," + Math.round(155 - 100 * red) + ")";
+  const puff = 1 + c * 0.12;
+  X.save(); X.translate(0, -305); X.scale(puff, 1 + c * 0.04);
+  X.fillStyle = skin; X.beginPath(); X.arc(0, 0, 62, 0, 7); X.fill();
+  X.fillStyle = "#5a3418"; X.beginPath(); X.arc(0, -16, 62, Math.PI * 1.05, Math.PI * 1.95); X.fill();
+  X.restore();
+  X.save(); X.translate(0, -305);
+  X.strokeStyle = "#2a1a10"; X.lineWidth = 6; X.lineCap = "round"; X.fillStyle = "#2a1a10";
+  if (charging) {
+    // squeezed eyes ><
+    X.beginPath(); X.moveTo(-34, -6); X.lineTo(-16, 2); X.lineTo(-34, 10); X.stroke();
+    X.beginPath(); X.moveTo(34, -6); X.lineTo(16, 2); X.lineTo(34, 10); X.stroke();
+    // gritted teeth
+    X.fillStyle = "#fff"; rr(-22, 22, 44, 18, 6); X.fill(); X.strokeStyle = "#2a1a10"; X.lineWidth = 3; X.stroke();
+    X.beginPath(); X.moveTo(-22, 31); X.lineTo(22, 31); X.stroke();
+    // sweat
+    if (c > 0.5) { X.fillStyle = "#8fd3ff"; X.beginPath(); X.arc(56, -26 + ((t * 120) % 40), 7, 0, 7); X.fill(); }
+  } else if (after) {
+    X.beginPath(); X.arc(-24, 0, 7, 0, 7); X.fill(); X.beginPath(); X.arc(24, 0, 7, 0, 7); X.fill();
+    X.beginPath(); X.arc(0, 18, 20, 0.15 * Math.PI, 0.85 * Math.PI); X.stroke(); // relieved smile
+    X.fillStyle = "rgba(255,120,120,.5)"; X.beginPath(); X.arc(-40, 18, 10, 0, 7); X.fill(); X.beginPath(); X.arc(40, 18, 10, 0, 7); X.fill();
+  } else {
+    const blink = (t % 3.2) < 0.12;
+    if (blink) { X.beginPath(); X.moveTo(-30, 0); X.lineTo(-18, 0); X.moveTo(18, 0); X.lineTo(30, 0); X.stroke(); }
+    else { X.beginPath(); X.arc(-24, 0, 7, 0, 7); X.fill(); X.beginPath(); X.arc(24, 0, 7, 0, 7); X.fill(); }
+    X.beginPath(); X.arc(0, 22, 12, 0.2 * Math.PI, 0.8 * Math.PI); X.stroke();
+  }
+  X.restore();
+  X.restore();
+}
+
+// a cartoon swirl poo with a face
+function drawPoo(x, y, r, face, squash){
+  squash = squash || 1;
+  X.save(); X.translate(x, y); X.scale(1 / squash, squash);
+  const tiers = [[0, -r * 0.42, r], [0, -r * 1.12, r * 0.76], [0, -r * 1.66, r * 0.52]];
+  for (const [tx, ty, tr] of tiers) {
+    X.fillStyle = "#6b4219"; X.beginPath(); X.ellipse(tx, ty, tr, tr * 0.58, 0, 0, 7); X.fill();
+    X.fillStyle = "#8a5a2b"; X.beginPath(); X.ellipse(tx, ty - tr * 0.08, tr * 0.94, tr * 0.5, 0, 0, 7); X.fill();
+    X.fillStyle = "rgba(255,255,255,.18)"; X.beginPath(); X.ellipse(tx - tr * 0.35, ty - tr * 0.24, tr * 0.32, tr * 0.12, -0.2, 0, 7); X.fill();
+  }
+  X.fillStyle = "#8a5a2b"; X.beginPath(); X.moveTo(-r * 0.2, -r * 1.95); X.quadraticCurveTo(r * 0.05, -r * 2.5, r * 0.25, -r * 2.25); X.quadraticCurveTo(r * 0.1, -r * 2.05, r * 0.2, -r * 1.9); X.fill();
+  if (face) {
+    const ey = -r * 1.12;
+    X.fillStyle = "#fff"; X.beginPath(); X.ellipse(-r * 0.26, ey, r * 0.17, r * 0.2, 0, 0, 7); X.fill(); X.beginPath(); X.ellipse(r * 0.26, ey, r * 0.17, r * 0.2, 0, 0, 7); X.fill();
+    X.fillStyle = "#1b120a"; X.beginPath(); X.arc(-r * 0.22, ey + r * 0.03, r * 0.08, 0, 7); X.fill(); X.beginPath(); X.arc(r * 0.3, ey + r * 0.03, r * 0.08, 0, 7); X.fill();
+    X.strokeStyle = "#1b120a"; X.lineWidth = Math.max(2, r * 0.06); X.lineCap = "round";
+    X.beginPath(); X.arc(0, -r * 0.6, r * 0.22, 0.15 * Math.PI, 0.85 * Math.PI); X.stroke();
+  }
+  X.restore();
+}
+function pooR(size){ return Math.min(110, 22 + 10 * Math.log10(size + 1)); }
+
+// weighing scale where the poo lands
+const SCALE_X = 735;
+function drawScale(){
+  X.fillStyle = "#5c6370"; rr(SCALE_X - 70, FLOOR - 70, 140, 70, 12); X.fill();
+  X.fillStyle = "#1c2a1c"; rr(SCALE_X - 52, FLOOR - 56, 104, 34, 6); X.fill();
+  const shown = pile ? pile.size : 0;
+  X.fillStyle = "#7dff8a"; X.font = "bold 18px 'Courier New', monospace"; X.textAlign = "center"; X.fillText(shown ? kg(shown) : "0 kg", SCALE_X, FLOOR - 32);
+  X.fillStyle = "#8a919e"; rr(SCALE_X - 90, FLOOR - 84, 180, 16, 8); X.fill();
+}
+
+function drawMeter(){
+  const x = 34, y = 82, w = 26, h = 230;
+  X.fillStyle = "rgba(0,0,0,.45)"; rr(x - 6, y - 6, w + 12, h + 12, 12); X.fill();
+  X.fillStyle = "#3a2918"; rr(x, y, w, h, 8); X.fill();
+  X.fillStyle = "#ffc93c"; X.fillRect(x, y + h * (1 - GOLD_HI), w, h * (GOLD_HI - GOLD_LO));
+  const c = Math.min(1, charge);
+  const g = X.createLinearGradient(0, y + h, 0, y); g.addColorStop(0, "#8a5a2b"); g.addColorStop(1, "#ff4d3d");
+  X.fillStyle = g; X.fillRect(x + 4, y + h * (1 - c), w - 8, h * c);
+  X.strokeStyle = "#fff"; X.lineWidth = 3; X.beginPath(); X.moveTo(x - 6, y + h * (1 - c)); X.lineTo(x + w + 6, y + h * (1 - c)); X.stroke();
+  X.font = "16px 'Lilita One', Arial"; X.textAlign = "center"; X.fillStyle = "#fff"; X.fillText("PUSH", x + w / 2, y + h + 26);
+}
+
+function drawPooAnim(dt){
+  const A = pooAnim; if (!A) return;
+  A.t += dt;
+  const r = pooR(A.size);
+  const sx = 300, sy = FLOOR - 40, ex = SCALE_X, ey = FLOOR - 84;
+  const T = 0.75;
+  if (A.t < T) {
+    const k = A.t / T;
+    const x = sx + (ex - sx) * k, y = sy + (ey - sy) * k - Math.sin(k * Math.PI) * 220;
+    X.save(); X.translate(x, y); X.rotate(k * Math.PI * 2); X.translate(-x, -y);
+    drawPoo(x, y + r * 0.5, r * (0.4 + 0.6 * k), true);
+    X.restore();
+    if (Math.random() < 0.5) parts.push({ x, y, vx: (Math.random() - 0.5) * 80, vy: -40, life: 0.5, c: "#8a5a2b", s: 5 });
+  } else {
+    if (!A.landed) {
+      A.landed = true; plop(); ding(false);
+      pile = { size: A.size, r, t: 0 };
+      floats.push({ x: SCALE_X, y: FLOOR - 120 - r * 2, txt: "+" + fmt(A.coins) + " 🪙", t: 0, col: "#ffc93c" });
+      for (let i = 0; i < 14; i++) parts.push({ x: SCALE_X, y: ey, vx: (Math.random() - 0.5) * 420, vy: -Math.random() * 380, life: 0.8, c: i % 2 ? "#ffc93c" : "#8a5a2b", s: 6 });
+    }
+    if (A.t > 2.2) pooAnim = null;
+  }
+  // label
+  const lt = A.t;
+  if (lt < 1.8) {
+    const sc = 1 + Math.max(0, 0.4 - lt) * 1.5;
+    X.save(); X.translate(565, 110); X.scale(sc, sc);
+    X.font = "54px 'Lilita One', Arial"; X.textAlign = "center"; X.lineWidth = 8; X.strokeStyle = "#3a1d00";
+    X.fillStyle = A.label === "PERFECT!" ? "#ffe14d" : "#ffffff"; X.globalAlpha = Math.min(1, (1.8 - lt) * 2);
+    X.strokeText(A.label, 0, 0); X.fillText(A.label, 0, 0);
+    X.font = "30px 'Lilita One', Arial"; X.strokeText(kg(A.size), 0, 42); X.fillStyle = "#e7a660"; X.fillText(kg(A.size), 0, 42);
+    if (A.rec === "ever") { X.font = "24px 'Lilita One', Arial"; X.fillStyle = "#7dff8a"; X.strokeText("NEW RECORD!", 0, 78); X.fillText("NEW RECORD!", 0, 78); }
+    X.restore();
+  }
+}
+
+function drawPile(dt){
+  if (!pile) return;
+  pile.t += dt;
+  let squash = 1 + Math.max(0, 0.25 - pile.t) * 1.2 * Math.sin(pile.t * 40);
+  let a = 1, y = FLOOR - 84;
+  if (pile.flushing) {
+    pile.flushing += dt; a = Math.max(0, 1 - pile.flushing * 3);
+    if (a <= 0) { pile = null; return; }
+  }
+  X.save(); X.globalAlpha = a; drawPoo(SCALE_X, y, pile.r, true, squash); X.restore();
+  // flies on big ones
+  if (pile.size > 1e3) {
+    const nf = Math.min(5, Math.floor(Math.log10(pile.size) / 2));
+    for (let i = 0; i < nf; i++) {
+      const fx = SCALE_X + Math.cos(t * 3 + i * 2) * (pile.r + 30), fy = y - pile.r * 1.2 + Math.sin(t * 4.3 + i) * pile.r * 0.8;
+      X.fillStyle = "#111"; X.beginPath(); X.arc(fx, fy, 4, 0, 7); X.fill();
+      X.fillStyle = "rgba(255,255,255,.7)"; X.beginPath(); X.ellipse(fx - 4, fy - 4, 4, 2, -0.6, 0, 7); X.fill(); X.beginPath(); X.ellipse(fx + 4, fy - 4, 4, 2, 0.6, 0, 7); X.fill();
+    }
+    // stink lines
+    X.strokeStyle = "rgba(140,200,80,.6)"; X.lineWidth = 3;
+    for (let i = -1; i <= 1; i++) { X.beginPath(); const bx = SCALE_X + i * pile.r * 0.5; for (let k = 0; k < 6; k++) { const yy = y - pile.r * 2.2 - k * 10; const xx = bx + Math.sin(t * 4 + k + i) * 6; k ? X.lineTo(xx, yy) : X.moveTo(xx, yy); } X.stroke(); }
+  }
+}
+
+function drawEffects(dt){
+  for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 800 * dt; p.life -= dt; X.globalAlpha = Math.max(0, p.life * 2); X.fillStyle = p.c; X.beginPath(); X.arc(p.x, p.y, p.s, 0, 7); X.fill(); }
+  X.globalAlpha = 1; parts = parts.filter(p => p.life > 0);
+  for (const f of floats) { f.t += dt; X.globalAlpha = Math.max(0, 1 - f.t / 1.6); X.font = "34px 'Lilita One', Arial"; X.textAlign = "center"; X.lineWidth = 6; X.strokeStyle = "#3a1d00"; X.strokeText(f.txt, f.x, f.y - f.t * 60); X.fillStyle = f.col; X.fillText(f.txt, f.x, f.y - f.t * 60); }
+  X.globalAlpha = 1; floats = floats.filter(f => f.t < 1.6);
+}
+
+// ---------- loop ----------
+let lastT = performance.now();
+function frame(now){
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now; t += dt;
+  if (charging) {
+    charge += dt / CHARGE_TIME;
+    if (charge > 1) { over += dt; if (over > 0.3) { charging = false; $("push").classList.remove("down"); doPoo(0.5, "Too long! Oops"); } }
+  } else if (!pooAnim) charge = Math.max(0, charge - dt * 3);
+  // Auto Poo
+  if (S.auto && S.autoOn && !charging) { autoT += dt; if (autoT > 2.4 && !pooAnim) { autoT = 0; doPoo(0.8, "Auto poo"); } } else autoT = 0;
+  X.save();
+  if (shake > 0) { X.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake); shake = Math.max(0, shake - dt * 40); }
+  drawBackground();
+  drawToilet(300, FLOOR + 10, WORLDS[S.world].loo);
+  drawKid(300, FLOOR - 20);
+  drawScale();
+  drawPile(dt);
+  drawPooAnim(dt);
+  drawMeter();
+  drawEffects(dt);
+  X.restore();
+  requestAnimationFrame(frame);
+}
+
+// ---------- HUD, shops ----------
+let toastT = null;
+function toast(m, ms){ const el = $("toast"); el.textContent = m; el.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("on"), ms || 2200); }
+function updHud(){
+  $("hCoins").textContent = fmt(S.coins); $("hPower").textContent = fmt(power());
+  $("hWorld").textContent = (S.world + 1) + " " + WORLDS[S.world].name; $("hReb").textContent = S.rebirths;
+  $("snd").textContent = S.sound ? "🔊" : "🔇";
+  $("bAuto").textContent = S.auto ? (S.autoOn ? "🤖 Auto Poo: ON" : "🤖 Auto Poo: OFF") : "🤖 Auto Poo (" + fmt(AUTO_COST) + " 🪙)";
+}
+let foodTab = 0, curTab = "food";
+function maxBuy(k){
+  let n = 0, c = S.coins, have = S.foods[k];
+  while (n < 1000) { const p = FOOD_COST(k, have + n); if (p > c) break; c -= p; n++; }
+  return n;
+}
+function buyFood(k, max){
+  if (Math.floor(k / 4) >= S.worlds) return;
+  let n = 0;
+  do { const p = FOOD_COST(k, S.foods[k]); if (p > S.coins) break; S.coins -= p; S.foods[k]++; n++; } while (max && n < 1000);
+  if (n) { ding(false); toast("😋 Ate " + n + "× " + WORLDS[Math.floor(k / 4)].foods[k % 4][0] + "! Power " + fmt(power())); }
+  else toast("Not enough coins yet");
+  save(); updHud(); renderShop(true);
+}
+function renderShop(full){
+  if (curTab === "food") {
+    if (full) {
+      $("foodWorlds").innerHTML = WORLDS.map((w, i) => i < S.worlds ? '<button data-w="' + i + '" class="' + (i === foodTab ? "on" : "") + '">' + (i + 1) + ". " + w.name + "</button>" : "").join("");
+      $("foodWorlds").querySelectorAll("button").forEach(b => b.onclick = () => { foodTab = +b.dataset.w; renderShop(true); });
+      let h = "";
+      for (let i = 0; i < 4; i++) {
+        const k = foodTab * 4 + i, f = WORLDS[foodTab].foods[i];
+        h += '<div class="item" data-k="' + k + '"><div class="hd"><div class="em">' + f[1] + '</div><div><div class="nm">' + f[0] + '</div><div class="sub">+' + fmt(FOOD_POWER(k) * REB_MULT(S.rebirths)) + ' power a bite · eaten <span class="have"></span></div></div></div>'
+          + '<div class="row"><button class="btn small b1">Eat <span class="c1"></span></button><button class="btn small alt bm">Max <span class="cm"></span></button></div></div>';
+      }
+      $("foods").innerHTML = h;
+      $("foods").querySelectorAll(".item").forEach(el => { const k = +el.dataset.k; el.querySelector(".b1").onclick = () => buyFood(k, false); el.querySelector(".bm").onclick = () => buyFood(k, true); });
+    }
+    $("foods").querySelectorAll(".item").forEach(el => {
+      const k = +el.dataset.k, c = FOOD_COST(k, S.foods[k]), m = maxBuy(k);
+      el.querySelector(".have").textContent = S.foods[k];
+      el.querySelector(".c1").textContent = fmt(c);
+      el.querySelector(".b1").disabled = c > S.coins;
+      el.querySelector(".cm").textContent = m ? "(" + m + ")" : "";
+      el.querySelector(".bm").disabled = !m;
+    });
+  } else if (curTab === "worlds") {
+    if (full) {
+      $("worlds").innerHTML = WORLDS.map((w, i) => '<div class="item' + (i === S.world ? " cur" : "") + (i > S.worlds ? " locked" : "") + '" data-w="' + i + '"><div class="hd"><div class="em">' + w.props[0] + '</div><div><div class="nm">' + (i + 1) + ". " + w.name + '</div><div class="sub">' + fmt(WORLD_MULT(i)) + "× coins · " + w.foods.map(f => f[1]).join(" ") + '</div></div></div><div class="row"><button class="btn small wb"></button></div></div>').join("");
+      $("worlds").querySelectorAll(".item").forEach(el => el.querySelector(".wb").onclick = () => worldClick(+el.dataset.w));
+    }
+    $("worlds").querySelectorAll(".item").forEach(el => {
+      const i = +el.dataset.w, b = el.querySelector(".wb");
+      if (i === S.world) { b.textContent = "You are here"; b.disabled = true; }
+      else if (i < S.worlds) { b.textContent = "Go here"; b.disabled = false; b.className = "btn small alt wb"; }
+      else if (i === S.worlds) { b.textContent = "Buy · " + fmt(WORLD_COST(i)) + " 🪙"; b.disabled = S.coins < WORLD_COST(i); b.className = "btn small green wb"; }
+      else { b.textContent = "🔒 Buy world " + S.worlds + " first"; b.disabled = true; }
+    });
+  } else {
+    const c = REB_COST(S.rebirths);
+    $("reb").innerHTML = '<div class="item" style="max-width:520px"><div class="big">♻️ Rebirth ' + (S.rebirths + 1) + '</div>'
+      + '<div class="sub">Now: ' + fmt(REB_MULT(S.rebirths)) + '× food · ' + fmt(REB_MULT(S.rebirths)) + '× coins</div>'
+      + '<div class="sub">After: <b style="color:var(--green)">' + fmt(REB_MULT(S.rebirths + 1)) + '× food · ' + fmt(REB_MULT(S.rebirths + 1)) + '× coins</b></div>'
+      + '<div class="sub">Needs ' + fmt(c) + ' 🪙 (you have ' + fmt(S.coins) + ')</div>'
+      + '<div class="row"><button class="btn green" id="doReb"' + (S.coins < c ? " disabled" : "") + '>Rebirth!</button></div></div>';
+    $("doReb").onclick = rebirth;
+  }
+}
+function worldClick(i){
+  if (i < S.worlds) { S.world = i; foodTab = i; toast("🌍 Welcome to " + WORLDS[i].name + "!"); }
+  else if (i === S.worlds && S.coins >= WORLD_COST(i)) {
+    S.coins -= WORLD_COST(i); S.worlds++; S.world = i; foodTab = i; ding(true); flush();
+    toast("🎉 You unlocked " + WORLDS[i].name + "! " + fmt(WORLD_MULT(i)) + "× coins and new food!", 3000);
+  }
+  if (pile) flushPile();
+  save(); updHud(); renderShop(true);
+}
+function rebirth(){
+  const c = REB_COST(S.rebirths); if (S.coins < c) return;
+  S.rebirths++; S.coins = 0; S.foods = S.foods.map(() => 0);
+  ding(true); flush(); if (pile) flushPile();
+  toast("♻️ REBIRTH " + S.rebirths + "! Now " + fmt(REB_MULT(S.rebirths)) + "× food and coins", 3200);
+  if (window.PhatCoin) PhatCoin.earn("rebirth", 25, "Poo Simulator rebirth " + S.rebirths);
+  save(); updHud(); renderShop(true);
+}
+$("tabs").querySelectorAll("button").forEach(b => b.onclick = () => {
+  curTab = b.dataset.t;
+  $("tabs").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+  $("pFood").hidden = curTab !== "food"; $("pWorlds").hidden = curTab !== "worlds"; $("pReb").hidden = curTab !== "rebirth";
+  renderShop(true);
+});
+$("bAuto").onclick = () => {
+  if (!S.auto) { if (S.coins < AUTO_COST) { toast("Auto Poo costs " + fmt(AUTO_COST) + " coins"); return; } S.coins -= AUTO_COST; S.auto = true; S.autoOn = true; ding(true); toast("🤖 Auto Poo bought! It poos for you every few seconds."); }
+  else S.autoOn = !S.autoOn;
+  save(); updHud(); renderShop(false);
+};
+$("snd").onclick = () => { S.sound = !S.sound; save(); updHud(); };
+function when(ts){ if (!ts) return ""; const d = new Date(ts); return d.toLocaleDateString("en-AU", { day:"numeric", month:"short", year:"numeric" }) + " " + d.toLocaleTimeString("en-AU", { hour:"numeric", minute:"2-digit" }); }
+$("bRec").onclick = () => {
+  $("rEver").textContent = S.best ? kg(S.best) : "none yet";
+  $("rEverWhen").textContent = S.best ? "in " + WORLDS[S.bestWorld || 0].name + " · " + when(S.bestAt) : "";
+  $("rSess").textContent = sess.best ? kg(sess.best) : "none yet";
+  $("rSessWhen").textContent = sess.best ? "in " + WORLDS[sess.world].name + " · " + when(sess.at) : "Do a poo to set one!";
+  $("rCount").textContent = fmt(S.poos);
+  $("mRec").classList.add("on");
+};
+$("rClose").onclick = () => $("mRec").classList.remove("on");
+$("mRec").onclick = e => { if (e.target.id === "mRec") $("mRec").classList.remove("on"); };
+
+// keep the buttons up to date as coins come in
+setInterval(() => renderShop(false), 500);
+
+updHud(); renderShop(true);
+requestAnimationFrame(frame);
+window.__poo = { S, power, doPoo, get sess(){ return sess; } };
+
+if (window.Leaderboard) {
+  Leaderboard.mount({ el:"lb", game:"poo-simulator", dir:"desc", unit:"kg", title:"Poo Simulator: biggest poo ever" });
+}
+})();
+</script>
+</body>
+</html>

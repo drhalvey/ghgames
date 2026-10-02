@@ -158,7 +158,9 @@ canvas{display:block;width:100%;touch-action:none}
       <li>Watch the range. At about <b>40 yards</b> press <b>MAKE READY</b>, then <b>FIRE!</b> If every battalion fires at the same moment you get a <b>PERFECT VOLLEY</b>, which smashes the French courage.</li>
       <li>Waiting is scary. Each battalion has a <b>discipline</b> bar. Low discipline means they fire raggedly, or <b>fire without orders</b>, or even run away. Shout <b>STEADY, LADS!</b> to calm them.</li>
       <li>After a volley, tap <b>RELOAD DRILL</b> when the white marker is in the green to reload faster. Your smoke spoils the next shot, so <b>ADVANCE</b> through it.</li>
-      <li>When the French are wavering, <b>CHARGE!</b> Charge too early against steady troops and your men get pushed back.</li>
+      <li>When the French are wavering, <b>CHARGE!</b> The first time, your men <b>fix bayonets</b> before they run in. Charge too early against steady troops and your men get pushed back.</li>
+      <li>Your two <b>Royal Artillery</b> guns fire roundshot into the French columns while they are still far off. Each cannonball knocks down a whole file of men, theirs and yours, so <b>lie down</b> and enemy shot will often skip right over you.</li>
+      <li>Turn the sound up! Your officers shout <b>Make ready! Present! FIRE!</b> and the pipes of the 78th play when you charge.</li>
       <li>Win to earn shillings and buy upgrades. Get all three stars with a perfect volley, no broken battalions and nobody firing without orders.</li>
     </ul>
   </div>
@@ -283,35 +285,139 @@ function sOf(d) { return 1.1 - 0.55 * clamp(d / 600, 0, 1); }
 function xOf(x, d) { return 500 + (x - 500) * (1 - 0.35 * clamp(d / 600, 0, 1)); }
 
 // ---------- audio ----------
-let AC = null, NB = null;
+// Everything goes through one master bus with a compressor, so lots of sounds at once stay loud but never crackle.
+let AC = null, NB = null, MASTER = null;
+try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {} // iPhone/iPad: play even with the silent switch on
 function audio() {
   if (S.mute) return null;
   if (!AC) {
     try {
       AC = new (window.AudioContext || window.webkitAudioContext)();
-      const len = AC.sampleRate * 1.6; NB = AC.createBuffer(1, len, AC.sampleRate);
+      const len = AC.sampleRate * 2; NB = AC.createBuffer(1, len, AC.sampleRate);
       const ch = NB.getChannelData(0); for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+      const comp = AC.createDynamicsCompressor(); comp.threshold.value = -16; comp.knee.value = 12; comp.ratio.value = 5; comp.attack.value = 0.003; comp.release.value = 0.25;
+      MASTER = AC.createGain(); MASTER.gain.value = 1.15; MASTER.connect(comp); comp.connect(AC.destination);
     } catch (e) { return null; }
   }
   if (AC.state === "suspended") AC.resume();
   return AC;
 }
-function noise(dur, freq, type, vol, q) {
+function out(a, pan) { // where a sound plugs in; pan -1 left .. 1 right
+  if (pan && a.createStereoPanner) { const p = a.createStereoPanner(); p.pan.value = clamp(pan, -1, 1); p.connect(MASTER); return p; }
+  return MASTER;
+}
+const panX = x => (x - 500) / 520;
+function noise(dur, freq, type, vol, q, when, pan) {
   const a = audio(); if (!a) return;
-  const t = a.currentTime, src = a.createBufferSource(); src.buffer = NB;
+  const t = a.currentTime + (when || 0), src = a.createBufferSource(); src.buffer = NB;
   const f = a.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q || 1;
   const g = a.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  src.connect(f); f.connect(g); g.connect(a.destination); src.start(t); src.stop(t + dur + 0.05);
+  src.connect(f); f.connect(g); g.connect(out(a, pan)); src.start(t, Math.random() * 0.4); src.stop(t + dur + 0.05);
+}
+function tone(freq, dur, type, vol, when, endFreq, pan) {
+  const a = audio(); if (!a) return;
+  const t = a.currentTime + (when || 0), o = a.createOscillator(), g = a.createGain();
+  o.type = type || "sine"; o.frequency.setValueAtTime(freq, t); if (endFreq) o.frequency.exponentialRampToValueAtTime(endFreq, t + dur);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(out(a, pan)); o.start(t); o.stop(t + dur + 0.05);
+}
+// a man crying out: a buzzy voice through "ah" formants, pitch falling away
+let screamBudget = 0;
+function scream(vol, pan, when) {
+  const a = audio(); if (!a || screamBudget > 7) return; screamBudget++;
+  const t = a.currentTime + (when || 0), dur = rnd(0.45, 1.0), hi = Math.random() < 0.5;
+  const f0 = hi ? rnd(330, 520) : rnd(170, 260);
+  const o = a.createOscillator(); o.type = "sawtooth";
+  o.frequency.setValueAtTime(f0 * 0.85, t); o.frequency.linearRampToValueAtTime(f0 * 1.12, t + 0.07); o.frequency.exponentialRampToValueAtTime(f0 * rnd(0.5, 0.7), t + dur);
+  const lfo = a.createOscillator(), lg = a.createGain(); lfo.frequency.value = rnd(5, 9); lg.gain.value = f0 * 0.04; lfo.connect(lg); lg.connect(o.frequency);
+  const g = a.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.03); g.gain.setValueAtTime(vol, t + dur * 0.55); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  const dest = out(a, pan);
+  for (const [ff, gv, q] of [[hi ? 950 : 750, 1, 6], [hi ? 1500 : 1200, 0.6, 8], [2600, 0.25, 10]]) {
+    const bp = a.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = ff; bp.Q.value = q;
+    const gg = a.createGain(); gg.gain.value = gv; o.connect(bp); bp.connect(gg); gg.connect(g);
+  }
+  g.connect(dest); o.start(t); lfo.start(t); o.stop(t + dur + 0.05); lfo.stop(t + dur + 0.05);
+  noise(dur * 0.7, 3000, "highpass", vol * 0.25, 0.7, when, pan); // breath
+}
+// a crowd of soldiers cheering "huz-ZAH!"
+function huzzah(vol, when) {
+  const a = audio(); if (!a) return;
+  const t0 = a.currentTime + (when || 0);
+  for (let i = 0; i < 14; i++) {
+    const t = t0 + rnd(0, 0.12), f = rnd(120, 230), o = a.createOscillator(), g = a.createGain(), bp = a.createBiquadFilter();
+    o.type = "sawtooth"; bp.type = "bandpass"; bp.Q.value = 3;
+    o.frequency.setValueAtTime(f, t); o.frequency.setValueAtTime(f * 1.25, t + 0.2); o.frequency.linearRampToValueAtTime(f * 1.45, t + 0.45); o.frequency.exponentialRampToValueAtTime(f * 1.0, t + 1.1);
+    bp.frequency.setValueAtTime(450, t); bp.frequency.setValueAtTime(800, t + 0.2);
+    const v = vol / 6;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v * 0.6, t + 0.03); g.gain.exponentialRampToValueAtTime(v * 0.2, t + 0.17);
+    g.gain.exponentialRampToValueAtTime(v, t + 0.26); g.gain.setValueAtTime(v, t + 0.75); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.15);
+    o.connect(bp); bp.connect(g); g.connect(out(a, rnd(-0.8, 0.8))); o.start(t); o.stop(t + 1.2);
+  }
+  noise(1.1, 900, "bandpass", vol * 0.35, 0.6, (when || 0) + 0.2);
+}
+// Highland pipes: drones plus a short charging tune on the chanter
+function pipes(when) {
+  const a = audio(); if (!a) return;
+  const t = a.currentTime + (when || 0), len = 4.2, pan = panX(574);
+  const lp = a.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2400; lp.connect(out(a, pan));
+  const g = a.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.2); g.gain.setValueAtTime(0.09, t + len - 0.4); g.gain.exponentialRampToValueAtTime(0.0001, t + len); g.connect(lp);
+  for (const f of [110, 110.4, 220]) { const o = a.createOscillator(); o.type = "sawtooth"; o.frequency.value = f; o.connect(g); o.start(t); o.stop(t + len + 0.05); }
+  const ch = a.createOscillator(); ch.type = "square"; const cg = a.createGain(); cg.gain.value = 0.55; ch.connect(cg); cg.connect(g);
+  const N = { G: 392, A: 440, B: 494, C: 554, D: 587, E: 659, F: 740, g: 784, a: 880 };
+  const tune = "A-.4 g-.06 A-.3 B-.3 C-.4 g-.06 E-.5 D-.3 C-.3 B-.4 g-.06 A-.7 a-.25 g-.25 E-.6".split(" ");
+  let tt = t + 0.25; for (const n of tune) { const [k, d] = n.split("-"); ch.frequency.setValueAtTime(N[k], tt); tt += +d; }
+  ch.start(t); ch.stop(t + len);
+}
+// officers shouting orders: the browser's own voice, the most British one it has
+const VOICES = { en: null, fr: null };
+function findVoices() {
+  if (!window.speechSynthesis) return;
+  const vs = speechSynthesis.getVoices(); if (!vs.length) return;
+  const byName = (names, lang) => { for (const n of names) { const v = vs.find(v => v.name.indexOf(n) === 0 && v.lang.replace("_", "-").indexOf(lang) === 0); if (v) return v; } return vs.find(v => v.lang.replace("_", "-").indexOf(lang) === 0) || null; };
+  VOICES.en = byName(["Daniel", "Arthur", "Oliver", "Google UK English Male", "Microsoft George", "Microsoft Ryan", "Malcolm", "Fred"], "en-GB") || byName([], "en");
+  VOICES.fr = byName(["Thomas", "Google français", "Microsoft Paul", "Microsoft Henri"], "fr");
+}
+if (window.speechSynthesis) { findVoices(); speechSynthesis.onvoiceschanged = findVoices; }
+function say(text, o) {
+  o = o || {};
+  if (S.mute || !window.speechSynthesis) return;
+  try {
+    if (!VOICES.en) findVoices();
+    if (o.cut !== false) speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const v = o.fr ? VOICES.fr : VOICES.en; if (v) u.voice = v;
+    u.lang = o.fr ? "fr-FR" : "en-GB"; u.rate = o.rate || 1.15; u.pitch = o.pitch || 0.75; u.volume = 1;
+    speechSynthesis.speak(u);
+  } catch (e) {}
 }
 const sfx = {
-  volley(n) { noise(0.5 + 0.12 * n, 700, "lowpass", Math.min(0.95, 0.22 + 0.13 * n)); noise(0.2, 2600, "bandpass", Math.min(0.5, 0.12 + 0.06 * n), 0.7); },
-  pop(v) { noise(0.25, 2000, "bandpass", v || 0.07, 0.9); },
-  boom() { noise(1.3, 160, "lowpass", 0.6); },
-  thud() { noise(0.35, 120, "lowpass", 0.35); },
-  drum(acc, v) { noise(acc ? 0.16 : 0.1, acc ? 260 : 420, "lowpass", (acc ? 0.32 : 0.16) * v); },
-  cheer() { noise(1.6, 650, "bandpass", 0.25, 0.6); noise(1.2, 1100, "bandpass", 0.15, 0.8); },
-  good() { const a = audio(); if (!a) return; const o = a.createOscillator(), g = a.createGain(); o.frequency.value = 880; g.gain.setValueAtTime(0.08, a.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.12); o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + 0.13); }
+  volley(n) { // a crashing volley: hundreds of muskets crackling into one roar
+    noise(0.6 + 0.14 * n, 650, "lowpass", Math.min(1, 0.3 + 0.14 * n));
+    tone(70, 0.5, "sine", Math.min(0.7, 0.2 + 0.1 * n), 0, 38);
+    noise(0.25, 2600, "bandpass", Math.min(0.55, 0.14 + 0.07 * n), 0.7);
+    for (let i = 0; i < 6 + n * 3; i++) noise(rnd(0.08, 0.18), rnd(1200, 3200), "bandpass", rnd(0.08, 0.18), 1.2, rnd(0, 0.06 + 0.04 * n), rnd(-0.9, 0.9));
+  },
+  pop(v, pan) { noise(0.25, 2000, "bandpass", v || 0.07, 0.9, 0, pan); noise(0.12, 500, "lowpass", (v || 0.07) * 0.8, 1, 0, pan); },
+  boom(pan, near) { // a cannon going off
+    tone(near ? 75 : 55, near ? 0.9 : 1.2, "sine", near ? 0.85 : 0.6, 0, 28, pan);
+    noise(near ? 1.0 : 1.5, near ? 260 : 160, "lowpass", near ? 0.8 : 0.55, 1, 0, pan);
+    noise(0.15, 1500, "bandpass", near ? 0.35 : 0.12, 0.8, 0, pan);
+  },
+  whistle(dur, pan) { tone(1400, dur, "sine", 0.05, 0.1, 380, pan); },
+  thud(pan) { tone(90, 0.4, "sine", 0.6, 0, 35, pan); noise(0.45, 220, "lowpass", 0.5, 1, 0, pan); noise(0.3, 1200, "bandpass", 0.18, 0.7, 0.02, pan); },
+  drum(acc, v) { noise(acc ? 0.16 : 0.1, acc ? 260 : 420, "lowpass", (acc ? 0.32 : 0.16) * v); tone(acc ? 110 : 150, 0.12, "sine", 0.12 * v, 0, 70); },
+  cheer() { huzzah(0.7); },
+  clicks() { // bayonets snapping onto muzzles all down the line
+    for (let i = 0; i < 26; i++) { const w = rnd(0, 0.7), p = rnd(-0.9, 0.9); noise(0.035, 4200, "highpass", 0.16, 0.8, w, p); tone(rnd(2300, 3400), 0.07, "triangle", 0.035, w + 0.01, 0, p); }
+  },
+  steel(pan) { // blades clashing
+    const w = rnd(0, 0.05);
+    for (const f of [rnd(2200, 2600), rnd(3500, 3900), rnd(5000, 5600)]) tone(f, rnd(0.18, 0.35), "sine", 0.07, w, f * 0.98, pan);
+    noise(0.05, 3500, "highpass", 0.2, 0.8, w, pan);
+  },
+  good() { tone(880, 0.12, "sine", 0.08); }
 };
+setInterval(() => { screamBudget = Math.max(0, screamBudget - 3); }, 1000);
 
 // ---------- canvas ----------
 const cv = $("cv"), ctx = cv.getContext("2d");
@@ -376,8 +482,8 @@ function buildBG() {
 buildBG();
 
 // ---------- soldiers ----------
-const COAT = { red: "#c4202c", gren: "#c4202c", high: "#c4202c", fr: "#e7e2d4", mil: "#7d5f3f" };
-function drawSoldier(x, y, s, kind, pose, flash) {
+const COAT = { red: "#c4202c", gren: "#c4202c", high: "#c4202c", fr: "#e7e2d4", mil: "#7d5f3f", art: "#1f2f6e" };
+function drawSoldier(x, y, s, kind, pose, flash, bayo) {
   const c = ctx;
   if (pose === "lie") { // prone, seen from behind
     c.fillStyle = "#2a2a2a"; c.fillRect(x - 2.2 * s, y - 3 * s, 4.4 * s, 3 * s);
@@ -415,6 +521,12 @@ function drawSoldier(x, y, s, kind, pose, flash) {
   else if (french) { c.moveTo(x - 3.6 * s, y - 9 * s); c.lineTo(x - 4.6 * s, y - 27 * s); }
   else { c.moveTo(x + 3.6 * s, y - 9 * s); c.lineTo(x + 4.6 * s, y - 27 * s); }
   c.stroke();
+  if (bayo && pose !== "charge") { // fixed bayonet glinting on the muzzle
+    c.strokeStyle = "#e4e9ef"; c.lineWidth = 0.75 * s; c.beginPath();
+    if (pose === "present" || pose === "fire") { c.moveTo(x + 0.8 * s, y - 27 * s); c.lineTo(x + 0.55 * s, y - 31.5 * s); }
+    else { c.moveTo(x + 4.6 * s, y - 27 * s); c.lineTo(x + 4.9 * s, y - 31.5 * s); }
+    c.stroke();
+  }
   if (pose === "charge") { c.strokeStyle = "#d8dde4"; c.lineWidth = 0.8 * s; c.beginPath(); c.moveTo(x - 2 * s, y - 25 * s); c.lineTo(x - 3 * s, y - 29 * s); c.stroke(); }
   if (pose === "present" || pose === "fire") { c.fillStyle = COAT[kind]; c.fillRect(x + 1.2 * s, y - 17 * s, 2.4 * s, 4 * s); }
   if (flash) {
@@ -465,9 +577,10 @@ function newBattle() {
   G = {
     phase: "wait", t: 0, waitT: 16, D, b: 0, advT: 0, advFrom: 0,
     charging: false, chargeT: 0, chargeFrom: 0, chargeTo: 0,
-    bats: BATDEFS.map(def => ({ def, x: def.x, figs: makeBatFigs(perRank), disc: 100, state: "stand", st: 0, loaded: true, reloading: false, reload: 0, dbl: S.dbl, smokeT: 0, fireAt: -1, ordered: false, flee: 0 })),
+    bats: BATDEFS.map(def => ({ def, x: def.x, figs: makeBatFigs(perRank), bayo: false, disc: 100, state: "stand", st: 0, loaded: true, reloading: false, reload: 0, dbl: S.dbl, smokeT: 0, fireAt: -1, ordered: false, flee: 0 })),
     cols: COLDEFS.map(c => ({ name: c.name, x: c.x, d: 560, delay: c.delay, figs: makeColFigs(D.rows), morale: D.morale, state: "form", fired: false, fireR: rnd(125, 165), disorder: 0, halt: 0, routT: 0, contact: 0, wavered: false })),
-    bodies: [], smoke: [], balls: [], banners: [], volley: null,
+    bodies: [], smoke: [], balls: [], banners: [], volley: null, floats: [], shots: [], chargeRun: false, presentTimer: 0,
+    guns: [{ x: 204, cd: rnd(4, 6), recoil: 0 }, { x: 796, cd: rnd(7, 9), recoil: 0 }],
     volleys: 0, perfects: 0, crashing: 0, noOrders: 0, lost: 0, killed: 0,
     steadyCd: 0, drillCd: 0, drillPh: 0, artT: 4, skVis: 0.5, drumT: 0, drumI: 0, soundQ: 0,
     result: null, endT: 0, ended: false, firstVolleyDone: false, sayWait: 0, flankPuffs: [], shakeT: 0
@@ -495,14 +608,19 @@ function banner(text, color, size) {
 }
 
 // ---------- British actions ----------
-function hitBat(bat, discLoss) {
-  const alive = bat.figs.filter(f => f.alive); if (!alive.length) return;
-  const front = alive.filter(f => f.rank === 0);
-  const f = (front.length && Math.random() < 0.65) ? pick(front) : pick(alive);
+function hitFig(bat, f, discLoss) {
+  if (!f.alive) return;
   f.alive = false; G.lost++;
   G.bodies.push({ x: bat.x + f.ox, d: G.b, py: f.rank * 11, kind: bat.def.kind, rot: rnd(-0.5, 0.5) });
   bat.disc -= discLoss * vetMul() * G.D.drain;
+  if (Math.random() < 0.55) scream(rnd(0.12, 0.2), panX(bat.x + f.ox), rnd(0, 0.15));
 }
+function hitBat(bat, discLoss) {
+  const alive = bat.figs.filter(f => f.alive); if (!alive.length) return;
+  const front = alive.filter(f => f.rank === 0);
+  hitFig(bat, (front.length && Math.random() < 0.65) ? pick(front) : pick(alive), discLoss);
+}
+function float(x, d, text, color) { G.floats.push({ x, d, text, color: color || "#ff8a8a", t: 0 }); }
 function killCol(col, k) {
   const alive = col.figs.filter(f => f.alive).sort((a, b) => (a.r + Math.random() * 2.5) - (b.r + Math.random() * 2.5));
   k = Math.min(k, alive.length);
@@ -512,6 +630,7 @@ function killCol(col, k) {
     G.bodies.push({ x: col.x + f.c * 9 * spread + f.jx * col.disorder * 6, d: col.d + f.r * 1.6, py: 0, kind: f.mil ? "mil" : "fr", rot: rnd(-0.6, 0.6) });
   }
   G.killed += k;
+  for (let i = 0; i < Math.min(k, 3); i++) scream(rnd(0.05, 0.1), panX(col.x), rnd(0.05, 0.4));
   return k;
 }
 function targetCol(bat) {
@@ -554,9 +673,11 @@ function orderLie() {
   const anyUp = live.some(isUp);
   if (anyUp) {
     live.forEach(b => { if (isUp(b)) { b.state = "lying"; b.st = 0.5; b.fireAt = -1; } });
+    say("Lie down! Get down, lads!");
     msg("Down, lads! The men lie flat in the grass.", "good");
   } else {
     live.forEach(b => { if (isLying(b)) { b.state = "rising"; b.st = 1.1; } });
+    say("On your feet! Form the line!");
     msg("On your feet! The line stands up.", "");
   }
 }
@@ -568,6 +689,11 @@ function orderReady() {
     if (!b.loaded) { empty++; return; }
     if (b.state === "stand") { b.state = "presenting"; b.st = 0.5; n++; }
   });
+  if (n) {
+    say("Make ready!", { pitch: 0.7 });
+    clearTimeout(G.presentTimer);
+    G.presentTimer = setTimeout(() => { if (G && !G.result && liveBats().some(b => b.state === "present" || b.state === "presenting")) say("Present!", { cut: false, pitch: 0.7 }); }, 900);
+  }
   if (n) msg("Make ready! " + n + " battalion" + (n > 1 ? "s" : "") + " raise their muskets. Arms get heavy, so don't wait too long!", "");
   else if (lying) msg("Your men are lying down. Stand them up first!", "bad");
   else if (empty) msg("Still reloading! Use the RELOAD DRILL.", "bad");
@@ -589,6 +715,7 @@ function orderFire() {
     }
     b.ordered = true; n++;
   });
+  if (n) { clearTimeout(G.presentTimer); say("FIRE!", { rate: 1.3, pitch: 0.65 }); }
   if (!n && fresh && !liveBats().some(b => b.fireAt >= 0)) { G.volley = null; msg(lying ? "They can't fire lying down! Stand up first." : "Nobody is loaded! Use the RELOAD DRILL.", "bad"); }
 }
 function orderSteady() {
@@ -597,6 +724,7 @@ function orderSteady() {
   liveBats().forEach(b => b.disc = Math.min(100, b.disc + boost));
   G.steadyCd = Math.max(4, 10 - 1.2 * S.up.officers);
   banner("STEADY, LADS!", "#9fd0ff", 44);
+  say(pick(["Steady, lads! Steady!", "Steady! Wait for the word!", "Hold your fire, lads! Steady!"]));
   msg("\"Steady, lads, steady! Wait for the word!\" The officers calm the line.", "good");
 }
 function drillZone() { const w = 0.18 + 0.035 * S.up.drill; return [0.5 - w / 2, 0.5 + w / 2]; }
@@ -625,19 +753,35 @@ function orderAdvance() {
     return;
   }
   G.advT = 2.5; G.advFrom = G.b;
+  say("The line will advance! Quick march!");
   msg("The line steps forward through its own smoke...", "");
 }
 function canCharge() { return G && G.phase === "battle" && !G.result && !G.charging && G.advT <= 0 && activeCols().length && minRange() <= 120 && liveBats().length; }
 function orderCharge() {
   if (!canCharge()) { if (G && G.phase === "battle" && !G.result) msg("The French are too far away to charge.", "bad"); return; }
-  G.charging = true; G.chargeT = 0; G.chargeFrom = G.b; G.chargeTo = G.b + Math.max(0, minRange() - 6);
-  liveBats().forEach(b => { b.state = "charge"; b.fireAt = -1; });
+  const fixed = liveBats().every(b => b.bayo);
+  G.charging = true; G.chargeRun = false; G.chargeT = fixed ? -0.5 : -1.6;
+  clearTimeout(G.presentTimer);
+  liveBats().forEach(b => { b.fireAt = -1; if (isLying(b) || b.state === "present" || b.state === "presenting") b.state = "stand"; });
+  if (!fixed) {
+    say("Fix... bayonets!", { rate: 1.0, pitch: 0.7 });
+    banner("FIX BAYONETS!", "#e4e9ef", 60);
+    msg("Fix bayonets! Steel snaps onto every musket down the line...", "");
+    setTimeout(() => { if (G && G.charging) { sfx.clicks(); liveBats().forEach(b => b.bayo = true); } }, 650);
+  }
+}
+function startChargeRun() {
+  G.chargeRun = true; G.chargeT = 0; G.chargeFrom = G.b; G.chargeTo = G.b + Math.max(0, minRange() - 6);
+  liveBats().forEach(b => { b.state = "charge"; b.bayo = true; });
   banner("CHARGE!", "#ffd166", 80);
-  msg("Fix bayonets! The Highlanders draw their broadswords and the whole line charges!", "good");
-  sfx.cheer();
+  say("CHARGE!", { rate: 1.2, pitch: 0.65 });
+  msg("CHARGE! The Highlanders draw their broadswords and the whole line runs at the French!", "good");
+  huzzah(0.8, 0.35);
+  if (G.bats[3].state !== "broken") pipes(0.2);
 }
 function resolveCharge() {
-  G.charging = false;
+  G.charging = false; G.chargeRun = false;
+  for (let i = 0; i < 9; i++) setTimeout(() => sfx.steel(rnd(-0.8, 0.8)), i * rnd(60, 110));
   const thr = chargeThr(); let failed = false, routed = 0;
   for (const col of activeCols()) {
     if (col.d - G.b > 40) continue;
@@ -654,6 +798,7 @@ function resolveCharge() {
     liveBats().forEach(b => b.disc -= 20 * vetMul());
     G.b = Math.max(0, G.b - 12);
     banner("THEY HELD!", "#ff7b7b", 54);
+    say("Fall back! Re-form the line!", { cut: false });
     msg("The French were too steady and pushed the charge back. Reform the line, reload and volley again!", "bad");
   }
 }
@@ -692,10 +837,57 @@ function frenchVolley(col, frac) {
 }
 function fireCannon() {
   const live = liveBats(); if (!live.length) return;
-  const bat = pick(live), gx = pick([400, 600]);
-  G.balls.push({ gx, bat, t: 0, dur: 1.2, tx: bat.x + rnd(-50, 50) });
+  const bat = pick(live), gx = pick([400, 600]), alive = bat.figs.filter(f => f.alive);
+  if (!alive.length) return;
+  const tx = bat.x + pick(alive).ox + rnd(-2, 2);
+  G.balls.push({ gx, bat, t: 0, dur: 1.2, tx });
   G.smoke.push({ x: gx, d: 548, r: 16, a: 0.8, life: 4, age: 0, vx: 4 });
-  sfx.boom();
+  sfx.boom(panX(gx)); sfx.whistle(1.15, panX(tx));
+}
+// a roundshot ploughs through a file: the front man and the man behind him, sometimes bouncing on into a third
+function cannonStrike(ball) {
+  const bat = ball.bat, lx = ball.tx - bat.x;
+  sfx.thud(panX(ball.tx));
+  if (bat.state === "broken" || G.result) return;
+  let near = bat.figs.filter(f => f.alive && Math.abs(f.ox - lx) < 5).sort((a, b) => Math.abs(a.ox - lx) - Math.abs(b.ox - lx)).slice(0, 2);
+  if (Math.random() < 0.35) { const extra = bat.figs.filter(f => f.alive && near.indexOf(f) < 0 && Math.abs(f.ox - lx) < 13); if (extra.length) near.push(pick(extra)); }
+  if (isLying(bat)) near = Math.random() < 0.35 ? near.slice(0, 1) : [];
+  near.forEach(f => hitFig(bat, f, 5));
+  if (near.length) { float(ball.tx, G.b, "-" + near.length * 10 + " men"); scream(0.22, panX(ball.tx), 0.05); }
+  else float(ball.tx, G.b, isLying(bat) ? "skipped over!" : "missed!", "#cfe8ff");
+}
+// two British 6-pounders on the flanks fire roundshot into the French columns
+function stepGuns(dt) {
+  for (const g of G.guns) g.recoil = Math.max(0, g.recoil - dt);
+  for (const sh of G.shots) {
+    sh.t += dt;
+    if (sh.t >= sh.dur && !sh.done) {
+      sh.done = true; const col = sh.col;
+      sfx.thud(panX(col.x) * 0.7);
+      if (col.state === "rout" || col.state === "gone") continue;
+      const alive = col.figs.filter(f => f.alive); if (!alive.length) continue;
+      const file = pick(alive).c, n = 1 + Math.floor(Math.random() * 3);
+      const lane = alive.filter(f => f.c === file).sort((a, b) => a.r - b.r).slice(0, n);
+      const spread = 1 + col.disorder * 0.6;
+      lane.forEach(f => { f.alive = false; G.bodies.push({ x: col.x + f.c * 9 * spread + f.jx * col.disorder * 6, d: col.d + f.r * 1.6, py: 0, kind: f.mil ? "mil" : "fr", rot: rnd(-0.6, 0.6) }); });
+      G.killed += lane.length; col.morale -= 3 + lane.length * 1.5;
+      for (let i = 0; i < lane.length; i++) scream(rnd(0.07, 0.12), panX(col.x), rnd(0, 0.3));
+      float(col.x + file * 9 * spread, col.d, "-" + lane.length * 10, "#ffd166");
+      for (let i = 0; i < 5; i++) G.smoke.push({ x: col.x + file * 9 * spread + rnd(-8, 8), d: col.d + rnd(0, 6), r: rnd(5, 10), a: 0.5, life: 1.4, age: 0, vx: rnd(-6, 6), dust: true });
+    }
+  }
+  G.shots = G.shots.filter(sh => sh.t < sh.dur + 0.1);
+  if (G.phase !== "battle" || G.result || G.charging) return;
+  for (const g of G.guns) {
+    g.cd -= dt; if (g.cd > 0) continue;
+    const tgt = activeCols().filter(c => c.state !== "form" && c.d - G.b <= 430 && c.d - G.b >= 55);
+    if (!tgt.length) { g.cd = 1; continue; }
+    const col = tgt.sort((a, b) => Math.abs(a.x - g.x) - Math.abs(b.x - g.x))[0];
+    g.cd = rnd(7, 9.5); g.recoil = 0.35;
+    G.shots.push({ g, col, t: 0, dur: 0.45 + (col.d - G.b) / 900, fx: g.x, fd: G.b + 3 });
+    for (let i = 0; i < 6; i++) G.smoke.push({ x: g.x + rnd(-14, 14), d: G.b + rnd(4, 9), r: rnd(10, 20), a: 0.75, life: rnd(3, 5), age: 0, vx: rnd(2, 6) });
+    sfx.boom(panX(g.x), true);
+  }
 }
 
 // ---------- step ----------
@@ -714,6 +906,7 @@ function step(dt) {
     if (G.waitT <= 0) {
       G.phase = "battle";
       banner("THE FRENCH ADVANCE!", "#fff", 54);
+      say("En avant! Vive le Roi!", { fr: true, pitch: 0.9, rate: 1.1 });
       msg("The French drums beat the charge! Their columns are coming. Stand up and HOLD YOUR FIRE...", "bad");
     }
   }
@@ -724,14 +917,18 @@ function step(dt) {
   }
   if (G.charging) {
     G.chargeT += dt;
-    const k = Math.min(1, G.chargeT / 1.3);
-    G.b = G.chargeFrom + (G.chargeTo - G.chargeFrom) * k;
-    if (k >= 1) resolveCharge();
+    if (!G.chargeRun) { if (G.result || !activeCols().length) G.charging = false; else if (G.chargeT >= 0) startChargeRun(); }
+    else {
+      const k = Math.min(1, G.chargeT / 1.3);
+      G.b = G.chargeFrom + (G.chargeTo - G.chargeFrom) * k;
+      if (k >= 1) resolveCharge();
+    }
   }
 
   stepBats(dt);
   stepCols(dt);
   stepEnemyFire(dt);
+  stepGuns(dt);
 
   if (G.volley && G.t > G.volley.until) { evaluateVolley(); G.volley = null; }
   if (G.soundQ) { sfx.volley(G.soundQ); G.shakeT = Math.min(0.5, 0.08 * G.soundQ + 0.05); G.soundQ = 0; }
@@ -755,7 +952,8 @@ function step(dt) {
       G.result = "win"; G.endT = 3.2;
       banner("VICTORY!", "#ffd166", 90);
       msg("Huzzah! The French army is running back to Quebec. The Plains of Abraham are yours!", "good");
-      sfx.cheer();
+      say("Three cheers, lads!", { cut: false });
+      huzzah(0.8, 1.2); huzzah(0.8, 2.6); huzzah(0.9, 4.0);
     } else if (brokenCount() >= 3) {
       G.result = "lose"; G.endT = 3.2;
       banner("THE LINE IS BROKEN", "#ff7b7b", 56);
@@ -911,16 +1109,14 @@ function stepFx(dt) {
     if (cur.t >= cur.life) G.banners.shift();
   }
   if (G.shakeT > 0) G.shakeT -= dt;
+  for (const f of G.floats) f.t += dt;
+  G.floats = G.floats.filter(f => f.t < 1.6);
   if (paused()) return;
   for (const ball of G.balls) {
     ball.t += dt;
     if (ball.t >= ball.dur && !ball.done) {
-      ball.done = true; sfx.thud();
-      const bat = ball.bat;
-      if (bat.state !== "broken" && !G.result) {
-        const n = isLying(bat) ? (Math.random() < 0.3 ? 1 : 0) : 1 + Math.floor(Math.random() * 2.5);
-        for (let i = 0; i < n; i++) hitBat(bat, 4);
-      }
+      ball.done = true;
+      cannonStrike(ball);
       for (let i = 0; i < 4; i++) G.smoke.push({ x: ball.tx + rnd(-10, 10), d: G.b + rnd(-2, 3), r: rnd(5, 10), a: 0.5, life: 1.5, age: 0, vx: rnd(-6, 6), dust: true });
     }
   }
@@ -1000,7 +1196,13 @@ function draw() {
     ctx.fillStyle = "#151515"; ctx.beginPath(); ctx.arc(xOf(x, d), sy, 2.6 * s + 1, 0, 7); ctx.fill();
   }
 
-  // British line
+  // British guns, then the line
+  for (const g of G.guns) drawGun(g);
+  for (const sh of G.shots) {
+    if (sh.t > sh.dur) continue;
+    const k2 = sh.t / sh.dur, d = sh.fd + (sh.col.d - sh.fd) * k2, x = sh.fx + (sh.col.x - sh.fx) * k2, s = sOf(d);
+    ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(xOf(x, d), yOf(d) - 14 * s - Math.sin(k2 * Math.PI) * 18, 2.4 * s + 0.8, 0, 7); ctx.fill();
+  }
   for (let i = 0; i < G.bats.length; i++) drawBat(G.bats[i]);
 
   // smoke
@@ -1015,7 +1217,27 @@ function draw() {
     ctx.fillStyle = "rgba(235,235,235," + a + ")"; ctx.beginPath(); ctx.arc(p.x + p.age * 6, yOf(p.d) - 12 * s - p.age * 4, (5 + p.age * 6) * s, 0, 7); ctx.fill();
   }
 
+  // floating casualty numbers
+  ctx.textAlign = "center"; ctx.font = "900 16px Nunito, sans-serif";
+  for (const f of G.floats) {
+    const a = clamp(1.6 - f.t, 0, 1), y = yOf(f.d) - 34 * sOf(f.d) - f.t * 26;
+    ctx.globalAlpha = a; ctx.lineWidth = 4; ctx.strokeStyle = "#1a0d08"; ctx.strokeText(f.text, xOf(f.x, f.d), y);
+    ctx.fillStyle = f.color; ctx.fillText(f.text, xOf(f.x, f.d), y); ctx.globalAlpha = 1;
+  }
+
   drawHUD();
+}
+function drawGun(g) {
+  const d = G.b + 3, s = sOf(d) * 1.45, x = xOf(g.x, d), y = yOf(d) + g.recoil * 14 * s;
+  ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.fillRect(x - 10 * s, y - 1 * s, 20 * s, 3 * s);
+  ctx.fillStyle = "#6b4a2a"; ctx.fillRect(x - 3 * s, y - 6 * s, 6 * s, 9 * s);     // trail
+  ctx.strokeStyle = "#3d2a17"; ctx.lineWidth = 1.6 * s;
+  ctx.beginPath(); ctx.ellipse(x - 6 * s, y - 5 * s, 1.4 * s, 5 * s, 0, 0, 7); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(x + 6 * s, y - 5 * s, 1.4 * s, 5 * s, 0, 0, 7); ctx.stroke();
+  ctx.fillStyle = "#a07a3a"; ctx.fillRect(x - 1.6 * s, y - 15 * s, 3.2 * s, 10 * s); // brass barrel pointing at the French
+  if (g.recoil > 0.22) { ctx.fillStyle = "rgba(255,210,110,.9)"; ctx.beginPath(); ctx.arc(x, y - 17 * s, 5 * s, 0, 7); ctx.fill(); }
+  drawSoldier(x - 10 * s, y, s / 1.45, "art", "stand", false);
+  drawSoldier(x + 10 * s, y, s / 1.45, "art", "stand", false);
 }
 
 function drawBat(bat) {
@@ -1042,7 +1264,7 @@ function drawBat(bat) {
       if (chargeBob) sy -= Math.abs(Math.sin(G.t * 14 + i)) * 3;
       if (G.result === "win" && !flee) sy -= Math.max(0, Math.sin(G.t * 6 + i * 0.7)) * 4;
       if (bat.state === "rising") sy += 0;
-      drawSoldier(sx, sy, s * (rank ? 1.04 : 1), bat.def.kind, pose, f.flash > 0);
+      drawSoldier(sx, sy, s * (rank ? 1.04 : 1), bat.def.kind, pose, f.flash > 0, bat.bayo);
     }
   }
   if (bat.state === "broken") return;
@@ -1135,7 +1357,7 @@ function ui() {
   setD("chargeBtn", !cc);
   const wav = cc && activeCols().some(c => c.d - G.b <= 120 && c.morale < chargeThr());
   $("chargeBtn").classList.toggle("go", wav);
-  setT("chargeHint", !cc ? "bayonets · C" : wav ? "they're wavering!" : "they look steady...");
+  setT("chargeHint", G.charging && !G.chargeRun ? "fixing bayonets..." : !cc ? (live.length && live.every(b => b.bayo) ? "bayonets fixed · C" : "fix bayonets · C") : wav ? "they're wavering!" : "they look steady...");
 }
 
 function showStart() {
@@ -1215,7 +1437,7 @@ tap("startUp", () => { renderUps(); $("upOv").hidden = false; });
 tap("endUp", () => { renderUps(); $("upOv").hidden = false; });
 tap("endAgain", startBattle);
 tap("goBtn", startBattle);
-tap("muteBtn", () => { S.mute = !S.mute; save(); ui(); });
+tap("muteBtn", () => { S.mute = !S.mute; save(); if (S.mute && window.speechSynthesis) speechSynthesis.cancel(); if (AC) { if (S.mute) AC.suspend(); else AC.resume(); } ui(); });
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => { $(b.dataset.close).hidden = true; if (!$("startOv").hidden) showStart(); });
 document.querySelectorAll("#difPick .dbtn").forEach(b => b.onclick = () => { S.diff = b.dataset.d; save(); showStart(); ui(); });
 document.addEventListener("keydown", e => {

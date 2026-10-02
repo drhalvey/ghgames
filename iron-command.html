@@ -779,6 +779,25 @@ const THEMES = {
   snow:   { g1: [224, 232, 238], g2: [176, 188, 198], water: "#47729a", water2: "#7fa7c8", shore: "#f4f8fb", rock: "#6c7480", rockL: "#9aa3ae", rockD: "#434a53", tree: "#264a3c", treeL: "#3b6a55", treeD: "#173026", trunk: "#4a3426", mini: [215, 224, 232] }
 };
 
+/* smooth water field: >.5 is water, .4-.5 beach; tile centres keep their real type */
+function waterField(map) {
+  if (map._wf) return map._wf;
+  const W = map.W, H = map.H, T = map.terr, v = new Float32Array(W * H);
+  const isw = (x, y) => { x = clamp(x, 0, W - 1); y = clamp(y, 0, H - 1); const t = T[y * W + x]; return t === 1 || t === 4 ? 1 : 0; };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    let s = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) s += isw(x + dx, y + dy) * (dx === 0 && dy === 0 ? 4 : dx === 0 || dy === 0 ? 2 : 1);
+    s /= 16; v[y * W + x] = isw(x, y) ? Math.max(s, .62) : Math.min(s, .45);
+  }
+  // a little wobble so coasts are not too regular
+  const NW = W * 2 + 3, NH = H * 2 + 3, nz = new Float32Array(NW * NH), NR = mulberry(W * 31 + H);
+  for (let i = 0; i < nz.length; i++) nz[i] = NR() * 2 - 1;
+  const wob = (x, y) => { x *= 2; y *= 2; const ix = clamp(Math.floor(x), 0, NW - 2), iy = clamp(Math.floor(y), 0, NH - 2), u = x - ix, w = y - iy, su = u * u * (3 - 2 * u), sw = w * w * (3 - 2 * w);
+    return lerp(lerp(nz[iy * NW + ix], nz[iy * NW + ix + 1], su), lerp(nz[(iy + 1) * NW + ix], nz[(iy + 1) * NW + ix + 1], su), sw); };
+  const f = (fx, fy) => { const ox = fx, oy = fy; fx -= .5; fy -= .5; const ix = clamp(Math.floor(fx), 0, W - 1), iy = clamp(Math.floor(fy), 0, H - 1), ix2 = Math.min(W - 1, ix + 1), iy2 = Math.min(H - 1, iy + 1);
+    let u = clamp(fx - ix, 0, 1), w = clamp(fy - iy, 0, 1); u = u * u * (3 - 2 * u); w = w * w * (3 - 2 * w);
+    return lerp(lerp(v[iy * W + ix], v[iy * W + ix2], u), lerp(v[iy2 * W + ix], v[iy2 * W + ix2], u), w) + wob(ox, oy) * .035; };
+  map._wf = f; return f;
+}
 function paintTerrain(map, theme) {
   const T = THEMES[theme], W = map.W, H = map.H, PW = W * TILE, PH = H * TILE;
   const cv = document.createElement("canvas"); cv.width = PW; cv.height = PH;
@@ -797,8 +816,11 @@ function paintTerrain(map, theme) {
   const shd = new Float32Array((W + 1) * (H + 1));
   for (let y = 0; y <= H; y++) for (let x = 0; x <= W; x++) {
     const gx = hgt[(y + 1) * HW + x + 2] - hgt[(y + 1) * HW + x], gy = hgt[(y + 2) * HW + x + 1] - hgt[y * HW + x + 1];
-    shd[y * (W + 1) + x] = clamp(1 - (gx + gy) * .32, .78, 1.2);
+    shd[y * (W + 1) + x] = clamp(1 - (gx + gy) * .2, .87, 1.12);
   }
+  let hasW = false; for (let i = 0; i < W * H; i++) if (map.terr[i] === 1 || map.terr[i] === 4) { hasW = true; break; }
+  const WF = waterField(map), WC = hexToRgb(T.water), SC = hexToRgb(T.shore), SHL = [lerp(WC[0], 150, .45), lerp(WC[1], 215, .45), lerp(WC[2], 220, .45)];
+  const dry = (x, y) => !hasW || WF(x / TILE, y / TILE) < .36;
   for (let py = 0; py < PH; py++) {
     const fy = py / TILE - .5, iy = clamp(Math.floor(fy), 0, H - 1), iy2 = clamp(iy + 1, 0, H - 1), ty = clamp(fy - iy, 0, 1);
     for (let px = 0; px < PW; px++) {
@@ -808,9 +830,16 @@ function paintTerrain(map, theme) {
       const hx = px / TILE, hy = py / TILE, jx = Math.min(W - 1, hx | 0), jy = Math.min(H - 1, hy | 0), ux = hx - jx, uy = hy - jy, W1 = W + 1;
       const sh = lerp(lerp(shd[jy * W1 + jx], shd[jy * W1 + jx + 1], ux), lerp(shd[(jy + 1) * W1 + jx], shd[(jy + 1) * W1 + jx + 1], ux), uy);
       const o = (py * PW + px) * 4;
-      d[o] = (T.g1[0] + (T.g2[0] - T.g1[0]) * k) * sh + grain;
-      d[o + 1] = (T.g1[1] + (T.g2[1] - T.g1[1]) * k) * sh + grain;
-      d[o + 2] = (T.g1[2] + (T.g2[2] - T.g1[2]) * k) * sh + grain * .8;
+      let r0 = (T.g1[0] + (T.g2[0] - T.g1[0]) * k) * sh, g0 = (T.g1[1] + (T.g2[1] - T.g1[1]) * k) * sh, b0 = (T.g1[2] + (T.g2[2] - T.g1[2]) * k) * sh;
+      const wf = hasW ? WF(hx, hy) : 0;
+      if (wf > .34) {
+        if (wf > .5) { const q = clamp((wf - .5) / .14, 0, 1); r0 = lerp(SHL[0], WC[0], q); g0 = lerp(SHL[1], WC[1], q); b0 = lerp(SHL[2], WC[2], q); }
+        else if (wf > .4) { const q = (wf - .4) / .1, m = 1 - q * q * .28; r0 = SC[0] * m; g0 = SC[1] * m; b0 = SC[2] * m; }
+        else { const q = (wf - .34) / .06, qq = q * q * (3 - 2 * q); r0 = lerp(r0, SC[0], qq); g0 = lerp(g0, SC[1], qq); b0 = lerp(b0, SC[2], qq); }
+      }
+      d[o] = r0 + grain;
+      d[o + 1] = g0 + grain;
+      d[o + 2] = b0 + grain * .8;
       d[o + 3] = 255;
     }
   }
@@ -818,11 +847,36 @@ function paintTerrain(map, theme) {
   // little details: tufts, pebbles
   for (let i = 0; i < W * H * 1.2; i++) {
     const x = R() * PW, y = R() * PH, tt = map.terr[((y / TILE) | 0) * W + ((x / TILE) | 0)];
-    if (tt !== 0) continue;
+    if (tt !== 0 || !dry(x, y)) continue;
     if (theme === "green") { c.strokeStyle = R() < .5 ? "rgba(40,80,25,.55)" : "rgba(150,190,90,.45)"; c.lineWidth = 1.2; c.beginPath(); c.moveTo(x, y); c.lineTo(x - 2, y - 4); c.moveTo(x, y); c.lineTo(x + 2, y - 4); c.moveTo(x, y); c.lineTo(x, y - 5); c.stroke(); }
     else if (theme === "desert") { c.fillStyle = R() < .5 ? "rgba(120,90,50,.35)" : "rgba(255,240,200,.35)"; c.beginPath(); c.ellipse(x, y, 3 + R() * 6, 1.2, 0, 0, TAU); c.fill(); }
     else { c.fillStyle = R() < .5 ? "rgba(140,160,180,.35)" : "rgba(255,255,255,.6)"; c.beginPath(); c.ellipse(x, y, 2 + R() * 5, 1.2, 0, 0, TAU); c.fill(); }
     if (R() < .15) { c.fillStyle = "rgba(90,85,75,.6)"; c.beginPath(); c.arc(x + 5, y + 3, 1.5, 0, TAU); c.fill(); }
+  }
+  // patches of bare earth, flowers, stones and wind ripples
+  for (let i = 0; i < W * H * .06; i++) {
+    const x = R() * PW, y = R() * PH, tt = map.terr[((y / TILE) | 0) * W + ((x / TILE) | 0)]; if (tt !== 0 || !dry(x, y)) continue;
+    const r = TILE * (.6 + R() * 1.6), g = c.createRadialGradient(x, y, 0, x, y, r);
+    const pc = theme === "snow" ? "150,160,170" : theme === "desert" ? "150,112,70" : "120,98,60";
+    g.addColorStop(0, "rgba(" + pc + ",.32)"); g.addColorStop(.6, "rgba(" + pc + ",.16)"); g.addColorStop(1, "rgba(" + pc + ",0)");
+    c.fillStyle = g; c.beginPath(); c.ellipse(x, y, r, r * (.55 + R() * .4), R() * 3, 0, TAU); c.fill();
+  }
+  for (let i = 0; i < W * H * 2.2; i++) {
+    const x = R() * PW, y = R() * PH, tt = map.terr[((y / TILE) | 0) * W + ((x / TILE) | 0)]; if (tt !== 0 || !dry(x, y)) continue;
+    const q = R();
+    if (theme === "green") {
+      if (q < .55) { c.strokeStyle = R() < .5 ? "rgba(35,70,22,.5)" : "rgba(160,200,95,.4)"; c.lineWidth = 1; c.beginPath(); for (let b = 0; b < 4; b++) { const bx = x + (R() - .5) * 5; c.moveTo(bx, y); c.lineTo(bx + (R() - .5) * 3, y - 3 - R() * 4); } c.stroke(); }
+      else if (q < .62) { const fc = ["#f4f1e6", "#ffd84a", "#c79bf2", "#ff8a7a"][R() * 4 | 0]; c.fillStyle = fc; for (let b = 0; b < 4; b++) { c.beginPath(); c.arc(x + (R() - .5) * 9, y + (R() - .5) * 7, .9 + R() * .6, 0, TAU); c.fill(); } }
+      else if (q < .7) { c.fillStyle = "rgba(0,0,0,.2)"; c.beginPath(); c.ellipse(x + 1, y + 1, 2.4, 1.6, 0, 0, TAU); c.fill(); c.fillStyle = "#8f887a"; c.beginPath(); c.ellipse(x, y, 2.2, 1.5, R(), 0, TAU); c.fill(); c.fillStyle = "rgba(255,255,255,.3)"; c.fillRect(x - 1, y - 1, 1.2, .8); }
+    } else if (theme === "desert") {
+      if (q < .35) { c.strokeStyle = R() < .5 ? "rgba(255,240,205,.32)" : "rgba(120,86,48,.22)"; c.lineWidth = 1.2; c.beginPath(); c.moveTo(x - 9, y); c.quadraticCurveTo(x, y - 3, x + 9, y); c.stroke(); }
+      else if (q < .45) { c.fillStyle = "rgba(0,0,0,.18)"; c.beginPath(); c.ellipse(x + 1, y + 1, 2.4, 1.6, 0, 0, TAU); c.fill(); c.fillStyle = "#9a7a55"; c.beginPath(); c.ellipse(x, y, 2.2, 1.5, R(), 0, TAU); c.fill(); }
+      else if (q < .5) { c.strokeStyle = "rgba(110,120,50,.55)"; c.lineWidth = 1; c.beginPath(); for (let b = 0; b < 5; b++) { const an = -Math.PI / 2 + (b - 2) * .45; c.moveTo(x, y); c.lineTo(x + Math.cos(an) * 5, y + Math.sin(an) * 5); } c.stroke(); }
+    } else {
+      if (q < .3) { c.fillStyle = "rgba(255,255,255,.75)"; c.fillRect(x, y, 1, 1); }
+      else if (q < .45) { c.strokeStyle = "rgba(150,170,190,.25)"; c.lineWidth = 1.2; c.beginPath(); c.moveTo(x - 8, y); c.quadraticCurveTo(x, y - 2.5, x + 8, y); c.stroke(); }
+      else if (q < .5) { c.fillStyle = "#5d6570"; c.beginPath(); c.ellipse(x, y, 2.2, 1.4, R(), 0, TAU); c.fill(); c.fillStyle = "#fff"; c.beginPath(); c.ellipse(x - .3, y - .5, 1.6, .8, 0, 0, TAU); c.fill(); }
+    }
   }
   // dirt roads along the routes between bases
   const roadCol = theme === "desert" ? [176, 140, 92] : theme === "snow" ? [150, 146, 138] : [132, 112, 76];
@@ -832,8 +886,9 @@ function paintTerrain(map, theme) {
     let started = false;
     c.beginPath();
     for (const [tx, ty] of road.pts) {
-      const ix = Math.floor(tx), iy = Math.floor(ty), tt = ix >= 0 && iy >= 0 && ix < W && iy < H ? map.terr[iy * W + ix] : 1;
+      const ix = Math.floor(tx), iy = Math.floor(ty);
       const x = (tx + .5) * TILE, y = (ty + .5) * TILE;
+      const tt = ix >= 0 && iy >= 0 && ix < W && iy < H && (!hasW || WF(tx + .5, ty + .5) < .04) ? map.terr[iy * W + ix] : 1;
       if (tt !== 0) { if (started) { c.stroke(); c.beginPath(); started = false; } continue; }
       if (!started) { c.moveTo(x, y); started = true; } else c.lineTo(x, y);
     }
@@ -846,15 +901,6 @@ function paintTerrain(map, theme) {
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const t = map.terr[y * W + x]; if (t === 2 || t === 3) { const g = c.createRadialGradient((x + .6) * TILE, (y + .65) * TILE, 0, (x + .6) * TILE, (y + .65) * TILE, TILE * .95); g.addColorStop(0, "rgba(20,25,15,.28)"); g.addColorStop(1, "rgba(20,25,15,0)"); c.fillStyle = g; c.fillRect((x - .4) * TILE, (y - .3) * TILE, TILE * 2, TILE * 2); } }
   // water: shore ring, then water, then highlights
   const isW = (x, y) => x >= 0 && y >= 0 && x < W && y < H && (map.terr[y * W + x] === 1 || map.terr[y * W + x] === 4);
-  c.fillStyle = T.shore;
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (isW(x, y)) { c.beginPath(); c.arc((x + .5) * TILE, (y + .5) * TILE, TILE * .95, 0, TAU); c.fill(); }
-  c.fillStyle = T.water;
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (isW(x, y)) {
-    c.beginPath(); c.arc((x + .5) * TILE, (y + .5) * TILE, TILE * .78, 0, TAU); c.fill();
-    if (isW(x + 1, y)) c.fillRect((x + .5) * TILE, y * TILE + TILE * .1, TILE, TILE * .8);
-    if (isW(x, y + 1)) c.fillRect(x * TILE + TILE * .1, (y + .5) * TILE, TILE * .8, TILE);
-    if (isW(x + 1, y) && isW(x, y + 1) && isW(x + 1, y + 1)) c.fillRect((x + .5) * TILE, (y + .5) * TILE, TILE, TILE);
-  }
   // deeper water further from the shore, pale shallows next to it
   { const dist = new Int16Array(W * H).fill(-1), qq = [];
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!isW(x, y)) { dist[y * W + x] = 0; qq.push(y * W + x); }
@@ -909,12 +955,17 @@ function paintTerrain(map, theme) {
         for (let a = 0; a < 6; a++) { const an = a / 6 * TAU + R(); c.beginPath(); c.ellipse(px + Math.cos(an) * rr * .5, py + Math.sin(an) * rr * .5, rr * .55, rr * .18, an, 0, TAU); c.fill(); }
         c.fillStyle = T.treeL; c.beginPath(); c.arc(px, py, rr * .22, 0, TAU); c.fill();
       } else {
-        c.fillStyle = T.treeD; c.beginPath(); c.arc(px, py, rr, 0, TAU); c.fill();
-        for (let l = 0; l < 6; l++) { const an = l / 6 * TAU + R(), dd = rr * .45; c.fillStyle = T.treeD; c.beginPath(); c.arc(px + Math.cos(an) * dd, py + Math.sin(an) * dd, rr * .5, 0, TAU); c.fill(); }
-        c.fillStyle = T.tree; c.beginPath(); c.arc(px - 2, py - 2, rr * .82, 0, TAU); c.fill();
-        for (let l = 0; l < 4; l++) { const an = l / 4 * TAU + R(), dd = rr * .38; c.fillStyle = T.tree; c.beginPath(); c.arc(px - 2 + Math.cos(an) * dd, py - 2 + Math.sin(an) * dd, rr * .42, 0, TAU); c.fill(); }
-        c.fillStyle = T.treeL; c.beginPath(); c.arc(px - rr * .3, py - rr * .3, rr * .42, 0, TAU); c.fill();
-        c.fillStyle = "rgba(255,255,220,.22)"; for (let l = 0; l < 5; l++) { c.beginPath(); c.arc(px - rr * .5 + R() * rr * .6, py - rr * .5 + R() * rr * .6, 1.5 + R() * 2, 0, TAU); c.fill(); }
+        // a canopy of shaded lobes, lit from the top left, darker underneath
+        const lobe = (lx, ly, lr, k) => { const g = c.createRadialGradient(lx - lr * .35, ly - lr * .4, lr * .1, lx, ly, lr);
+          g.addColorStop(0, k > .6 ? T.treeL : T.tree); g.addColorStop(.7, k > .3 ? T.tree : T.treeD); g.addColorStop(1, T.treeD);
+          c.fillStyle = g; c.beginPath(); c.arc(lx, ly, lr, 0, TAU); c.fill(); };
+        const n = 6 + (R() * 3 | 0), lobes = [];
+        for (let l = 0; l < n; l++) { const an = l / n * TAU + R() * .5, dd = rr * (.42 + R() * .14); lobes.push([px + Math.cos(an) * dd, py + Math.sin(an) * dd, rr * (.48 + R() * .14), .3]); }
+        for (let l = 0; l < 3; l++) { const an = R() * TAU, dd = rr * .22; lobes.push([px - 2 + Math.cos(an) * dd, py - 2 + Math.sin(an) * dd, rr * (.5 + R() * .12), .7]); }
+        lobes.sort((A, Bq) => (A[3] - Bq[3]) || ((Bq[0] + Bq[1]) - (A[0] + A[1])));
+        c.fillStyle = T.treeD; c.beginPath(); c.arc(px + 1, py + 1, rr * .95, 0, TAU); c.fill();
+        for (const L of lobes) lobe(L[0], L[1], L[2], L[3]);
+        c.fillStyle = "rgba(255,255,220,.2)"; for (let l = 0; l < 6; l++) { c.beginPath(); c.arc(px - rr * .55 + R() * rr * .6, py - rr * .55 + R() * rr * .6, 1.2 + R() * 1.8, 0, TAU); c.fill(); }
       }
     }
   }
@@ -1370,6 +1421,9 @@ function kill(t, src) {
     const sz = Math.max(t.w, t.h);
     for (let k = 0; k < 3 + sz * 2; k++) { const x = t.x + (rnd() - .5) * t.w * TILE, y = t.y + (rnd() - .5) * t.h * TILE; G.fx.push({ t: "later", at: rnd() * .9, life: 2, max: 2, fn: [x, y, 2 + (rnd() * 2 | 0)] }); }
     boomFx(t.x, t.y, 3);
+    G.fx.push({ t: "collapse", type: t.t, o: t.o, tx: t.tx, ty: t.ty, w: t.w, h: t.h, life: 1.4, max: 1.4 });
+    G.fx.push({ t: "ruin", x: t.x, y: t.y, w: t.w * TILE, h: t.h * TILE, life: 16 + sz * 2, max: 16 + sz * 2 });
+    for (let k = 0; k < 16; k++) { const a = k / 16 * TAU + rnd() * .3, v = 70 + rnd() * 50; G.fx.push({ t: "puff", x: t.x + Math.cos(a) * t.w * TILE * .45, y: t.y + Math.sin(a) * t.h * TILE * .4, vx: Math.cos(a) * v, vy: Math.sin(a) * v * .75, life: 1.6 + rnd() * .6, max: 2.2, r: 7 + rnd() * 4, delay: .15 + rnd() * .15 }); }
     for (let k = 0; k < 14; k++) G.fx.push({ t: "debris", x: t.x, y: t.y, vx: (rnd() - .5) * 240, vy: (rnd() - .5) * 240, z: 0, vz: 90 + rnd() * 140, life: 1.3, max: 1.3 });
     scorch(t.x, t.y, sz * TILE * .6, true, t.w, t.h);
     if (vis) { sfx("bigboom", t.x, t.y); shake(8); }
@@ -1924,6 +1978,8 @@ function cosmetic(dt) {
       if (d.air) e.rot = (e.rot || 0) + dt * (e.z > .05 ? 28 : 3);
       if (d.sea && mv > .2 && onScreen && rnd() < dt * 14) { const bx = e.x - Math.cos(e.dir) * d.r * .9, by = e.y - Math.sin(e.dir) * d.r * .9; G.fx.push({ t: "wake", x: bx, y: by, a: e.dir, life: 1.4, max: 1.4, s: d.r / 14 }); }
       if (!onScreen) continue;
+      if (d.cat === "veh" && mv > .4 && rnd() < dt * (d.speed > 90 ? 9 : 5)) { const th = G.cfg.theme, bx = e.x - Math.cos(e.dir) * d.r, by = e.y - Math.sin(e.dir) * d.r;
+        G.fx.push({ t: "dust", x: bx + (rnd() - .5) * d.r, y: by + (rnd() - .5) * d.r, life: .9, max: .9, r: 3.5, c: th === "desert" ? "rgba(214,180,120,.55)" : th === "snow" ? "rgba(240,245,250,.7)" : "rgba(150,130,95,.35)" }); }
       if (d.cat !== "inf" && e.hp < e.mhp * .4 && rnd() < dt * (e.hp < e.mhp * .2 ? 8 : 3)) G.fx.push({ t: "smoke", x: e.x + (rnd() - .5) * 8, y: e.y - (d.air ? (e.z || 0) * 20 : 0), life: 1.2, max: 1.2, r: 4, dark: true });
       if (d.harvester && e.hs === "mine" && rnd() < dt * 3) G.fx.push({ t: "dust", x: e.x + Math.cos(e.dir) * 16, y: e.y + Math.sin(e.dir) * 16, life: .6, max: .6, c: "#d9b860" });
     }
@@ -2958,7 +3014,7 @@ function drawBuilding(c, type, col, x, y, o) {
     case "pillbox": {
       c.save(); c.translate(x + 16, y + 14); c.rotate(o.tdir || 0);
       c.fillStyle = "#151515"; c.fillRect(6, -3, 7, 6); c.fillStyle = "#2b2b2b"; c.fillRect(10, -1.2, 9, 2.4);
-      if (o.flash > 0) { c.fillStyle = "#ffe9a0"; c.beginPath(); c.arc(21, 0, 3, 0, TAU); c.fill(); }
+      if (o.flash > 0) mflash(c, 19, 0, 0, 16);
       c.restore(); break;
     }
     case "turret": case "flakgun": {
@@ -2969,7 +3025,7 @@ function drawBuilding(c, type, col, x, y, o) {
       c.fillStyle = col.d; c.beginPath(); c.arc(0, 0, 9, 0, TAU); c.fill();
       const g = c.createRadialGradient(-3, -3, 1, 0, 0, 9); g.addColorStop(0, col.l); g.addColorStop(1, col.c);
       c.fillStyle = g; c.beginPath(); c.arc(-.5, -.5, 7.5, 0, TAU); c.fill();
-      if (o.flash > 0) { c.fillStyle = "#ffe9a0"; c.beginPath(); c.arc(type === "flakgun" ? 24 : 28, 0, 4.5, 0, TAU); c.fill(); }
+      if (o.flash > 0) { if (type === "flakgun") { mflash(c, 22, -3.5, 0, 16); mflash(c, 22, 3.5, 0, 16); } else mflash(c, 26, 0, 0, 26); }
       c.restore(); break;
     }
     case "beam": {
@@ -3210,12 +3266,13 @@ function drawVehicle(c, type, col, x, y, dir, tdir, anim, o) {
     const tf = facing(tdir);
     const ts = vehSprite(type, col, "tur", tf, o.husk);
     const fwd = type === "gunboat" ? 7 : type === "destroyer" ? 11 : type === "cruiser" ? 14 : 0;
-    const ox = Math.cos(a) * fwd, oy = Math.sin(a) * fwd;
+    const rk = o.flash > 0 ? Math.min(1, o.flash / .08) * 2.6 : 0, ta0 = tf / 32 * TAU;
+    const ox = Math.cos(a) * fwd - Math.cos(ta0) * rk, oy = Math.sin(a) * fwd - Math.sin(ta0) * rk;
     c.drawImage(ts, x + ox - S / 2, y + oy - S / 2, S, S);
-    if (o.flash > 0 && fwd) { const ta = tf / 32 * TAU; c.fillStyle = "rgba(255,240,170,.95)"; c.beginPath(); c.arc(x + ox + Math.cos(ta) * 18, y + oy + Math.sin(ta) * 18, 4, 0, TAU); c.fill(); }
-    if (o.flash > 0) { const ta = tf / 32 * TAU, L = type === "titan" ? 27 : type === "htank" ? 24 : type === "buggy" ? 12 : 20; c.fillStyle = "rgba(255,240,170,.95)"; c.beginPath(); c.arc(x + Math.cos(ta) * L, y + Math.sin(ta) * L, type === "buggy" ? 2.5 : 4.5, 0, TAU); c.fill(); }
+    if (o.flash > 0 && fwd) { const ta = tf / 32 * TAU; mflash(c, x + ox + Math.cos(ta) * 18, y + oy + Math.sin(ta) * 18, ta, type === "cruiser" ? 34 : 24); }
+    else if (o.flash > 0) { const ta = tf / 32 * TAU, L = type === "titan" ? 27 : type === "htank" ? 24 : type === "buggy" ? 12 : 20; mflash(c, x + Math.cos(ta) * L, y + Math.sin(ta) * L, ta, type === "buggy" ? 14 : type === "titan" ? 34 : 26); }
     if (d.sea) c.globalAlpha = 1;
-  } else if (o.flash > 0 && type === "arty") { c.fillStyle = "rgba(255,240,170,.95)"; c.beginPath(); c.arc(x + Math.cos(a) * 26, y + Math.sin(a) * 26, 6, 0, TAU); c.fill(); }
+  } else if (o.flash > 0 && type === "arty") mflash(c, x + Math.cos(a) * 26, y + Math.sin(a) * 26, a, 40);
 }
 function drawShipExtras() {}
 function drawHeli(c, type, col, x, y, dir, o) {
@@ -3232,7 +3289,7 @@ function drawHeli(c, type, col, x, y, dir, o) {
   c.strokeStyle = "rgba(25,25,25,.7)"; c.lineWidth = 2;
   for (let k = 0; k < (type === "bear" ? 5 : 4); k++) { const aa = ra + k / (type === "bear" ? 5 : 4) * TAU; c.beginPath(); c.moveTo(x, y - lift); c.lineTo(x + Math.cos(aa) * rr2, y - lift + Math.sin(aa) * rr2 * .9); c.stroke(); }
   c.fillStyle = "#222"; c.beginPath(); c.arc(x, y - lift, 2.5, 0, TAU); c.fill();
-  if (o.flash > 0) { const a = f / 32 * TAU; c.fillStyle = "rgba(255,240,170,.95)"; c.beginPath(); c.arc(x + Math.cos(a) * 18, y - lift + Math.sin(a) * 18, 3.5, 0, TAU); c.fill(); }
+  if (o.flash > 0) { const a = f / 32 * TAU; mflash(c, x + Math.cos(a) * 18, y - lift + Math.sin(a) * 18, a, 16); }
   c.restore();
 }
 
@@ -3250,24 +3307,42 @@ function drawInf(c, type, col, x, y, dir, anim, o) {
     c.fillStyle = col.c; c.fillRect(3, -2.4, 1.4, 4.8);
     c.restore(); return;
   }
-  c.strokeStyle = "#2d2a24"; c.lineWidth = 2;
-  c.beginPath(); c.moveTo(-1, -2); c.lineTo(-4 + sw, -3); c.moveTo(-1, 2); c.lineTo(-4 - sw, 3); c.stroke();
-  if (type === "flamer") { c.fillStyle = "#c04a1a"; rr(c, -7, -3, 4, 6, 1.5); c.fill(); }
-  if (type === "rocket") { c.fillStyle = "#55594f"; c.fillRect(-5, -5.5, 13, 3); c.fillStyle = "#c33"; c.fillRect(7, -5.5, 2, 3); }
-  if (type === "engineer") { c.fillStyle = "#555"; rr(c, -7, -2.5, 4, 5, 1); c.fill(); }
+  // feet stepping, then pack, body, arms, weapon and helmet
+  c.fillStyle = "#26231e"; c.beginPath(); c.ellipse(sw * .9, -2.2, 1.9, 1.3, 0, 0, TAU); c.ellipse(-sw * .9, 2.2, 1.9, 1.3, 0, 0, TAU); c.fill();
+  if (type === "flamer") { c.fillStyle = "#7a2a10"; rr(c, -7.2, -3.4, 4.4, 6.8, 1.8); c.fill(); c.fillStyle = "#d0581e"; rr(c, -6.8, -3, 3.4, 2.8, 1.2); c.fill(); rr(c, -6.8, .2, 3.4, 2.8, 1.2); c.fill(); }
+  else if (type === "engineer") { c.fillStyle = "#4d4d4d"; rr(c, -7, -2.6, 4, 5.2, 1); c.fill(); c.fillStyle = "#ffd23a"; c.fillRect(-6.4, -.4, 2.8, .8); }
+  else if (type === "medic") { c.fillStyle = "#f4f4f4"; rr(c, -6.6, -2.5, 3.6, 5, 1); c.fill(); c.fillStyle = "#d22"; c.fillRect(-5.4, -.4, 1.2, .8); c.fillRect(-5.2, -1, .8, 2); }
+  else { c.fillStyle = "#4b4a3c"; rr(c, -6.2, -2.6, 3.2, 5.2, 1.2); c.fill(); c.fillStyle = "rgba(255,255,255,.12)"; c.fillRect(-6, -2.3, 2.6, 1.2); }
+  if (type === "rocket") { c.fillStyle = "#4e5348"; rr(c, -5.5, -6.2, 15, 3.2, 1.2); c.fill(); c.fillStyle = "#2c2f29"; c.fillRect(-6, -6.4, 2, 3.6); c.fillStyle = "#c33"; c.beginPath(); c.arc(10, -4.6, 1.5, 0, TAU); c.fill(); }
   const body = type === "engineer" ? "#d9b13a" : type === "sniper" ? "#566f3a" : type === "medic" ? "#eeeeee" : type === "commando" ? "#2d3a26" : col.c;
-  c.fillStyle = shade(body.startsWith("#") ? body : "#888888", -.3); c.beginPath(); c.ellipse(.3, .3, 4, 5, 0, 0, TAU); c.fill();
-  c.fillStyle = body; c.beginPath(); c.ellipse(0, 0, 3.6, 4.6, 0, 0, TAU); c.fill();
+  const bh = body.startsWith("#") ? body : "#888888";
+  c.fillStyle = shade(bh, -.42); c.beginPath(); c.ellipse(.4, .4, 3.7, 5.1, 0, 0, TAU); c.fill();
+  const gb = c.createLinearGradient(-3, -4, 3, 4); gb.addColorStop(0, shade(bh, .25)); gb.addColorStop(1, shade(bh, -.15));
+  c.fillStyle = gb; c.beginPath(); c.ellipse(0, 0, 3.3, 4.7, 0, 0, TAU); c.fill();
   if (type === "medic") { c.fillStyle = "#d22"; c.fillRect(-1.6, -.5, 3.2, 1); c.fillRect(-.5, -1.6, 1, 3.2); }
-  if (type === "commando" || type === "sniper") { c.fillStyle = col.c; c.fillRect(-2, -4.5, 1.5, 9); }
-  c.strokeStyle = "#1a1a1a"; c.lineWidth = type === "sniper" ? 1.6 : 1.8;
-  const gl = type === "sniper" ? 11 : type === "engineer" || type === "medic" ? 0 : type === "commando" ? 8 : 7;
-  if (gl) { c.beginPath(); c.moveTo(1, 1.5); c.lineTo(1 + gl, 1.5); c.stroke(); }
-  if (type === "commando") { c.beginPath(); c.moveTo(1, -1.5); c.lineTo(8, -1.5); c.stroke(); }
-  c.fillStyle = "#e7b98f"; c.beginPath(); c.arc(.5, 0, 2.3, 0, TAU); c.fill();
-  c.fillStyle = type === "engineer" ? "#ffd23a" : type === "medic" ? "#fff" : type === "commando" ? "#b22" : col.d;
-  c.beginPath(); c.arc(0, 0, 2.4, Math.PI * .5, Math.PI * 1.5); c.fill();
-  if (o.flash > 0 && gl) { c.fillStyle = type === "flamer" ? "#ff8a1f" : "#ffe9a0"; c.beginPath(); c.arc(1 + gl + 2, 1.5, 2.5, 0, TAU); c.fill(); }
+  if (type === "commando" || type === "sniper") { c.fillStyle = col.c; c.fillRect(-2.2, -4.4, 1.4, 8.8); }
+  if (type === "engineer" || type === "medic") { c.fillStyle = "#e7b98f"; c.beginPath(); c.arc(2.6, -3.6, 1.1, 0, TAU); c.arc(2.6, 3.6, 1.1, 0, TAU); c.fill(); }
+  const gl = type === "sniper" ? 11 : type === "engineer" || type === "medic" ? 0 : type === "commando" ? 8 : type === "flamer" ? 6 : type === "rocket" ? 0 : 7;
+  if (gl) {
+    c.strokeStyle = shade(bh, -.3); c.lineWidth = 1.7; c.lineCap = "round";
+    c.beginPath(); c.moveTo(0, -3.6); c.lineTo(3.4, 1.2); c.moveTo(0, 3.6); c.lineTo(1.6, 2.2); c.stroke();
+    c.strokeStyle = "#151515"; c.lineWidth = type === "sniper" ? 1.3 : 1.7; c.beginPath(); c.moveTo(-.5, 1.6); c.lineTo(1 + gl, 1.6); c.stroke();
+    c.strokeStyle = "#5a4027"; c.lineWidth = 2; c.beginPath(); c.moveTo(-1.2, 1.6); c.lineTo(1.4, 1.6); c.stroke();
+    if (type === "sniper") { c.fillStyle = "#111"; c.fillRect(3, .4, 3.4, 1.1); }
+    if (type === "flamer") { c.fillStyle = "#333"; c.fillRect(1 + gl - 1, .6, 2.2, 2); }
+    c.fillStyle = "#e7b98f"; c.beginPath(); c.arc(3.4, 1.4, .95, 0, TAU); c.arc(1.6, 2.2, .95, 0, TAU); c.fill();
+    c.lineCap = "butt";
+  } else if (type === "rocket") { c.strokeStyle = shade(bh, -.3); c.lineWidth = 1.6; c.beginPath(); c.moveTo(0, -3.4); c.lineTo(2, -4.2); c.stroke(); }
+  if (type === "commando") { c.strokeStyle = "#151515"; c.lineWidth = 1.4; c.beginPath(); c.moveTo(1, -1.6); c.lineTo(7, -1.6); c.stroke(); }
+  c.fillStyle = "#e7b98f"; c.beginPath(); c.arc(.6, 0, 2.2, 0, TAU); c.fill();
+  const hc = type === "engineer" ? "#ffd23a" : type === "medic" ? "#ffffff" : type === "commando" ? "#2a2a2a" : type === "sniper" ? "#3f5230" : col.d;
+  const hg = c.createRadialGradient(-.8, -.9, .2, 0, 0, 3); hg.addColorStop(0, shade(hc.startsWith("#") ? hc : "#777777", .45)); hg.addColorStop(1, hc);
+  c.fillStyle = hg; c.beginPath(); c.arc(-.2, 0, 2.6, 0, TAU); c.fill();
+  c.strokeStyle = "rgba(0,0,0,.35)"; c.lineWidth = .6; c.stroke();
+  if (type === "commando") { c.fillStyle = "#b22"; c.fillRect(-1.6, -2.6, 1.2, 5.2); }
+  if (type === "medic") { c.fillStyle = "#d22"; c.fillRect(-.9, -.3, 1.8, .6); c.fillRect(-.3, -.9, .6, 1.8); }
+  if (o.flash > 0 && gl) { if (type === "flamer") { c.fillStyle = "#ff8a1f"; c.beginPath(); c.arc(1 + gl + 2, 1.6, 2.5, 0, TAU); c.fill(); } else mflash(c, 1 + gl, 1.6, 0, type === "sniper" ? 10 : 9); }
+  if (o.flash > 0 && type === "rocket") mflash(c, 10, -4.6, 0, 14);
   c.restore();
 }
 function drawUnitSprite(c, type, col, x, y, dir, tdir, anim, o) {
@@ -3415,7 +3490,8 @@ function updFx(dt) {
     switch (f.t) {
       case "smoke": f.y -= dt * 16; f.x += dt * 6; break;
       case "steam": f.y -= dt * 22; f.x += dt * 8; break;
-      case "puff": f.y -= dt * 4; f.x += dt * 3; break;
+      case "puff": f.y -= dt * 4; f.x += dt * 3; if (f.vx) { f.x += f.vx * dt; f.y += f.vy * dt; f.vx *= 1 - dt * 2.2; f.vy *= 1 - dt * 2.2; } break;
+      case "ruin": if (rnd() < dt * 7 * Math.min(1, f.life / 6)) G.fx.push({ t: "fire", x: f.x + (rnd() - .5) * f.w * .7, y: f.y + (rnd() - .5) * f.h * .6, life: .6, max: .6 }); if (rnd() < dt * 3) G.fx.push({ t: "smoke", x: f.x + (rnd() - .5) * f.w * .6, y: f.y + (rnd() - .5) * f.h * .5, life: 2.4, max: 2.4, r: 6, dark: true }); break;
       case "fire": f.y -= dt * 12; break;
       case "debris": f.x += f.vx * dt; f.y += f.vy * dt; f.vz -= 380 * dt; f.z = Math.max(0, f.z + f.vz * dt); if (f.z === 0) { f.vx *= .8; f.vy *= .8; f.vz = Math.abs(f.vz) > 60 ? -f.vz * .3 : 0; } f.vx *= .97; f.vy *= .97; if (f.hot && f.z > 2 && rnd() < dt * 22) G.fx.push({ t: "puff", x: f.x, y: f.y - f.z, life: .7, max: .7, r: 2.2, dark: true }); break;
       case "ember": f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 120 * dt; f.vx *= .96; break;
@@ -3441,6 +3517,14 @@ function drawFx(c, layer) {
       } else if (f.t === "sink") {
         c.save(); c.globalAlpha = Math.max(0, 1 - k * 1.1); c.translate(f.x, f.y); c.scale(1 - k * .3, 1 - k * .3); drawVehicle(c, f.type, G.players[f.o] ? G.players[f.o].col : teamCol("#555555"), 0, 0, f.a + k * .5, f.a + k * .5, 0, { husk: true }); c.restore();
         if (rnd() < .3) G.fx.push({ t: "foam", x: f.x + (rnd() - .5) * 20, y: f.y + (rnd() - .5) * 10, life: .8, max: .8, r: 3 });
+      } else if (f.t === "collapse") {
+        const p = G.players[f.o], px = f.tx * TILE, py = f.ty * TILE, W = f.w * TILE, H = f.h * TILE;
+        c.save(); c.beginPath(); c.rect(px - 10, py - 40, W + 20, H + 40); c.clip();
+        c.globalAlpha = Math.max(0, 1 - k * 1.05);
+        c.translate(px + W / 2, py + H); c.scale(1 + k * .06, 1 - k * .55); c.translate(-(px + W / 2), -(py + H) + k * 6);
+        drawBuilding(c, f.type, p ? p.col : teamCol("#555555"), px, py, { anim: 0, dmg: true });
+        c.globalAlpha = Math.min(.7, k * .9) * Math.max(0, 1 - k); c.fillStyle = "#1a1410"; c.fillRect(px - 10, py - 40, W + 20, H + 40);
+        c.restore(); c.globalAlpha = 1;
       } else if (f.t === "husk") {
         c.globalAlpha = Math.min(1, f.life / 2); drawVehicle(c, f.type, G.players[f.o] ? G.players[f.o].col : teamCol("#555555"), f.x, f.y, f.a, f.a, 0, { husk: true }); c.globalAlpha = 1;
       }
@@ -3451,8 +3535,10 @@ function drawFx(c, layer) {
         if (!GFX.fire) gfxInit();
         const r = f.r * (.45 + k * .95), a = 1 - k;
         c.globalCompositeOperation = "lighter"; c.globalAlpha = Math.min(1, a * 1.15);
-        c.drawImage(GFX.fire, f.x - r, f.y - k * 8 - r, r * 2, r * 2);
-        if (k < .35) { const r2 = r * .55; c.globalAlpha = (1 - k / .35) * .9; c.drawImage(GFX.exp, f.x - r2 + (f.r * .2), f.y - k * 8 - r2 - f.r * .15, r2 * 2, r2 * 2); }
+        const sd = (f.max * 7919) % 6.283, yy = f.y - k * 10;
+        c.globalAlpha = Math.min(1, a * .9);
+        for (let l = 0; l < 3; l++) { const an = sd + l * 2.1 + k * 1.5, rl = r * (.62 + .12 * l), dx = Math.cos(an) * r * .38, dy = Math.sin(an) * r * .3; c.drawImage(GFX.fire, f.x + dx - rl, yy + dy - rl, rl * 2, rl * 2); }
+        if (k < .25) { const r2 = r * .42; c.globalAlpha = (1 - k / .25) * .6; c.drawImage(GFX.exp, f.x - r2, yy - r2, r2 * 2, r2 * 2); }
         c.globalAlpha = 1; c.globalCompositeOperation = "source-over";
         break;
       }
@@ -3474,21 +3560,21 @@ function drawFx(c, layer) {
       case "tracer": c.strokeStyle = f.c; c.globalAlpha = 1 - k; c.lineWidth = 1.4; c.beginPath(); c.moveTo(f.x, f.y); c.lineTo(f.x2, f.y2); c.stroke(); c.globalAlpha = 1; break;
       case "smoke": case "puff": case "steam": {
         if (!GFX.smoke.length) gfxInit();
-        const r = f.r * (1.25 + k * (f.t === "puff" ? 1.8 : 2.8));
+        const r = f.r * (1.2 + k * (f.t === "puff" ? 1.8 : 2.4));
         const sp = GFX.smoke[((f.max * 997) | 0) % 3] || GFX.smoke[0];
-        c.globalAlpha = Math.min(1, (1 - k) * (f.t === "steam" ? .7 : f.dark ? .95 : .8) * (k < .1 ? k * 10 : 1));
+        c.globalAlpha = Math.min(1, (1 - k) * (f.t === "steam" ? .7 : f.dark ? .68 : .75) * (k < .1 ? k * 10 : 1));
         c.drawImage(f.t === "steam" ? sp.steam : f.dark ? sp.dark : sp.light, f.x - r, f.y - r, r * 2, r * 2);
         c.globalAlpha = 1; break;
       }
       case "flakburst": c.fillStyle = "rgba(40,38,35," + (1 - k) * .8 + ")"; c.beginPath(); c.arc(f.x, f.y, 4 + k * 9, 0, TAU); c.fill(); if (k < .3) { c.fillStyle = "rgba(255,220,120," + (1 - k * 3) + ")"; c.beginPath(); c.arc(f.x, f.y, 5, 0, TAU); c.fill(); } break;
-      case "fire": c.globalCompositeOperation = "lighter"; c.fillStyle = "rgba(255," + (110 + rnd() * 100 | 0) + ",30," + (1 - k) + ")"; c.beginPath(); c.arc(f.x, f.y, 3 + rnd() * 4, 0, TAU); c.fill(); c.globalCompositeOperation = "source-over"; break;
+      case "fire": { if (!GFX.fire) gfxInit(); const r = (5 + Math.random() * 4) * (1 - k * .5); c.globalCompositeOperation = "lighter"; c.globalAlpha = (1 - k) * .85; c.drawImage(GFX.fire, f.x - r, f.y - r * 1.3, r * 2, r * 2.4); c.globalAlpha = 1; c.globalCompositeOperation = "source-over"; break; }
       case "debris": { c.fillStyle = "rgba(0,0,0,.3)"; c.fillRect(f.x - 1, f.y - 1, 3, 3); c.save(); c.translate(f.x, f.y - f.z); c.rotate(f.life * 9 + f.vx); c.fillStyle = f.hot ? "#5a4030" : "#2a2a28"; c.fillRect(-2.5, -2, 5, 4); if (f.hot && f.z > 1) { c.globalCompositeOperation = "lighter"; c.fillStyle = "rgba(255,150,50,.8)"; c.fillRect(-1.5, -1.5, 3, 3); } c.restore(); c.globalCompositeOperation = "source-over"; break; }
       case "spark": c.fillStyle = "#ffe066"; c.fillRect(f.x - 1, f.y - 1 - k * 6, 2, 2); break;
       case "wake": { c.save(); c.translate(f.x, f.y); c.rotate(f.a); c.strokeStyle = "rgba(235,248,255," + (1 - k) * .55 + ")"; c.lineWidth = 1.6; const sp = 4 + k * 16 * f.s; c.beginPath(); c.moveTo(0, -3); c.lineTo(-k * 14 * f.s, -sp); c.moveTo(0, 3); c.lineTo(-k * 14 * f.s, sp); c.stroke(); c.restore(); break; }
       case "foam": c.fillStyle = "rgba(235,248,255," + (1 - k) * .6 + ")"; c.beginPath(); c.arc(f.x, f.y, f.r + k * 3, 0, TAU); c.fill(); break;
       case "splash": c.fillStyle = "rgba(220,240,255," + (1 - k) * .8 + ")"; c.beginPath(); c.ellipse(f.x, f.y - k * 10, 3 + k * 6, 4 + k * 10 * (1 - k), 0, 0, TAU); c.fill(); c.strokeStyle = "rgba(220,240,255," + (1 - k) * .6 + ")"; c.beginPath(); c.ellipse(f.x, f.y + 2, 4 + k * 12, 2 + k * 5, 0, 0, TAU); c.stroke(); break;
       case "heal": c.globalAlpha = 1 - k; c.fillStyle = "#4be35a"; c.fillRect(f.x - 3, f.y - 1, 6, 2); c.fillRect(f.x - 1, f.y - 3, 2, 6); c.globalAlpha = 1; break;
-      case "dust": c.fillStyle = f.c; c.globalAlpha = (1 - k) * .8; c.beginPath(); c.arc(f.x + k * 6, f.y - k * 8, 2 + k * 3, 0, TAU); c.fill(); c.globalAlpha = 1; break;
+      case "dust": c.fillStyle = f.c; c.globalAlpha = (1 - k) * .8; c.beginPath(); c.arc(f.x + k * 6, f.y - k * 8, f.r ? f.r * (1 + k * 1.6) : 2 + k * 3, 0, TAU); c.fill(); c.globalAlpha = 1; break;
       case "flame": {
         const a = Math.atan2(f.y2 - f.y, f.x2 - f.x), L = Math.hypot(f.x2 - f.x, f.y2 - f.y);
         c.save(); c.translate(f.x, f.y); c.rotate(a);
@@ -3569,7 +3655,19 @@ const GFX = { light: null, lctx: null, wtmp: null, wctx: null, pat: null, pat2: 
   fire: null, exp: null, smoke: [], flakes: [], drops: [], bolt: 0, boltPts: null, nextBolt: 6, lastRT: 0, ft: 16, slowT: 0, low: false };
 const LCOL = { warm: [255, 196, 120], fire: [255, 140, 48], white: [235, 240, 255], blue: [110, 180, 255], purple: [190, 130, 255], red: [255, 60, 40], green: [120, 255, 150], gold: [255, 215, 90] };
 const TODS = { day: null, dusk: [255, 186, 140], night: [58, 72, 124] };
-function atmo() { const c = (G && G.cfg) || {}; return { tod: TODS[c.tod] !== undefined ? c.tod : "day", wx: c.weather || "clear" }; }
+// a full day takes 15 minutes of battle time when "Day and night" is chosen
+const SKY_KEYS = [[0, [255, 255, 255], 0], [.34, [255, 255, 255], 0], [.44, [255, 186, 140], .5], [.53, [58, 72, 124], 1], [.8, [58, 72, 124], 1], [.9, [232, 188, 200], .45], [1, [255, 255, 255], 0]];
+function atmo() {
+  const c = (G && G.cfg) || {}, wx = c.weather || "clear";
+  if (c.tod === "cycle") {
+    const p = ((G.time || 0) / 900 + .12) % 1; let i = 0; while (i < SKY_KEYS.length - 2 && SKY_KEYS[i + 1][0] <= p) i++;
+    const [p0, a0, n0] = SKY_KEYS[i], [p1, a1, n1] = SKY_KEYS[i + 1], k = (p - p0) / (p1 - p0 || 1), q = k * k * (3 - 2 * k);
+    const amb = a0.map((v, j) => Math.round(lerp(v, a1[j], q))), n = lerp(n0, n1, q);
+    return { tod: n > .75 ? "night" : n > .15 ? "dusk" : "day", wx, amb: amb.every(v => v >= 254) ? null : amb, n };
+  }
+  const tod = TODS[c.tod] !== undefined ? c.tod : "day";
+  return { tod, wx, amb: TODS[tod] ? TODS[tod].slice() : null, n: tod === "night" ? 1 : tod === "dusk" ? .5 : 0 };
+}
 function mkCv(w, h) { const v = document.createElement("canvas"); v.width = w; v.height = h; return v; }
 
 function gfxInit() {
@@ -3595,7 +3693,7 @@ function gfxInit() {
     GFX.cloud = v; }
   // fireball and blast sprites (cheaper than a fresh gradient for every particle)
   const ball = (stops) => { const v = mkCv(64, 64), c = v.getContext("2d"), gr = c.createRadialGradient(32, 32, 0, 32, 32, 32); for (const [o, s] of stops) gr.addColorStop(o, s); c.fillStyle = gr; c.fillRect(0, 0, 64, 64); return v; };
-  GFX.fire = ball([[0, "rgba(255,240,190,1)"], [.28, "rgba(255,170,60,.95)"], [.62, "rgba(225,80,20,.6)"], [1, "rgba(120,30,10,0)"]]);
+  GFX.fire = ball([[0, "rgba(255,232,170,.85)"], [.22, "rgba(255,170,64,.7)"], [.5, "rgba(228,88,24,.38)"], [.78, "rgba(150,40,12,.12)"], [1, "rgba(120,30,10,0)"]]);
   GFX.exp = ball([[0, "rgba(255,255,230,1)"], [.33, "rgba(255,195,70,1)"], [.7, "rgba(220,70,20,.7)"], [1, "rgba(40,30,30,0)"]]);
   // three lumpy smoke puffs (light), drawn tinted dark by alpha on a dark copy
   for (let s = 0; s < 3; s++) {
@@ -3646,11 +3744,12 @@ function gfxBattle() {
     }
     c.globalCompositeOperation = "source-over";
   };
-  { const v = mkCv(W * 8, H * 8), c = v.getContext("2d"); c.fillStyle = "#fff"; shape(c, 8, .7, .7); cutBridges(c, 8); G.wmask = v; }
-  { const v = mkCv(W * 16, H * 16), c = v.getContext("2d");
-    c.fillStyle = "rgba(240,250,255,.9)"; shape(c, 16, .86, .84);
-    c.globalCompositeOperation = "destination-out"; c.fillStyle = "#000"; shape(c, 16, .66, .62);
-    c.globalCompositeOperation = "source-over"; cutBridges(c, 16); G.foam = v; }
+  const WF = waterField(G.map);
+  const field = (sc, fn) => { const v = mkCv(W * sc, H * sc), c = v.getContext("2d"), im = c.createImageData(W * sc, H * sc), dd = im.data;
+    for (let y = 0; y < H * sc; y++) for (let x = 0; x < W * sc; x++) { const a = fn(WF((x + .5) / sc, (y + .5) / sc)); if (a > 0) { const o = (y * W * sc + x) * 4; dd[o] = dd[o + 1] = 245; dd[o + 2] = 255; dd[o + 3] = a; } }
+    c.putImageData(im, 0, 0); return [v, c]; };
+  { const [v, c] = field(8, f => f > .52 ? 255 : f > .48 ? (f - .48) / .04 * 255 : 0); cutBridges(c, 8); G.wmask = v; }
+  { const [v, c] = field(16, f => { const d = Math.abs(f - .515); return d < .03 ? (1 - d / .03) * 230 : 0; }); cutBridges(c, 16); G.foam = v; }
 }
 
 /* ---------------- animated water ---------------- */
@@ -3676,7 +3775,7 @@ function drawWater(c, x0, y0, x1, y1, rt) {
     t.fillRect((x0 - ox) / sc - 2, (y0 - oy) / sc - 2, (x1 - x0) / sc + 4, (y1 - y0) / sc + 4); t.restore();
   }
   t.globalAlpha = 1; t.globalCompositeOperation = "destination-in"; t.imageSmoothingEnabled = true;
-  t.drawImage(G.wmask, x0 / 8, y0 / 8, (x1 - x0) / 8, (y1 - y0) / 8, x0, y0, x1 - x0, y1 - y0);
+  t.drawImage(G.wmask, x0 / 4, y0 / 4, (x1 - x0) / 4, (y1 - y0) / 4, x0, y0, x1 - x0, y1 - y0);
   t.globalCompositeOperation = "source-over";
   // shore foam laps in and out
   if (G.foam) {
@@ -3709,6 +3808,7 @@ function gatherLights(list, air, night, t) {
       case "skybeam": add("blue", f.x, f.y, 260, 1 - k, 1); break;
       case "mushroom": add("fire", f.x, f.y - 60, 420 * Math.min(1, k * 3), k < .7 ? 1 : (1 - k) / .3, 1); break;
       case "flakburst": if (k < .3) add("warm", f.x, f.y, 40, 1 - k * 3, 1); break;
+      case "ruin": add("fire", f.x, f.y, Math.max(f.w, f.h) * 1.1, Math.min(1, f.life / 6) * (.45 + .2 * Math.sin(t * 9 + f.x)), 0); break;
       case "husk": if (f.life > 5) add("fire", f.x, f.y, 46, .45 + .2 * Math.sin(t * 13 + f.x), 0); break;
       case "ember": if (night) add("fire", f.x, f.y, 10, (1 - k) * .6, 0); break;
     }
@@ -3753,13 +3853,13 @@ function gatherLights(list, air, night, t) {
 
 /* darkness layer (multiply) plus bloom on top */
 function drawLighting(c, list, air, vw, vh, z, rt) {
-  const { tod, wx } = atmo();
-  let amb = TODS[tod] ? TODS[tod].slice() : null;
+  const { tod, wx, n: dark } = atmo();
+  let amb = atmo().amb;
   if (wx === "rain") amb = amb ? amb.map(v => v * .8 | 0) : [168, 178, 196];
   if (wx === "snow" && !amb) amb = [222, 230, 246];
   if (wx === "dust" && !amb) amb = [250, 214, 170];
   if (GFX.bolt > 0) { const k = Math.min(1, GFX.bolt * 1.6); amb = (amb || [255, 255, 255]).map(v => v + (255 - v) * k | 0); }
-  const night = tod !== "day";
+  const night = dark > .2;
   const lights = gatherLights(list, air, night, G.time);
   if (amb) {
     const q = GFX.low ? .25 : .5, w = Math.ceil(vw * q), h = Math.ceil(vh * q), lv = GFX.light, l = GFX.lctx;
@@ -3769,7 +3869,7 @@ function drawLighting(c, list, air, vw, vh, z, rt) {
     if (lights.length) {
       l.globalCompositeOperation = "lighter";
       l.setTransform(z * q, 0, 0, z * q, -G.cam.x * z * q, -G.cam.y * z * q);
-      const gain = tod === "night" ? 1 : tod === "dusk" ? .7 : .5;
+      const gain = .5 + .5 * dark;
       for (const [k, x, y, r, a, , dir] of lights) {
         if (k === "cone") { l.save(); l.globalAlpha = a * gain; l.translate(x, y); l.rotate(dir); l.drawImage(GFX.cone, 0, -r * .32, r, r * .64); l.restore(); continue; }
         l.globalAlpha = Math.min(1, a * gain); l.drawImage(GFX.glow[k], x - r, y - r, r * 2, r * 2);
@@ -3877,6 +3977,41 @@ function gfxPerf(rt) {
   return dt;
 }
 
+/* ---------------- muzzle flash: a forward star, flickering ---------------- */
+function mflash(c, x, y, a, s) {
+  if (!GFX.mf) {
+    const v = mkCv(96, 48), g = v.getContext("2d");
+    g.globalCompositeOperation = "lighter";
+    const spike = (len, ang, w, al) => { g.save(); g.translate(16, 24); g.rotate(ang); const gr = g.createLinearGradient(0, 0, len, 0); gr.addColorStop(0, "rgba(255,250,220," + al + ")"); gr.addColorStop(.4, "rgba(255,200,90," + al * .8 + ")"); gr.addColorStop(1, "rgba(255,120,30,0)");
+      g.fillStyle = gr; g.beginPath(); g.moveTo(0, -w); g.quadraticCurveTo(len * .4, -w * .6, len, 0); g.quadraticCurveTo(len * .4, w * .6, 0, w); g.closePath(); g.fill(); g.restore(); };
+    spike(78, 0, 9, 1); spike(40, -.75, 5, .8); spike(40, .75, 5, .8); spike(22, -1.6, 3, .5); spike(22, 1.6, 3, .5);
+    const gr = g.createRadialGradient(16, 24, 0, 16, 24, 14); gr.addColorStop(0, "rgba(255,255,240,1)"); gr.addColorStop(1, "rgba(255,200,100,0)"); g.fillStyle = gr; g.fillRect(0, 8, 32, 32);
+    GFX.mf = v;
+  }
+  const k = .75 + Math.random() * .5;
+  c.save(); c.translate(x, y); c.rotate(a); c.globalCompositeOperation = "lighter";
+  c.drawImage(GFX.mf, -s * .33 * k, -s * .25, s * 2 * k, s * .5 * (1.6 + Math.random() * .4));
+  c.restore();
+}
+
+/* ---------------- fine ground grain, so the land stays crisp when zoomed in ---------------- */
+function drawDetail(c, x0, y0, x1, y1, z) {
+  if (GFX.low || z < 1.15) return;
+  if (!GFX.detail) {
+    const S = 256, v = mkCv(S, S), g = v.getContext("2d"), R = mulberry(9001);
+    g.fillStyle = "rgb(128,128,128)"; g.fillRect(0, 0, S, S);
+    for (let i = 0; i < 1800; i++) { const x = R() * S, y = R() * S, l = R() < .5; g.fillStyle = l ? "rgba(200,200,200," + (.1 + R() * .22) + ")" : "rgba(50,50,50," + (.1 + R() * .22) + ")"; g.beginPath(); g.arc(x, y, .45 + R() * .5, 0, TAU); g.fill(); }
+    g.lineCap = "round";
+    for (let i = 0; i < 520; i++) { const x = R() * S, y = R() * S, l = 2 + R() * 4, a = -Math.PI / 2 + (R() - .5) * 1.2;
+      g.strokeStyle = R() < .45 ? "rgba(185,185,185,.35)" : "rgba(60,60,60,.35)"; g.lineWidth = .8;
+      for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) { g.beginPath(); g.moveTo(x + ox, y + oy); g.lineTo(x + ox + Math.cos(a) * l, y + oy + Math.sin(a) * l); g.stroke(); } }
+    GFX.detail = v; GFX.dpat = c.createPattern(v, "repeat");
+  }
+  c.save(); c.globalCompositeOperation = "overlay"; c.globalAlpha = Math.min(.4, (z - 1.15) * .6 + .15);
+  c.scale(.5, .5); c.fillStyle = GFX.dpat; c.fillRect(x0 * 2, y0 * 2, (x1 - x0) * 2, (y1 - y0) * 2);
+  c.restore();
+}
+
 /* =====================================================================
    CAMERA + MAIN RENDER
    ===================================================================== */
@@ -3920,6 +4055,7 @@ function render() {
   const tx0 = Math.floor(x0 / TILE), ty0 = Math.floor(y0 / TILE), tx1 = Math.ceil(x1 / TILE), ty1 = Math.ceil(y1 / TILE);
   const t = G.time, rt = performance.now() / 1000;
   if (!G.gfxOk) gfxBattle();
+  if (x1 > x0 && y1 > y0) drawDetail(c, x0, y0, x1, y1, z);
   const gdt = gfxPerf(rt);
   if (x1 > x0 && y1 > y0) drawWater(c, x0, y0, x1, y1, rt);
   // water sparkle + ore
@@ -4890,7 +5026,7 @@ const CO_OPTS = [
   ["size", "Map size", [[64, "Medium"], [80, "Large"], [96, "Huge"]]],
   ["theme", "Land", [["green", "Grass"], ["desert", "Desert"], ["snow", "Snow"]]],
   ["layout", "Map type", [["random", "Surprise me"], ["open", "Open"], ["lakes", "Lakes"], ["river", "River"], ["sea", "Sea"], ["islands", "Islands"], ["canyon", "Canyons"]]],
-  ["tod", "Time of day", [["random", "Surprise me"], ["day", "Day"], ["dusk", "Sunset"], ["night", "Night"]]],
+  ["tod", "Time of day", [["random", "Surprise me"], ["day", "Day"], ["dusk", "Sunset"], ["night", "Night"], ["cycle", "Day and night"]]],
   ["weather", "Weather", [["random", "Surprise me"], ["clear", "Clear"], ["on", "Rain / snow / dust"]]],
   ["start", "Start with", [["mcv", "Just an MCV"], ["base", "A small base"]]],
   ["credits", "Money", [[5000, "$5,000"], [8000, "$8,000"], [15000, "$15,000"], [30000, "$30,000"]]]
@@ -5373,7 +5509,7 @@ const SK_OPTS = [
   ["size", "Map size", [[44, "Small"], [56, "Medium"], [72, "Large"], [90, "Huge"]]],
   ["theme", "Land", [["green", "Grass"], ["desert", "Desert"], ["snow", "Snow"]]],
   ["layout", "Map type", [["random", "Surprise me"], ["open", "Open"], ["lakes", "Lakes"], ["river", "River"], ["sea", "Sea"], ["islands", "Islands"], ["canyon", "Canyons"]]],
-  ["tod", "Time of day", [["random", "Surprise me"], ["day", "Day"], ["dusk", "Sunset"], ["night", "Night"]]],
+  ["tod", "Time of day", [["random", "Surprise me"], ["day", "Day"], ["dusk", "Sunset"], ["night", "Night"], ["cycle", "Day and night"]]],
   ["weather", "Weather", [["random", "Surprise me"], ["clear", "Clear"], ["on", "Rain / snow / dust"]]],
   ["foes", "Enemies", [[1, "1"], [2, "2"], [3, "3"]]],
   ["lvl", "How hard", [[0, "Very easy"], [1, "Easy"], [2, "Normal"], [3, "Hard"], [4, "Brutal"], [5, "Insane"]]],

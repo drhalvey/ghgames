@@ -168,7 +168,7 @@ canvas{display:block;width:100%;touch-action:none}
 
   <section class="panel">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Pets</h2><button class="buy" id="fuseAllBtn" type="button" style="background:linear-gradient(90deg,#ff5fd2,#7d4dff);box-shadow:0 4px 0 #3a1f8a">🔮 Fuse everything</button></div>
-    <p class="sub">Hatch eggs to get pets. Tap a pet to equip it (3 at first, more with Pet Slots). Pets multiply how fast you grow. Better worlds have better eggs. Fuse 3 pets of the same rarity to make one of the next rarity, all the way up to Omnipotent!</p>
+    <p class="sub">Hatch eggs to get pets. Tap a pet to equip it (3 at first, more with Pet Slots). Pets multiply how fast you grow. Better worlds have better eggs. Fuse 3 pets of the same rarity to make one of the next rarity, all the way up to Immortal!</p>
     <div class="row" id="eggRow"></div>
     <div class="row" id="fuseRow" style="margin-top:10px"></div>
     <div class="pets" id="pets"></div>
@@ -297,7 +297,14 @@ const RAR = [
   { n: "Ultimate",    c: "#c77dff", p: 0, m: 13000 },
   { n: "Terrestrial", c: "#9be15d", p: 0, m: 35000 },
   { n: "Insane",      c: "#ff1744", p: 0, m: 100000 },
-  { n: "Omnipotent",  c: "#ffd700", p: 0, m: 300000 }
+  { n: "Omnipotent",  c: "#ffd700", p: 0, m: 300000 },
+  { n: "Crazy",       c: "#ff6ec7", p: 0, m: 800000 },
+  { n: "Psycho",      c: "#b30000", p: 0, m: 2.2e6 },
+  { n: "Glitchy",     c: "#00ffcc", p: 0, m: 6e6 },
+  { n: "Impossible",  c: "#a020f0", p: 0, m: 1.6e7 },
+  { n: "Worthy",      c: "#f4c430", p: 0, m: 4.5e7 },
+  { n: "Ascended",    c: "#e0f7ff", p: 0, m: 1.2e8 },
+  { n: "Immortal",    c: "#ff4500", p: 0, m: 3.5e8 }
 ];
 const PETS = [
   { e: "🐶", n: "Doggo", r: 0 }, { e: "🐱", n: "Kitty", r: 0 },
@@ -315,25 +322,32 @@ const PETS = [
   { e: "👾", n: "Ultimate Alien", r: 12 }, { e: "🤖", n: "Ultimate Bot", r: 12 },
   { e: "🌍", n: "Earth Spirit", r: 13 }, { e: "🗿", n: "Stone Titan", r: 13 },
   { e: "🤡", n: "Crazy Clown", r: 14 }, { e: "🌀", n: "Vortex", r: 14 },
-  { e: "👑", n: "The Crown", r: 15 }, { e: "🌌", n: "Cosmos", r: 15 }
+  { e: "👑", n: "The Crown", r: 15 }, { e: "🌌", n: "Cosmos", r: 15 },
+  { e: "🤪", n: "Wacky", r: 16 }, { e: "🦩", n: "Crazy Flamingo", r: 16 },
+  { e: "👺", n: "Psycho Goblin", r: 17 }, { e: "🦂", n: "Psycho Scorpion", r: 17 },
+  { e: "🧊", n: "Glitch Cube", r: 18 }, { e: "📺", n: "Glitch TV", r: 18 },
+  { e: "🔺", n: "Impossible Triangle", r: 19 }, { e: "🎲", n: "Impossible Dice", r: 19 },
+  { e: "🏆", n: "Worthy Trophy", r: 20 }, { e: "🥇", n: "Gold Champion", r: 20 },
+  { e: "😇", n: "Ascended Angel", r: 21 }, { e: "🌟", n: "Star Spirit", r: 21 },
+  { e: "💎", n: "Immortal Gem", r: 22 }, { e: "🔱", n: "Immortal Trident", r: 22 }
 ];
 const DAILY = [ // coins are times your best world's multi
   { c: 300, e: "🪙" }, { c: 600, e: "🪙" }, { c: 1000, egg: 1, e: "🥚" }, { c: 1500, e: "💰" },
   { c: 2500, e: "💰" }, { c: 4000, e: "💎" }, { c: 8000, egg: 3, e: "🎁" }
 ];
-const UPS = {   // every upgrade goes up to level 50
-  sp:   { n: "Speed 👟",  max: 50, cost: l => 30 * Math.pow(1.55, l), d: l => `+${l * 6}% speed` },
-  bite: { n: "Big Bites 😋", max: 50, cost: l => 50 * Math.pow(1.7, l), d: l => `x${(1 + l * 0.25).toFixed(2)} growing` },
-  mag:  { n: "Long Reach 🧲", max: 50, cost: l => 80 * Math.pow(1.6, l), d: l => `+${l * 6}% eating reach` },
-  coin: { n: "Coin Boost 🪙", max: 50, cost: l => 70 * Math.pow(1.75, l), d: l => `x${(1 + l * 0.25).toFixed(2)} coins` },
-  boostUp: { n: "Super Boost 🚀", max: 50, cost: l => 60 * Math.pow(1.7, l), d: l => `Boost lasts ${boostLen(l).toFixed(1)}s, ready every ${boostCd(l).toFixed(1)}s` },
-  luck: { n: "Lucky Eggs 🍀", max: 50, cost: l => 150 * Math.pow(1.8, l), d: l => `Rare pets ${Math.round((Math.pow(luckF(l), 4) - 1) * 100)}% more likely` },
-  keep: { n: "Tough Skin 🛡️", max: 50, cost: l => 100 * Math.pow(1.8, l), d: l => `Keep ${Math.round(keepF(l) * 100)}% of your size when eaten` },
-  slots: { n: "Pet Slots 🐾", max: 50, cost: l => 50000 * Math.pow(25, l), d: l => `Equip ${3 + l} pets at once`, keepOnRebirth: true }
+const UPS = {   // every upgrade goes up to level 100
+  sp:   { n: "Speed 👟",  max: 100, cost: l => 30 * Math.pow(1.55, l), d: l => `+${l * 6}% speed` },
+  bite: { n: "Big Bites 😋", max: 100, cost: l => 50 * Math.pow(1.7, l), d: l => `x${(1 + l * 0.25).toFixed(2)} growing` },
+  mag:  { n: "Long Reach 🧲", max: 100, cost: l => 80 * Math.pow(1.6, l), d: l => `+${l * 6}% eating reach` },
+  coin: { n: "Coin Boost 🪙", max: 100, cost: l => 70 * Math.pow(1.75, l), d: l => `x${(1 + l * 0.25).toFixed(2)} coins` },
+  boostUp: { n: "Super Boost 🚀", max: 100, cost: l => 60 * Math.pow(1.7, l), d: l => `Boost lasts ${boostLen(l).toFixed(1)}s, ready every ${boostCd(l).toFixed(1)}s` },
+  luck: { n: "Lucky Eggs 🍀", max: 100, cost: l => 150 * Math.pow(1.8, l), d: l => `Rare pets ${Math.round((Math.pow(luckF(l), 4) - 1) * 100)}% more likely` },
+  keep: { n: "Tough Skin 🛡️", max: 100, cost: l => 100 * Math.pow(1.8, l), d: l => `Keep ${Math.round(keepF(l) * 100)}% of your size when eaten` },
+  slots: { n: "Pet Slots 🐾", max: 100, cost: l => 50000 * Math.pow(25, l), d: l => `Equip ${3 + l} pets at once`, keepOnRebirth: true }
 };
-const boostLen = l => 1.3 + l * 0.08, boostCd = l => Math.max(1, 5 - l * 0.08);
-const luckF = l => 1 + 0.06 * l, keepF = l => 0.3 + l * 0.012;
-const MAX_PETS = 100;
+const boostLen = l => 1.3 + l * 0.04, boostCd = l => Math.max(1, 5 - l * 0.04);
+const luckF = l => 1 + 0.03 * l, keepF = l => 0.3 + l * 0.006;
+const MAX_PETS = 150;
 const eqMax = () => 3 + (S.slots || 0);
 // events: everyone in the world gets the same event at the same time.
 // one starts 20 minutes to 2 hours after the last one ends and lasts 10 minutes.

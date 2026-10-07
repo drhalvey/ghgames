@@ -273,6 +273,7 @@ const MORE_WORLDS = [
 ];
 for (const w of MORE_WORLDS) { const last = WORLDS[WORLDS.length - 1]; w.cost = last.cost * 300; w.mult = last.mult * 6; WORLDS.push(w); }
 WORLDS[4].stars = WORLDS[11].stars = true;
+for (let i = 1; i < WORLDS.length; i++) WORLDS[i].cost *= 100;   // worlds cost 100 times more
 const EGGS = [
   { cost: 1000, pow: 1 }, { cost: 30e3, pow: 2.5 }, { cost: 2.5e6, pow: 6 },
   { cost: 2.5e8, pow: 15 }, { cost: 6e10, pow: 40 }, { cost: 2.5e13, pow: 100 },
@@ -380,7 +381,7 @@ function eventAt(t) {
 }
 function eventNow() { const t = Date.now(), x = eventAt(t); return t >= x.s ? x : null; }
 const eventMult = () => { const x = eventNow(); return x ? x.ev.m : 1; };
-const W = 24000;
+const W = 24000000;   // 1,000 times wider than before
 
 // ---------------- save ----------------
 const SAVE_KEY = "sizesim-save";
@@ -434,39 +435,61 @@ function hash(s) { let h = 7; for (const c of String(s)) h = (h * 31 + c.charCod
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
 // ---------------- world items ----------------
-let ITEMS = [];
-// things are kept in a grid of squares so only the nearby squares are checked (much faster on iPad)
-const GC = 250, GN = Math.ceil(W / GC);
-// three grids: small, medium and big things. When zoomed far out the small grid is skipped completely.
+// The map is far too big to hold in memory (1,000,000 times the old one), so it is cut into
+// 2,000-wide squares ("chunks"). Each chunk's things are made from a seed only when someone is near,
+// so every player sees the same things in the same places. Far-away chunks are forgotten again.
+const CH = 2000, CHN = W / CH;
+const DENS = TIER_N.map(n => n * 1.3 * CH * CH / (24000 * 24000));   // a bit more packed than the old map
 const GROUP_OF = t => t <= 4 ? 0 : t <= 9 ? 1 : 2, GROUP_MAXR = [28, 120, 400];
-let GRIDS = [[], [], []];
-const cellOf = (x, y) => Math.min(GN - 1, Math.max(0, Math.floor(x / GC))) + Math.min(GN - 1, Math.max(0, Math.floor(y / GC))) * GN;
+const GROUP_TIERS = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9], [10, 11, 12, 13]];
+let CHUNKS = new Map(), EATEN = new Map(), chunkTick = 0;
 function placeItem(it) {
-  const r = rnd(hash(S.world + ":" + it.k + ":" + it.g));
-  it.x = 150 + r() * (W - 300); it.y = 150 + r() * (W - 300); it.pop = 0.4;
-  const c = cellOf(it.x, it.y);
-  if (it.cell !== c) {
-    const G = GRIDS[GROUP_OF(it.t)];
-    if (it.cell != null) { const a = G[it.cell], i = a.indexOf(it); if (i >= 0) { a[i] = a[a.length - 1]; a.pop(); } }
-    G[c].push(it); it.cell = c;
+  const r = rnd((it.seed + Math.imul(it.g + 1, 2654435761)) >>> 0);
+  it.x = it.cx * CH + 40 + r() * (CH - 80); it.y = it.cy * CH + 40 + r() * (CH - 80); it.pop = 0.4;
+}
+function chunkGroup(cx, cy, g) {
+  const key = cx + "," + cy;
+  let c = CHUNKS.get(key);
+  if (!c) { c = { groups: [null, null, null], used: 0 }; CHUNKS.set(key, c); }
+  c.used = chunkTick;
+  if (!c.groups[g]) {
+    const arr = [];
+    for (const t of GROUP_TIERS[g]) {
+      const r = rnd(hash(S.world + "|" + key + "|" + t));
+      const n = Math.floor(DENS[t]) + (r() < DENS[t] % 1 ? 1 : 0);
+      for (let j = 0; j < n; j++) {
+        const id = t * 1000 + j, ik = key + "," + id;
+        const it = { key: ik, cx, cy, t, r: TIER_R[t], g: EATEN.get(ik) || 0, seed: (Math.imul(cx, 73856093) ^ Math.imul(cy, 19349663) ^ Math.imul(id + 1, 83492791) ^ Math.imul(S.world + 7, 2246822519)) >>> 0 };
+        placeItem(it); it.pop = 0; arr.push(it);
+      }
+    }
+    c.groups[g] = arr;
   }
+  return c.groups[g];
 }
 function itemsIn(x0, y0, x1, y1, fn, minR) {
-  for (let g = 0; g < 3; g++) if (!minR || GROUP_MAXR[g] >= minR) itemsInG(GRIDS[g], x0, y0, x1, y1, fn);
-}
-function itemsInG(GRID, x0, y0, x1, y1, fn) {
-  const cx0 = Math.max(0, Math.floor(x0 / GC)), cy0 = Math.max(0, Math.floor(y0 / GC));
-  const cx1 = Math.min(GN - 1, Math.floor(x1 / GC)), cy1 = Math.min(GN - 1, Math.floor(y1 / GC));
-  for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
-    const a = GRID[cx + cy * GN];
-    for (let i = a.length - 1; i >= 0; i--) fn(a[i]);
+  const cx0 = Math.max(0, Math.floor(x0 / CH)), cy0 = Math.max(0, Math.floor(y0 / CH));
+  const cx1 = Math.min(CHN - 1, Math.floor(x1 / CH)), cy1 = Math.min(CHN - 1, Math.floor(y1 / CH));
+  for (let g = 0; g < 3; g++) {
+    if (minR && GROUP_MAXR[g] < minR) continue;
+    for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
+      const a = chunkGroup(cx, cy, g);
+      for (let i = a.length - 1; i >= 0; i--) fn(a[i]);
+    }
   }
 }
-function buildItems() {
-  GRIDS = [0, 1, 2].map(() => { const G = []; for (let i = 0; i < GN * GN; i++) G.push([]); return G; });
-  ITEMS = []; let k = 0;
-  TIER_R.forEach((r, t) => { for (let i = 0; i < TIER_N[t]; i++) { const it = { k: k++, t, r, g: 0 }; placeItem(it); ITEMS.push(it); } });
+function forgetFarChunks() {
+  chunkTick++;
+  if (CHUNKS.size < 500) return;
+  const old = [...CHUNKS.entries()].sort((a, b) => a[1].used - b[1].used);
+  for (let i = 0; i < old.length - 350; i++) CHUNKS.delete(old[i][0]);
 }
+function eatItem(it) {
+  if (online) foodQ.push([it.key, it.g]);
+  it.g++; EATEN.set(it.key, it.g); placeItem(it);
+}
+function buildItems() { CHUNKS = new Map(); EATEN = new Map(); }
+const nearCentre = spread => [W / 2 + (Math.random() - 0.5) * spread, W / 2 + (Math.random() - 0.5) * spread];
 
 // ---------------- entities ----------------
 const MYID = Math.random().toString(36).slice(2, 10);
@@ -476,18 +499,24 @@ const BOT_NAMES = ["Chomper", "Big Bob", "Nom Nom", "Snacky", "Gulp", "Munchie",
 const FX = [];
 let playing = false, isHost = true, hostId = MYID, online = false, sb = null, ch = null, peers = [], joinT = Date.now();
 
-function spawnPos(avoidBig) {
+// everyone starts near the middle of the map so friends can find each other;
+// computer players appear near a real player (the map is far too big otherwise)
+function humanSpots() { const h = [[ME.x, ME.y]]; for (const e of E.values()) if (!e.bot) h.push([e.x, e.y]); return h; }
+function spawnPos(avoidBig, nearHuman) {
   for (let i = 0; i < 20; i++) {
-    const x = 300 + Math.random() * (W - 600), y = 300 + Math.random() * (W - 600);
+    let x, y;
+    if (nearHuman) { const h = humanSpots(); const [hx, hy] = h[Math.floor(Math.random() * h.length)]; const a = Math.random() * 7, d = 1500 + Math.random() * 4000 + radius(S.mass) * 4; x = hx + Math.cos(a) * d; y = hy + Math.sin(a) * d; }
+    else [x, y] = nearCentre(8000);
+    x = Math.max(300, Math.min(W - 300, x)); y = Math.max(300, Math.min(W - 300, y));
     let ok = true;
     if (avoidBig) for (const e of E.values()) if (Math.hypot(e.x - x, e.y - y) < radius(e.m) + 500) { ok = false; break; }
     if (ok) return [x, y];
   }
-  return [Math.random() * W, Math.random() * W];
+  return nearCentre(8000);
 }
 function addBot(i) {
   const wm = WORLDS[S.world].mult;
-  const [x, y] = spawnPos(false);
+  const [x, y] = spawnPos(false, true);
   const b = { id: "b" + i, bot: true, name: BOT_NAMES[i % BOT_NAMES.length], x, y, vx: 0, vy: 0,
     m: Math.max(1, refMass() * Math.exp(Math.log(0.02) + Math.random() * Math.log(60))), c: (i * 3) % COLS.length, sh: 0,
     gm: (1 + Math.random() * 2) * wm, capF: 0.15 + Math.random() * 2.35, cap: 1,
@@ -500,13 +529,13 @@ function fillBots() {
   const want = Math.max(6, 14 - humans);   // a big map needs more computer players
   // the boss: a computer player who is always the biggest in the world
   if (!E.has("boss")) {
-    const [x, y] = spawnPos(true);
+    const [x, y] = spawnPos(true, true);
     E.set("boss", { id: "boss", bot: true, boss: true, name: "King Chonk 👑", x, y, vx: 0, vy: 0, m: bossMass(), c: 2, sh: 0,
       gm: 1, capF: 1, cap: 1, think: 0, tx: x, ty: y, mode: "eat", boost: 0, boostCd: 0, fx: 1, fy: 0 });
   }
   // the snack: a computer player who is always smaller than every real player, so anyone can eat it
   if (!E.has("tiny")) {
-    const [x, y] = spawnPos(true);
+    const [x, y] = spawnPos(true, true);
     E.set("tiny", { id: "tiny", bot: true, tiny: true, name: "Little Pip 🐣", x, y, vx: 0, vy: 0, m: tinyMass(), c: 7, sh: 0,
       gm: 1, capF: 1, cap: 1, think: 0, tx: x, ty: y, mode: "eat", boost: 0, boostCd: 0, fx: 1, fy: 0 });
   }
@@ -531,8 +560,7 @@ function eatItemsFor(e, isMe) {
     if (dx * dx + dy * dy > reach * reach) return;
     if (m < needMass(it.r)) return;
     const v = itemVal(it.r) * gm;
-    if (online) foodQ.push([it.k, it.g]);
-    it.g++; placeItem(it);
+    eatItem(it);
     if (isMe) { grow(v, 0, 0, false); pendingGain += v; S.eats++; }
     else e.m = Math.min(Math.max(e.m, e.cap), e.m + v);   // computer players stop growing at their limit
   });
@@ -561,7 +589,7 @@ function refMass() {
   return Math.max(1, ms.reduce((a, b) => a + b, 0) / ms.length);
 }
 function respawnBot(b) {
-  const [x, y] = spawnPos(true);
+  const [x, y] = spawnPos(true, true);
   b.x = x; b.y = y; b.m = Math.max(1, refMass() * (0.02 + Math.random() * 0.4)); b.sh = 3; b.hide = 0;
 }
 function getEaten(byName) {
@@ -601,7 +629,7 @@ function botThink(b) {
     if (s > bs) { bs = s; best = it; }
   });
   if (best) { b.mode = "eat"; b.tx = best.x; b.ty = best.y; }
-  else if (Math.hypot(b.tx - b.x, b.ty - b.y) < 60) { b.mode = "wander"; b.tx = 300 + Math.random() * (W - 600); b.ty = 300 + Math.random() * (W - 600); }
+  else if (Math.hypot(b.tx - b.x, b.ty - b.y) < 60) { b.mode = "wander"; b.tx = b.x + (Math.random() - 0.5) * 6000; b.ty = b.y + (Math.random() - 0.5) * 6000; }
 }
 // bigger players move faster across the world so they never feel slower on screen as the camera zooms out
 function speedOf(m, lv, boost) { return 165 * (1 + lv * 0.06) * Math.pow(radius(m) / 12, 0.7) * (boost > 0 ? 1.75 : 1); }
@@ -617,7 +645,17 @@ function smallestHuman() {
   return low;
 }
 const tinyMass = () => smallestHuman() * 0.4;
+let lostT = 0;
 function hostTick(dt) {
+  // computer players that wander too far from every real player are brought back near one
+  lostT -= dt;
+  if (lostT <= 0) {
+    lostT = 2; const spots = humanSpots(), far = 25000 + radius(S.mass) * 20;
+    for (const b of E.values()) if (b.bot) {
+      let near = Infinity; for (const [hx, hy] of spots) near = Math.min(near, Math.hypot(b.x - hx, b.y - hy));
+      if (near > far) { const [x, y] = spawnPos(true, true); b.x = b.tx = x; b.y = b.ty = y; }
+    }
+  }
   for (const b of E.values()) {
     if (!b.bot) continue;
     if (b.tiny) {
@@ -735,7 +773,13 @@ function onBots(p) {
 }
 function onFood(p) {
   if (!p || !Array.isArray(p.l)) return;
-  for (const [k, g] of p.l) { const it = ITEMS[k | 0]; if (it && it.g <= g) { it.g = (g | 0) + 1; placeItem(it); } }
+  for (const [k, g] of p.l) {
+    if (typeof k !== "string" || k.length > 40) continue;
+    const ng = (g | 0) + 1; if ((EATEN.get(k) || 0) >= ng) continue;
+    EATEN.set(k, ng);
+    const [cx, cy, id] = k.split(",").map(Number), c = CHUNKS.get(cx + "," + cy), grp = c && c.groups[GROUP_OF(Math.floor(id / 1000))];
+    const it = grp && grp.find(q => q.key === k); if (it && it.g < ng) { it.g = ng; placeItem(it); }
+  }
 }
 function onAte(p) {
   const eater = E.get(p.e);
@@ -983,7 +1027,11 @@ function drawBlob(x, y, r, col, name, m, fx, fy, sh, boost, pets, mine, now, pha
   }
   const fs = Math.max(12, Math.min(26, sr * 0.32));
   label(name, x, y - sr * 1.35 - fs * 0.6, fs, mine ? "#ffe27a" : "#fff");
-  if (sr > 16) label(fmt(m), x, y + sr * 0.3, Math.max(10, Math.min(22, sr * 0.24)), "#fff");
+  if (sr > 16) {   // size number changes all the time, so it is drawn plainly instead of cached
+    const fs2 = Math.round(Math.max(10, Math.min(22, sr * 0.24)));
+    ctx.font = `900 ${fs2}px Nunito, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillText(fmt(m), x + 1, y + sr * 0.3 + 1.5); ctx.fillStyle = "#fff"; ctx.fillText(fmt(m), x, y + sr * 0.3);
+  }
 }
 let fdt = 1 / 60;
 function draw(now, dt) {
@@ -1007,15 +1055,17 @@ function draw(now, dt) {
   ctx.stroke();
   if (Wd.stars) { // stars in dark worlds
     ctx.fillStyle = "rgba(255,255,255,.6)";
-    for (let i = 0; i < 700; i++) { const r = rnd(i * 97 + 3); const x = r() * W, y = r() * W; const px = sx(x), py = sy(y); if (px > -5 && px < cw + 5 && py > -5 && py < chh + 5) ctx.fillRect(px, py, 2, 2); }
+    let sc = 300; while (sc * scale < 45) sc *= 2;
+    const gx0 = Math.floor((camX - cw / 2 / scale) / sc), gx1 = Math.floor((camX + cw / 2 / scale) / sc), gy0 = Math.floor((camY - chh / 2 / scale) / sc), gy1 = Math.floor((camY + chh / 2 / scale) / sc);
+    for (let gy = gy0; gy <= gy1; gy++) for (let gx = gx0; gx <= gx1; gx++) { const r = rnd(gx * 73856093 ^ gy * 19349663); ctx.fillRect(sx((gx + r()) * sc), sy((gy + r()) * sc), 2, 2); }
   }
   // things to eat
   const halfW = cw / 2 / scale + 420, halfH = chh / 2 / scale + 420;
   ctx.fillStyle = "rgba(255,60,60,.2)";
   // draw at most about 700 things: the biggest kinds first, the tiniest are left out when zoomed far out (iPad speed)
-  const viewFrac = Math.min(1, (cw / scale) * (chh / scale) / (W * W));
+  const viewChunks = (cw / scale) * (chh / scale) / (CH * CH);
   let minR = 2.5 / scale, acc = 0;
-  for (let t = TIER_R.length - 1; t >= 0; t--) { acc += TIER_N[t] * viewFrac; if (acc > 700) { minR = Math.max(minR, TIER_R[t] + 0.1); break; } }
+  for (let t = TIER_R.length - 1; t >= 0; t--) { acc += DENS[t] * viewChunks; if (acc > 550) { minR = Math.max(minR, TIER_R[t] + 0.1); break; } }
   itemsIn(camX - halfW, camY - halfH, camX + halfW, camY + halfH, it => {
     if (it.r < minR) return;
     const sr = it.r * scale;
@@ -1064,8 +1114,13 @@ function draw(now, dt) {
   // minimap
   const mm = Math.min(110, cw * 0.22), mx = 10, my = chh - mm - 10;
   ctx.fillStyle = "rgba(0,0,0,.45)"; rrect(mx, my, mm, mm, 8); ctx.fill();
-  for (const e of E.values()) { if (e.hide > 0) continue; ctx.fillStyle = canEat(e.m, S.mass) ? "#ff5d5d" : canEat(S.mass, e.m) ? "#4fcf6a" : "#fff"; ctx.beginPath(); ctx.arc(mx + e.x / W * mm, my + e.y / W * mm, 2.5, 0, 7); ctx.fill(); }
-  ctx.fillStyle = "#ffe27a"; ctx.beginPath(); ctx.arc(mx + ME.x / W * mm, my + ME.y / W * mm, 4, 0, 7); ctx.fill();
+  // radar: the map is too big to show, so this shows everyone near you (you are in the middle)
+  const RAD = Math.max(20000, radius(S.mass) * 40), rx = v => mx + mm / 2 + (v / RAD) * mm / 2;
+  ctx.save(); ctx.beginPath(); ctx.rect(mx, my, mm, mm); ctx.clip();
+  for (const e of E.values()) { if (e.hide > 0) continue; const dx = e.x - ME.x, dy = e.y - ME.y; if (Math.abs(dx) > RAD || Math.abs(dy) > RAD) continue; ctx.fillStyle = e.boss ? "#ffc93c" : canEat(e.m, S.mass) ? "#ff5d5d" : canEat(S.mass, e.m) ? "#4fcf6a" : "#fff"; ctx.beginPath(); ctx.arc(rx(dx), my + mm / 2 + (dy / RAD) * mm / 2, e.boss ? 4 : 2.5, 0, 7); ctx.fill(); }
+  ctx.restore();
+  ctx.fillStyle = "#ffe27a"; ctx.beginPath(); ctx.arc(mx + mm / 2, my + mm / 2, 4, 0, 7); ctx.fill();
+  ctx.font = "800 10px Nunito, sans-serif"; ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,255,255,.75)"; ctx.fillText("Radar", mx + 6, my + 12);
 }
 function rrect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 
@@ -1090,6 +1145,7 @@ function frame(now) {
     for (const [id, e] of E) if (!(e.bot && isHost) && e.seen && now - e.seen > 4000) E.delete(id);
     iEatOthers();
     if (isHost) hostTick(dt);
+    forgetFarChunks();
     netTick(dt);
     const b = $("boostBtn"); b.disabled = ME.boostCd > 0; $("boostLbl").textContent = ME.boostCd > 0 ? Math.ceil(ME.boostCd) + "s" : "Space";
     gainT -= dt; if (gainT <= 0 && pendingGain > 0) { gainT = 0.35; FX.push({ x: ME.x, y: ME.y - radius(S.mass), t: 0, txt: "+" + fmt(pendingGain), c: "#ffe27a" }); pendingGain = 0; }
@@ -1182,7 +1238,7 @@ $("worlds").addEventListener("click", e => {
 function goWorld(i) {
   if (!S.worlds.includes(i)) return;
   S.world = i; save(); buildItems(); E = new Map(); isHost = true; hostId = MYID;
-  ME.x = W / 2; ME.y = W / 2; ME.sh = 3;
+  [ME.x, ME.y] = nearCentre(8000); camX = ME.x; camY = ME.y; ME.sh = 3;
   if (playing) { joinT = Date.now(); connect(); fillBots(); }
   renderAll(); renderLobby();
 }
@@ -1425,7 +1481,7 @@ setInterval(() => { const x = eventNow(); if (!!x !== wasEvent) { wasEvent = !!x
 if (window.Leaderboard) Leaderboard.mount({ el: "lb", game: "size-simulator", dir: "desc", unit: "size", max: 1999999999, title: "Size Simulator — biggest size" });
 requestAnimationFrame(frame);
 // test hook
-window.__ss = { eventAt, eventNow, S: () => S, E: () => E, ME, ITEMS: () => ITEMS, host: () => isHost, step: dt => hostTick(dt), grow: n => grow(n, 0, 0, false), goWorld };
+window.__ss = { eventAt, eventNow, S: () => S, E: () => E, ME, ITEMS: () => [...CHUNKS.values()].flatMap(c => c.groups.filter(Boolean).flat()), chunks: () => CHUNKS.size, host: () => isHost, step: dt => hostTick(dt), grow: n => grow(n, 0, 0, false), goWorld };
 </script>
 </body>
 </html>

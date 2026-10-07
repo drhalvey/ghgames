@@ -58,13 +58,14 @@ canvas{display:block;width:100%;touch-action:none}
 .bar[hidden],.boost[hidden]{display:none}
 .lobby{position:absolute;inset:0;background:linear-gradient(160deg,rgba(23,22,43,.97),rgba(47,44,88,.97));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;overflow:auto;text-align:center}
 .lobby[hidden]{display:none}
-.stage.inlobby canvas{display:none}
+.stage.inlobby > canvas{display:none}
 .stage.inlobby .lobby{position:relative;inset:auto;padding:22px 16px}
 .lobby h2{font-family:var(--display);font-weight:400;margin:0;font-size:24px;color:var(--gold)}
 .lobby p{margin:0;color:var(--muted);font-weight:700;max-width:560px}
 .cols{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
-.col{width:52px;height:52px;border-radius:50%;border:4px solid transparent;cursor:pointer;box-shadow:inset 0 -6px 0 rgba(0,0,0,.2)}
-.col.sel{border-color:#fff;box-shadow:0 0 0 3px var(--gold),inset 0 -6px 0 rgba(0,0,0,.2)}
+.col{width:78px;height:96px;border-radius:16px;border:3px solid var(--line);background:var(--panel);cursor:pointer;padding:2px;font-family:var(--body);font-weight:900;font-size:11px;color:var(--ink);display:flex;flex-direction:column;align-items:center}
+.col canvas{width:64px;height:72px}
+.col.sel{border-color:var(--gold);background:var(--panel2);box-shadow:0 0 0 3px rgba(255,201,60,.3)}
 .pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;width:100%;max-width:700px}
 .opt{font-family:var(--body);cursor:pointer;border:3px solid var(--line);background:var(--panel);color:var(--ink);border-radius:16px;padding:10px 12px;font-weight:900;font-size:15px}
 .opt .e{display:block;font-size:32px;line-height:1.1}
@@ -143,7 +144,7 @@ canvas{display:block;width:100%;touch-action:none}
     </div>
     <button class="boost" id="boostBtn" type="button" hidden>BOOST<small id="boostLbl">Space</small></button>
     <div class="lobby" id="lobby">
-      <h2>Pick your colour</h2>
+      <h2>Pick your character</h2>
       <div class="cols" id="colPick"></div>
       <h2>Pick a world</h2>
       <div class="pick" id="worldPick"></div>
@@ -178,6 +179,7 @@ canvas{display:block;width:100%;touch-action:none}
       <li><b>Move</b> with the mouse, arrow keys or WASD. On iPad, hold and drag on the game.</li>
       <li><b>Eat</b> anything smaller than you. The bigger you get, the bigger the things you can eat.</li>
       <li><b>PvP:</b> if you are at least 1.5 times someone's size, run into them to eat them. If someone bigger eats you, you shrink and respawn.</li>
+      <li><b>King Chonk 👑</b> is always the biggest in the world, so run! He is a bit slower than you. <b>Little Pip 🐣</b> is always the smallest, so anyone can eat him.</li>
       <li><b>Boost</b> (Space or the yellow button) gives a burst of speed to chase or escape.</li>
       <li><b>Rebirth</b> resets your size, coins and upgrades but makes you grow faster forever. Worlds and pets are kept.</li>
       <li><b>Events</b> start every 20 minutes to 2 hours and last 10 minutes. They multiply your growing and coins. Rarer events are bigger: up to x100!</li>
@@ -428,7 +430,19 @@ function fillBots() {
   if (!isHost) return;
   const humans = peers.length || 1;
   const want = Math.max(6, 14 - humans);   // a big map needs more computer players
-  let bots = [...E.values()].filter(e => e.bot);
+  // the boss: a computer player who is always the biggest in the world
+  if (!E.has("boss")) {
+    const [x, y] = spawnPos(true);
+    E.set("boss", { id: "boss", bot: true, boss: true, name: "King Chonk 👑", x, y, vx: 0, vy: 0, m: bossMass(), c: 2, sh: 0,
+      gm: 1, capF: 1, cap: 1, think: 0, tx: x, ty: y, mode: "eat", boost: 0, boostCd: 0, fx: 1, fy: 0 });
+  }
+  // the snack: a computer player who is always smaller than every real player, so anyone can eat it
+  if (!E.has("tiny")) {
+    const [x, y] = spawnPos(true);
+    E.set("tiny", { id: "tiny", bot: true, tiny: true, name: "Little Pip 🐣", x, y, vx: 0, vy: 0, m: tinyMass(), c: 7, sh: 0,
+      gm: 1, capF: 1, cap: 1, think: 0, tx: x, ty: y, mode: "eat", boost: 0, boostCd: 0, fx: 1, fy: 0 });
+  }
+  let bots = [...E.values()].filter(e => e.bot && !e.boss && !e.tiny);
   for (let i = 0; bots.length < want && i < 30; i++) if (!E.has("b" + i)) { bots.push(addBot(i)); }
   while (bots.length > want) { const b = bots.pop(); E.delete(b.id); }
 }
@@ -523,9 +537,45 @@ function botThink(b) {
 }
 // bigger players move faster across the world so they never feel slower on screen as the camera zooms out
 function speedOf(m, lv, boost) { return 165 * (1 + lv * 0.06) * Math.pow(radius(m) / 12, 0.7) * (boost > 0 ? 1.75 : 1); }
+// the boss is always 1.6 times bigger than the biggest player or computer player
+function bossMass() {
+  let top = S.mass;
+  for (const e of E.values()) if (!e.boss && e.m > top) top = e.m;
+  return Math.max(50, top * 1.6);
+}
+function smallestHuman() {
+  let low = S.mass;
+  for (const e of E.values()) if (!e.bot && e.m < low) low = e.m;
+  return low;
+}
+const tinyMass = () => smallestHuman() * 0.4;
 function hostTick(dt) {
   for (const b of E.values()) {
     if (!b.bot) continue;
+    if (b.tiny) {
+      b.m = tinyMass(); b.sh = Math.max(0, b.sh - dt); b.hide = Math.max(0, (b.hide || 0) - dt);
+      b.think -= dt; if (b.think <= 0) { b.think = 0.4; botThink(b); }
+      const dx = b.tx - b.x, dy = b.ty - b.y, d = Math.hypot(dx, dy);
+      const sp = speedOf(smallestHuman(), 0, 0) * 0.85;   // a bit slower than players, so it can be caught
+      if (d > 4) { b.vx = dx / d * sp; b.vy = dy / d * sp; b.fx = dx / d; b.fy = dy / d; } else { b.vx = b.vy = 0; }
+      b.x = Math.max(0, Math.min(W, b.x + b.vx * dt)); b.y = Math.max(0, Math.min(W, b.y + b.vy * dt));
+      continue;
+    }
+    if (b.boss) {
+      b.m = bossMass();
+      b.think -= dt; if (b.think <= 0) { b.think = 0.5; botThink(b); }
+      const dx = b.tx - b.x, dy = b.ty - b.y, d = Math.hypot(dx, dy);
+      const sp = speedOf(S.mass, 0, 0) * 0.8;   // slower than you, so you can always run away
+      if (d > 4) { b.vx = dx / d * sp; b.vy = dy / d * sp; b.fx = dx / d; b.fy = dy / d; } else { b.vx = b.vy = 0; }
+      b.x = Math.max(0, Math.min(W, b.x + b.vx * dt)); b.y = Math.max(0, Math.min(W, b.y + b.vy * dt));
+      if (ME.sh <= 0 && touching(b, ME, b.m, S.mass)) { FX.push({ x: b.x, y: b.y, t: 0, txt: `${b.name} ate you!`, c: "#ff5d5d", big: true }); getEaten(b.name); }
+      for (const o of E.values()) {
+        if (o === b || o.sh > 0 || o.hide > 0 || !touching(b, o, b.m, o.m)) continue;
+        o.hide = 1.5;
+        if (o.bot) respawnBot(o); else bcast("ate", { e: b.id, en: b.name, v: o.id, m: b.m });
+      }
+      continue;
+    }
     b.sh = Math.max(0, b.sh - dt); b.hide = Math.max(0, (b.hide || 0) - dt);
     b.boost = Math.max(0, b.boost - dt); b.boostCd = Math.max(0, b.boostCd - dt);
     b.think -= dt; if (b.think <= 0) { b.think = 0.35 + Math.random() * 0.2; botThink(b); }
@@ -611,7 +661,7 @@ function onBots(p) {
     const [id, name, x, y, m, c, sh, fx, fy] = a; ids.add(id);
     let e = E.get(id);
     if (!e) { e = { id, bot: true, x, y }; E.set(id, e); }
-    e.bot = true; e.name = String(name).slice(0, 16); e.tx2 = x; e.ty2 = y; e.m = m; e.c = c; e.sh = sh; e.fx = fx; e.fy = fy; e.seen = performance.now();
+    e.bot = true; e.boss = id === "boss"; e.tiny = id === "tiny"; e.name = String(name).slice(0, 16); e.tx2 = x; e.ty2 = y; e.m = m; e.c = c; e.sh = sh; e.fx = fx; e.fy = fy; e.seen = performance.now();
   }
   for (const [id, e] of E) if (e.bot && !ids.has(id)) E.delete(id);
 }
@@ -732,28 +782,107 @@ function label(t, x, y, size, fill, stroke) {
   }
   ctx.drawImage(c, x - c.w / 2, y - c.h / 2, c.w, c.h);
 }
-function drawBlob(x, y, r, col, name, m, fx, fy, sh, boost, pets, mine, now) {
+// ---------------- characters ----------------
+// 8 characters; the number is the same one that used to be your colour, so old saves keep their pick
+const CHARS = [
+  { n: "Ricky",    shirt: "#ff5d5d", pants: "#2f4a7a", skin: "#f5c9a0", hair: "#5a3a1a", hat: "cap" },
+  { n: "Ninja",    shirt: "#2b2b38", pants: "#2b2b38", skin: "#e0ac7a", hair: "#2b2b38", hat: "ninja" },
+  { n: "Princess", shirt: "#ff9ad1", pants: "#ff9ad1", skin: "#f5c9a0", hair: "#ffd23d", hat: "crown" },
+  { n: "Cowboy",   shirt: "#4fcf6a", pants: "#3b5f9a", skin: "#c68a5a", hair: "#3a2412", hat: "cowboy" },
+  { n: "Robot",    shirt: "#9aa6b8", pants: "#6d7788", skin: "#c3cbd8", hair: "#9aa6b8", hat: "robot" },
+  { n: "Wizard",   shirt: "#7d4dff", pants: "#4a2fa0", skin: "#f5c9a0", hair: "#dddddd", hat: "wizard" },
+  { n: "Pirate",   shirt: "#ffffff", pants: "#2b2b38", skin: "#8d5a3b", hair: "#1b1b2b", hat: "pirate" },
+  { n: "Chef",     shirt: "#ffffff", pants: "#3a3a48", skin: "#e0ac7a", hair: "#5a3a1a", hat: "chef" }
+];
+function rrPath(c, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+// draws one character standing in a circle of radius s around (x, y)
+function drawChar(c, x, y, s, ci, fx, phase, mine) {
+  const C = CHARS[ci] || CHARS[0], line = Math.max(1.5, s * 0.05), dark = "#1b1b2b";
+  const st = s < 120 ? () => c.stroke() : () => {};   // outlines are skipped on giant characters (iPad speed)
+  const sw = Math.sin(phase) * 0.35;           // arm and leg swing
+  const face = fx < -0.2 ? -1 : fx > 0.2 ? 1 : 0;
+  c.lineJoin = "round"; c.lineCap = "round"; c.lineWidth = line; c.strokeStyle = "rgba(0,0,0,.45)";
+  // shadow
+  if (s < 260) { c.fillStyle = "rgba(0,0,0,.18)"; c.beginPath(); c.ellipse(x, y + s * 0.97, s * 0.55, s * 0.13, 0, 0, 7); c.fill(); }
+  // legs
+  for (const k of [-1, 1]) {
+    c.save(); c.translate(x + k * s * 0.2, y + s * 0.5); c.rotate(k * sw);
+    c.fillStyle = C.pants; rrPath(c, -s * 0.11, 0, s * 0.22, s * 0.42, s * 0.08); c.fill(); st();
+    c.fillStyle = dark; rrPath(c, -s * 0.13 + face * s * 0.03, s * 0.34, s * 0.26, s * 0.12, s * 0.06); c.fill();
+    c.restore();
+  }
+  // arms (behind the body)
+  for (const k of [-1, 1]) {
+    c.save(); c.translate(x + k * s * 0.42, y + 0.02 * s); c.rotate(-k * sw * 1.2 + k * 0.25);
+    c.fillStyle = C.shirt; rrPath(c, -s * 0.1, 0, s * 0.2, s * 0.42, s * 0.1); c.fill(); st();
+    c.fillStyle = C.skin; c.beginPath(); c.arc(0, s * 0.44, s * 0.1, 0, 7); c.fill(); st();
+    c.restore();
+  }
+  // body
+  c.fillStyle = C.shirt; rrPath(c, x - s * 0.38, y - s * 0.08, s * 0.76, s * 0.66, s * 0.26); c.fill(); st();
+  if (C.hat === "chef" || C.hat === "pirate") { c.fillStyle = C.hat === "chef" ? "#d0d4dc" : "#e04848"; for (const k of [-1, 1]) { c.beginPath(); c.arc(x + k * s * 0.12, y + s * 0.15, s * 0.04, 0, 7); c.fill(); } }
+  if (C.hat === "robot") { c.fillStyle = "#4fd3ff"; rrPath(c, x - s * 0.16, y + s * 0.06, s * 0.32, s * 0.18, s * 0.04); c.fill(); }
+  // head
+  const hx = x + face * s * 0.04, hy = y - s * 0.42, hr = s * 0.4;
+  c.fillStyle = C.skin;
+  if (C.hat === "robot") { rrPath(c, hx - hr, hy - hr * 0.9, hr * 2, hr * 1.8, hr * 0.35); c.fill(); st(); }
+  else { c.beginPath(); c.arc(hx, hy, hr, 0, 7); c.fill(); st(); }
+  // hair at the back of the head
+  if (C.hat === "cap" || C.hat === "cowboy" || C.hat === "chef" || C.hat === "wizard") { c.fillStyle = C.hair; c.beginPath(); c.arc(hx, hy - hr * 0.15, hr * 0.98, Math.PI * 1.05, Math.PI * 1.95); c.fill(); }
+  if (C.hat === "crown") { c.fillStyle = C.hair; c.beginPath(); c.arc(hx, hy - hr * 0.1, hr * 1.02, Math.PI * 0.95, Math.PI * 2.05); c.fill(); c.fillRect(hx - hr * 1.02, hy - hr * 0.1, hr * 0.3, hr * 1.1); c.fillRect(hx + hr * 0.72, hy - hr * 0.1, hr * 0.3, hr * 1.1); }
+  if (C.hat === "ninja") { c.fillStyle = C.hair; c.beginPath(); c.arc(hx, hy, hr, 0, 7); c.fill(); c.fillStyle = C.skin; rrPath(c, hx - hr * 0.8, hy - hr * 0.35, hr * 1.6, hr * 0.5, hr * 0.2); c.fill(); c.fillStyle = "#e53935"; c.fillRect(hx - hr, hy - hr * 0.62, hr * 2, hr * 0.2); }
+  // eyes and smile
+  const ex = face * hr * 0.18;
+  if (C.hat === "robot") {
+    c.fillStyle = "#4fd3ff"; for (const k of [-1, 1]) { c.fillRect(hx + k * hr * 0.4 - hr * 0.16 + ex, hy - hr * 0.25, hr * 0.32, hr * 0.28); }
+    c.strokeStyle = dark; c.lineWidth = line; c.beginPath(); c.moveTo(hx - hr * 0.3 + ex, hy + hr * 0.4); c.lineTo(hx + hr * 0.3 + ex, hy + hr * 0.4); c.stroke();
+  } else {
+    for (const k of [-1, 1]) {
+      if (C.hat === "pirate" && k === 1) { c.fillStyle = dark; c.beginPath(); c.arc(hx + k * hr * 0.38 + ex, hy - hr * 0.1, hr * 0.2, 0, 7); c.fill(); continue; }
+      c.fillStyle = "#fff"; c.beginPath(); c.arc(hx + k * hr * 0.38 + ex, hy - hr * 0.1, hr * 0.2, 0, 7); c.fill();
+      c.fillStyle = dark; c.beginPath(); c.arc(hx + k * hr * 0.38 + ex * 1.6, hy - hr * 0.08, hr * 0.1, 0, 7); c.fill();
+    }
+    if (C.hat !== "ninja") { c.strokeStyle = dark; c.lineWidth = Math.max(1.5, hr * 0.12); c.beginPath(); c.arc(hx + ex, hy + hr * 0.18, hr * 0.38, 0.2 * Math.PI, 0.8 * Math.PI); c.stroke();
+      c.fillStyle = "rgba(255,120,150,.45)"; for (const k of [-1, 1]) { c.beginPath(); c.arc(hx + k * hr * 0.62 + ex, hy + hr * 0.2, hr * 0.13, 0, 7); c.fill(); } }
+  }
+  c.strokeStyle = "rgba(0,0,0,.45)"; c.lineWidth = line;
+  // hats
+  const top = hy - hr * (C.hat === "robot" ? 0.9 : 1);
+  if (C.hat === "cap") {
+    c.fillStyle = C.shirt; c.beginPath(); c.arc(hx, hy - hr * 0.2, hr * 0.92, Math.PI, 0); c.fill(); st();
+    rrPath(c, hx + (face || 1) * hr * 0.1 - hr * 0.55, hy - hr * 0.3, hr * 1.1 + hr * 0.45, hr * 0.2, hr * 0.1); c.fill(); st();
+  } else if (C.hat === "crown") {
+    c.fillStyle = "#ffc93c"; c.beginPath(); c.moveTo(hx - hr * 0.6, top + hr * 0.15);
+    for (let i = 0; i <= 4; i++) { c.lineTo(hx - hr * 0.6 + i * hr * 0.3, top - hr * (i % 2 ? 0.15 : 0.5)); }
+    c.lineTo(hx + hr * 0.6, top + hr * 0.15); c.closePath(); c.fill(); st();
+    c.fillStyle = "#ff5d8f"; c.beginPath(); c.arc(hx, top - hr * 0.05, hr * 0.09, 0, 7); c.fill();
+  } else if (C.hat === "cowboy") {
+    c.fillStyle = "#8a5a2b"; c.beginPath(); c.ellipse(hx, top + hr * 0.15, hr * 1.35, hr * 0.25, 0, 0, 7); c.fill(); st();
+    rrPath(c, hx - hr * 0.6, top - hr * 0.6, hr * 1.2, hr * 0.8, hr * 0.25); c.fill(); st();
+    c.fillStyle = "#3a2412"; c.fillRect(hx - hr * 0.6, top - hr * 0.05, hr * 1.2, hr * 0.15);
+  } else if (C.hat === "robot") {
+    c.strokeStyle = "#6d7788"; c.lineWidth = Math.max(2, hr * 0.1); c.beginPath(); c.moveTo(hx, top); c.lineTo(hx, top - hr * 0.45); c.stroke();
+    c.fillStyle = "#ff5d5d"; c.beginPath(); c.arc(hx, top - hr * 0.5, hr * 0.14, 0, 7); c.fill();
+  } else if (C.hat === "wizard") {
+    c.fillStyle = "#5b34c9"; c.beginPath(); c.ellipse(hx, top + hr * 0.2, hr * 1.15, hr * 0.22, 0, 0, 7); c.fill(); st();
+    c.beginPath(); c.moveTo(hx - hr * 0.7, top + hr * 0.15); c.lineTo(hx + face * hr * 0.3, top - hr * 1.4); c.lineTo(hx + hr * 0.7, top + hr * 0.15); c.closePath(); c.fill(); st();
+    c.fillStyle = "#ffd23d"; c.beginPath(); c.arc(hx, top - hr * 0.35, hr * 0.12, 0, 7); c.fill();
+    c.fillStyle = "#dddddd"; c.beginPath(); c.moveTo(hx - hr * 0.5, hy + hr * 0.45); c.quadraticCurveTo(hx, hy + hr * 1.5, hx + hr * 0.5, hy + hr * 0.45); c.fill();
+  } else if (C.hat === "pirate") {
+    c.fillStyle = "#e04848"; c.beginPath(); c.arc(hx, hy - hr * 0.15, hr * 0.98, Math.PI * 1.02, Math.PI * 1.98); c.fill(); st();
+    c.beginPath(); c.arc(hx - hr * 0.95, hy - hr * 0.1, hr * 0.16, 0, 7); c.fill();
+    c.strokeStyle = dark; c.lineWidth = Math.max(1, hr * 0.06); c.beginPath(); c.moveTo(hx - hr * 0.9, hy - hr * 0.55); c.lineTo(hx + hr * 0.9, hy + hr * 0.05); c.stroke();
+  } else if (C.hat === "chef") {
+    c.fillStyle = "#ffffff"; rrPath(c, hx - hr * 0.6, top - hr * 0.35, hr * 1.2, hr * 0.5, hr * 0.1); c.fill(); st();
+    for (const k of [-0.45, 0, 0.45]) { c.beginPath(); c.arc(hx + k * hr, top - hr * 0.55, hr * 0.38, 0, 7); c.fill(); }
+  }
+}
+function drawBlob(x, y, r, col, name, m, fx, fy, sh, boost, pets, mine, now, phase) {
   const sr = r * scale;
   if (x + sr < -60 || x - sr > cw + 60 || y + sr < -60 || y - sr > chh + 60) return;
-  const [c1, c2] = COLS[col] || COLS[0];
-  const wob = 1 + Math.sin(now / 180 + x) * 0.025;
   if (boost) { ctx.fillStyle = "rgba(255,226,122,.35)"; ctx.beginPath(); ctx.arc(x - fx * sr * 0.5, y - fy * sr * 0.5, sr * 0.95, 0, 7); ctx.fill(); }
-  // very big blobs (bigger than the screen) are drawn plain: shading a huge circle is slow on iPad
-  const big = sr > 260;
-  if (!big) { ctx.fillStyle = "rgba(0,0,0,.18)"; ctx.beginPath(); ctx.ellipse(x, y + sr * 0.9, sr * 0.9, sr * 0.28, 0, 0, 7); ctx.fill(); }
-  if (big) ctx.fillStyle = c1;
-  else { const g = ctx.createRadialGradient(x - sr * 0.35, y - sr * 0.4, sr * 0.1, x, y, sr); g.addColorStop(0, c1); g.addColorStop(1, c2); ctx.fillStyle = g; } ctx.beginPath(); ctx.ellipse(x, y, sr * wob, sr / wob, 0, 0, 7); ctx.fill();
-  ctx.lineWidth = Math.max(2, sr * 0.06); ctx.strokeStyle = mine ? "#fff" : "rgba(0,0,0,.35)"; ctx.stroke();
-  // face
-  const ex = (fx || 0) * sr * 0.12, ey = (fy || 0) * sr * 0.12;
-  for (const s of [-1, 1]) {
-    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x + s * sr * 0.3 + ex, y - sr * 0.15 + ey, sr * 0.2, 0, 7); ctx.fill();
-    ctx.fillStyle = "#1b1b2b"; ctx.beginPath(); ctx.arc(x + s * sr * 0.3 + ex * 1.6, y - sr * 0.13 + ey * 1.6, sr * 0.1, 0, 7); ctx.fill();
-  }
-  ctx.strokeStyle = "#1b1b2b"; ctx.lineWidth = Math.max(1.5, sr * 0.07); ctx.lineCap = "round";
-  ctx.beginPath(); ctx.arc(x + ex, y + sr * 0.18 + ey, sr * 0.28, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
-  ctx.fillStyle = "rgba(255,120,150,.45)";
-  for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(x + s * sr * 0.55 + ex, y + sr * 0.12 + ey, sr * 0.11, 0, 7); ctx.fill(); }
+  if (mine) { ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, y + sr * 0.97, sr * 0.62, sr * 0.17, 0, 0, 7); ctx.stroke(); }
+  drawChar(ctx, x, y, sr, col, fx || 0, phase || 0, mine);
   if (sh) { ctx.setLineDash([8, 7]); ctx.strokeStyle = "rgba(140,220,255,.9)"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, sr + 8, now / 300, now / 300 + 7); ctx.stroke(); ctx.setLineDash([]); }
   // pets orbit around
   if (pets) {
@@ -765,8 +894,8 @@ function drawBlob(x, y, r, col, name, m, fx, fy, sh, boost, pets, mine, now) {
     });
   }
   const fs = Math.max(12, Math.min(26, sr * 0.32));
-  label(name, x, y - sr - fs * 0.9, fs, mine ? "#ffe27a" : "#fff");
-  label(fmt(m), x, y + sr * 0.62, Math.max(10, Math.min(22, sr * 0.28)), "#fff");
+  label(name, x, y - sr * 1.35 - fs * 0.6, fs, mine ? "#ffe27a" : "#fff");
+  if (sr > 16) label(fmt(m), x, y + sr * 0.3, Math.max(10, Math.min(22, sr * 0.24)), "#fff");
 }
 let fdt = 1 / 60;
 function draw(now, dt) {
@@ -814,8 +943,8 @@ function draw(now, dt) {
   list.push({ e: null, m: S.mass });
   list.sort((a, b) => a.m - b.m);
   for (const { e, m } of list) {
-    if (!e) drawBlob(sx(ME.x), sy(ME.y), radius(S.mass), S.col, NAME, S.mass, ME.fx, ME.fy, ME.sh > 0, ME.boost > 0, eqEmojis(), true, now);
-    else drawBlob(sx(e.x), sy(e.y), radius(e.m), e.c || 0, e.name || "?", e.m, e.fx, e.fy, e.sh > 0, e.boost > 0, e.pets, false, now);
+    if (!e) drawBlob(sx(ME.x), sy(ME.y), radius(S.mass), S.col, NAME, S.mass, ME.fx, ME.fy, ME.sh > 0, ME.boost > 0, eqEmojis(), true, now, (ME.x + ME.y) / (radius(S.mass) * 0.9));
+    else drawBlob(sx(e.x), sy(e.y), radius(e.m), e.c || 0, e.name || "?", e.m, e.fx, e.fy, e.sh > 0, e.boost > 0, e.pets, false, now, (e.x + e.y) / (radius(e.m) * 0.9));
   }
   // floating words
   for (let i = FX.length - 1; i >= 0; i--) {
@@ -1068,7 +1197,8 @@ $("dailyChip").onclick = () => {
 
 // ---------------- lobby ----------------
 function renderLobby() {
-  $("colPick").innerHTML = COLS.map((c, i) => `<button class="col ${S.col === i ? "sel" : ""}" data-col="${i}" type="button" style="background:${c[0]}" aria-label="Colour ${i + 1}"></button>`).join("");
+  $("colPick").innerHTML = CHARS.map((c, i) => `<button class="col ${S.col === i ? "sel" : ""}" data-col="${i}" type="button" aria-label="${c.n}"><canvas width="128" height="144"></canvas>${c.n}</button>`).join("");
+  $("colPick").querySelectorAll("canvas").forEach((cnv, i) => { const g = cnv.getContext("2d"); drawChar(g, 64, 80, 44, i, 0, 0.6, false); });
   $("worldPick").innerHTML = WORLDS.map((w, i) => {
     if (!showWorld(i)) return "";
     const have = S.worlds.includes(i);

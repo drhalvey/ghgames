@@ -72,6 +72,7 @@ canvas{display:block;width:100%;touch-action:none}
 .opt small{display:block;color:var(--muted);font-size:11px;font-weight:800}
 .opt.sel{border-color:var(--gold);background:var(--panel2);box-shadow:0 0 0 3px rgba(255,201,60,.25)}
 .opt.locked{opacity:.55}
+.galhead{grid-column:1/-1;font-family:var(--display);font-size:20px;color:#b9a4ff;text-align:left;margin-top:6px}
 .play{font-family:var(--display);font-size:30px;border:none;border-radius:18px;padding:10px 46px;color:#3b2200;background:linear-gradient(#ffd966,#ffb300);box-shadow:0 6px 0 #a86a00;cursor:pointer}
 .play:active{transform:translateY(3px);box-shadow:0 3px 0 #a86a00}
 .msg{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:10px 14px;font-weight:800;min-height:44px}
@@ -182,7 +183,7 @@ canvas{display:block;width:100%;touch-action:none}
       <li><b>PvP:</b> if you are at least 1.5 times someone's size, run into them to eat them. If someone bigger eats you, you shrink and respawn.</li>
       <li><b>King Chonk 👑</b> is always the biggest in the world, so run! He is a bit slower than you. <b>Little Pip 🐣</b> is always the smallest, so anyone can eat him.</li>
       <li><b>Boost</b> (Space or the yellow button) gives a burst of speed to chase or escape.</li>
-      <li><b>Rebirth</b> resets your size, coins and upgrades but makes you grow faster forever. Worlds and pets are kept.</li>
+      <li><b>Rebirthing</b> needs 1Dc coins. 1Dc gives 1 rebirth, 1Ud gives 200, and every 1,000 times more coins gives 200 times more rebirths. It resets your size, coins and upgrades but makes you grow faster forever. Worlds and pets are kept.</li>
       <li><b>Events</b> start every 20 minutes to 2 hours and last 10 minutes. They multiply your growing and coins. Rarer events are bigger: up to x100!</li>
       <li>Claim your <b>daily reward</b> every day. Don't miss a day or your streak starts again!</li>
     </ul>
@@ -205,6 +206,8 @@ function fmt(n) {
   n = Number(n) || 0;
   if (n < 10) return (Math.floor(n * 10) / 10).toString();
   if (n < 1000) return Math.floor(n).toString();
+  if (!isFinite(n)) return "∞";
+  if (n >= Math.pow(1000, SUF.length)) { const e = Math.floor(Math.log10(n)); return (n / Math.pow(10, e)).toFixed(2) + "e" + e; }
   let i = 0; while (n >= 1000 && i < SUF.length - 1) { n /= 1000; i++; }
   return (n >= 100 ? Math.floor(n) : n >= 10 ? Math.floor(n * 10) / 10 : Math.floor(n * 100) / 100) + SUF[i];
 }
@@ -274,6 +277,22 @@ const MORE_WORLDS = [
 for (const w of MORE_WORLDS) { const last = WORLDS[WORLDS.length - 1]; w.cost = last.cost * 300; w.mult = last.mult * 6; WORLDS.push(w); }
 WORLDS[4].stars = WORLDS[11].stars = true;
 for (let i = 1; i < WORLDS.length; i++) WORLDS[i].cost *= 100;   // worlds cost 100 times more
+// 8 galaxies of 25 worlds. Galaxies 3 to 8 are new versions of the first 50 worlds with their own colours.
+const GALAXIES = ["Milky Way", "Andromeda", "Nebula", "Starburst", "Cosmic Rift", "The Void", "Quasar", "Infinity"];
+const WPG = 25;
+const galaxyOf = i => Math.floor(i / WPG);
+function mixHex(a, b, t) {
+  const p = h => [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16));
+  const A = p(a), B = p(b); return "#" + A.map((v, k) => Math.round(v + (B[k] - v) * t).toString(16).padStart(2, "0")).join("");
+}
+{
+  const STYLE = [["Neon", "#ff00ff", 0.3], ["Shadow", "#000000", 0.55], ["Crystal", "#9ee7ff", 0.4], ["Golden", "#ffd700", 0.35], ["Mega", "#ff4500", 0.3], ["Ultimate", "#7d4dff", 0.4]];
+  while (WORLDS.length < 200) {
+    const i = WORLDS.length, base = WORLDS[i % 50], [adj, col, t] = STYLE[galaxyOf(i) - 2], last = WORLDS[i - 1];
+    WORLDS.push({ n: adj + " " + base.n, e: base.e, ground: mixHex(base.ground, col, t), grid: mixHex(base.grid, col, t), edge: mixHex(base.edge, col, t * 0.6),
+      things: base.things, stars: base.stars || adj === "Shadow", cost: last.cost * 10, mult: last.mult * 3 });
+  }
+}
 const EGGS = [
   { cost: 1000, pow: 1 }, { cost: 30e3, pow: 2.5 }, { cost: 2.5e6, pow: 6 },
   { cost: 2.5e8, pow: 15 }, { cost: 6e10, pow: 40 }, { cost: 2.5e13, pow: 100 },
@@ -427,8 +446,10 @@ function petMult() {
   for (const id of S.eq) { const p = S.pets.find(q => q.id === id); if (p) t += RAR[PETS[p.k].r].m * EGGS[p.w].pow; }
   return Math.max(1, t);
 }
-const gainMult = () => (1 + S.bite * 0.25) * (1 + S.rb) * WORLDS[S.world].mult * petMult() * eventMult();
-const rebirthNeed = () => 2000 * Math.pow(4, S.rb);
+const gainMult = () => Math.min(1e300, (1 + S.bite * 0.25) * (1 + S.rb) * WORLDS[S.world].mult * petMult() * eventMult());
+// Rebirthing: costs 1Dc coins for 1 rebirth; every 1,000 times more coins gives 200 times more rebirths
+const REBIRTH_COINS = 1e33;
+const rebirthGain = c => c < REBIRTH_COINS ? 0 : Math.floor(Math.pow(200, (Math.log10(c) - 33) / 3) + 1e-9);
 const bestWorld = () => Math.max(...S.worlds);
 function rnd(seed) { let t = seed >>> 0; return () => { t += 0x6D2B79F5; let r = Math.imul(t ^ t >>> 15, 1 | t); r ^= r + Math.imul(r ^ r >>> 7, 61 | r); return ((r ^ r >>> 14) >>> 0) / 4294967296; }; }
 function hash(s) { let h = 7; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
@@ -545,8 +566,10 @@ function fillBots() {
 }
 
 // ---------------- growing ----------------
+const CAP = 1e300;   // the biggest number the game allows, so nothing breaks
 function grow(amount, x, y, show) {
-  S.mass += amount; S.coins += amount * (1 + (S.coin || 0) * 0.25);
+  if (!(amount > 0)) return; if (!isFinite(amount)) amount = CAP;
+  S.mass = Math.min(CAP, S.mass + amount); S.coins = Math.min(CAP, S.coins + amount * (1 + (S.coin || 0) * 0.25));
   if (S.mass > S.best) S.best = S.mass;
   if (show) FX.push({ x, y, t: 0, txt: "+" + fmt(amount), c: "#ffe27a" });
 }
@@ -559,10 +582,10 @@ function eatItemsFor(e, isMe) {
     const dx = it.x - e.x, dy = it.y - e.y;
     if (dx * dx + dy * dy > reach * reach) return;
     if (m < needMass(it.r)) return;
-    const v = itemVal(it.r) * gm;
+    const v = Math.min(1e300, itemVal(it.r) * gm);
     eatItem(it);
     if (isMe) { grow(v, 0, 0, false); pendingGain += v; S.eats++; }
-    else e.m = Math.min(Math.max(e.m, e.cap), e.m + v);   // computer players stop growing at their limit
+    else e.m = Math.min(1e300, Math.max(e.m, e.cap), e.m + v);   // computer players stop growing at their limit
   });
 }
 let pendingGain = 0, gainT = 0;
@@ -637,7 +660,7 @@ function speedOf(m, lv, boost) { return 165 * (1 + lv * 0.06) * Math.pow(radius(
 function bossMass() {
   let top = S.mass;
   for (const e of E.values()) if (!e.boss && e.m > top) top = e.m;
-  return Math.max(50, top * 1.6);
+  return Math.min(1e300, Math.max(50, top * 1.6));
 }
 function smallestHuman() {
   let low = S.mass;
@@ -1148,7 +1171,7 @@ function frame(now) {
     forgetFarChunks();
     netTick(dt);
     const b = $("boostBtn"); b.disabled = ME.boostCd > 0; $("boostLbl").textContent = ME.boostCd > 0 ? Math.ceil(ME.boostCd) + "s" : "Space";
-    gainT -= dt; if (gainT <= 0 && pendingGain > 0) { gainT = 0.35; FX.push({ x: ME.x, y: ME.y - radius(S.mass), t: 0, txt: "+" + fmt(pendingGain), c: "#ffe27a" }); pendingGain = 0; }
+    gainT -= dt; if (gainT <= 0 && pendingGain > 0) { pendingGain = Math.min(1e300, pendingGain); gainT = 0.35; FX.push({ x: ME.x, y: ME.y - radius(S.mass), t: 0, txt: "+" + fmt(pendingGain), c: "#ffe27a" }); pendingGain = 0; }
     draw(now, dt);
     hudT -= dt; if (hudT <= 0) { hudT = 0.25; renderHUD(); }
     saveT -= dt; if (saveT <= 0) { saveT = 5; save(); }
@@ -1184,18 +1207,19 @@ function renderUps() {
       <div class="row"><button class="buy" style="flex:1" data-up="${k}" type="button" ${maxed || S.coins < c ? "disabled" : ""}>${maxed ? "MAXED" : "Buy · 🪙 " + fmt(c)}</button>
       ${maxed ? "" : `<button class="buy go" data-max="${k}" type="button" ${S.coins < c ? "disabled" : ""}>MAX</button>`}</div></div>`;
   }
-  const need = rebirthNeed();
-  h += `<div class="up here"><h3>Rebirth 🔁</h3><div class="lv">Rebirths: ${S.rb} (x${1 + S.rb} growing)</div>
-    <p>Needs size ${fmt(need)}. Resets size, coins and upgrades (Pet Slots are kept). Next: x${S.rb + 2} growing forever.</p>
-    <button class="buy go" id="rbBtn" type="button" ${S.mass < need ? "disabled" : ""}>${S.mass < need ? "Size " + fmt(S.mass) + " / " + fmt(need) : "REBIRTH!"}</button></div>`;
+  const gain = rebirthGain(S.coins);
+  const nextStep = gain ? Math.pow(10, 33 + 3 * (Math.floor((Math.log10(S.coins) - 33) / 3 + 1e-9) + 1)) : REBIRTH_COINS;
+  h += `<div class="up here"><h3>Rebirthing 🔁</h3><div class="lv">Rebirths: ${fmt(S.rb)} (x${fmt(1 + S.rb)} growing)</div>
+    <p>Needs 🪙 1Dc. 1Dc = 1 rebirth, 1Ud = 200, and every 1,000 times more coins gives 200 times more. Resets size, coins and upgrades (Pet Slots are kept).${gain ? ` More rebirths at 🪙 ${fmt(nextStep)}.` : ""}</p>
+    <button class="buy go" id="rbBtn" type="button" ${gain ? "" : "disabled"}>${gain ? "REBIRTH for +" + fmt(gain) + "!" : "🪙 " + fmt(S.coins) + " / 1Dc"}</button></div>`;
   setHTML("ups", h);
 }
 $("ups").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   if (b.id === "rbBtn") {
-    if (S.mass < rebirthNeed()) return;
-    S.rb++; S.mass = 1; S.coins = 0; for (const k in UPS) if (!UPS[k].keepOnRebirth) S[k] = 0; if (window.PhatCoin) PhatCoin.earn("rebirth", 25, "rebirth " + S.rb);
-    setMsg(`Rebirth ${S.rb}! You now grow x${1 + S.rb} faster forever.`, "good");
+    const gain = rebirthGain(S.coins); if (!gain) return;
+    S.rb = Math.min(CAP, S.rb + gain); S.mass = 1; S.coins = 0; for (const k in UPS) if (!UPS[k].keepOnRebirth) S[k] = 0; if (window.PhatCoin) PhatCoin.earn("rebirth", 25, "rebirth " + S.rb);
+    setMsg(`+${fmt(gain)} rebirths! You now have ${fmt(S.rb)} and grow x${fmt(1 + S.rb)} faster forever.`, "good");
   } else if (b.dataset.max) {
     // spend as many coins as possible on this one upgrade
     const k = b.dataset.max, U = UPS[k]; if (!U) return;
@@ -1214,14 +1238,15 @@ $("ups").addEventListener("click", e => {
 const showWorld = i => S.worlds.includes(i) || i <= bestWorld() + 3;
 const hiddenWorlds = () => WORLDS.filter((w, i) => !showWorld(i)).length;
 function renderWorlds() {
-  let h = "";
+  let h = "", lastG = -1;
   WORLDS.forEach((w, i) => {
     if (!showWorld(i)) return;
+    if (galaxyOf(i) !== lastG) { lastG = galaxyOf(i); h += `<div class="galhead">🌌 Galaxy ${lastG + 1}: ${GALAXIES[lastG]}</div>`; }
     const have = S.worlds.includes(i), here = S.world === i;
     const btn = here ? `<button class="buy" type="button" disabled>You are here</button>`
       : have ? `<button class="buy go" data-go="${i}" type="button">Go there</button>`
       : `<button class="buy" data-unlock="${i}" type="button" ${S.coins < w.cost ? "disabled" : ""}>Unlock · 🪙 ${fmt(w.cost)}</button>`;
-    h += `<div class="up ${here ? "here" : ""}"><h3>${w.e} ${w.n}</h3><div class="lv">x${fmt(w.mult)} growing</div><p>${w.things.slice(0, 7).join(" ")}</p>${btn}</div>`;
+    h += `<div class="up ${here ? "here" : ""}"><h3>${w.e} ${w.n}</h3><div class="lv">World ${i % WPG + 1} of ${WPG} · x${fmt(w.mult)} growing</div><p>${w.things.slice(0, 7).join(" ")}</p>${btn}</div>`;
   });
   const more = hiddenWorlds();
   if (more) h += `<div class="up"><h3>❓ ${more} more world${more > 1 ? "s" : ""}</h3><p>Unlock more worlds to find out what's next!</p></div>`;
@@ -1411,9 +1436,15 @@ function renderLobby() {
   $("colPick").querySelectorAll("canvas").forEach((cnv, i) => { const g = cnv.getContext("2d"); drawChar(g, 64, 80, 44, i, 0, 0.6, false); });
   $("worldPick").innerHTML = WORLDS.map((w, i) => {
     if (!showWorld(i)) return "";
+    if (i % WPG === 0 || i === 0) return `<div class="galhead">🌌 Galaxy ${galaxyOf(i) + 1}: ${GALAXIES[galaxyOf(i)]}</div>` + worldOpt(w, i);
+    return worldOpt(w, i);
+  }).join("");
+}
+function worldOpt(w, i) {
+  {
     const have = S.worlds.includes(i);
     return `<button class="opt ${S.world === i ? "sel" : ""} ${have ? "" : "locked"}" data-w="${i}" type="button"><span class="e">${have ? w.e : "🔒"}</span>${w.n}<small>${have ? "x" + fmt(w.mult) + " growing" : "🪙 " + fmt(w.cost) + " to unlock"}</small></button>`;
-  }).join("");
+  }
 }
 $("colPick").addEventListener("click", e => { const b = e.target.closest("[data-col]"); if (!b) return; S.col = +b.dataset.col; save(); renderLobby(); });
 $("worldPick").addEventListener("click", e => {

@@ -197,7 +197,7 @@ canvas{display:block;width:100%;touch-action:none}
 const $ = id => document.getElementById(id);
 
 // ---------------- numbers ----------------
-const SUF = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc", "Ud", "Dd", "Td"];
+const SUF = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc", "Ud", "Dd", "Td", "Qad", "Qid", "Sxd", "Spd", "Ocd", "Nod", "Vg", "UVg", "DVg", "TVg", "QaVg", "QiVg", "SxVg", "SpVg", "OcVg", "NoVg", "Tg", "UTg", "DTg", "TTg"];
 function fmt(n) {
   n = Number(n) || 0;
   if (n < 10) return (Math.floor(n * 10) / 10).toString();
@@ -210,7 +210,7 @@ function fmt(n) {
 const COLS = [["#ff5d5d", "#b8302f"], ["#ff9b3d", "#b55e12"], ["#ffd23d", "#b08a0e"], ["#4fcf6a", "#22813a"], ["#2fc1ae", "#137a6d"], ["#4aa8ff", "#1f62b0"], ["#a46cff", "#5f2fb3"], ["#ff6fa3", "#b02c61"]];
 // tiers: radius of each thing and how many are in a world
 const TIER_R = [7, 10, 14, 20, 28, 38, 52, 70, 92, 120, 165, 220, 300, 400];
-const TIER_N = [2500, 1950, 1400, 980, 700, 470, 330, 220, 150, 105, 72, 50, 33, 22];
+const TIER_N = [14400, 11200, 8000, 5600, 4000, 2700, 1900, 1270, 860, 600, 415, 290, 190, 125];
 const WORLDS = [
   { n: "Park",   e: "🌳", cost: 0,    mult: 1,   ground: "#6dbb4f", grid: "#62ad46", edge: "#3f7d2c", things: ["🍪","🍎","🍔","🍕","🐔","🛒","🚗","🚌","🌳","🏠","🏰","🏢","⛰️","🌋"] },
   { n: "City",   e: "🏙️", cost: 25e3, mult: 3,   ground: "#8b919c", grid: "#7f8590", edge: "#4c5059", things: ["🍩","🥤","🌭","🍟","🐦","🛴","🚕","🚓","🚒","🏪","🏬","🏨","🏙️","🗼"] },
@@ -225,12 +225,37 @@ const WORLDS = [
   { n: "Sky",    e: "☁️", cost: 5e26, mult: 1.5e6, ground: "#cfe8ff", grid: "#c2dcf5", edge: "#ff9ad1", things: ["🫧","🎈","🦋","🕊️","🪁","🦄","☁️","🎠","🎡","⛲","🏰","🗽","🌈","🌞"] },
   { n: "Galaxy", e: "🌠", cost: 4e29, mult: 1e7, ground: "#0a0620", grid: "#140c36", edge: "#c06cff", things: ["💫","✨","🌟","☄️","🛸","🛰️","🚀","🌑","🪐","🌍","🌕","🌞","🌌","🕳️"] }
 ];
+
+// worlds 13 to 30: each one costs 300 times the last and grows 6 times faster
+const MORE_WORLDS = [
+  { n: "Farm",          e: "🚜", ground: "#9bcf5a", grid: "#8fc24f", edge: "#6a8f34", things: ["🥚","🌾","🥕","🌽","🐓","🐇","🐑","🐖","🐄","🐎","🚜","🏚️","🌳","🏡"] },
+  { n: "Pirate Island", e: "🦜", ground: "#e9d18f", grid: "#dcc27c", edge: "#2a7fb8", things: ["🪙","💎","🧭","🦜","🗝️","💰","⚓","🛶","🦈","🐙","⛵","🏝️","🚢","🌋"] },
+  { n: "Spooky",        e: "👻", ground: "#3a2f4f", grid: "#45395c", edge: "#ff8a1f", things: ["🕷️","🦇","🍬","🕯️","🎃","💀","👻","🦉","🧟","⚰️","🧙","🏚️","🌕","🏰"], stars: true },
+  { n: "Christmas",     e: "🎄", ground: "#f2f7fb", grid: "#e2edf5", edge: "#d63a3a", things: ["❄️","🍪","🥛","🔔","🎁","🧦","⛄","🦌","🛷","🎄","🎅","🏠","⛪","🏔️"] },
+  { n: "Dino Land",     e: "🦖", ground: "#7fae4a", grid: "#74a141", edge: "#a0522d", things: ["🐜","🥚","🦴","🌿","🦎","🐢","🐊","🌴","🦕","🦖","🪨","⛰️","🌋","☄️"] },
+  { n: "Robot Factory", e: "🤖", ground: "#7d8794", grid: "#8b95a2", edge: "#ffb300", things: ["🔩","🔋","💡","⚙️","🔧","📱","💻","🤖","🖥️","🚗","🛰️","🏭","🗼","🚀"] },
+  { n: "Sports",        e: "⚽", ground: "#4caf50", grid: "#eaffea", edge: "#2e7d32", things: ["🏓","⚾","🎾","🏐","⚽","🏀","🏈","🏆","🛹","🚲","🏎️","⛳","🏟️","🏔️"] },
+  { n: "Music",         e: "🎸", ground: "#2b2147", grid: "#382b5c", edge: "#ff4fd8", things: ["🎵","🎶","🎤","🎧","📻","🎺","🎷","🎻","🎸","🥁","🎹","🎭","🎪","🏟️"], stars: true },
+  { n: "Fast Food",     e: "🍟", ground: "#ffd54f", grid: "#ffca28", edge: "#e53935", things: ["🍟","🌭","🥤","🌮","🌯","🍔","🍕","🍗","🍝","🍜","🍱","🎂","🚚","🏪"] },
+  { n: "Toy Box",       e: "🧸", ground: "#ffb3c7", grid: "#ffa3bb", edge: "#5c6bc0", things: ["🎲","🧩","🪀","🪁","🧸","🚂","🤖","🎮","🛴","🪅","🎠","🏰","🎡","🎢"] },
+  { n: "Mushroom Forest", e: "🍄", ground: "#5b8f4e", grid: "#527f46", edge: "#8d5524", things: ["🐌","🐞","🍄","🌰","🐿️","🦔","🦊","🦉","🌲","🦌","🐻","🪵","🏕️","🗻"] },
+  { n: "Arctic",        e: "🧊", ground: "#dff3ff", grid: "#cde9fa", edge: "#5aa0d8", things: ["🧊","🐟","❄️","🐧","🦭","🐺","🛷","🚁","🐋","⛴️","⛄","🏔️","🗻","🌨️"] },
+  { n: "Ancient Egypt", e: "🏺", ground: "#e0b872", grid: "#d4aa62", edge: "#2f6fa0", things: ["🪲","🐍","🏺","📜","🐈","🦂","🐫","🛶","🐊","🗿","🏛️","🏜️","🔺","🌞"] },
+  { n: "Moon",          e: "🌕", ground: "#9a9aa3", grid: "#8c8c95", edge: "#1a1a2e", things: ["🌑","🪨","🧀","👾","👽","🛸","🛰️","🚀","🌒","🌓","🌔","🌕","🌝","🌞"], stars: true },
+  { n: "Unicorn Land",  e: "🦄", ground: "#f7d6ff", grid: "#efc4fb", edge: "#ff7ac8", things: ["🌸","🍭","💖","🦋","🧁","🎀","🦄","🌈","👑","🎠","☁️","🏰","🌈","⭐"] },
+  { n: "Crystal Cave",  e: "💎", ground: "#2c3e63", grid: "#34497a", edge: "#7ff0ff", things: ["💎","🔮","🪨","🦇","🕯️","🍄","🐍","⛏️","🪙","💰","👑","🐉","🏔️","🌋"], stars: true },
+  { n: "Future City",   e: "🛸", ground: "#1e2a44", grid: "#28385c", edge: "#00e5ff", things: ["💾","📱","🔋","🤖","🛴","🚁","🚄","🛸","🚀","🏙️","🌆","🗼","🏗️","🌃"], stars: true },
+  { n: "The Universe",  e: "🌀", ground: "#05030f", grid: "#0e0a26", edge: "#2a1a5e", things: ["✨","💫","🌠","☄️","🌑","🌍","🪐","🌕","☀️","🌟","🌀","🌌","⚫","🕳️"], stars: true }
+];
+for (const w of MORE_WORLDS) { const last = WORLDS[WORLDS.length - 1]; w.cost = last.cost * 300; w.mult = last.mult * 6; WORLDS.push(w); }
+WORLDS[4].stars = WORLDS[11].stars = true;
 const EGGS = [
   { cost: 1000, pow: 1 }, { cost: 30e3, pow: 2.5 }, { cost: 2.5e6, pow: 6 },
   { cost: 2.5e8, pow: 15 }, { cost: 6e10, pow: 40 }, { cost: 2.5e13, pow: 100 },
   { cost: 1e16, pow: 250 }, { cost: 4e18, pow: 600 }, { cost: 2e21, pow: 1500 },
   { cost: 1e24, pow: 4000 }, { cost: 6e26, pow: 10000 }, { cost: 5e29, pow: 25000 }
 ];
+while (EGGS.length < WORLDS.length) { const i = EGGS.length; EGGS.push({ cost: WORLDS[i].cost * 1.25, pow: EGGS[i - 1].pow * 2.5 }); }
 const RAR = [
   { n: "Common",    c: "#c3c9d8", p: 58, m: 1.2 },
   { n: "Uncommon",  c: "#5fd27a", p: 26, m: 1.5 },
@@ -285,7 +310,7 @@ function eventAt(t) {
 }
 function eventNow() { const t = Date.now(), x = eventAt(t); return t >= x.s ? x : null; }
 const eventMult = () => { const x = eventNow(); return x ? x.ev.m : 1; };
-const W = 10000;
+const W = 24000;
 
 // ---------------- save ----------------
 const SAVE_KEY = "sizesim-save";
@@ -323,7 +348,7 @@ let NAME = safeName((() => { try { return localStorage.getItem(NAME_KEY); } catc
 const hasName = () => NAME && NAME !== "Player";
 
 // ---------------- maths ----------------
-const radius = m => Math.min(12 * Math.cbrt(Math.max(1, m)), 1200);
+const radius = m => Math.min(12 * Math.cbrt(Math.max(1, m)), 2000);
 const itemVal = r => 0.6 * Math.pow(r / 12, 3);
 const needMass = r => Math.pow(r * 1.05 / 12, 3);
 function petMult() {
@@ -342,18 +367,24 @@ const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 let ITEMS = [];
 // things are kept in a grid of squares so only the nearby squares are checked (much faster on iPad)
 const GC = 250, GN = Math.ceil(W / GC);
-let GRID = [];
+// three grids: small, medium and big things. When zoomed far out the small grid is skipped completely.
+const GROUP_OF = t => t <= 4 ? 0 : t <= 9 ? 1 : 2, GROUP_MAXR = [28, 120, 400];
+let GRIDS = [[], [], []];
 const cellOf = (x, y) => Math.min(GN - 1, Math.max(0, Math.floor(x / GC))) + Math.min(GN - 1, Math.max(0, Math.floor(y / GC))) * GN;
 function placeItem(it) {
   const r = rnd(hash(S.world + ":" + it.k + ":" + it.g));
   it.x = 150 + r() * (W - 300); it.y = 150 + r() * (W - 300); it.pop = 0.4;
   const c = cellOf(it.x, it.y);
   if (it.cell !== c) {
-    if (it.cell != null) { const a = GRID[it.cell], i = a.indexOf(it); if (i >= 0) { a[i] = a[a.length - 1]; a.pop(); } }
-    GRID[c].push(it); it.cell = c;
+    const G = GRIDS[GROUP_OF(it.t)];
+    if (it.cell != null) { const a = G[it.cell], i = a.indexOf(it); if (i >= 0) { a[i] = a[a.length - 1]; a.pop(); } }
+    G[c].push(it); it.cell = c;
   }
 }
-function itemsIn(x0, y0, x1, y1, fn) {
+function itemsIn(x0, y0, x1, y1, fn, minR) {
+  for (let g = 0; g < 3; g++) if (!minR || GROUP_MAXR[g] >= minR) itemsInG(GRIDS[g], x0, y0, x1, y1, fn);
+}
+function itemsInG(GRID, x0, y0, x1, y1, fn) {
   const cx0 = Math.max(0, Math.floor(x0 / GC)), cy0 = Math.max(0, Math.floor(y0 / GC));
   const cx1 = Math.min(GN - 1, Math.floor(x1 / GC)), cy1 = Math.min(GN - 1, Math.floor(y1 / GC));
   for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
@@ -362,7 +393,7 @@ function itemsIn(x0, y0, x1, y1, fn) {
   }
 }
 function buildItems() {
-  GRID = []; for (let i = 0; i < GN * GN; i++) GRID.push([]);
+  GRIDS = [0, 1, 2].map(() => { const G = []; for (let i = 0; i < GN * GN; i++) G.push([]); return G; });
   ITEMS = []; let k = 0;
   TIER_R.forEach((r, t) => { for (let i = 0; i < TIER_N[t]; i++) { const it = { k: k++, t, r, g: 0 }; placeItem(it); ITEMS.push(it); } });
 }
@@ -371,7 +402,7 @@ function buildItems() {
 const MYID = Math.random().toString(36).slice(2, 10);
 let E = new Map();   // everyone except me: remote players and computer players
 const ME = { id: MYID, x: W / 2, y: W / 2, vx: 0, vy: 0, sh: 3, boost: 0, boostCd: 0, fx: 1, fy: 0 };
-const BOT_NAMES = ["Chomper", "Big Bob", "Nom Nom", "Snacky", "Gulp", "Munchie", "Tiny Tim", "Mr Wobble", "Blobby", "Hungry Hal", "Crumbs", "Burp"];
+const BOT_NAMES = ["Chomper", "Big Bob", "Nom Nom", "Snacky", "Gulp", "Munchie", "Tiny Tim", "Mr Wobble", "Blobby", "Hungry Hal", "Crumbs", "Burp", "Jelly", "Mega Max", "Squishy", "Gobbler", "Bubbles", "Chunky"];
 const FX = [];
 let playing = false, isHost = true, hostId = MYID, online = false, sb = null, ch = null, peers = [], joinT = Date.now();
 
@@ -388,15 +419,15 @@ function addBot(i) {
   const wm = WORLDS[S.world].mult;
   const [x, y] = spawnPos(false);
   const b = { id: "b" + i, bot: true, name: BOT_NAMES[i % BOT_NAMES.length], x, y, vx: 0, vy: 0,
-    m: Math.exp(Math.random() * Math.log(300)), c: (i * 3) % COLS.length, sh: 0,
-    gm: (1 + Math.random() * 2) * wm, cap: Math.exp(Math.log(50) + Math.random() * Math.log(100)) * wm,
+    m: Math.max(1, refMass() * Math.exp(Math.log(0.02) + Math.random() * Math.log(60))), c: (i * 3) % COLS.length, sh: 0,
+    gm: (1 + Math.random() * 2) * wm, capF: 0.15 + Math.random() * 2.35, cap: 1,
     think: 0, tx: x, ty: y, mode: "eat", boost: 0, boostCd: 0, fx: 1, fy: 0 };
   E.set(b.id, b); return b;
 }
 function fillBots() {
   if (!isHost) return;
   const humans = peers.length || 1;
-  const want = Math.max(3, 9 - humans);
+  const want = Math.max(6, 14 - humans);   // a big map needs more computer players
   let bots = [...E.values()].filter(e => e.bot);
   for (let i = 0; bots.length < want && i < 30; i++) if (!E.has("b" + i)) { bots.push(addBot(i)); }
   while (bots.length > want) { const b = bots.pop(); E.delete(b.id); }
@@ -421,7 +452,7 @@ function eatItemsFor(e, isMe) {
     if (online) foodQ.push([it.k, it.g]);
     it.g++; placeItem(it);
     if (isMe) { grow(v, 0, 0, false); pendingGain += v; S.eats++; }
-    else e.m += v;
+    else e.m = Math.min(Math.max(e.m, e.cap), e.m + v);   // computer players stop growing at their limit
   });
 }
 let pendingGain = 0, gainT = 0;
@@ -442,9 +473,14 @@ function iEatOthers() {
     else bcast("ate", { e: MYID, en: NAME, v: e.id, m: S.mass });
   }
 }
+// computer players are sized from the real players in the world, so a new world never starts with giant bots
+function refMass() {
+  const ms = [S.mass]; for (const e of E.values()) if (!e.bot && e.m) ms.push(e.m);
+  return Math.max(1, ms.reduce((a, b) => a + b, 0) / ms.length);
+}
 function respawnBot(b) {
   const [x, y] = spawnPos(true);
-  b.x = x; b.y = y; b.m = 1 + Math.random() * 5 * WORLDS[S.world].mult; b.sh = 3; b.hide = 0;
+  b.x = x; b.y = y; b.m = Math.max(1, refMass() * (0.02 + Math.random() * 0.4)); b.sh = 3; b.hide = 0;
 }
 function getEaten(byName) {
   const before = S.mass;
@@ -497,7 +533,8 @@ function hostTick(dt) {
     const sp = speedOf(b.m, 0, b.boost) * 0.92;
     if (d > 4) { b.vx = dx / d * sp; b.vy = dy / d * sp; b.fx = dx / d; b.fy = dy / d; } else { b.vx = b.vy = 0; }
     b.x = Math.max(0, Math.min(W, b.x + b.vx * dt)); b.y = Math.max(0, Math.min(W, b.y + b.vy * dt));
-    if (b.m > b.cap * 1.5) b.m *= 1 - 0.03 * dt;
+    b.cap = Math.max(20, refMass() * b.capF);
+    if (b.m > b.cap * 1.5) b.m *= 1 - 0.08 * dt;
     eatItemsFor(b, false);
     if (b.sh > 0) continue;
     // computer players eat other players and each other
@@ -505,8 +542,8 @@ function hostTick(dt) {
     for (const o of E.values()) {
       if (o === b || o.sh > 0 || o.hide > 0) continue;
       if (!canEat(b.m, o.m) || !touching(b, o, b.m, o.m)) continue;
-      b.m += o.m * 0.5; o.hide = 1.5;
-      FX.push({ x: b.x, y: b.y - radius(b.m), t: 0, txt: `${b.name} ate ${o.name}!`, c: "#ffb07a" });
+      b.m = Math.min(Math.max(b.m, b.cap * 1.5), b.m + o.m * 0.5); o.hide = 1.5;
+      if (Math.hypot(b.x - ME.x, b.y - ME.y) < radius(S.mass) * 8) FX.push({ x: b.x, y: b.y - radius(b.m), t: 0, txt: `${b.name} ate ${o.name}!`, c: "#ffb07a" });
       if (o.bot) respawnBot(o); else bcast("ate", { e: b.id, en: b.name, v: o.id, m: b.m });
     }
   }
@@ -554,7 +591,7 @@ function becomeHost() {
   for (const b of E.values()) if (b.bot) {
     const wm = WORLDS[S.world].mult;
     b.x = b.tx2 ?? b.x; b.y = b.ty2 ?? b.y;
-    b.gm = b.gm || (1 + Math.random() * 2) * wm; b.cap = b.cap || Math.max(b.m, 500 * wm);
+    b.gm = b.gm || (1 + Math.random() * 2) * wm; b.capF = b.capF || 0.15 + Math.random() * 2.35;
     b.think = 0; b.tx = b.x; b.ty = b.y; b.boost = 0; b.boostCd = 0;
   }
   fillBots();
@@ -676,10 +713,24 @@ function emojiSprite(e, px) {
   return c;
 }
 function emoji(e, x, y, size) { const s = size * 1.28; ctx.drawImage(emojiSprite(e, s * dpr), x - s / 2, y - s / 2, s, s); }
+// outlined text is slow to draw, so each word is drawn once into a little picture and reused
+const LBL = new Map();
 function label(t, x, y, size, fill, stroke) {
-  ctx.font = `900 ${size}px Nunito, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.lineWidth = Math.max(2, size / 5); ctx.strokeStyle = stroke || "rgba(0,0,0,.65)"; ctx.lineJoin = "round"; ctx.strokeText(t, x, y);
-  ctx.fillStyle = fill || "#fff"; ctx.fillText(t, x, y);
+  size = Math.max(8, Math.round(size));
+  const key = t + "|" + size + "|" + (fill || "") + "|" + (stroke || "");
+  let c = LBL.get(key);
+  if (!c) {
+    if (LBL.size > 400) LBL.clear();
+    const font = `900 ${size}px Nunito, sans-serif`, pad = Math.ceil(size / 4) + 2;
+    ctx.font = font; const w = Math.ceil(ctx.measureText(t).width) + pad * 2, h = Math.ceil(size * 1.4) + pad;
+    c = document.createElement("canvas"); c.width = Math.ceil(w * dpr); c.height = Math.ceil(h * dpr); c.w = w; c.h = h;
+    const g = c.getContext("2d"); g.scale(dpr, dpr);
+    g.font = font; g.textAlign = "center"; g.textBaseline = "middle"; g.lineJoin = "round";
+    g.lineWidth = Math.max(2, size / 5); g.strokeStyle = stroke || "rgba(0,0,0,.65)"; g.strokeText(t, w / 2, h / 2);
+    g.fillStyle = fill || "#fff"; g.fillText(t, w / 2, h / 2);
+    LBL.set(key, c);
+  }
+  ctx.drawImage(c, x - c.w / 2, y - c.h / 2, c.w, c.h);
 }
 function drawBlob(x, y, r, col, name, m, fx, fy, sh, boost, pets, mine, now) {
   const sr = r * scale;
@@ -720,7 +771,7 @@ function drawBlob(x, y, r, col, name, m, fx, fy, sh, boost, pets, mine, now) {
 let fdt = 1 / 60;
 function draw(now, dt) {
   fdt = dt || 1 / 60;
-  if (FX.length > 25) FX.splice(0, FX.length - 25);
+  if (FX.length > 12) FX.splice(0, FX.length - 12);
   const Wd = WORLDS[S.world];
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const myR = radius(S.mass);
@@ -737,22 +788,27 @@ function draw(now, dt) {
   for (let gx = Math.floor((camX - cw / 2 / scale) / step) * step; gx <= camX + cw / 2 / scale; gx += step) if (gx >= 0 && gx <= W) { ctx.moveTo(sx(gx), y0); ctx.lineTo(sx(gx), y1); }
   for (let gy = Math.floor((camY - chh / 2 / scale) / step) * step; gy <= camY + chh / 2 / scale; gy += step) if (gy >= 0 && gy <= W) { ctx.moveTo(x0, sy(gy)); ctx.lineTo(x1, sy(gy)); }
   ctx.stroke();
-  if (S.world === 4 || S.world === 11) { // stars in space
+  if (Wd.stars) { // stars in dark worlds
     ctx.fillStyle = "rgba(255,255,255,.6)";
-    for (let i = 0; i < 120; i++) { const r = rnd(i * 97 + 3); const x = r() * W, y = r() * W; const px = sx(x), py = sy(y); if (px > -5 && px < cw + 5 && py > -5 && py < chh + 5) ctx.fillRect(px, py, 2, 2); }
+    for (let i = 0; i < 700; i++) { const r = rnd(i * 97 + 3); const x = r() * W, y = r() * W; const px = sx(x), py = sy(y); if (px > -5 && px < cw + 5 && py > -5 && py < chh + 5) ctx.fillRect(px, py, 2, 2); }
   }
   // things to eat
   const halfW = cw / 2 / scale + 420, halfH = chh / 2 / scale + 420;
   ctx.fillStyle = "rgba(255,60,60,.2)";
+  // draw at most about 700 things: the biggest kinds first, the tiniest are left out when zoomed far out (iPad speed)
+  const viewFrac = Math.min(1, (cw / scale) * (chh / scale) / (W * W));
+  let minR = 2.5 / scale, acc = 0;
+  for (let t = TIER_R.length - 1; t >= 0; t--) { acc += TIER_N[t] * viewFrac; if (acc > 700) { minR = Math.max(minR, TIER_R[t] + 0.1); break; } }
   itemsIn(camX - halfW, camY - halfH, camX + halfW, camY + halfH, it => {
-    const sr = it.r * scale; if (sr < 2.5) return;   // too small to see
+    if (it.r < minR) return;
+    const sr = it.r * scale;
     const px = sx(it.x), py = sy(it.y);
     if (px < -sr * 1.4 || px > cw + sr * 1.4 || py < -sr * 1.4 || py > chh + sr * 1.4) return;
     if (it.pop > 0) it.pop = Math.max(0, it.pop - 0.03);
     const size = sr * 2 * (1 - it.pop);
     if (sr > 8 && S.mass < needMass(it.r)) { ctx.beginPath(); ctx.arc(px, py, sr * 1.05, 0, 7); ctx.fill(); }
     emoji(Wd.things[it.t], px, py, size);
-  });
+  }, minR);
   // players, smallest on the bottom
   const list = [...E.values()].filter(e => !(e.hide > 0)).map(e => ({ e, m: e.m || 1 }));
   list.push({ e: null, m: S.mass });
@@ -873,15 +929,21 @@ $("ups").addEventListener("click", e => {
   }
   save(); renderAll();
 });
+// only unlocked worlds and the next 3 are shown, so the list isn't huge
+const showWorld = i => S.worlds.includes(i) || i <= bestWorld() + 3;
+const hiddenWorlds = () => WORLDS.filter((w, i) => !showWorld(i)).length;
 function renderWorlds() {
   let h = "";
   WORLDS.forEach((w, i) => {
+    if (!showWorld(i)) return;
     const have = S.worlds.includes(i), here = S.world === i;
     const btn = here ? `<button class="buy" type="button" disabled>You are here</button>`
       : have ? `<button class="buy go" data-go="${i}" type="button">Go there</button>`
       : `<button class="buy" data-unlock="${i}" type="button" ${S.coins < w.cost ? "disabled" : ""}>Unlock · 🪙 ${fmt(w.cost)}</button>`;
     h += `<div class="up ${here ? "here" : ""}"><h3>${w.e} ${w.n}</h3><div class="lv">x${fmt(w.mult)} growing</div><p>${w.things.slice(0, 7).join(" ")}</p>${btn}</div>`;
   });
+  const more = hiddenWorlds();
+  if (more) h += `<div class="up"><h3>❓ ${more} more world${more > 1 ? "s" : ""}</h3><p>Unlock more worlds to find out what's next!</p></div>`;
   setHTML("worlds", h);
 }
 $("worlds").addEventListener("click", e => {
@@ -1008,6 +1070,7 @@ $("dailyChip").onclick = () => {
 function renderLobby() {
   $("colPick").innerHTML = COLS.map((c, i) => `<button class="col ${S.col === i ? "sel" : ""}" data-col="${i}" type="button" style="background:${c[0]}" aria-label="Colour ${i + 1}"></button>`).join("");
   $("worldPick").innerHTML = WORLDS.map((w, i) => {
+    if (!showWorld(i)) return "";
     const have = S.worlds.includes(i);
     return `<button class="opt ${S.world === i ? "sel" : ""} ${have ? "" : "locked"}" data-w="${i}" type="button"><span class="e">${have ? w.e : "🔒"}</span>${w.n}<small>${have ? "x" + fmt(w.mult) + " growing" : "🪙 " + fmt(w.cost) + " to unlock"}</small></button>`;
   }).join("");
@@ -1063,7 +1126,8 @@ document.addEventListener("touchend", e => {
 document.addEventListener("dblclick", e => e.preventDefault(), { passive: false });
 
 // ---------------- start up ----------------
-addEventListener("resize", resize);
+addEventListener("resize", () => { resize(); LBL.clear(); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => LBL.clear());
 document.addEventListener("visibilitychange", () => {
   if (!playing) return;
   if (document.hidden) { if (online) disconnect(); save(); }

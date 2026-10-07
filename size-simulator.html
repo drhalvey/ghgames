@@ -374,7 +374,7 @@ const UPS = {   // 1000 levels (Tough Skin and Pet Slots stop at 100)
   mag:  { n: "Long Reach 🧲", max: 1000, cost: l => 80 * Math.pow(1.6, l), d: l => `+${Math.round((reachF(l) - 1) * 100)}% eating reach` },
   coin: { n: "Coin Boost 🪙", max: 1000, cost: l => 70 * Math.pow(1.75, l), d: l => `x${(1 + l * 0.25).toFixed(2)} coins` },
   boostUp: { n: "Super Boost 🚀", max: 1000, cost: l => 60 * Math.pow(1.7, l), d: l => `Boost lasts ${boostLen(l).toFixed(1)}s, ready every ${boostCd(l).toFixed(1)}s` },
-  luck: { n: "Lucky Eggs 🍀", max: 1000, cost: l => 150 * Math.pow(1.8, l), d: l => `x${fmt(luckF(l))} luck on Legendary pets (max x1Ocd)` },
+  luck: { n: "Lucky Eggs 🍀", max: 1000, cost: l => 150 * Math.pow(1.8, l), d: l => `x${fmt(luckF(l))} luck (max x1Ocd) · eggs can hatch up to ${RAR[hatchTop(l)] ? RAR[hatchTop(l)].n : "Absolute"}` },
   keep: { n: "Tough Skin 🛡️", max: 100, cost: l => 100 * Math.pow(1.8, l), d: l => `Keep ${Math.round(keepF(l) * 100)}% of your size when eaten` },
   slots: { n: "Pet Slots 🐾", max: 100, cost: l => 50000 * Math.pow(25, l), d: l => `Equip ${3 + l} pets at once`, keepOnRebirth: true }
 };
@@ -1324,11 +1324,14 @@ function renderPets() {
   }).join("");
 }
 // pick a random pet from an egg; Lucky Eggs make each rarer kind more likely (only hatchable rarities count)
+const hatchTop = l => Math.min(RAR.length - 1, 4 + Math.round(115 * Math.min(1, l / 1000)));
 function rollPet() {
   const L = luckF(S.luck || 0);
   const wts = RAR.map((R, i) => R.p ? R.p * Math.pow(L, i / 4) : 0);
   let roll = Math.random() * wts.reduce((a, b) => a + b, 0), r = 0;
   while (r < wts.length - 1 && roll >= wts[r]) { roll -= wts[r]; r++; }
+  // a Legendary can keep climbing past Legendary: Lucky Eggs set how high (level 1000 = all the way to Absolute)
+  if (r === 4) { const q = Math.min(1, (S.luck || 0) / 1000), top = hatchTop(S.luck || 0), c = 0.9 + 0.099 * q; while (r < top && Math.random() < c) r++; }
   const opts = PETS.map((p, k) => ({ p, k })).filter(o => o.p.r === r);
   return { pick: opts[Math.floor(Math.random() * opts.length)], r };
 }

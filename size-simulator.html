@@ -762,6 +762,26 @@ function netTick(dt) {
   bcast("me", { i: MYID, n: NAME, x: Math.round(ME.x), y: Math.round(ME.y), m: +S.mass.toPrecision(6), c: S.col, sh: ME.sh > 0 ? 1 : 0, b: ME.boost > 0 ? 1 : 0, p: eqEmojis(), fx: +ME.fx.toFixed(2), fy: +ME.fy.toFixed(2) });
   if (isHost) bcast("bots", { b: [...E.values()].filter(e => e.bot).map(b => [b.id, b.name, Math.round(b.x), Math.round(b.y), +b.m.toPrecision(6), b.c, b.sh > 0 ? 1 : 0, +b.fx.toFixed(2), +b.fy.toFixed(2)]) });
 }
+// gifts: coins or size sent to a player name (from the GH Games owner) arrive here
+let claiming = false;
+function claimGifts() {
+  if (!hasName() || claiming || !navigator.onLine) return;
+  claiming = true;
+  fetch(SB_URL + "/rest/v1/rpc/claim_game_gifts", { method: "POST", headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_name: NAME, p_game: "size-simulator" }) })
+    .then(r => r.ok ? r.json() : []).then(rows => {
+      claiming = false; if (!Array.isArray(rows) || !rows.length) return;
+      const got = [];
+      for (const g of rows) {
+        const v = Number((g.payload || {}).v), from = safeName(g.from_name);
+        if (!(v > 0) || !isFinite(v)) continue;
+        if (g.kind === "coins") { S.coins += v; got.push(`🪙 ${fmt(v)} coins from ${from}`); }
+        else if (g.kind === "size") { S.mass += v; if (S.mass > S.best) S.best = S.mass; got.push(`📏 ${fmt(v)} size from ${from}`); }
+      }
+      if (got.length) { save(); renderAll(); setMsg("🎁 You got " + got.join(" and ") + "!", "good"); }
+    }).catch(() => { claiming = false; });
+}
+setTimeout(claimGifts, 1500); setInterval(claimGifts, 20000);
 function updateOnlineMsg() {
   const n = peers.length || 1;
   $("onlineLbl").textContent = online ? (n > 1 ? `🟢 ${n} players online` : "🟢 Online, just you so far") : "⚪ Offline";

@@ -111,6 +111,32 @@ canvas{display:block;width:100%;touch-action:none}
 .hist{border-left:4px solid var(--gold);padding:8px 12px;background:#2a221d;border-radius:8px;color:var(--muted);font-weight:700;font-size:14px;margin-bottom:10px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 #lb{margin-top:4px}
+.stage{cursor:pointer}
+.batbar{display:grid;grid-template-columns:repeat(6,1fr) .9fr;gap:6px}
+.bc{font-family:var(--body);background:var(--panel2);border:3px solid var(--line);border-radius:12px;padding:6px 3px 5px;color:#fff;cursor:pointer;min-width:0;line-height:1.05}
+.bc b{display:block;font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bc small{display:block;font-size:11px;font-weight:800;color:var(--muted);margin-top:3px;white-space:nowrap}
+.bc .bar{display:block;height:6px;background:#141110;border-radius:4px;margin:4px 3px 0;overflow:hidden}
+.bc .bar i{display:block;height:100%;width:100%;background:#4fcf6a}
+.bc.on{border-color:var(--gold);background:#4c3620;box-shadow:0 0 0 2px rgba(242,193,78,.35)}
+.bc.all{background:#3a2f28}
+.bc.all.on{border-color:var(--gold);background:#5a3e1e}
+.bc.dead{filter:grayscale(1) brightness(.55)}
+.forms{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+.bb.form{background:#47596a;box-shadow:0 4px 0 #26323d}
+.bb.form.on{background:#2f7d8f;box-shadow:0 4px 0 #17485a;outline:3px solid var(--gold);outline-offset:-3px}
+.bb.speed{background:#3d3d55;box-shadow:0 4px 0 #22223a}
+.bb.speed.fast{background:#a8432a;box-shadow:0 4px 0 #5e2010}
+@media (max-width:640px){.forms{grid-template-columns:1fr 1fr 1fr}.forms .speed{grid-column:1/4}.bc b{font-size:11.5px}.bc small{font-size:10px}.bc.all small{display:none}.bc.all b{font-size:13px;padding-top:6px}.batbar{gap:4px}}
+.rbar{display:none;align-items:center;gap:8px;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:8px 10px;flex-wrap:wrap}
+.rbar input{flex:1;min-width:140px;accent-color:#c4202c;height:28px}
+.rb{font-family:var(--body);font-weight:900;font-size:15px;border:none;border-radius:10px;padding:9px 12px;color:#fff;cursor:pointer;background:#4a5a7a;box-shadow:0 3px 0 #262f44}
+.rb.on{background:#c4202c;box-shadow:0 3px 0 #6e0d14}
+.rb.ex{background:#6b4fc8;box-shadow:0 3px 0 #3f2c80}
+.rtime{font-weight:900;color:var(--muted);font-size:14px;min-width:86px;text-align:center}
+body.replaying .orders,body.replaying .orders2,body.replaying .forms,body.replaying .batbar,body.replaying .btns{display:none}
+body.replaying .rbar{display:flex}
+.bb.watch{background:#2d6a8f;box-shadow:0 4px 0 #173a52}
 </style>
 </head>
 <body>
@@ -132,16 +158,35 @@ canvas{display:block;width:100%;touch-action:none}
 
   <div class="stage" id="stage"><canvas id="cv"></canvas></div>
 
+  <div class="rbar" id="replayBar">
+    <button class="rb" id="rPlay" aria-label="Pause or play">⏸</button>
+    <button class="rb" data-sp="1">1x</button>
+    <button class="rb" data-sp="2">2x</button>
+    <button class="rb" data-sp="4">4x</button>
+    <button class="rb" data-sp="8">8x</button>
+    <input type="range" id="rSeek" min="0" max="100" value="0" aria-label="Jump to a moment in the battle">
+    <span class="rtime" id="rTime">0:00</span>
+    <button class="rb ex" id="rExit">Exit replay</button>
+  </div>
+
+  <div class="batbar" id="batBar"></div>
+
   <div class="orders">
     <button class="bb lie" id="lieBtn">LIE DOWN<small>hide from snipers · L</small></button>
     <button class="bb ready" id="readyBtn">MAKE READY<small>raise muskets · R</small></button>
-    <button class="bb fire big" id="fireBtn">FIRE!<small style="font-family:var(--body)">all together · space</small></button>
+    <button class="bb fire big" id="fireBtn">FIRE!<small style="font-family:var(--body)" id="fireHint">all together · space</small></button>
     <button class="bb steady" id="steadyBtn">STEADY, LADS!<small id="steadyHint">calm the men · S</small></button>
   </div>
   <div class="orders2">
     <button class="bb drill" id="drillBtn">RELOAD DRILL<span class="dbar"><i class="zone" id="dzone"></i><i class="mark" id="dmark"></i></span><small id="drillHint">tap when the marker is in the green · D</small></button>
-    <button class="bb adv" id="advBtn">ADVANCE<small>15 yards, out of the smoke · A</small></button>
+    <button class="bb adv" id="advBtn">ADVANCE<small id="advHint">out of the smoke · A</small></button>
     <button class="bb charge" id="chargeBtn">CHARGE!<small id="chargeHint">bayonets · C</small></button>
+  </div>
+  <div class="forms">
+    <button class="bb form" id="fLine" data-f="line">▬ LINE<small>full firepower · Q</small></button>
+    <button class="bb form" id="fCol" data-f="column">▮ COLUMN<small>march and charge · W</small></button>
+    <button class="bb form" id="fSq" data-f="square">◻ SQUARE<small>stops cavalry · E</small></button>
+    <button class="bb speed" id="speedBtn">⏩ 1x<small id="speedHint">game speed · F</small></button>
   </div>
   <div class="btns">
     <button class="bb again" id="newBtn">New Battle<small>start again</small></button>
@@ -153,14 +198,16 @@ canvas{display:block;width:100%;touch-action:none}
   <div class="panel">
     <h2>How to play</h2>
     <ul>
-      <li>French sharpshooters hide in the bushes and cannon fire from far away. <b>Lie down</b> while you wait so fewer men get hit.</li>
-      <li>When the drums beat, the French columns attack. <b>Stand up</b>, then <b>hold your fire</b>. Shooting too far away hardly hits anyone.</li>
-      <li>Watch the range. At about <b>40 yards</b> press <b>MAKE READY</b>, then <b>FIRE!</b> If every battalion fires at the same moment you get a <b>PERFECT VOLLEY</b>, which smashes the French courage.</li>
-      <li>Waiting is scary. Each battalion has a <b>discipline</b> bar. Low discipline means they fire raggedly, or <b>fire without orders</b>, or even run away. Shout <b>STEADY, LADS!</b> to calm them.</li>
+      <li><b>Pick your battalions.</b> Tap a battalion on the battlefield or its button under the picture. Orders then go to just those men. Tap <b>ALL</b> to command the whole line again. Keys 1 to 6 pick battalions, 0 picks all.</li>
+      <li>French sharpshooters hide in the bushes and their cannon fire from far away. <b>Lie down</b> while you wait so fewer men get hit.</li>
+      <li>When the drums beat, the French columns attack. <b>Stand up</b>, then <b>hold your fire</b>. Shooting too far away hardly hits anyone. A clever enemy heads for your weakest battalion.</li>
+      <li>At about <b>40 yards</b> press <b>MAKE READY</b>, then <b>FIRE!</b> If every battalion fires at the same moment you get a <b>PERFECT VOLLEY</b>, which smashes the French courage and slows time.</li>
+      <li><b>Formations.</b> <b>LINE</b> fires with every musket. <b>COLUMN</b> marches further when you advance and hits harder in a charge, but only the front men can shoot. <b>SQUARE</b> stops cavalry, but it fires weakly and cannonballs plough right through it. Changing formation takes a few seconds.</li>
+      <li><b>Cavalry!</b> French horsemen ride out of the bushes at the end of your line. Pick that battalion and <b>FORM SQUARE</b> before they arrive, or shoot enough horses that they turn back. Then form line again before the columns reach you.</li>
+      <li>Each battalion has a <b>discipline</b> bar. Low discipline means ragged volleys, men who <b>fire without orders</b>, or a battalion that runs away. Shout <b>STEADY, LADS!</b> to calm them.</li>
       <li>After a volley, tap <b>RELOAD DRILL</b> when the white marker is in the green to reload faster. Your smoke spoils the next shot, so <b>ADVANCE</b> through it.</li>
-      <li>When the French are wavering, <b>CHARGE!</b> The first time, your men <b>fix bayonets</b> before they run in. Charge too early against steady troops and your men get pushed back.</li>
-      <li>Your two <b>Royal Artillery</b> guns fire roundshot into the French columns while they are still far off. Each cannonball knocks down a whole file of men, theirs and yours, so <b>lie down</b> and enemy shot will often skip right over you.</li>
-      <li>Turn the sound up! Your officers shout <b>Make ready! Present! FIRE!</b> and the pipes of the 78th play when you charge.</li>
+      <li>When a column is wavering, <b>CHARGE!</b> Two battalions charging the same column together are much harder to stop. On Redcoat and General Wolfe, Montcalm sends in his <b>reserve</b> when a column breaks.</li>
+      <li>Press <b>⏩</b> to speed the battle up. After the battle, <b>Watch replay</b> plays the whole fight back, and you can speed it up to 8x or jump to any moment.</li>
       <li>Win to earn shillings and buy upgrades. Get all three stars with a perfect volley, no broken battalions and nobody firing without orders.</li>
     </ul>
   </div>
@@ -175,6 +222,7 @@ canvas{display:block;width:100%;touch-action:none}
       <li>The British held their fire until the French were about <b>40 yards</b> away. Their volley went off so close together that it sounded like one huge gun. The historian Sir John Fortescue later called it "the most perfect volley ever fired on battlefield".</li>
       <li>The British stepped forward through the smoke, fired again, then charged. The 78th Fraser's Highlanders charged with broadswords. The main fight lasted only about fifteen minutes.</li>
       <li>Both generals were mortally wounded: Wolfe on the field, Montcalm the next morning. Quebec surrendered five days later.</li>
+      <li>In the game, the cavalry charge and the French reserve are there to make it a harder fight. Montcalm had only a few hundred Canadian horsemen, and in the real battle they did not charge the British line.</li>
     </ul>
   </div>
 
@@ -187,8 +235,8 @@ canvas{display:block;width:100%;touch-action:none}
     <h2>Plains of Abraham, 1759</h2>
     <p>Dawn outside Quebec. Your redcoats have climbed the cliffs in the dark and formed a long red line on the plain. Montcalm's French army is coming out to fight. <b>Hold your nerve, hold your fire, and give them the perfect volley.</b></p>
     <div class="dif" id="difPick">
-      <button class="dbtn recruit" data-d="recruit">Recruit<small>slower French</small></button>
-      <button class="dbtn redcoat" data-d="redcoat">Redcoat<small>like the real thing</small></button>
+      <button class="dbtn recruit" data-d="recruit">Recruit<small>one cavalry charge</small></button>
+      <button class="dbtn redcoat" data-d="redcoat">Redcoat<small>plus a French reserve</small></button>
       <button class="dbtn wolfe" data-d="wolfe">General Wolfe<small>very hard</small></button>
     </div>
     <label class="toggle"><input type="checkbox" id="dblTog"><span>Load two musket balls<small>Deadly at 60 yards or closer for your first volley. Worse if you fire from further away.</small></span></label>
@@ -196,6 +244,7 @@ canvas{display:block;width:100%;touch-action:none}
       <button class="bb shop" id="startUp">Upgrades<small id="startCoins">0 shillings</small></button>
       <button class="bb again big" id="goBtn">To battle!</button>
     </div>
+    <button class="bb watch close" id="startReplay" hidden>Watch your last battle<small id="startReplayHint">replay</small></button>
   </div>
 </div>
 
@@ -203,7 +252,7 @@ canvas{display:block;width:100%;touch-action:none}
 <div class="overlay" id="upOv" hidden>
   <div class="box">
     <h2>Upgrades</h2>
-    <p>You have <b id="upCoins">0</b> shillings.</p>
+    <p>You have <b id="upCoins">0</b> shillings. New upgrades count from your next battle.</p>
     <div id="upList"></div>
     <button class="bb close" data-close="upOv">Back</button>
   </div>
@@ -220,6 +269,7 @@ canvas{display:block;width:100%;touch-action:none}
       <button class="bb shop" id="endUp">Upgrades</button>
       <button class="bb again big" id="endAgain">Fight again</button>
     </div>
+    <button class="bb watch close" id="endReplay">Watch replay<small>see the whole battle again, up to 8x speed</small></button>
     <a class="bb big" href="seven-years-war.html" style="display:block;text-align:center;text-decoration:none;margin-top:8px;background:linear-gradient(135deg,#2d4f9e,#7a1420);box-shadow:0 4px 0 #2a0c10">Fight the whole war &rarr;<small style="font-family:var(--body)">Seven Years' War: campaign map, sieges, forest ambushes and sea battles</small></a>
   </div>
 </div>
@@ -229,18 +279,24 @@ canvas{display:block;width:100%;touch-action:none}
 "use strict";
 const $ = id => document.getElementById(id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const rnd = (a, b) => a + Math.random() * (b - a);
-const pick = a => a[Math.floor(Math.random() * a.length)];
-const W = 1000, H = 620, LINE_Y = 500;
+// Two kinds of luck. RNG decides the battle and is seeded, so a replay plays out exactly the same.
+// vrnd is only for sounds and looks, so it can never change what happens.
+function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+let RNG = mulberry(1);
+const rnd = (a, b) => a + RNG() * (b - a);
+const pick = a => a[Math.floor(RNG() * a.length)];
+const vrnd = (a, b) => a + Math.random() * (b - a);
+const vpick = a => a[Math.floor(Math.random() * a.length)];
+const W = 1000, H = 620, LINE_Y = 500, DT = 1 / 60;
 
 // ---------- settings ----------
 const DIFFS = {
-  recruit: { name: "Recruit",       morale: 85,  speed: 7.5, fire: 0.7, sk: 0.3,  art: 9,   rows: 5, drain: 0.75, mult: 1 },
-  redcoat: { name: "Redcoat",       morale: 100, speed: 9,   fire: 1.0, sk: 0.5,  art: 7,   rows: 5, drain: 1.0,  mult: 1.5 },
-  wolfe:   { name: "General Wolfe", morale: 118, speed: 10.5,fire: 1.3, sk: 0.7,  art: 5.5, rows: 6, drain: 1.25, mult: 2 }
+  recruit: { name: "Recruit",       morale: 104, speed: 8,   fire: 0.95, sk: 0.35, art: 8.5, rows: 5, drain: 0.95, mult: 1,   aim: 0.35, cav: [300],      cavWarn: 7,   reserves: 0, fireR: [125, 165] },
+  redcoat: { name: "Redcoat",       morale: 110, speed: 9.5, fire: 1.1, sk: 0.55, art: 6.5, rows: 6, drain: 1.1,  mult: 1.5, aim: 0.65, cav: [320],      cavWarn: 5.5, reserves: 1, fireR: [112, 148] },
+  wolfe:   { name: "General Wolfe", morale: 116, speed: 11,  fire: 1.3, sk: 0.75, art: 5,   rows: 6, drain: 1.25, mult: 2,   aim: 1,    cav: [340, 230], cavWarn: 4.5, reserves: 2, fireR: [95, 128] }
 };
 const UPS = [
-  { id: "drill",    ic: "🥁", name: "Drill Sergeants",     desc: "Faster reloading and a wider green zone", max: 5, cost: 40 },
+  { id: "drill",    ic: "🥁", name: "Drill Sergeants",     desc: "Faster reloading, a wider green zone and quicker formation changes", max: 5, cost: 40 },
   { id: "vets",     ic: "🎖️", name: "Hardened Veterans",   desc: "Men lose less discipline under fire",     max: 5, cost: 50 },
   { id: "musket",   ic: "🎯", name: "Brown Bess Care",     desc: "Clean muskets and dry powder: more hits", max: 5, cost: 45 },
   { id: "officers", ic: "⚔️", name: "Brave Officers",      desc: "STEADY, LADS! comes back faster and calms more", max: 5, cost: 40 },
@@ -248,22 +304,24 @@ const UPS = [
   { id: "reinf",    ic: "➕", name: "Reinforcements",      desc: "More men in every battalion",            max: 3, cost: 120 }
 ];
 const BATDEFS = [
-  { name: "Louisbourg Grenadiers", short: "Grenadiers", kind: "gren", x: 130 },
-  { name: "28th Foot",  short: "28th", kind: "red",  x: 278 },
-  { name: "43rd Foot",  short: "43rd", kind: "red",  x: 426 },
-  { name: "78th Fraser's Highlanders", short: "78th Highlanders", kind: "high", x: 574 },
-  { name: "47th Foot",  short: "47th", kind: "red",  x: 722 },
-  { name: "58th Foot",  short: "58th", kind: "red",  x: 870 }
+  { name: "Louisbourg Grenadiers", short: "Grenadiers", chip: "Gren", call: "Grenadiers", kind: "gren", x: 130 },
+  { name: "28th Foot",  short: "28th", chip: "28th", call: "Twenty-eighth", kind: "red",  x: 278 },
+  { name: "43rd Foot",  short: "43rd", chip: "43rd", call: "Forty-third", kind: "red",  x: 426 },
+  { name: "78th Fraser's Highlanders", short: "78th Highlanders", chip: "78th", call: "Highlanders", kind: "high", x: 574 },
+  { name: "47th Foot",  short: "47th", chip: "47th", call: "Forty-seventh", kind: "red",  x: 722 },
+  { name: "58th Foot",  short: "58th", chip: "58th", call: "Fifty-eighth", kind: "red",  x: 870 }
 ];
 const COLDEFS = [
   { name: "The left column",   x: 250, delay: 0.9 },
   { name: "The centre column", x: 500, delay: 0 },
   { name: "The right column",  x: 750, delay: 1.7 }
 ];
+const FORMNAME = { line: "LINE", column: "COLUMN", square: "SQUARE" };
+const FORMICON = { line: "▬", column: "▮", square: "◻" };
 
 // ---------- save ----------
 const SAVE_KEY = "plains-save";
-function defaults() { return { coins: 0, up: { drill: 0, vets: 0, musket: 0, officers: 0, high: 0, reinf: 0 }, wins: 0, battles: 0, perfect: 0, best: 0, diff: "recruit", dbl: true, mute: false }; }
+function defaults() { return { coins: 0, up: { drill: 0, vets: 0, musket: 0, officers: 0, high: 0, reinf: 0 }, wins: 0, battles: 0, perfect: 0, best: 0, diff: "recruit", dbl: true, mute: false, replay: null }; }
 function load() {
   const d = defaults();
   try {
@@ -275,9 +333,12 @@ function load() {
 let S = load();
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
 const upCost = u => Math.round(u.cost * Math.pow(1.8, S.up[u.id] || 0));
-const vetMul = () => 1 - 0.12 * S.up.vets;
-const reloadTime = () => Math.max(3.5, 9 - S.up.drill);
-const chargeThr = () => 55 + 8 * S.up.high;
+// UP is the set of upgrades this battle was fought with (a replay uses the ones from that day)
+let UP = Object.assign({}, S.up);
+const vetMul = () => 1 - 0.12 * UP.vets;
+const reloadTime = () => Math.max(3.5, 9 - UP.drill);
+const chargeThr = () => 55 + 8 * UP.high;
+const formTime = () => Math.max(1.3, 2.8 - 0.25 * UP.drill);
 
 // ---------- perspective ----------
 function yOf(d) { return d >= 0 ? LINE_Y - 470 * Math.pow(Math.min(d, 640) / 600, 0.7) : LINE_Y - d * 1.4; }
@@ -286,10 +347,10 @@ function xOf(x, d) { return 500 + (x - 500) * (1 - 0.35 * clamp(d / 600, 0, 1));
 
 // ---------- audio ----------
 // Everything goes through one master bus with a compressor, so lots of sounds at once stay loud but never crackle.
-let AC = null, NB = null, MASTER = null;
+let AC = null, NB = null, MASTER = null, SILENT = false, REPLAY = null;
 try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {} // iPhone/iPad: play even with the silent switch on
 function audio() {
-  if (S.mute) return null;
+  if (S.mute || SILENT) return null;
   if (!AC) {
     try {
       AC = new (window.AudioContext || window.webkitAudioContext)();
@@ -306,7 +367,7 @@ function out(a, pan) { // where a sound plugs in; pan -1 left .. 1 right
   if (pan && a.createStereoPanner) { const p = a.createStereoPanner(); p.pan.value = clamp(pan, -1, 1); p.connect(MASTER); return p; }
   return MASTER;
 }
-const panX = x => (x - 500) / 520;
+const panX = x => clamp((x - 500) / 520, -1, 1);
 function noise(dur, freq, type, vol, q, when, pan) {
   const a = audio(); if (!a) return;
   const t = a.currentTime + (when || 0), src = a.createBufferSource(); src.buffer = NB;
@@ -325,11 +386,11 @@ function tone(freq, dur, type, vol, when, endFreq, pan) {
 let screamBudget = 0;
 function scream(vol, pan, when) {
   const a = audio(); if (!a || screamBudget > 7) return; screamBudget++;
-  const t = a.currentTime + (when || 0), dur = rnd(0.45, 1.0), hi = Math.random() < 0.5;
-  const f0 = hi ? rnd(330, 520) : rnd(170, 260);
+  const t = a.currentTime + (when || 0), dur = vrnd(0.45, 1.0), hi = Math.random() < 0.5;
+  const f0 = hi ? vrnd(330, 520) : vrnd(170, 260);
   const o = a.createOscillator(); o.type = "sawtooth";
-  o.frequency.setValueAtTime(f0 * 0.85, t); o.frequency.linearRampToValueAtTime(f0 * 1.12, t + 0.07); o.frequency.exponentialRampToValueAtTime(f0 * rnd(0.5, 0.7), t + dur);
-  const lfo = a.createOscillator(), lg = a.createGain(); lfo.frequency.value = rnd(5, 9); lg.gain.value = f0 * 0.04; lfo.connect(lg); lg.connect(o.frequency);
+  o.frequency.setValueAtTime(f0 * 0.85, t); o.frequency.linearRampToValueAtTime(f0 * 1.12, t + 0.07); o.frequency.exponentialRampToValueAtTime(f0 * vrnd(0.5, 0.7), t + dur);
+  const lfo = a.createOscillator(), lg = a.createGain(); lfo.frequency.value = vrnd(5, 9); lg.gain.value = f0 * 0.04; lfo.connect(lg); lg.connect(o.frequency);
   const g = a.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.03); g.gain.setValueAtTime(vol, t + dur * 0.55); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   const dest = out(a, pan);
   for (const [ff, gv, q] of [[hi ? 950 : 750, 1, 6], [hi ? 1500 : 1200, 0.6, 8], [2600, 0.25, 10]]) {
@@ -344,14 +405,14 @@ function huzzah(vol, when) {
   const a = audio(); if (!a) return;
   const t0 = a.currentTime + (when || 0);
   for (let i = 0; i < 14; i++) {
-    const t = t0 + rnd(0, 0.12), f = rnd(120, 230), o = a.createOscillator(), g = a.createGain(), bp = a.createBiquadFilter();
+    const t = t0 + vrnd(0, 0.12), f = vrnd(120, 230), o = a.createOscillator(), g = a.createGain(), bp = a.createBiquadFilter();
     o.type = "sawtooth"; bp.type = "bandpass"; bp.Q.value = 3;
     o.frequency.setValueAtTime(f, t); o.frequency.setValueAtTime(f * 1.25, t + 0.2); o.frequency.linearRampToValueAtTime(f * 1.45, t + 0.45); o.frequency.exponentialRampToValueAtTime(f * 1.0, t + 1.1);
     bp.frequency.setValueAtTime(450, t); bp.frequency.setValueAtTime(800, t + 0.2);
     const v = vol / 6;
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v * 0.6, t + 0.03); g.gain.exponentialRampToValueAtTime(v * 0.2, t + 0.17);
     g.gain.exponentialRampToValueAtTime(v, t + 0.26); g.gain.setValueAtTime(v, t + 0.75); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.15);
-    o.connect(bp); bp.connect(g); g.connect(out(a, rnd(-0.8, 0.8))); o.start(t); o.stop(t + 1.2);
+    o.connect(bp); bp.connect(g); g.connect(out(a, vrnd(-0.8, 0.8))); o.start(t); o.stop(t + 1.2);
   }
   noise(1.1, 900, "bandpass", vol * 0.35, 0.6, (when || 0) + 0.2);
 }
@@ -368,6 +429,45 @@ function pipes(when) {
   let tt = t + 0.25; for (const n of tune) { const [k, d] = n.split("-"); ch.frequency.setValueAtTime(N[k], tt); tt += +d; }
   ch.start(t); ch.stop(t + len);
 }
+// fifes and drums of the British line playing a quick march at dawn
+function fife(when) {
+  const N = { D: 587, E: 659, F: 740, G: 784, A: 880, B: 988, c: 1047, d: 1175, e: 1319 };
+  const tune = "D-.5 G-.5 G-.25 A-.25 B-.5 G-.5 A-.5 F-.5 D-1 G-.5 B-.5 d-.75 c-.25 B-.5 A-.5 G-1 B-.5 c-.5 d-.5 B-.5 A-.5 G-.5 F-.5 D-.5 G-.5 B-.5 A-.5 F-.5 G-1.5";
+  let t = when || 0;
+  for (const n of tune.split(" ")) {
+    const [k, d] = n.split("-"), dur = +d * 0.3;
+    tone(N[k], dur * 0.92, "triangle", 0.05, t, 0, -0.2); tone(N[k] * 2, dur * 0.85, "sine", 0.014, t, 0, 0.2); t += dur;
+  }
+  const beats = Math.round((t - (when || 0)) / 0.15);
+  for (let i = 0; i < beats; i++) if ([1, 0, 1, 1, 1, 0, 1, 0][i % 8]) sfx.drum(i % 8 === 0, 0.5, (when || 0) + i * 0.15);
+}
+// French cavalry trumpet call
+function trumpet(when, pan) {
+  let t = when || 0;
+  for (const [f, d] of [[523, 0.13], [659, 0.13], [784, 0.13], [1047, 0.5], [784, 0.13], [1047, 0.6]]) { tone(f, d, "square", 0.045, t, 0, pan); tone(f * 2, d, "sine", 0.018, t, 0, pan); t += d * 0.95; }
+}
+function hoof(vol, pan) { noise(0.08, 150, "lowpass", vol, 1, 0, pan); tone(vrnd(60, 80), 0.07, "sine", vol * 0.5, 0, 40, pan); }
+function whinny(pan) {
+  const a = audio(); if (!a) return;
+  const t = a.currentTime, o = a.createOscillator(), g = a.createGain(), lfo = a.createOscillator(), lg = a.createGain(), bp = a.createBiquadFilter();
+  o.type = "sawtooth"; o.frequency.setValueAtTime(820, t); o.frequency.exponentialRampToValueAtTime(1250, t + 0.18); o.frequency.exponentialRampToValueAtTime(480, t + 1);
+  lfo.frequency.value = 13; lg.gain.value = 90; lfo.connect(lg); lg.connect(o.frequency);
+  bp.type = "bandpass"; bp.frequency.value = 1400; bp.Q.value = 2;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.07, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.05);
+  o.connect(bp); bp.connect(g); g.connect(out(a, pan)); o.start(t); lfo.start(t); o.stop(t + 1.1); lfo.stop(t + 1.1);
+}
+// a low wind over the plain for the whole battle
+let AMB = null;
+function ambience(on) {
+  if (!on) { if (AMB) { try { AMB.g.gain.setTargetAtTime(0.0001, AC.currentTime, 0.4); AMB.s.stop(AC.currentTime + 2); } catch (e) {} AMB = null; } return; }
+  const a = audio(); if (!a || AMB) return;
+  try {
+    const s = a.createBufferSource(); s.buffer = NB; s.loop = true;
+    const f = a.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 420;
+    const g = a.createGain(); g.gain.value = 0.0001; g.gain.setTargetAtTime(0.04, a.currentTime, 1.2);
+    s.connect(f); f.connect(g); g.connect(MASTER); s.start(); AMB = { s, g };
+  } catch (e) {}
+}
 // officers shouting orders: the browser's own voice, the most British one it has
 const VOICES = { en: null, fr: null };
 function findVoices() {
@@ -380,7 +480,8 @@ function findVoices() {
 if (window.speechSynthesis) { findVoices(); speechSynthesis.onvoiceschanged = findVoices; }
 function say(text, o) {
   o = o || {};
-  if (S.mute || !window.speechSynthesis) return;
+  if (S.mute || SILENT || !window.speechSynthesis) return;
+  if (REPLAY && REPLAY.speed >= 4) return;
   try {
     if (!VOICES.en) findVoices();
     if (o.cut !== false) speechSynthesis.cancel();
@@ -395,7 +496,7 @@ const sfx = {
     noise(0.6 + 0.14 * n, 650, "lowpass", Math.min(1, 0.3 + 0.14 * n));
     tone(70, 0.5, "sine", Math.min(0.7, 0.2 + 0.1 * n), 0, 38);
     noise(0.25, 2600, "bandpass", Math.min(0.55, 0.14 + 0.07 * n), 0.7);
-    for (let i = 0; i < 6 + n * 3; i++) noise(rnd(0.08, 0.18), rnd(1200, 3200), "bandpass", rnd(0.08, 0.18), 1.2, rnd(0, 0.06 + 0.04 * n), rnd(-0.9, 0.9));
+    for (let i = 0; i < 6 + n * 3; i++) noise(vrnd(0.08, 0.18), vrnd(1200, 3200), "bandpass", vrnd(0.08, 0.18), 1.2, vrnd(0, 0.06 + 0.04 * n), vrnd(-0.9, 0.9));
   },
   pop(v, pan) { noise(0.25, 2000, "bandpass", v || 0.07, 0.9, 0, pan); noise(0.12, 500, "lowpass", (v || 0.07) * 0.8, 1, 0, pan); },
   boom(pan, near) { // a cannon going off
@@ -405,16 +506,18 @@ const sfx = {
   },
   whistle(dur, pan) { tone(1400, dur, "sine", 0.05, 0.1, 380, pan); },
   thud(pan) { tone(90, 0.4, "sine", 0.6, 0, 35, pan); noise(0.45, 220, "lowpass", 0.5, 1, 0, pan); noise(0.3, 1200, "bandpass", 0.18, 0.7, 0.02, pan); },
-  drum(acc, v) { noise(acc ? 0.16 : 0.1, acc ? 260 : 420, "lowpass", (acc ? 0.32 : 0.16) * v); tone(acc ? 110 : 150, 0.12, "sine", 0.12 * v, 0, 70); },
+  drum(acc, v, when) { noise(acc ? 0.16 : 0.1, acc ? 260 : 420, "lowpass", (acc ? 0.32 : 0.16) * v, 1, when); tone(acc ? 110 : 150, 0.12, "sine", 0.12 * v, when, 70); },
   cheer() { huzzah(0.7); },
   clicks() { // bayonets snapping onto muzzles all down the line
-    for (let i = 0; i < 26; i++) { const w = rnd(0, 0.7), p = rnd(-0.9, 0.9); noise(0.035, 4200, "highpass", 0.16, 0.8, w, p); tone(rnd(2300, 3400), 0.07, "triangle", 0.035, w + 0.01, 0, p); }
+    for (let i = 0; i < 26; i++) { const w = vrnd(0, 0.7), p = vrnd(-0.9, 0.9); noise(0.035, 4200, "highpass", 0.16, 0.8, w, p); tone(vrnd(2300, 3400), 0.07, "triangle", 0.035, w + 0.01, 0, p); }
   },
   steel(pan) { // blades clashing
-    const w = rnd(0, 0.05);
-    for (const f of [rnd(2200, 2600), rnd(3500, 3900), rnd(5000, 5600)]) tone(f, rnd(0.18, 0.35), "sine", 0.07, w, f * 0.98, pan);
+    const w = vrnd(0, 0.05);
+    for (const f of [vrnd(2200, 2600), vrnd(3500, 3900), vrnd(5000, 5600)]) tone(f, vrnd(0.18, 0.35), "sine", 0.07, w, f * 0.98, pan);
     noise(0.05, 3500, "highpass", 0.2, 0.8, w, pan);
   },
+  tramp(pan) { for (let i = 0; i < 4; i++) noise(0.06, 300, "lowpass", 0.08, 1, i * 0.25 + vrnd(0, 0.03), pan); }, // marching feet
+  click() { tone(720, 0.05, "triangle", 0.05); },
   good() { tone(880, 0.12, "sine", 0.08); }
 };
 setInterval(() => { screamBudget = Math.max(0, screamBudget - 3); }, 1000);
@@ -428,17 +531,15 @@ function resize() {
   cv.width = Math.round(w * DPR); cv.height = Math.round(w * H / W * DPR);
   cv.style.height = (w * H / W) + "px";
 }
-// seeded random for the static background
-function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const BG = document.createElement("canvas");
 function buildBG() {
   BG.width = W * 2; BG.height = H * 2;
   const c = BG.getContext("2d"); c.scale(2, 2);
   const R = mulberry(1759);
-  // overcast sky
-  let g = c.createLinearGradient(0, 0, 0, 80); g.addColorStop(0, "#7d8c9c"); g.addColorStop(1, "#c3cbd0");
+  // dawn sky over Quebec
+  let g = c.createLinearGradient(0, 0, 0, 82); g.addColorStop(0, "#6f7f94"); g.addColorStop(0.65, "#c9c3b8"); g.addColorStop(1, "#e2c9a2");
   c.fillStyle = g; c.fillRect(0, 0, W, 82);
-  c.fillStyle = "rgba(255,255,255,.18)";
+  c.fillStyle = "rgba(255,240,215,.22)";
   for (let i = 0; i < 9; i++) { c.beginPath(); c.ellipse(R() * W, 10 + R() * 30, 80 + R() * 90, 10 + R() * 8, 0, 0, Math.PI * 2); c.fill(); }
   // Quebec on the skyline
   c.fillStyle = "#6c7076";
@@ -458,7 +559,7 @@ function buildBG() {
   c.beginPath(); c.moveTo(60, 120); c.lineTo(220, 112); c.lineTo(150, 300); c.lineTo(40, 320); c.fill();
   c.beginPath(); c.moveTo(800, 110); c.lineTo(950, 118); c.lineTo(960, 330); c.lineTo(860, 300); c.fill();
   // grass strokes
-  for (let i = 0; i < 1400; i++) {
+  for (let i = 0; i < 1600; i++) {
     const y = 84 + Math.pow(R(), 0.8) * (H - 84), x = R() * W, s = 0.4 + (y / H);
     c.strokeStyle = R() < 0.5 ? "rgba(40,70,20,.25)" : "rgba(170,190,110,.22)"; c.lineWidth = s;
     c.beginPath(); c.moveTo(x, y); c.lineTo(x + (R() - 0.5) * 3 * s, y - 4 * s); c.stroke();
@@ -472,17 +573,22 @@ function buildBG() {
       c.beginPath(); c.arc(x, y, (10 + R() * 12) * s, 0, Math.PI * 2); c.fill();
     }
   }
-  // cliff and the St Lawrence behind the British line
+  // cliff and the St Lawrence behind the British line, with the fleet at anchor
   c.fillStyle = "#4e6d2c"; c.fillRect(0, 560, W, 60);
   c.fillStyle = "#7a6a52";
   c.beginPath(); c.moveTo(0, 590); for (let x = 0; x <= W; x += 25) c.lineTo(x, 586 + R() * 8); c.lineTo(W, 620); c.lineTo(0, 620); c.fill();
   g = c.createLinearGradient(0, 600, 0, 620); g.addColorStop(0, "#4f7392"); g.addColorStop(1, "#3a5a78");
   c.fillStyle = g; c.beginPath(); c.moveTo(0, 604); for (let x = 0; x <= W; x += 25) c.lineTo(x, 600 + R() * 5); c.lineTo(W, 620); c.lineTo(0, 620); c.fill();
+  for (const sx of [120, 340, 700, 880]) {
+    c.fillStyle = "#3a2716"; c.fillRect(sx - 14, 608, 28, 4);
+    c.strokeStyle = "#2a1c10"; c.lineWidth = 1; c.beginPath(); c.moveTo(sx - 5, 608); c.lineTo(sx - 5, 596); c.moveTo(sx + 5, 608); c.lineTo(sx + 5, 594); c.stroke();
+    c.fillStyle = "#e8e2d2"; c.fillRect(sx - 9, 598, 7, 6); c.fillRect(sx + 1, 596, 8, 7);
+  }
 }
 buildBG();
 
 // ---------- soldiers ----------
-const COAT = { red: "#c4202c", gren: "#c4202c", high: "#c4202c", fr: "#e7e2d4", mil: "#7d5f3f", art: "#1f2f6e" };
+const COAT = { red: "#c4202c", gren: "#c4202c", high: "#c4202c", gen: "#b51c27", fr: "#e7e2d4", mil: "#7d5f3f", art: "#1f2f6e" };
 function drawSoldier(x, y, s, kind, pose, flash, bayo) {
   const c = ctx;
   if (pose === "lie") { // prone, seen from behind
@@ -502,8 +608,9 @@ function drawSoldier(x, y, s, kind, pose, flash, bayo) {
   c.fillStyle = COAT[kind];
   c.fillRect(x - 3.8 * s, y - 16 * s, 7.6 * s, 9 * s);
   if (kind === "high") { c.fillStyle = "#1e3a2b"; c.fillRect(x - 3.9 * s, y - 9 * s, 7.8 * s, 3.6 * s); c.fillStyle = "#2b2f55"; c.fillRect(x - 3.9 * s, y - 7.6 * s, 7.8 * s, 0.8 * s); }
-  if (french) { if (kind === "fr") { c.fillStyle = "#2d4f9e"; c.fillRect(x - 1.2 * s, y - 15.5 * s, 2.4 * s, 7 * s); } }
-  else { c.strokeStyle = "#f2efe6"; c.lineWidth = 0.9 * s; c.beginPath(); c.moveTo(x - 3.4 * s, y - 15.5 * s); c.lineTo(x + 3.4 * s, y - 8.5 * s); c.moveTo(x + 3.4 * s, y - 15.5 * s); c.lineTo(x - 3.4 * s, y - 8.5 * s); c.stroke(); }
+  if (kind === "gen") { c.fillStyle = "#e3b341"; c.fillRect(x - 3.8 * s, y - 16 * s, 7.6 * s, 1 * s); c.fillRect(x - 0.5 * s, y - 16 * s, 1 * s, 9 * s); }
+  else if (french) { if (kind === "fr") { c.fillStyle = "#2d4f9e"; c.fillRect(x - 1.2 * s, y - 15.5 * s, 2.4 * s, 7 * s); } }
+  else if (kind !== "art") { c.strokeStyle = "#f2efe6"; c.lineWidth = 0.9 * s; c.beginPath(); c.moveTo(x - 3.4 * s, y - 15.5 * s); c.lineTo(x + 3.4 * s, y - 8.5 * s); c.moveTo(x + 3.4 * s, y - 15.5 * s); c.lineTo(x - 3.4 * s, y - 8.5 * s); c.stroke(); }
   // head
   c.fillStyle = french ? "#e8b893" : "#8a6a4a"; // British seen from behind: hair
   c.beginPath(); c.arc(x, y - 18 * s, 2.3 * s, 0, Math.PI * 2); c.fill();
@@ -512,7 +619,8 @@ function drawSoldier(x, y, s, kind, pose, flash, bayo) {
   if (kind === "gren") { c.fillStyle = "#c4202c"; c.beginPath(); c.moveTo(x - 2.6 * s, y - 19.5 * s); c.lineTo(x, y - 27 * s); c.lineTo(x + 2.6 * s, y - 19.5 * s); c.fill(); c.fillStyle = "#f2efe6"; c.fillRect(x - 2.6 * s, y - 20.3 * s, 5.2 * s, 1 * s); }
   else if (kind === "high") { c.fillStyle = "#22305c"; c.beginPath(); c.ellipse(x, y - 20 * s, 3.3 * s, 1.5 * s, 0, 0, Math.PI * 2); c.fill(); }
   else if (kind === "mil") { c.fillStyle = "#b8322f"; c.beginPath(); c.moveTo(x - 2.4 * s, y - 19.5 * s); c.quadraticCurveTo(x + 4 * s, y - 24 * s, x + 2.4 * s, y - 19.5 * s); c.fill(); }
-  else { c.fillStyle = "#151515"; c.beginPath(); c.ellipse(x, y - 20.2 * s, 3.6 * s, 1.6 * s, 0, 0, Math.PI * 2); c.fill(); if (kind === "fr") { c.strokeStyle = "#f1ead2"; c.lineWidth = 0.5 * s; c.stroke(); } }
+  else { c.fillStyle = "#151515"; c.beginPath(); c.ellipse(x, y - 20.2 * s, 3.6 * s, 1.6 * s, 0, 0, Math.PI * 2); c.fill(); if (kind === "fr" || kind === "gen") { c.strokeStyle = kind === "gen" ? "#e3b341" : "#f1ead2"; c.lineWidth = 0.5 * s; c.stroke(); } }
+  if (kind === "gen" || kind === "art") return; // the general carries a sword, gunners no musket
   // musket
   c.lineWidth = 1.2 * s; c.strokeStyle = "#5a3a1e";
   c.beginPath();
@@ -534,11 +642,34 @@ function drawSoldier(x, y, s, kind, pose, flash, bayo) {
     c.fillStyle = "rgba(255,140,40,.8)"; c.beginPath(); c.arc(x + 0.8 * s, y - 29 * s, 1.8 * s, 0, Math.PI * 2); c.fill();
   }
 }
+// a horse and rider, side on; dir 1 faces right
+function drawHorse(x, y, s, ph, dir, coat, hat, sabre, gallop) {
+  const c = ctx, la = gallop ? Math.sin(ph) * 3.2 * s : Math.sin(ph) * 1.2 * s;
+  c.fillStyle = "rgba(0,0,0,.18)"; c.beginPath(); c.ellipse(x, y, 10 * s, 2 * s, 0, 0, 7); c.fill();
+  c.strokeStyle = "#3b2414"; c.lineWidth = 1.7 * s; c.beginPath();
+  c.moveTo(x - 5 * s, y - 7 * s); c.lineTo(x - 5 * s + la, y);
+  c.moveTo(x - 3 * s, y - 7 * s); c.lineTo(x - 3 * s - la, y);
+  c.moveTo(x + 4 * s, y - 7 * s); c.lineTo(x + 4 * s - la, y);
+  c.moveTo(x + 6 * s, y - 7 * s); c.lineTo(x + 6 * s + la, y);
+  c.stroke();
+  c.fillStyle = "#5c3a22"; c.beginPath(); c.ellipse(x, y - 9.5 * s, 8.5 * s, 3.8 * s, 0, 0, 7); c.fill();
+  c.beginPath(); c.moveTo(x + dir * 5.5 * s, y - 12 * s); c.lineTo(x + dir * 10 * s, y - 18.5 * s); c.lineTo(x + dir * 13 * s, y - 16.8 * s); c.lineTo(x + dir * 8.5 * s, y - 9.5 * s); c.closePath(); c.fill();
+  c.strokeStyle = "#2a180c"; c.lineWidth = 1.5 * s; c.beginPath(); c.moveTo(x - dir * 8.2 * s, y - 11 * s); c.lineTo(x - dir * 11 * s, y - 5 * s); c.stroke();
+  c.fillStyle = coat; c.fillRect(x - 2.4 * s, y - 20 * s, 4.8 * s, 8.5 * s);
+  c.fillStyle = "#e8b893"; c.beginPath(); c.arc(x, y - 22 * s, 2 * s, 0, 7); c.fill();
+  c.fillStyle = hat; c.beginPath(); c.ellipse(x, y - 23.7 * s, 3.2 * s, 1.4 * s, 0, 0, 7); c.fill();
+  if (sabre) { c.strokeStyle = "#dfe5ec"; c.lineWidth = 0.9 * s; c.beginPath(); c.moveTo(x + dir * 2 * s, y - 18 * s); c.lineTo(x + dir * 8 * s, y - 28 * s); c.stroke(); }
+}
 function drawBody(b) {
   const s = sOf(b.d), x = xOf(b.x, b.d), y = yOf(b.d) + b.py * s;
   ctx.save(); ctx.translate(x, y); ctx.rotate(b.rot);
+  if (b.kind === "horse") {
+    ctx.fillStyle = "#4a2f1c"; ctx.beginPath(); ctx.ellipse(0, -2 * s, 8 * s, 3 * s, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#3b2414"; ctx.lineWidth = 1.4 * s; ctx.beginPath(); ctx.moveTo(-4 * s, -3 * s); ctx.lineTo(-8 * s, -7 * s); ctx.moveTo(3 * s, -3 * s); ctx.lineTo(7 * s, -6 * s); ctx.stroke();
+    ctx.restore(); return;
+  }
   ctx.fillStyle = "rgba(0,0,0,.18)"; ctx.fillRect(-7 * s, -1 * s, 14 * s, 4 * s);
-  ctx.fillStyle = COAT[b.kind]; ctx.fillRect(-5 * s, -2.5 * s, 8 * s, 4.5 * s);
+  ctx.fillStyle = COAT[b.kind] || "#2d4f9e"; ctx.fillRect(-5 * s, -2.5 * s, 8 * s, 4.5 * s);
   ctx.fillStyle = b.kind === "mil" ? "#b8322f" : (b.kind === "high" ? "#22305c" : "#151515"); ctx.fillRect(3 * s, -2.2 * s, 3 * s, 3.6 * s);
   ctx.fillStyle = "#2a2a2a"; ctx.fillRect(-8 * s, -1.6 * s, 3.4 * s, 2.6 * s);
   ctx.restore();
@@ -559,33 +690,72 @@ function drawFlag(x, y, s, french, t) {
   }
   ctx.restore();
 }
+function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 
 // ---------- battle state ----------
 let G = null;
+let SEL = null; // null = the whole line; otherwise a Set of battalion numbers
 function makeBatFigs(perRank) {
   const f = [];
-  for (let rank = 0; rank < 2; rank++) for (let i = 0; i < perRank; i++) f.push({ ox: (i - (perRank - 1) / 2) * 6.4 + (rank ? 3.2 : 0), rank, alive: true, flash: 0 });
+  for (let i = 0; i < perRank * 2; i++) f.push({ i, rk: i < perRank ? 0 : 1, alive: true, flash: 0, cx: 0, cr: 0, tx: 0, tr: 0 });
   return f;
+}
+// where every man stands in his battalion's formation (x across in yards, r = ranks back)
+function layoutBat(bat, snap) {
+  const alive = bat.figs.filter(f => f.alive), n = alive.length; if (!n) return;
+  if (bat.form === "line") {
+    let front = alive.filter(f => f.rk === 0), rear = alive.filter(f => f.rk === 1);
+    while (rear.length > front.length + 1) { const f = rear.shift(); f.rk = 0; front.push(f); } // rear rank steps up to close the gaps
+    while (front.length > rear.length + 3) { const f = front.pop(); f.rk = 1; rear.unshift(f); }
+    front.sort((a, b) => a.i - b.i); rear.sort((a, b) => a.i - b.i);
+    front.forEach((f, k) => { f.tx = (k - (front.length - 1) / 2) * 6.4; f.tr = 0; });
+    rear.forEach((f, k) => { f.tx = (k - (rear.length - 1) / 2) * 6.4 + 3.2; f.tr = 1; });
+  } else if (bat.form === "column") {
+    const files = 8;
+    alive.forEach((f, k) => { const row = Math.floor(k / files), inRow = Math.min(files, n - row * files); f.tx = (k % files - (inRow - 1) / 2) * 6.4; f.tr = row * 0.95; });
+  } else { // hollow square, bayonets facing out on every side
+    const m = Math.ceil(n / 4), hw = Math.max(1, m - 1) * 6.4 / 2, depth = 3.4;
+    alive.forEach((f, k) => {
+      const side = Math.floor(k / m), j = k % m, t = m > 1 ? j / (m - 1) : 0.5;
+      if (side === 0) { f.tx = -hw + t * 2 * hw; f.tr = 0; }
+      else if (side === 1) { f.tx = hw; f.tr = depth * (j + 1) / (m + 1); }
+      else if (side === 2) { f.tx = hw - t * 2 * hw; f.tr = depth; }
+      else { f.tx = -hw; f.tr = depth * (m - j) / (m + 1); }
+    });
+  }
+  if (snap) alive.forEach(f => { f.cx = f.tx; f.cr = f.tr; });
 }
 function makeColFigs(rows) {
   const f = [];
-  for (let r = 0; r < rows; r++) for (let c = 0; c < 10; c++) f.push({ c: c - 4.5, r, alive: true, mil: r > 0 && Math.random() < 0.3, jx: rnd(-1, 1), jy: rnd(-0.3, 1), ph: Math.random() * 6 });
+  for (let r = 0; r < rows; r++) for (let c = 0; c < 10; c++) f.push({ c: c - 4.5, r, alive: true, mil: r > 0 && RNG() < 0.3, jx: rnd(-1, 1), jy: rnd(-0.3, 1), ph: RNG() * 6 });
   return f;
 }
-function newBattle() {
-  const D = DIFFS[S.diff], perRank = 18 + 2 * S.up.reinf;
+function makeCol(def, D, opts) {
+  opts = opts || {};
+  return { name: def.name, x: def.x, home: def.x, d: opts.d || 560, delay: def.delay || 0, figs: makeColFigs(opts.rows || D.rows), morale: opts.morale || D.morale, state: opts.state || "form", fired: false, fireR: rnd(D.fireR[0], D.fireR[1]), disorder: 0, halt: 0, routT: 0, contact: 0, wavered: false, flashT: 0, flashFrac: 0, lastCharged: -9, reserve: !!opts.reserve };
+}
+function newBattle(o) {
+  o = o || {};
+  const seed = o.seed != null ? o.seed : (Math.random() * 4294967295) >>> 0;
+  RNG = mulberry(seed);
+  const diff = o.diff || S.diff, D = DIFFS[diff];
+  UP = Object.assign(defaults().up, o.up || S.up);
+  const dbl = o.dbl != null ? o.dbl : S.dbl;
+  const perRank = 18 + 2 * UP.reinf;
   G = {
-    phase: "wait", t: 0, waitT: 16, D, b: 0, advT: 0, advFrom: 0,
-    charging: false, chargeT: 0, chargeFrom: 0, chargeTo: 0,
-    bats: BATDEFS.map(def => ({ def, x: def.x, figs: makeBatFigs(perRank), bayo: false, disc: 100, state: "stand", st: 0, loaded: true, reloading: false, reload: 0, dbl: S.dbl, smokeT: 0, fireAt: -1, ordered: false, flee: 0 })),
-    cols: COLDEFS.map(c => ({ name: c.name, x: c.x, d: 560, delay: c.delay, figs: makeColFigs(D.rows), morale: D.morale, state: "form", fired: false, fireR: rnd(125, 165), disorder: 0, halt: 0, routT: 0, contact: 0, wavered: false })),
-    bodies: [], smoke: [], balls: [], banners: [], volley: null, floats: [], shots: [], chargeRun: false, presentTimer: 0,
+    seed, diff, dbl0: dbl, up0: Object.assign({}, UP), n: 0, queue: [], log: [],
+    phase: "intro", introT: 5, t: 0, waitT: 16, D,
+    bats: BATDEFS.map((def, idx) => ({ def, idx, x: def.x, d: 0, figs: makeBatFigs(perRank), n0: perRank * 2, form: "line", formT: 0, bayo: false, disc: 100, state: "stand", st: 0, loaded: true, reloading: false, reload: 0, dbl, smokeT: 0, fireAt: -1, ordered: false, flee: 0, advT: 0, advFrom: 0, advDist: 0, advDur: 1, chCol: null, chT: 0, chFrom: 0, chTo: 0, chDur: 1, dirty: false })),
+    cols: COLDEFS.map(c => makeCol(c, D)),
+    cav: [], cavQ: D.cav.slice(), cavBeaten: 0, reservesLeft: D.reserves, reserveQ: [],
+    bodies: [], smoke: [], balls: [], banners: [], volley: null, floats: [], shots: [], presentTimer: 0,
     guns: [{ x: 204, cd: rnd(4, 6), recoil: 0 }, { x: 796, cd: rnd(7, 9), recoil: 0 }],
     volleys: 0, perfects: 0, crashing: 0, noOrders: 0, lost: 0, killed: 0,
     steadyCd: 0, drillCd: 0, drillPh: 0, artT: 4, skVis: 0.5, drumT: 0, drumI: 0, soundQ: 0,
-    result: null, endT: 0, ended: false, firstVolleyDone: false, sayWait: 0, flankPuffs: [], shakeT: 0
+    result: null, endT: 0, ended: false, sayWait: 0, flankPuffs: [], shakeT: 0, bayoAt: 0, cryT: -9, heldT: -9, advMsgT: -9,
+    wolfe: { x: 52, d: -8, hit: false, at: 0 }, montcalm: { x: 540, d: 575, shown: true }
   };
-  G.bats.forEach(b => { b.disc = 100; });
+  G.bats.forEach(b => layoutBat(b, true));
 }
 
 const aliveB = b => b.figs.reduce((n, f) => n + (f.alive ? 1 : 0), 0);
@@ -593,36 +763,52 @@ const aliveC = c => c.figs.reduce((n, f) => n + (f.alive ? 1 : 0), 0);
 const activeCols = () => G.cols.filter(c => c.state !== "rout" && c.state !== "gone");
 const liveBats = () => G.bats.filter(b => b.state !== "broken");
 const brokenCount = () => G.bats.filter(b => b.state === "broken").length;
-function minRange() { let m = 9999; for (const c of activeCols()) m = Math.min(m, c.d - G.b); return m; }
 const isLying = b => b.state === "lie" || b.state === "lying";
 const isUp = b => b.state === "stand" || b.state === "present" || b.state === "presenting" || b.state === "firing";
+const busy = b => b.formT > 0 || b.advT > 0 || b.state === "fixing" || b.state === "charge" || b.state === "broken";
+function lineD() { const l = liveBats(); return l.length ? l.reduce((a, b) => a + b.d, 0) / l.length : 0; }
+// the British battalions a French column is walking into
+function laneFront(col) {
+  const live = liveBats(); if (!live.length) return 0;
+  let lane = live.filter(b => Math.abs(b.x - col.x) < 170);
+  if (!lane.length) lane = [live.slice().sort((a, b) => Math.abs(a.x - col.x) - Math.abs(b.x - col.x))[0]];
+  return lane.reduce((m, b) => Math.max(m, b.d), -99);
+}
+const colRange = col => col.d - laneFront(col);
+function minRange() { let m = 9999; for (const c of activeCols()) m = Math.min(m, colRange(c)); return m; }
+// how close the danger is for one battalion: straight ahead counts most
+function rangeBat(bat) { let m = 9999; for (const c of activeCols()) m = Math.min(m, c.d - bat.d + Math.max(0, Math.abs(c.x - bat.x) - 170) * 0.6); return m; }
+function batsOf(sel) { return (sel || []).map(i => G.bats[i]).filter(b => b && b.state !== "broken"); }
+function allIdx() { return G.bats.map(b => b.idx); }
 
 // ---------- messages ----------
-let msgT = 0;
-function msg(text, kind) { const m = $("msg"); m.textContent = text; m.className = "msg" + (kind ? " " + kind : ""); msgT = G ? G.t : 0; }
+function msg(text, kind) { const m = $("msg"); m.textContent = text; m.className = "msg" + (kind ? " " + kind : ""); }
 function banner(text, color, size) {
   const cur = G.banners[0];
   if (cur && cur.t > 0.7) cur.life = Math.min(cur.life, cur.t + 0.25); // hurry the old one off
   if (G.banners.length > 3) G.banners.splice(1, 1);
   G.banners.push({ text, color: color || "#fff", size: size || 64, t: 0, life: 2.2 });
 }
+function float(x, d, text, color) { G.floats.push({ x, d, text, color: color || "#ff8a8a", t: 0 }); }
+// "Forty-third! Make ready!" when you order one or two battalions on their own
+function callFor(bats) { const live = liveBats().length; if (!bats.length || bats.length >= live || bats.length > 2) return ""; return bats.map(b => b.def.call).join(" and ") + "! "; }
+function namesOf(bats) { return bats.length >= liveBats().length ? "The whole line" : bats.map(b => b.def.short).join(", "); }
 
 // ---------- British actions ----------
 function hitFig(bat, f, discLoss) {
   if (!f.alive) return;
-  f.alive = false; G.lost++;
-  G.bodies.push({ x: bat.x + f.ox, d: G.b, py: f.rank * 11, kind: bat.def.kind, rot: rnd(-0.5, 0.5) });
+  f.alive = false; G.lost++; bat.dirty = true;
+  G.bodies.push({ x: bat.x + f.cx, d: bat.d, py: f.cr * 11, kind: bat.def.kind, rot: rnd(-0.5, 0.5) });
   bat.disc -= discLoss * vetMul() * G.D.drain;
-  if (Math.random() < 0.55) scream(rnd(0.12, 0.2), panX(bat.x + f.ox), rnd(0, 0.15));
+  if (Math.random() < 0.55) scream(vrnd(0.12, 0.2), panX(bat.x + f.cx), vrnd(0, 0.15));
 }
 function hitBat(bat, discLoss) {
   const alive = bat.figs.filter(f => f.alive); if (!alive.length) return;
-  const front = alive.filter(f => f.rank === 0);
-  hitFig(bat, (front.length && Math.random() < 0.65) ? pick(front) : pick(alive), discLoss);
+  const front = alive.filter(f => f.tr < 0.5);
+  hitFig(bat, (front.length && RNG() < 0.65) ? pick(front) : pick(alive), discLoss);
 }
-function float(x, d, text, color) { G.floats.push({ x, d, text, color: color || "#ff8a8a", t: 0 }); }
 function killCol(col, k) {
-  const alive = col.figs.filter(f => f.alive).sort((a, b) => (a.r + Math.random() * 2.5) - (b.r + Math.random() * 2.5));
+  const alive = col.figs.filter(f => f.alive).sort((a, b) => (a.r + RNG() * 2.5) - (b.r + RNG() * 2.5));
   k = Math.min(k, alive.length);
   const spread = 1 + col.disorder * 0.6;
   for (let i = 0; i < k; i++) {
@@ -630,181 +816,223 @@ function killCol(col, k) {
     G.bodies.push({ x: col.x + f.c * 9 * spread + f.jx * col.disorder * 6, d: col.d + f.r * 1.6, py: 0, kind: f.mil ? "mil" : "fr", rot: rnd(-0.6, 0.6) });
   }
   G.killed += k;
-  for (let i = 0; i < Math.min(k, 3); i++) scream(rnd(0.05, 0.1), panX(col.x), rnd(0.05, 0.4));
+  for (let i = 0; i < Math.min(k, 3); i++) scream(vrnd(0.05, 0.1), panX(col.x), vrnd(0.05, 0.4));
   return k;
 }
-function targetCol(bat) {
+// what a battalion shoots at: the column in front of it, or horsemen if they are closer
+function targetFor(bat) {
   let best = null, bd = 1e9;
   for (const c of activeCols()) { const dx = Math.abs(c.x - bat.x); if (dx < bd) { bd = dx; best = c; } }
-  return best;
+  let t = best ? { col: best, range: best.d - bat.d } : null;
+  for (const cav of G.cav) {
+    if (cav.state !== "ride") continue;
+    const dist = Math.hypot((cav.x - bat.x) / 2.2, cav.d - bat.d);
+    if (dist < 140 && (!t || dist < t.range)) t = { cav, range: dist };
+  }
+  return t;
 }
+function fireFrac(bat, vsCav) { return bat.form === "line" ? 1 : bat.form === "column" ? 0.28 : (vsCav ? 0.55 : 0.3); }
 function spawnSmoke(x, d, n, big) {
   for (let i = 0; i < n; i++) G.smoke.push({ x: x + rnd(-62, 62), d: d + rnd(1, big ? 10 : 4), r: rnd(10, big ? 26 : 14), a: rnd(0.55, 0.85), life: rnd(5, 8), age: 0, vx: rnd(2, 7) });
 }
 function fireBat(bat, ordered) {
-  const col = targetCol(bat);
+  const tg = targetFor(bat);
   bat.loaded = false; bat.reloading = true; bat.reload = 0; bat.state = "firing"; bat.st = 0.35;
-  bat.figs.forEach(f => { if (f.alive) f.flash = rnd(0.08, 0.16); });
+  bat.figs.forEach(f => { if (f.alive) f.flash = vrnd(0.08, 0.16); });
   let kills = 0, range = 999;
-  if (col) {
-    range = col.d - G.b;
-    let p = 0.5 * Math.exp(-range / 45) * (1 + 0.1 * S.up.musket);
+  if (tg) {
+    range = tg.range;
+    let p = 0.5 * Math.exp(-range / 45) * (1 + 0.1 * UP.musket);
     if (bat.dbl) p *= range <= 60 ? 1.6 : 0.8;
     if (bat.smokeT > 0) p *= 0.55;
     p = Math.min(p, 0.62);
-    const n = aliveB(bat);
-    for (let i = 0; i < n; i++) if (Math.random() < p) kills++;
-    kills = killCol(col, kills);
-    col.morale -= kills * 1.1;
+    const n = Math.round(aliveB(bat) * fireFrac(bat, !!tg.cav));
+    for (let i = 0; i < n; i++) if (RNG() < p) kills++;
+    if (tg.cav) {
+      const cav = tg.cav, k = Math.min(cav.n, Math.round(kills * 0.55));
+      for (let i = 0; i < k; i++) { const f = cav.figs[cav.n - 1 - i]; G.bodies.push({ x: cav.x + f.ox, d: cav.d + f.od, py: 0, kind: "horse", rot: rnd(-0.4, 0.4) }); }
+      cav.n -= k; cav.lost += k; kills = k;
+      if (k) { float(cav.x, cav.d, "-" + k + " horsemen", "#ffd166"); whinny(panX(cav.x)); }
+    } else { kills = killCol(tg.col, kills); tg.col.morale -= kills * 1.1; }
   }
   bat.dbl = false; bat.smokeT = 4;
-  spawnSmoke(bat.x, G.b, 8, true);
+  spawnSmoke(bat.x, bat.d, bat.form === "line" ? 8 : 4, true);
   G.soundQ++;
   if (!ordered) {
     G.noOrders++;
     msg("The " + bat.def.short + " fired without orders!" + (range > 100 ? " Wasted at long range." : " Shout STEADY, LADS!"), "bad");
-  } else if (G.volley) G.volley.shots.push({ t: G.t, kills, range });
+  } else if (G.volley && !(tg && tg.cav)) G.volley.shots.push({ t: G.t, kills, range });
   return kills;
 }
 
-function orderLie() {
-  if (!G || G.result || G.charging) return;
-  const live = liveBats(); if (!live.length) return;
-  const anyUp = live.some(isUp);
-  if (anyUp) {
-    live.forEach(b => { if (isUp(b)) { b.state = "lying"; b.st = 0.5; b.fireAt = -1; } });
-    say("Lie down! Get down, lads!");
-    msg("Down, lads! The men lie flat in the grass.", "good");
+function orderLie(sel) {
+  const bats = batsOf(sel).filter(b => b.state !== "fixing" && b.state !== "charge"); if (!bats.length) return;
+  if (bats.some(isUp)) {
+    const can = bats.filter(b => isUp(b) && b.form !== "square");
+    can.forEach(b => { b.state = "lying"; b.st = 0.5; b.fireAt = -1; b.advT = 0; });
+    if (!can.length) { msg("A square can't lie down: the horsemen would ride right over them.", "bad"); return; }
+    say(callFor(can) + "Lie down! Get down, lads!");
+    msg((can.length >= liveBats().length ? "Down, lads!" : namesOf(can) + ": down!") + " The men lie flat in the grass.", "good");
   } else {
-    live.forEach(b => { if (isLying(b)) { b.state = "rising"; b.st = 1.1; } });
-    say("On your feet! Form the line!");
-    msg("On your feet! The line stands up.", "");
+    bats.forEach(b => { if (isLying(b)) { b.state = "rising"; b.st = 1.1; } });
+    say(callFor(bats) + "On your feet! Form the line!");
+    msg("On your feet! " + namesOf(bats) + " stand up.", "");
   }
 }
-function orderReady() {
-  if (!G || G.result || G.charging || G.advT > 0) return;
-  let n = 0, lying = 0, empty = 0;
-  liveBats().forEach(b => {
+function orderReady(sel) {
+  let n = 0, lying = 0, empty = 0, moving = 0;
+  const ok = [];
+  batsOf(sel).forEach(b => {
     if (isLying(b) || b.state === "rising") { lying++; return; }
+    if (b.formT > 0 || b.advT > 0 || b.state === "fixing" || b.state === "charge") { moving++; return; }
     if (!b.loaded) { empty++; return; }
-    if (b.state === "stand") { b.state = "presenting"; b.st = 0.5; n++; }
+    if (b.state === "stand") { b.state = "presenting"; b.st = 0.5; n++; ok.push(b); }
   });
   if (n) {
-    say("Make ready!", { pitch: 0.7 });
+    say(callFor(ok) + "Make ready!", { pitch: 0.7 });
     clearTimeout(G.presentTimer);
-    G.presentTimer = setTimeout(() => { if (G && !G.result && liveBats().some(b => b.state === "present" || b.state === "presenting")) say("Present!", { cut: false, pitch: 0.7 }); }, 900);
+    G.presentTimer = setTimeout(() => { if (G && !G.result && !SILENT && liveBats().some(b => b.state === "present" || b.state === "presenting")) say("Present!", { cut: false, pitch: 0.7 }); }, 900);
+    msg("Make ready! " + (ok.length >= liveBats().length ? "The whole line raises" : namesOf(ok) + " raise") + " their muskets. Arms get heavy, so don't wait too long!", "");
   }
-  if (n) msg("Make ready! " + n + " battalion" + (n > 1 ? "s" : "") + " raise their muskets. Arms get heavy, so don't wait too long!", "");
   else if (lying) msg("Your men are lying down. Stand them up first!", "bad");
+  else if (moving) msg("Wait until they have finished moving or changing formation.", "bad");
   else if (empty) msg("Still reloading! Use the RELOAD DRILL.", "bad");
 }
-function orderFire() {
-  if (!G || G.result || G.charging) return;
-  if (G.advT > 0) { msg("Wait until the line has finished advancing!", "bad"); return; }
+function orderFire(sel) {
   let n = 0, lying = 0;
-  const fresh = !G.volley;
-  if (fresh) G.volley = { shots: [], until: G.t + 1.7 };
-  liveBats().forEach(b => {
+  const bats = batsOf(sel), fresh = !G.volley;
+  if (fresh) G.volley = { shots: [], until: G.t + 1.7, n: 0, subset: bats.length < liveBats().length, names: [] };
+  const fired = [];
+  bats.forEach(b => {
     if (b.fireAt >= 0) return;
     if (isLying(b) || b.state === "rising") { lying++; return; }
-    if (!b.loaded) return;
-    if (b.state === "present") b.fireAt = G.t + 0.02 + Math.random() * (1 - b.disc / 100) * 0.55;
+    if (!b.loaded || b.formT > 0 || b.advT > 0 || b.state === "fixing" || b.state === "charge") return;
+    if (b.state === "present") b.fireAt = G.t + 0.02 + RNG() * (1 - b.disc / 100) * 0.55;
     else { // had to raise muskets first, so the volley comes out ragged
       if (b.state === "stand") { b.state = "presenting"; b.st = 0.5; }
-      b.fireAt = G.t + 0.55 + Math.random() * 0.9;
+      b.fireAt = G.t + 0.55 + RNG() * 0.9;
     }
-    b.ordered = true; n++;
+    b.ordered = true; n++; fired.push(b);
   });
-  if (n) { clearTimeout(G.presentTimer); say("FIRE!", { rate: 1.3, pitch: 0.65 }); }
-  if (!n && fresh && !liveBats().some(b => b.fireAt >= 0)) { G.volley = null; msg(lying ? "They can't fire lying down! Stand up first." : "Nobody is loaded! Use the RELOAD DRILL.", "bad"); }
+  if (n) { G.volley.n += n; G.volley.names.push(...fired.map(b => b.def.short)); clearTimeout(G.presentTimer); say(callFor(fired) + "FIRE!", { rate: 1.3, pitch: 0.65 }); }
+  if (!n && fresh && !liveBats().some(b => b.fireAt >= 0)) { G.volley = null; msg(lying ? "They can't fire lying down! Stand up first." : "Nobody there is ready to fire! Reload, or wait for them to finish moving.", "bad"); }
 }
 function orderSteady() {
-  if (!G || G.result || G.steadyCd > 0) return;
-  const boost = 22 + 4 * S.up.officers;
+  if (G.steadyCd > 0) return;
+  const boost = 22 + 4 * UP.officers;
   liveBats().forEach(b => b.disc = Math.min(100, b.disc + boost));
-  G.steadyCd = Math.max(4, 10 - 1.2 * S.up.officers);
+  G.steadyCd = Math.max(4, 10 - 1.2 * UP.officers);
   banner("STEADY, LADS!", "#9fd0ff", 44);
   say(pick(["Steady, lads! Steady!", "Steady! Wait for the word!", "Hold your fire, lads! Steady!"]));
   msg("\"Steady, lads, steady! Wait for the word!\" The officers calm the line.", "good");
 }
-function drillZone() { const w = 0.18 + 0.035 * S.up.drill; return [0.5 - w / 2, 0.5 + w / 2]; }
+function drillZone() { const w = 0.18 + 0.035 * UP.drill; return [0.5 - w / 2, 0.5 + w / 2]; }
 function drillPos() { const p = G ? G.drillPh % 2 : 0; return p < 1 ? p : 2 - p; }
 function orderDrill() {
-  if (!G || G.result || G.drillCd > 0) return;
+  if (G.drillCd > 0) return;
   const rel = liveBats().filter(b => b.reloading); if (!rel.length) return;
   G.drillCd = 0.22;
   const p = drillPos(), [a, z] = drillZone();
   if (p >= a && p <= z) {
     rel.forEach(b => { b.reload += 0.22; b.disc = Math.min(100, b.disc + 2); });
     sfx.good();
-    $("drillHint").textContent = pick(["Smartly done!", "Bite! Pour! Ram!", "Like clockwork!", "Prime and load!"]);
+    if (!SILENT) $("drillHint").textContent = vpick(["Smartly done!", "Bite! Pour! Ram!", "Like clockwork!", "Prime and load!"]);
   } else {
     rel.forEach(b => { b.disc -= 1.5; });
-    $("drillHint").textContent = "Fumbled the cartridge!";
+    if (!SILENT) $("drillHint").textContent = "Fumbled the cartridge!";
   }
 }
-function canAdvance() { return G && G.phase === "battle" && !G.result && !G.charging && G.advT <= 0 && minRange() > 30 && G.b < 70 && liveBats().length && liveBats().every(b => b.state === "stand"); }
-function orderAdvance() {
-  if (!G || G.result) return;
-  if (!canAdvance()) {
+const canAdvBat = b => G.phase === "battle" && b.state === "stand" && b.form !== "square" && b.formT <= 0 && b.advT <= 0 && rangeBat(b) > 30 && b.d < 90;
+function orderAdvance(sel) {
+  const bats = batsOf(sel), ok = bats.filter(canAdvBat);
+  if (!ok.length) {
     if (G.phase !== "battle") msg("Not yet. Wait for the French to come to you.", "bad");
-    else if (minRange() <= 30) msg("Too close to advance! Fire or charge!", "bad");
-    else msg("Every battalion must be standing, not lying down or raising muskets, to advance.", "bad");
+    else if (bats.some(b => b.form === "square")) msg("A square can't march. Form LINE or COLUMN first.", "bad");
+    else if (bats.some(b => rangeBat(b) <= 30)) msg("Too close to advance! Fire or charge!", "bad");
+    else msg("To advance, the battalion must be standing still, not lying down, raising muskets or changing formation.", "bad");
     return;
   }
-  G.advT = 2.5; G.advFrom = G.b;
-  say("The line will advance! Quick march!");
-  msg("The line steps forward through its own smoke...", "");
+  ok.forEach(b => { b.advFrom = b.d; b.advDist = b.form === "column" ? 25 : 15; b.advDur = b.form === "column" ? 2 : 2.5; b.advT = b.advDur; });
+  sfx.tramp(0);
+  say(callFor(ok) + (ok.some(b => b.form === "column") ? "Column! Quick march!" : "The line will advance! Quick march!"));
+  msg(namesOf(ok) + " step forward through the smoke...", "");
 }
-function canCharge() { return G && G.phase === "battle" && !G.result && !G.charging && G.advT <= 0 && activeCols().length && minRange() <= 120 && liveBats().length; }
-function orderCharge() {
-  if (!canCharge()) { if (G && G.phase === "battle" && !G.result) msg("The French are too far away to charge.", "bad"); return; }
-  const fixed = liveBats().every(b => b.bayo);
-  G.charging = true; G.chargeRun = false; G.chargeT = fixed ? -0.5 : -1.6;
+function chargeTarget(b) {
+  let best = null, bd = 1e9;
+  for (const c of activeCols()) { if (c.state === "form") continue; const dx = Math.abs(c.x - b.x); if (c.d - b.d <= 120 && dx < 260 && dx < bd) { bd = dx; best = c; } }
+  return best;
+}
+const canChargeBat = b => G.phase === "battle" && b.form !== "square" && b.formT <= 0 && b.advT <= 0 && b.state !== "fixing" && b.state !== "charge" && b.state !== "broken" && !!chargeTarget(b);
+function orderCharge(sel) {
+  const bats = batsOf(sel), ok = bats.filter(canChargeBat);
+  if (!ok.length) {
+    if (bats.some(b => b.form === "square")) msg("A square can't charge. Form LINE or COLUMN first.", "bad");
+    else if (G.phase === "battle") msg("The French are too far away to charge.", "bad");
+    return;
+  }
+  let fixing = false;
+  ok.forEach(b => { b.chCol = chargeTarget(b); b.fireAt = -1; if (!b.bayo) fixing = true; b.state = "fixing"; b.st = b.bayo ? 0.5 : 1.6; });
   clearTimeout(G.presentTimer);
-  liveBats().forEach(b => { b.fireAt = -1; if (isLying(b) || b.state === "present" || b.state === "presenting") b.state = "stand"; });
-  if (!fixed) {
-    say("Fix... bayonets!", { rate: 1.0, pitch: 0.7 });
+  if (fixing) {
+    say(callFor(ok) + "Fix... bayonets!", { rate: 1.0, pitch: 0.7 });
     banner("FIX BAYONETS!", "#e4e9ef", 60);
-    msg("Fix bayonets! Steel snaps onto every musket down the line...", "");
-    setTimeout(() => { if (G && G.charging) { sfx.clicks(); liveBats().forEach(b => b.bayo = true); } }, 650);
+    msg("Fix bayonets! Steel snaps onto every musket in " + namesOf(ok).toLowerCase().replace("the whole line", "the line") + "...", "");
+    G.bayoAt = G.t + 0.65;
   }
 }
-function startChargeRun() {
-  G.chargeRun = true; G.chargeT = 0; G.chargeFrom = G.b; G.chargeTo = G.b + Math.max(0, minRange() - 6);
-  liveBats().forEach(b => { b.state = "charge"; b.bayo = true; });
-  banner("CHARGE!", "#ffd166", 80);
-  say("CHARGE!", { rate: 1.2, pitch: 0.65 });
-  msg("CHARGE! The Highlanders draw their broadswords and the whole line runs at the French!", "good");
-  huzzah(0.8, 0.35);
-  if (G.bats[3].state !== "broken") pipes(0.2);
-}
-function resolveCharge() {
-  G.charging = false; G.chargeRun = false;
-  for (let i = 0; i < 9; i++) setTimeout(() => sfx.steel(rnd(-0.8, 0.8)), i * rnd(60, 110));
-  const thr = chargeThr(); let failed = false, routed = 0;
-  for (const col of activeCols()) {
-    if (col.d - G.b > 40) continue;
-    const facing = liveBats().filter(b => Math.abs(b.x - col.x) < 170);
-    if (col.morale < thr) { killCol(col, Math.round(aliveC(col) * 0.12)); routCol(col, true); routed++; }
-    else {
-      col.morale -= 30; killCol(col, Math.round(aliveC(col) * 0.08));
-      facing.forEach(b => { for (let i = 0; i < 3; i++) hitBat(b, 2); });
-      if (col.morale < thr) { routCol(col, true); routed++; } else failed = true;
-    }
+function startRun(bat) {
+  const col = bat.chCol;
+  if (!col || col.state === "rout" || col.state === "gone") { bat.state = "stand"; bat.chCol = null; return; }
+  bat.state = "charge"; bat.bayo = true; bat.chT = 0; bat.chFrom = bat.d;
+  bat.chTo = bat.d + Math.max(0, col.d - bat.d - 6); bat.chDur = clamp((bat.chTo - bat.chFrom) / 50, 0.5, 1.8);
+  if (G.t - G.cryT > 2.5) {
+    G.cryT = G.t;
+    const runners = G.bats.filter(b => b.state === "charge" || (b.state === "fixing" && b.st < 0.1));
+    banner("CHARGE!", "#ffd166", 80);
+    say("CHARGE!", { rate: 1.2, pitch: 0.65 });
+    const high = runners.some(b => b.def.kind === "high");
+    msg(high ? "CHARGE! The Highlanders draw their broadswords and run at the French!" : "CHARGE! " + namesOf(runners) + " run at the French with the bayonet!", "good");
+    huzzah(0.8, 0.35);
+    if (high) pipes(0.2);
   }
-  liveBats().forEach(b => { if (b.state === "charge") b.state = "stand"; });
-  if (failed) {
-    liveBats().forEach(b => b.disc -= 20 * vetMul());
-    G.b = Math.max(0, G.b - 12);
+}
+function resolveBatCharge(bat) {
+  const col = bat.chCol; bat.state = "stand"; bat.chCol = null;
+  for (let i = 0; i < 7; i++) setTimeout(() => sfx.steel(vrnd(-0.8, 0.8)), i * vrnd(60, 110));
+  if (!col || col.state === "rout" || col.state === "gone" || col.d - bat.d > 40) return;
+  // two battalions hitting the same column within a moment are far harder to stand against
+  const together = G.t - col.lastCharged < 2;
+  col.lastCharged = G.t;
+  const thr = chargeThr() + (bat.form === "column" ? 15 : 0) + (bat.def.kind === "high" ? 8 : 0) + (together ? 14 : 0);
+  if (col.morale < thr) { killCol(col, Math.round(aliveC(col) * 0.12)); routCol(col, true); return; }
+  col.morale -= 30; killCol(col, Math.round(aliveC(col) * 0.08));
+  for (let i = 0; i < 4; i++) hitBat(bat, 2);
+  if (col.morale < thr) { routCol(col, true); return; }
+  bat.disc -= 20 * vetMul();
+  bat.d = Math.max(0, bat.d - 12);
+  if (G.t - G.heldT > 1.5) {
+    G.heldT = G.t;
     banner("THEY HELD!", "#ff7b7b", 54);
-    say("Fall back! Re-form the line!", { cut: false });
-    msg("The French were too steady and pushed the charge back. Reform the line, reload and volley again!", "bad");
+    say("Fall back! Re-form!", { cut: false });
+    msg(col.name + " was too steady and threw back the " + bat.def.short + ". Reload and volley again, or charge with two battalions at once!", "bad");
   }
+}
+function orderForm(sel, form) {
+  const bats = batsOf(sel).filter(b => b.state !== "fixing" && b.state !== "charge"), ch = bats.filter(b => b.form !== form);
+  if (!ch.length) { if (bats.length) msg((bats.length > 1 ? "They are" : "The " + bats[0].def.short + " is") + " already in " + form + ".", ""); return; }
+  ch.forEach(b => {
+    b.form = form; b.formT = formTime(); b.fireAt = -1; b.advT = 0;
+    if (b.state !== "firing") b.state = "stand";
+    layoutBat(b);
+  });
+  sfx.tramp(panX(ch[0].x));
+  say(callFor(ch) + (form === "square" ? "Form square! Prepare for cavalry!" : form === "column" ? "Form column!" : "Form line!"));
+  const tip = form === "square" ? " Horses won't charge a square, but cannonballs plough through it." : form === "column" ? " Only the front men can shoot, but a column charges hard." : " Every musket can fire again.";
+  msg(namesOf(ch) + " form " + FORMNAME[form].toLowerCase() + "." + tip, "");
 }
 function breakBat(bat) {
   if (bat.state === "broken") return;
-  bat.state = "broken"; bat.fireAt = -1; bat.flee = 0;
+  bat.state = "broken"; bat.fireAt = -1; bat.flee = 0; bat.advT = 0;
   banner(bat.def.short.toUpperCase() + " RUN!", "#ff7b7b", 46);
   msg("The " + bat.def.name + " have lost their nerve and run away!", "bad");
   liveBats().forEach(b => b.disc -= 10 * vetMul());
@@ -818,43 +1046,54 @@ function routCol(col, charged) {
   msg(col.name + " breaks and runs back towards Quebec!", "good");
   activeCols().forEach(c => { c.morale -= 12; });
   liveBats().forEach(b => b.disc = Math.min(100, b.disc + 10));
+  if (G.reservesLeft > 0) { G.reservesLeft--; G.reserveQ.push({ at: G.t + 4.5, x: col.home }); }
+}
+function spawnReserve(x) {
+  const D = G.D, col = makeCol({ name: "The reserve column", x, delay: 0 }, D, { d: 575, rows: Math.max(4, D.rows - 1), morale: D.morale * 0.9, state: "advance", reserve: true });
+  G.cols.push(col);
+  banner("THE FRENCH RESERVE!", "#fff", 50);
+  say("En avant! Pour le Roi!", { fr: true, pitch: 0.9, rate: 1.1, cut: false });
+  msg("Montcalm sends in his reserve! A fresh column marches out of the smoke. Reload and re-form!", "bad");
 }
 function frenchVolley(col, frac) {
-  const r = col.d - G.b, n = Math.round(aliveC(col) * frac);
+  const r = colRange(col), n = Math.round(aliveC(col) * frac);
   const p = 0.3 * Math.exp(-r / 60) * G.D.fire;
-  let hits = 0; for (let i = 0; i < n; i++) if (Math.random() < p) hits++;
+  let hits = 0; for (let i = 0; i < n; i++) if (RNG() < p) hits++;
   const near = liveBats().sort((a, b) => Math.abs(a.x - col.x) - Math.abs(b.x - col.x)).slice(0, 2);
   if (!near.length) return;
   for (let i = 0; i < hits; i++) {
     const bat = pick(near);
-    if (isLying(bat) && Math.random() < 0.75) continue;
+    if (isLying(bat) && RNG() < 0.75) continue;
     hitBat(bat, 3);
+    if (bat.form !== "line" && RNG() < 0.4) hitBat(bat, 2); // packed men make an easy target
   }
   near.forEach(b => b.disc -= 3 * frac * vetMul() * G.D.drain);
   col.flashT = 0.15; col.flashFrac = frac;
   for (let i = 0; i < Math.max(1, Math.round(4 * frac)); i++) G.smoke.push({ x: col.x + rnd(-45, 45), d: col.d - rnd(1, 4), r: rnd(8, 15), a: rnd(0.4, 0.6), life: rnd(3, 5), age: 0, vx: rnd(2, 6) });
-  if (frac >= 0.5) sfx.volley(2); else sfx.pop(0.12);
+  if (frac >= 0.5) sfx.volley(2); else sfx.pop(0.12, panX(col.x));
 }
 function fireCannon() {
   const live = liveBats(); if (!live.length) return;
-  const bat = pick(live), gx = pick([400, 600]), alive = bat.figs.filter(f => f.alive);
-  if (!alive.length) return;
-  const tx = bat.x + pick(alive).ox + rnd(-2, 2);
-  G.balls.push({ gx, bat, t: 0, dur: 1.2, tx });
+  const dense = live.filter(b => b.form !== "line");
+  const bat = dense.length && RNG() < 0.6 ? pick(dense) : pick(live);
+  const alive = bat.figs.filter(f => f.alive); if (!alive.length) return;
+  const gx = pick([400, 600]), tx = bat.x + pick(alive).tx + rnd(-2, 2);
+  G.balls.push({ gx, bat, t: 0, dur: 1.2, tx, d: bat.d });
   G.smoke.push({ x: gx, d: 548, r: 16, a: 0.8, life: 4, age: 0, vx: 4 });
   sfx.boom(panX(gx)); sfx.whistle(1.15, panX(tx));
 }
-// a roundshot ploughs through a file: the front man and the man behind him, sometimes bouncing on into a third
+// a roundshot ploughs through a file: the front man and the men behind him
 function cannonStrike(ball) {
   const bat = ball.bat, lx = ball.tx - bat.x;
   sfx.thud(panX(ball.tx));
   if (bat.state === "broken" || G.result) return;
-  let near = bat.figs.filter(f => f.alive && Math.abs(f.ox - lx) < 5).sort((a, b) => Math.abs(a.ox - lx) - Math.abs(b.ox - lx)).slice(0, 2);
-  if (Math.random() < 0.35) { const extra = bat.figs.filter(f => f.alive && near.indexOf(f) < 0 && Math.abs(f.ox - lx) < 13); if (extra.length) near.push(pick(extra)); }
-  if (isLying(bat)) near = Math.random() < 0.35 ? near.slice(0, 1) : [];
+  const cap = bat.form === "line" ? 2 : 4;
+  let near = bat.figs.filter(f => f.alive && Math.abs(f.tx - lx) < 4.5).sort((a, b) => a.tr - b.tr).slice(0, cap);
+  if (RNG() < 0.35) { const extra = bat.figs.filter(f => f.alive && near.indexOf(f) < 0 && Math.abs(f.tx - lx) < 13); if (extra.length) near.push(pick(extra)); }
+  if (isLying(bat)) near = RNG() < 0.35 ? near.slice(0, 1) : [];
   near.forEach(f => hitFig(bat, f, 5));
-  if (near.length) { float(ball.tx, G.b, "-" + near.length * 10 + " men"); scream(0.22, panX(ball.tx), 0.05); }
-  else float(ball.tx, G.b, isLying(bat) ? "skipped over!" : "missed!", "#cfe8ff");
+  if (near.length) { float(ball.tx, bat.d, "-" + near.length * 10 + " men"); scream(0.22, panX(ball.tx), 0.05); }
+  else float(ball.tx, bat.d, isLying(bat) ? "skipped over!" : "missed!", "#cfe8ff");
 }
 // two British 6-pounders on the flanks fire roundshot into the French columns
 function stepGuns(dt) {
@@ -866,41 +1105,147 @@ function stepGuns(dt) {
       sfx.thud(panX(col.x) * 0.7);
       if (col.state === "rout" || col.state === "gone") continue;
       const alive = col.figs.filter(f => f.alive); if (!alive.length) continue;
-      const file = pick(alive).c, n = 1 + Math.floor(Math.random() * 3);
+      const file = pick(alive).c, n = 1 + Math.floor(RNG() * 3);
       const lane = alive.filter(f => f.c === file).sort((a, b) => a.r - b.r).slice(0, n);
       const spread = 1 + col.disorder * 0.6;
       lane.forEach(f => { f.alive = false; G.bodies.push({ x: col.x + f.c * 9 * spread + f.jx * col.disorder * 6, d: col.d + f.r * 1.6, py: 0, kind: f.mil ? "mil" : "fr", rot: rnd(-0.6, 0.6) }); });
       G.killed += lane.length; col.morale -= 3 + lane.length * 1.5;
-      for (let i = 0; i < lane.length; i++) scream(rnd(0.07, 0.12), panX(col.x), rnd(0, 0.3));
+      for (let i = 0; i < lane.length; i++) scream(vrnd(0.07, 0.12), panX(col.x), vrnd(0, 0.3));
       float(col.x + file * 9 * spread, col.d, "-" + lane.length * 10, "#ffd166");
       for (let i = 0; i < 5; i++) G.smoke.push({ x: col.x + file * 9 * spread + rnd(-8, 8), d: col.d + rnd(0, 6), r: rnd(5, 10), a: 0.5, life: 1.4, age: 0, vx: rnd(-6, 6), dust: true });
     }
   }
   G.shots = G.shots.filter(sh => sh.t < sh.dur + 0.1);
-  if (G.phase !== "battle" || G.result || G.charging) return;
+  if (G.phase !== "battle" || G.result) return;
   for (const g of G.guns) {
     g.cd -= dt; if (g.cd > 0) continue;
-    const tgt = activeCols().filter(c => c.state !== "form" && c.d - G.b <= 430 && c.d - G.b >= 55);
+    const tgt = activeCols().filter(c => c.state !== "form" && c.d - 3 <= 430 && colRange(c) >= 55);
     if (!tgt.length) { g.cd = 1; continue; }
     const col = tgt.sort((a, b) => Math.abs(a.x - g.x) - Math.abs(b.x - g.x))[0];
     g.cd = rnd(7, 9.5); g.recoil = 0.35;
-    G.shots.push({ g, col, t: 0, dur: 0.45 + (col.d - G.b) / 900, fx: g.x, fd: G.b + 3 });
-    for (let i = 0; i < 6; i++) G.smoke.push({ x: g.x + rnd(-14, 14), d: G.b + rnd(4, 9), r: rnd(10, 20), a: 0.75, life: rnd(3, 5), age: 0, vx: rnd(2, 6) });
+    G.shots.push({ g, col, t: 0, dur: 0.45 + (col.d - 3) / 900, fx: g.x, fd: 3 });
+    for (let i = 0; i < 6; i++) G.smoke.push({ x: g.x + rnd(-14, 14), d: rnd(4, 9), r: rnd(10, 20), a: 0.75, life: rnd(3, 5), age: 0, vx: rnd(2, 6) });
     sfx.boom(panX(g.x), true);
   }
+}
+
+// ---------- cavalry ----------
+function spawnCav() {
+  const live = liveBats().slice().sort((a, b) => a.x - b.x); if (!live.length) return;
+  const side = RNG() < 0.5 ? 0 : 1, target = side ? live[live.length - 1] : live[0];
+  const cav = { side, target, n: 12, n0: 12, lost: 0, state: "ride", t: 0, dur: G.D.cavWarn + 2, x0: side ? 1020 : -20, d0: target.d + 150, x: 0, d: 0, figs: [] };
+  for (let i = 0; i < 12; i++) cav.figs.push({ ox: (i % 4 - 1.5) * 11 + rnd(-2, 2), od: Math.floor(i / 4) * 6 + rnd(-1.5, 1.5), ph: rnd(0, 6) });
+  cav.x = cav.x0; cav.d = cav.d0;
+  G.cav.push(cav);
+  banner("CAVALRY ON THE " + (side ? "RIGHT" : "LEFT") + "!", "#ff9b6b", 50);
+  msg("French horsemen are riding at the " + target.def.short + "! Tap them and FORM SQUARE, or shoot enough horses to turn them back.", "bad");
+  say("Cavalry! Cavalry on the " + (side ? "right" : "left") + "!", { cut: false });
+  trumpet(0, side ? 0.9 : -0.9); whinny(side ? 0.9 : -0.9);
+}
+function cavEnd(cav) { const t = cav.target; return [t.x + (cav.side ? 1 : -1) * (t.form === "square" ? 28 : 66), t.d + 3]; }
+function stepCav(dt) {
+  for (const cav of G.cav) {
+    if (cav.state === "gone") continue;
+    cav.t += dt;
+    if (cav.state === "ride") {
+      if (cav.target.state === "broken") {
+        const live = liveBats().slice().sort((a, b) => a.x - b.x);
+        if (!live.length) { cav.state = "flee"; cav.t = 0; continue; }
+        cav.target = cav.side ? live[live.length - 1] : live[0];
+      }
+      const [ex, ed] = cavEnd(cav), k = Math.min(1, cav.t / cav.dur), e = k < 0.6 ? k * 0.75 : 0.45 + (k - 0.6) / 0.4 * 0.55;
+      cav.x = cav.x0 + (ex - cav.x0) * e; cav.d = cav.d0 + (ed - cav.d0) * e;
+      const t = cav.target;
+      if (t.form !== "square" || t.formT > 0) t.disc -= 4 * dt * vetMul() * G.D.drain; else t.disc = Math.min(100, t.disc + dt);
+      if (cav.n <= cav.n0 * 0.5) {
+        cav.state = "flee"; cav.t = 0; G.cavBeaten++;
+        banner("THE HORSEMEN TURN BACK!", "#ffd166", 46);
+        msg("Your musketry emptied too many saddles. The French cavalry turn and gallop away!", "good");
+        t.disc = Math.min(100, t.disc + 12); huzzah(0.5);
+        continue;
+      }
+      if (k >= 1) cavContact(cav);
+    } else if (cav.state === "flee") {
+      cav.x += (cav.side ? 1 : -1) * 140 * dt; cav.d += 30 * dt;
+      if (cav.x < -90 || cav.x > 1090) cav.state = "gone";
+    }
+  }
+  if (!SILENT && G.cav.some(c => c.state === "ride" || c.state === "flee")) {
+    const c = G.cav.find(c => c.state === "ride") || G.cav.find(c => c.state === "flee");
+    if (Math.floor(G.t * 9) !== Math.floor((G.t - dt) * 9)) hoof(c.state === "ride" ? 0.05 + 0.12 * Math.min(1, c.t / c.dur) : 0.04, panX(c.x));
+  }
+}
+function cavContact(cav) {
+  const t = cav.target; cav.state = "flee"; cav.t = 0;
+  dramaAt(t.x, t.d, 1.4, 1.3);
+  for (let i = 0; i < 6; i++) setTimeout(() => sfx.steel(panX(t.x)), i * 90);
+  whinny(panX(t.x));
+  if (t.form === "square" && t.formT <= 0) {
+    const k = Math.min(cav.n, 3 + Math.floor(RNG() * 2)); cav.n -= k; cav.lost += k;
+    t.disc = Math.min(100, t.disc + 10); G.cavBeaten++;
+    banner("THE SQUARE HOLDS!", "#ffd166", 54);
+    msg("The horses will not charge a wall of bayonets. The " + t.def.short + " square holds! Now FORM LINE again before the columns arrive.", "good");
+    huzzah(0.6, 0.3);
+  } else {
+    const part = t.form === "square" ? 0.1 : isLying(t) ? 0.16 : 0.25;
+    const k = Math.round(aliveB(t) * part);
+    for (let i = 0; i < k; i++) { const al = t.figs.filter(f => f.alive); if (!al.length) break; hitFig(t, pick(al), 0); }
+    t.disc -= (t.form === "square" ? 15 : 45) * vetMul();
+    liveBats().forEach(b => { if (b !== t && Math.abs(b.x - t.x) < 200) b.disc -= 12 * vetMul(); });
+    cav.n = Math.max(0, cav.n - 1); cav.lost++;
+    float(t.x, t.d, "-" + k * 10 + " men");
+    banner(t.form === "square" ? "SQUARE NOT READY!" : "RIDDEN DOWN!", "#ff7b7b", 54);
+    msg("The horsemen crash into the " + t.def.short + "! " + (t.form === "square" ? "The square was still forming." : "Next time pick them and FORM SQUARE before they arrive."), "bad");
+  }
+}
+
+// ---------- commands (recorded for the replay) ----------
+function selList() { return SEL ? [...SEL].sort((a, b) => a - b) : allIdx(); }
+function cmd(c, a) {
+  if (!G || REPLAY || G.result) return;
+  if (G.phase === "intro") { G.queue.push({ c: "skip" }); if (c === "skip") return; }
+  G.queue.push({ c, a, s: selList() });
+}
+function exec(o) {
+  if (G.result && o.c !== "skip") return;
+  switch (o.c) {
+    case "skip": G.introT = 0; break;
+    case "lie": orderLie(o.s); break;
+    case "ready": orderReady(o.s); break;
+    case "fire": orderFire(o.s); break;
+    case "steady": orderSteady(); break;
+    case "drill": orderDrill(); break;
+    case "adv": orderAdvance(o.s); break;
+    case "charge": orderCharge(o.s); break;
+    case "form": orderForm(o.s, o.a); break;
+  }
+}
+function tick() {
+  G.n++;
+  if (REPLAY) {
+    const cm = REPLAY.rep.cmds;
+    while (REPLAY.ci < cm.length && cm[REPLAY.ci].n <= G.n) exec(cm[REPLAY.ci++]);
+  } else if (G.queue.length) {
+    const q = G.queue; G.queue = [];
+    for (const o of q) { const rec = { n: G.n, c: o.c }; if (o.a) rec.a = o.a; if (o.s) rec.s = o.s; G.log.push(rec); exec(rec); }
+  }
+  step(DT);
 }
 
 // ---------- step ----------
 function paused() { return !$("startOv").hidden || !$("upOv").hidden || !$("endOv").hidden; }
 function step(dt) {
-  if (!G) return;
-  stepFx(dt);
-  if (paused()) return;
   G.t += dt;
   G.steadyCd = Math.max(0, G.steadyCd - dt);
   G.drillCd = Math.max(0, G.drillCd - dt);
-  G.drillPh += dt / (0.85 - 0.04 * S.up.drill);
-
+  G.drillPh += dt / (0.85 - 0.04 * UP.drill);
+  stepFx(dt);
+  if (G.n === 1) { fife(0.3); ambience(true); }
+  if (G.phase === "intro") {
+    G.introT -= dt;
+    if (G.introT <= 0) { G.phase = "wait"; msg("French sharpshooters are firing from the bushes and their cannon are booming. Order LIE DOWN and wait for the attack.", ""); }
+    return;
+  }
   if (G.phase === "wait") {
     G.waitT -= dt;
     if (G.waitT <= 0) {
@@ -910,28 +1255,19 @@ function step(dt) {
       msg("The French drums beat the charge! Their columns are coming. Stand up and HOLD YOUR FIRE...", "bad");
     }
   }
-  if (G.advT > 0) {
-    G.advT -= dt;
-    G.b = G.advFrom + 15 * (1 - Math.max(0, G.advT) / 2.5);
-    if (G.advT <= 0) { G.bats.forEach(b => b.smokeT = 0); msg("Through the smoke! A clear shot at the French.", "good"); }
-  }
-  if (G.charging) {
-    G.chargeT += dt;
-    if (!G.chargeRun) { if (G.result || !activeCols().length) G.charging = false; else if (G.chargeT >= 0) startChargeRun(); }
-    else {
-      const k = Math.min(1, G.chargeT / 1.3);
-      G.b = G.chargeFrom + (G.chargeTo - G.chargeFrom) * k;
-      if (k >= 1) resolveCharge();
-    }
-  }
+  if (G.bayoAt && G.t >= G.bayoAt) { G.bayoAt = 0; sfx.clicks(); G.bats.forEach(b => { if (b.state === "fixing") b.bayo = true; }); }
 
   stepBats(dt);
   stepCols(dt);
+  stepCav(dt);
   stepEnemyFire(dt);
   stepGuns(dt);
+  for (const q of G.reserveQ) if (G.t >= q.at && !q.done) { q.done = true; spawnReserve(q.x); }
+  G.reserveQ = G.reserveQ.filter(q => !q.done);
+  if (G.phase === "battle" && G.cavQ.length && !G.result && minRange() < G.cavQ[0]) { G.cavQ.shift(); spawnCav(); }
 
   if (G.volley && G.t > G.volley.until) { evaluateVolley(); G.volley = null; }
-  if (G.soundQ) { sfx.volley(G.soundQ); G.shakeT = Math.min(0.5, 0.08 * G.soundQ + 0.05); G.soundQ = 0; }
+  if (G.soundQ) { sfx.volley(G.soundQ); G.shakeT = Math.min(0.5, 0.08 * G.soundQ + 0.05); FLASH = Math.min(1, 0.3 + 0.15 * G.soundQ); G.soundQ = 0; }
 
   // drums while any column is advancing
   const adv = G.cols.filter(c => c.state === "advance" || c.state === "halt");
@@ -948,31 +1284,53 @@ function step(dt) {
 
   // end of battle
   if (!G.result && G.phase === "battle") {
-    if (!activeCols().length) {
-      G.result = "win"; G.endT = 3.2;
+    if (!activeCols().length && !G.reserveQ.length) {
+      G.result = "win"; G.endT = 6.2;
       banner("VICTORY!", "#ffd166", 90);
       msg("Huzzah! The French army is running back to Quebec. The Plains of Abraham are yours!", "good");
       say("Three cheers, lads!", { cut: false });
       huzzah(0.8, 1.2); huzzah(0.8, 2.6); huzzah(0.9, 4.0);
+      G.wolfe.at = G.t + 2.2;
     } else if (brokenCount() >= 3) {
-      G.result = "lose"; G.endT = 3.2;
+      G.result = "lose"; G.endT = 3.4;
       banner("THE LINE IS BROKEN", "#ff7b7b", 56);
       msg("Too many battalions ran away. The French have won the day.", "bad");
     }
   }
-  if (G.result && !G.ended) { G.endT -= dt; if (G.endT <= 0) { G.ended = true; showEnd(); } }
+  if (G.wolfe.at && !G.wolfe.hit && G.t >= G.wolfe.at) {
+    G.wolfe.hit = true;
+    dramaAt(G.wolfe.x + 20, G.wolfe.d, 2.6, 1.7);
+    banner("GENERAL WOLFE IS HIT!", "#ffb0b0", 50);
+    msg("\"They run! See how they run!\" \"Who runs?\" \"The enemy, sir!\" \"Now, God be praised, I will die in peace.\" General Wolfe falls at the moment of victory.", "");
+    say("They run! See how they run!", { cut: false, pitch: 0.9 });
+  }
+  if (G.result && !G.ended) { G.endT -= dt; if (G.endT <= 0) { G.ended = true; ambience(false); if (!REPLAY) showEnd(); } }
 }
 
 function stepBats(dt) {
-  const r = minRange();
   for (const bat of G.bats) {
-    bat.figs.forEach(f => { if (f.flash > 0) f.flash -= dt; });
+    const k = Math.min(1, dt * 3.2);
+    for (const f of bat.figs) { if (f.flash > 0) f.flash -= dt; if (f.alive) { f.cx += (f.tx - f.cx) * k; f.cr += (f.tr - f.cr) * k; } }
     if (bat.state === "broken") { bat.flee += dt; continue; }
+    if (bat.dirty) { bat.dirty = false; layoutBat(bat); }
     bat.st -= dt;
+    if (bat.formT > 0) bat.formT -= dt;
     if (bat.state === "lying" && bat.st <= 0) bat.state = "lie";
     if (bat.state === "rising" && bat.st <= 0) bat.state = "stand";
     if (bat.state === "presenting" && bat.st <= 0) bat.state = "present";
     if (bat.state === "firing" && bat.st <= 0) bat.state = "stand";
+    if (bat.state === "fixing" && bat.st <= 0) startRun(bat);
+    if (bat.state === "charge") {
+      bat.chT += dt;
+      const p = Math.min(1, bat.chT / bat.chDur);
+      bat.d = bat.chFrom + (bat.chTo - bat.chFrom) * p;
+      if (p >= 1) resolveBatCharge(bat);
+    }
+    if (bat.advT > 0) {
+      bat.advT -= dt;
+      bat.d = bat.advFrom + bat.advDist * (1 - Math.max(0, bat.advT) / bat.advDur);
+      if (bat.advT <= 0) { bat.smokeT = 0; if (G.t - G.advMsgT > 1) { G.advMsgT = G.t; msg("Through the smoke! A clear shot at the French.", "good"); } }
+    }
     if (bat.reloading) {
       bat.reload += dt / reloadTime();
       if (bat.reload >= 1) { bat.reloading = false; bat.loaded = true; bat.reload = 0; }
@@ -980,11 +1338,12 @@ function stepBats(dt) {
     bat.smokeT = Math.max(0, bat.smokeT - dt);
     if (bat.fireAt >= 0 && G.t >= bat.fireAt) {
       bat.fireAt = -1;
-      if (bat.loaded && (isUp(bat))) fireBat(bat, bat.ordered);
+      if (bat.loaded && isUp(bat) && bat.formT <= 0) fireBat(bat, bat.ordered);
       bat.ordered = false;
     }
     if (G.result) continue;
     // discipline
+    const r = rangeBat(bat);
     let dd = 0;
     if (G.phase === "battle" && r < 130 && bat.loaded && isUp(bat) && bat.state !== "firing") dd -= (130 - r) / 130 * 3.2 * G.D.drain * vetMul();
     if (bat.state === "present") dd -= 1.2 * G.D.drain * vetMul();
@@ -992,28 +1351,40 @@ function stepBats(dt) {
     if (G.phase === "wait" && isLying(bat)) dd += 0.6;
     bat.disc = clamp(bat.disc + dd * dt, 0, 100);
     // nervous men fire without orders
-    if (G.phase === "battle" && !G.charging && bat.disc < 35 && r < 170 && bat.loaded && bat.fireAt < 0 && (bat.state === "stand" || bat.state === "present")) {
-      if (Math.random() < (35 - bat.disc) / 35 * 0.5 * dt) fireBat(bat, false);
+    if (G.phase === "battle" && bat.disc < 35 && r < 170 && bat.loaded && bat.fireAt < 0 && bat.formT <= 0 && bat.advT <= 0 && (bat.state === "stand" || bat.state === "present")) {
+      if (RNG() < (35 - bat.disc) / 35 * 0.5 * dt) fireBat(bat, false);
     }
-    if (bat.disc <= 0 || aliveB(bat) < bat.figs.length * 0.25) breakBat(bat);
+    if (bat.disc <= 0 || aliveB(bat) < bat.n0 * 0.25) breakBat(bat);
   }
 }
 
 function stepCols(dt) {
   for (const col of G.cols) {
-    const r = col.d - G.b;
     if (col.flashT > 0) col.flashT -= dt;
+    if (col.state === "gone") continue;
+    const front = laneFront(col), r = col.d - front;
     if (col.state === "form") {
       if (G.phase === "battle") { col.delay -= dt; if (col.delay <= 0) col.state = "advance"; }
     } else if (col.state === "advance") {
+      // a clever enemy heads for the weakest battalion in front of it
+      if (r > 60) {
+        let best = null, bs = 1e9;
+        for (const b of liveBats()) {
+          if (Math.abs(b.x - col.home) > 230) continue;
+          const sc = b.disc + aliveB(b) / b.n0 * 60 - (b.form !== "line" ? 25 : 0) + Math.abs(b.x - col.x) * 0.05;
+          if (sc < bs) { bs = sc; best = b; }
+        }
+        if (best) col.x = clamp(col.x + clamp(best.x - col.x, -1, 1) * 9 * G.D.aim * dt, col.home - 130, col.home + 130);
+      }
       if (r > 7.5) { col.d -= G.D.speed * (1 - 0.35 * col.disorder) * (r > 220 ? 2 : 1) * dt; col.contact = 0; }
       else {
-        col.d = G.b + 7;
+        col.d = front + 7;
         col.contact += dt;
         // hand-to-hand at the line
-        if (Math.random() < 1.6 * dt) { const fb = liveBats().filter(b => Math.abs(b.x - col.x) < 150); if (fb.length) hitBat(pick(fb), 3); }
-        liveBats().filter(b => Math.abs(b.x - col.x) < 150).forEach(b => b.disc -= 7 * dt * vetMul() * G.D.drain);
-        if (Math.random() < 0.6 * dt) killCol(col, 1);
+        const lane = liveBats().filter(b => Math.abs(b.x - col.x) < 150 && front - b.d < 12);
+        if (RNG() < 1.6 * dt && lane.length) { const b = pick(lane); hitBat(b, 3); if (b.form === "square") hitBat(b, 3); }
+        lane.forEach(b => b.disc -= 7 * dt * vetMul() * G.D.drain);
+        if (RNG() < 0.6 * dt) killCol(col, 1);
         col.morale -= 2 * dt;
         if (col.contact > 0 && col.contact - dt <= 0) msg(col.name + " has reached your line! Fire point-blank or charge!", "bad");
       }
@@ -1021,22 +1392,26 @@ function stepCols(dt) {
         col.state = "halt"; col.halt = 1.6; col.fired = true; col.disorder = 0.6;
         frenchVolley(col, 1);
         if (!G.firstFrench) { G.firstFrench = true; msg("The French fire first, from far away! Their ranks get jumbled as the militia drop down to reload. HOLD YOUR FIRE...", "bad"); }
-      } else if (col.fired && r < 140 && Math.random() < 1.2 * dt) frenchVolley(col, 0.12);
+      } else if (col.fired && r < 140 && RNG() < 1.2 * dt) frenchVolley(col, 0.12);
       if (col.morale < 30) { col.state = "waver"; col.wavered = true; msg(col.name + " is wavering! Volley again or CHARGE!", "good"); }
     } else if (col.state === "halt") {
       col.halt -= dt; if (col.halt <= 0) col.state = "advance";
     } else if (col.state === "waver") {
-      if (Math.random() < 0.8 * dt) frenchVolley(col, 0.1);
+      if (RNG() < 0.8 * dt) frenchVolley(col, 0.1);
       col.morale += 2.2 * dt;
       if (col.morale >= 42) { col.state = "advance"; msg(col.name + " has rallied and comes on again!", "bad"); }
     } else if (col.state === "rout") {
       col.routT += dt; col.d += 26 * dt;
-      if (col.d - G.b > 420) col.state = "gone";
+      if (col.d - lineD() > 420) col.state = "gone";
     }
     if (col.state !== "rout" && col.state !== "gone" && col.state !== "form") {
       if (col.morale <= 12 || aliveC(col) < col.figs.length * 0.3) routCol(col, false);
     }
   }
+  // Montcalm rides behind his centre
+  const lead = G.cols.find(c => c.state !== "gone" && c.state !== "rout" && !c.reserve) || G.cols.find(c => c.state !== "gone");
+  if (lead) { G.montcalm.shown = true; const tx = lead.x + 46, td = lead.d + 14; G.montcalm.x += (tx - G.montcalm.x) * Math.min(1, dt * 1.5); G.montcalm.d += (td - G.montcalm.d) * Math.min(1, dt * 1.5); }
+  else G.montcalm.shown = false;
 }
 
 function stepEnemyFire(dt) {
@@ -1045,16 +1420,16 @@ function stepEnemyFire(dt) {
   G.skVis -= dt;
   if (G.skVis <= 0) {
     G.skVis = rnd(0.25, 0.8);
-    const side = Math.random() < 0.5 ? 0 : 1, d = rnd(30, 330);
+    const side = RNG() < 0.5 ? 0 : 1, d = rnd(30, 330);
     G.flankPuffs.push({ x: side ? rnd(935, 975) : rnd(25, 65), d, age: 0 });
-    if (Math.random() < 0.4) sfx.pop(0.05);
+    if (Math.random() < 0.4) sfx.pop(0.05, side ? 0.9 : -0.9);
   }
   const skRate = G.D.sk * (G.phase === "battle" ? 0.6 : 1.6);
-  if (Math.random() < skRate * dt) {
+  if (RNG() < skRate * dt) {
     const live = liveBats();
     if (live.length) {
-      const bat = Math.random() < 0.5 ? (Math.random() < 0.5 ? live[0] : live[live.length - 1]) : pick(live);
-      if (!(isLying(bat) && Math.random() < 0.75)) hitBat(bat, 2.5);
+      const bat = RNG() < 0.5 ? (RNG() < 0.5 ? live[0] : live[live.length - 1]) : pick(live);
+      if (!(isLying(bat) && RNG() < 0.75)) hitBat(bat, 2.5);
     }
   }
   // cannon
@@ -1064,7 +1439,7 @@ function stepEnemyFire(dt) {
   }
   if (G.phase === "wait") {
     G.sayWait -= dt;
-    if (G.sayWait <= 0 && liveBats().some(isUp) && G.t > 2) { G.sayWait = 6; msg("Sharpshooters are firing from the bushes! Order LIE DOWN to save your men.", "bad"); }
+    if (G.sayWait <= 0 && liveBats().some(isUp) && G.t > 7) { G.sayWait = 6; msg("Sharpshooters are firing from the bushes! Order LIE DOWN to save your men.", "bad"); }
   }
 }
 
@@ -1076,26 +1451,30 @@ function evaluateVolley() {
   const kills = v.shots.reduce((a, s) => a + s.kills, 0);
   const all = liveBats().length;
   G.volleys++;
-  let shock = 0, text, color, note;
+  let shock = 0, text, color, note, good = false;
   const perfect = sync >= all && all >= 4 && range <= 50;
-  if (range <= 75 && sync >= 3) shock = sync * 3.5 * (range <= 50 ? 1.5 : 1) + (perfect ? 15 : 0);
+  if (range <= 75 && sync >= 2) shock = sync * 3.5 * (range <= 50 ? 1.5 : 1) + (perfect ? 15 : 0);
   if (perfect) {
-    G.perfects++; text = "PERFECT VOLLEY!"; color = "#ffd166";
+    G.perfects++; text = "PERFECT VOLLEY!"; color = "#ffd166"; good = true;
     note = "\"The most perfect volley ever fired on battlefield!\" " + kills * 10 + " French soldiers fall at " + Math.round(range) + " yards.";
     liveBats().forEach(b => b.disc = Math.min(100, b.disc + 15));
+    SLOWT = 1.5; dramaAt(500, lineD() + 30, 1.9, 1.3);
+    huzzah(0.55, 0.9);
   } else if (range > 110) {
     text = "WASTED!"; color = "#ff9b9b"; note = "Fired at " + Math.round(range) + " yards: far too far. Almost every ball missed and the French cheer! Wait until they are close.";
   } else if (sync >= 4 && range <= 75) {
-    G.crashing++; text = "CRASHING VOLLEY!"; color = "#fff"; note = sync + " battalions fired together at " + Math.round(range) + " yards. " + kills * 10 + " French soldiers hit.";
+    G.crashing++; text = "CRASHING VOLLEY!"; color = "#fff"; good = true; note = sync + " battalions fired together at " + Math.round(range) + " yards. " + kills * 10 + " French soldiers hit.";
+  } else if (v.subset && sync >= v.n && range <= 75) {
+    text = "STEADY VOLLEY"; color = "#fff"; good = true; note = v.names.join(" and ") + " fired together at " + Math.round(range) + " yards. " + kills * 10 + " French soldiers hit.";
   } else if (range <= 75) {
     text = "RAGGED VOLLEY"; color = "#ffcf9b"; note = "Only " + sync + " battalion" + (sync > 1 ? "s" : "") + " fired together. MAKE READY first and keep discipline high for a crashing volley.";
   } else {
     text = "TOO EARLY"; color = "#ffcf9b"; note = "Fired at " + Math.round(range) + " yards. Closer is deadlier: about 40 yards is best.";
   }
-  if (shock) activeCols().forEach(c => { if (c.d - G.b < 160) c.morale -= shock; });
+  if (shock) activeCols().forEach(c => { if (colRange(c) < 160) c.morale -= shock; });
   if (range > 110) activeCols().forEach(c => { c.morale += 8; }); // the French cheer when a volley misses
   banner(text, color, perfect ? 70 : 52);
-  msg(note, perfect || text === "CRASHING VOLLEY!" ? "good" : "bad");
+  msg(note, good ? "good" : "bad");
 }
 
 function stepFx(dt) {
@@ -1111,39 +1490,85 @@ function stepFx(dt) {
   if (G.shakeT > 0) G.shakeT -= dt;
   for (const f of G.floats) f.t += dt;
   G.floats = G.floats.filter(f => f.t < 1.6);
-  if (paused()) return;
   for (const ball of G.balls) {
     ball.t += dt;
     if (ball.t >= ball.dur && !ball.done) {
       ball.done = true;
       cannonStrike(ball);
-      for (let i = 0; i < 4; i++) G.smoke.push({ x: ball.tx + rnd(-10, 10), d: G.b + rnd(-2, 3), r: rnd(5, 10), a: 0.5, life: 1.5, age: 0, vx: rnd(-6, 6), dust: true });
+      for (let i = 0; i < 4; i++) G.smoke.push({ x: ball.tx + rnd(-10, 10), d: ball.bat.d + rnd(-2, 3), r: rnd(5, 10), a: 0.5, life: 1.5, age: 0, vx: rnd(-6, 6), dust: true });
     }
   }
   G.balls = G.balls.filter(b => b.t < b.dur + 0.6);
+}
+
+// ---------- camera and drama (looks only: never changes the battle) ----------
+const CAM = { x: W / 2, y: H / 2, z: 1 };
+let DRAMA = null, SLOWT = 0, FLASH = 0, CINE = 0, SPEED = 1;
+function dramaAt(x, d, secs, z) {
+  if (SILENT || (REPLAY && REPLAY.speed >= 4)) return;
+  DRAMA = { t: secs, x: xOf(x, d), y: yOf(d) - 40, z };
+}
+function clampCam() {
+  const hw = W / (2 * CAM.z), hh = H / (2 * CAM.z);
+  CAM.x = clamp(CAM.x, hw, W - hw); CAM.y = clamp(CAM.y, hh, H - hh);
+}
+function camStep(rdt) {
+  FLASH = Math.max(0, FLASH - rdt * 3);
+  if (!G) return;
+  if (G.phase === "intro") {
+    const p = clamp(1 - G.introT / 5, 0, 1), e = p * p * (3 - 2 * p);
+    CAM.x = 500; CAM.y = 590 + (H / 2 - 590) * e; CAM.z = 2.4 + (1 - 2.4) * e;
+    CINE = 1 - clamp((p - 0.82) / 0.18, 0, 1);
+    clampCam(); return;
+  }
+  let tx = W / 2, ty = H / 2, tz = 1, cine = 0, rate = 2.4;
+  if (DRAMA) {
+    DRAMA.t -= rdt;
+    if (DRAMA.t <= 0) DRAMA = null; else { tx = DRAMA.x; ty = DRAMA.y; tz = DRAMA.z; cine = 1; rate = 3.2; }
+  }
+  if (!DRAMA && !G.result) {
+    const ch = G.bats.filter(b => b.state === "charge");
+    if (ch.length && !(REPLAY && REPLAY.speed >= 4)) {
+      const ax = ch.reduce((a, b) => a + b.x, 0) / ch.length, ad = ch.reduce((a, b) => a + b.d, 0) / ch.length;
+      tx = xOf(ax, ad); ty = yOf(ad) - 60; tz = 1.2; cine = 0.6;
+    }
+  }
+  const k = 1 - Math.exp(-rate * rdt);
+  CAM.x += (tx - CAM.x) * k; CAM.y += (ty - CAM.y) * k; CAM.z += (tz - CAM.z) * k;
+  CINE += (cine - CINE) * Math.min(1, rdt * 4);
+  clampCam();
 }
 
 // ---------- draw ----------
 function draw() {
   const k = cv.width / W;
   ctx.setTransform(k, 0, 0, k, 0, 0);
-  if (G && G.shakeT > 0) ctx.translate(rnd(-1, 1) * G.shakeT * 10, rnd(-1, 1) * G.shakeT * 6);
+  ctx.save();
+  ctx.translate(W / 2, H / 2); ctx.scale(CAM.z, CAM.z); ctx.translate(-CAM.x, -CAM.y);
+  if (G && G.shakeT > 0) ctx.translate(vrnd(-1, 1) * G.shakeT * 10, vrnd(-1, 1) * G.shakeT * 6);
   ctx.drawImage(BG, 0, 0, W, H);
+  if (G) drawWorld();
+  ctx.restore();
   if (!G) return;
-
-  // range ruler: where the French would be at each distance
-  ctx.font = "800 11px Nunito, sans-serif"; ctx.textAlign = "right";
-  const y40 = yOf(G.b + 50), y30 = yOf(G.b + 30);
-  ctx.fillStyle = "rgba(79,207,106,.18)"; ctx.fillRect(84, y40, 832, y30 - y40);
-  for (const m of [200, 100, 60, 40]) {
-    const y = yOf(G.b + m);
-    ctx.strokeStyle = m === 40 ? "rgba(120,255,140,.8)" : "rgba(255,255,255,.35)"; ctx.lineWidth = m === 40 ? 2 : 1;
-    ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(90, y); ctx.lineTo(910, y); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = m === 40 ? "#b8ffc4" : "rgba(255,255,255,.75)";
-    ctx.fillText(m + " yds", 912 + 36, y + 4);
+  if (FLASH > 0) { ctx.fillStyle = "rgba(255,228,170," + (FLASH * 0.17).toFixed(3) + ")"; ctx.fillRect(0, 0, W, H); }
+  if (CINE > 0.01) { ctx.fillStyle = "#000"; const h = 42 * CINE; ctx.fillRect(0, 0, W, h); ctx.fillRect(0, H - h, W, h); }
+  drawHUD();
+}
+function drawWorld() {
+  const ref = selRefD();
+  // range ruler: where the French would be at each distance from the battalions you are commanding
+  if (G.phase !== "intro") {
+    ctx.font = "800 11px Nunito, sans-serif"; ctx.textAlign = "right";
+    const y40 = yOf(ref + 50), y30 = yOf(ref + 30);
+    ctx.fillStyle = "rgba(79,207,106,.16)"; ctx.fillRect(84, y40, 832, y30 - y40);
+    for (const m of [200, 100, 60, 40]) {
+      const y = yOf(ref + m);
+      ctx.strokeStyle = m === 40 ? "rgba(120,255,140,.8)" : "rgba(255,255,255,.32)"; ctx.lineWidth = m === 40 ? 2 : 1;
+      ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(90, y); ctx.lineTo(910, y); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = m === 40 ? "#b8ffc4" : "rgba(255,255,255,.75)";
+      ctx.fillText(m + " yds", 948, y + 4);
+    }
   }
-
-  // bodies
   for (const b of G.bodies) drawBody(b);
 
   // French guns
@@ -1153,70 +1578,44 @@ function draw() {
     ctx.fillStyle = "#222"; ctx.fillRect(x - 2 * s, y - 9 * s, 4 * s, 7 * s);
     ctx.strokeStyle = "#5a4230"; ctx.lineWidth = 1.5 * s; ctx.beginPath(); ctx.arc(x - 6 * s, y - 2 * s, 3 * s, 0, 7); ctx.arc(x + 6 * s, y - 2 * s, 3 * s, 0, 7); ctx.stroke();
   }
-
-  // French columns: back rows first
-  for (const col of G.cols) {
-    if (col.state === "gone") continue;
-    const spread = 1 + col.disorder * 0.6;
-    const order = col.figs.filter(f => f.alive).sort((a, b) => b.r - a.r);
-    for (const f of order) {
-      let x = col.x + f.c * 9 * spread + f.jx * col.disorder * 6, d = col.d + f.r * 1.6;
-      let pose = "stand";
-      if (col.state === "rout") { x += f.jx * col.routT * 20; d += f.jy * col.routT * 6; }
-      const s = sOf(d), sx = xOf(x, d);
-      let sy = yOf(d);
-      if (col.state === "advance" || col.state === "rout") sy -= Math.abs(Math.sin(G.t * (col.state === "rout" ? 14 : 8) + f.ph)) * 1.5 * s;
-      if (col.state === "rout") { // backs turned
-        ctx.fillStyle = f.mil ? COAT.mil : COAT.fr; ctx.fillRect(sx - 3.6 * s, sy - 16 * s, 7.2 * s, 9 * s);
-        ctx.fillStyle = "#232323"; ctx.fillRect(sx - 3 * s, sy - 7 * s, 2.5 * s, 7 * s); ctx.fillRect(sx + 0.5 * s, sy - 7 * s, 2.5 * s, 7 * s);
-        ctx.fillStyle = f.mil ? "#b8322f" : "#151515"; ctx.beginPath(); ctx.arc(sx, sy - 18.5 * s, 2.6 * s, 0, 7); ctx.fill();
-      } else {
-        drawSoldier(sx, sy, s, f.mil ? "mil" : "fr", pose, col.flashT > 0 && f.r <= 1 && Math.random() < col.flashFrac + 0.1);
-      }
-    }
-    if (col.state !== "rout" && aliveC(col)) {
-      const fd = col.d + 2.5, s = sOf(fd);
-      drawFlag(xOf(col.x, fd), yOf(fd) - 18 * s, s, true, G.t);
-    }
-    // morale label
-    if (col.state !== "rout" && col.state !== "gone" && G.phase === "battle") {
-      const fd = col.d, s = sOf(fd), x = xOf(col.x, fd), y = yOf(fd + 6 * 1.6) - 34 * s;
-      const m = clamp(col.morale / G.D.morale, 0, 1);
-      ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillRect(x - 31, y - 4, 62, 8);
-      ctx.fillStyle = col.state === "waver" ? "#ffd166" : "#6ea8ff"; ctx.fillRect(x - 30, y - 3, 60 * m, 6);
-      if (col.state === "waver") { ctx.fillStyle = "#ffd166"; ctx.font = "900 12px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("WAVERING", x, y - 7); }
-    }
+  // Montcalm on his horse
+  if (G.montcalm.shown) {
+    const m = G.montcalm, s = sOf(m.d), rout = G.cols.every(c => c.state === "rout" || c.state === "gone");
+    drawHorse(xOf(m.x, m.d), yOf(m.d), s * 1.05, G.t * (rout ? 14 : 4), rout ? 1 : -1, "#e7e2d4", "#151515", false, rout);
   }
+  for (const col of G.cols) drawCol(col);
 
-  // cannonballs
+  // cannonballs from the French guns
   for (const ball of G.balls) {
     if (ball.t > ball.dur) continue;
-    const k2 = ball.t / ball.dur, d = 548 + (G.b - 548) * k2, x = ball.gx + (ball.tx - ball.gx) * k2;
+    const k2 = ball.t / ball.dur, d = 548 + (ball.bat.d - 548) * k2, x = ball.gx + (ball.tx - ball.gx) * k2;
     const s = sOf(d), sy = yOf(d) - Math.sin(k2 * Math.PI) * 60 * (1 - k2 * 0.4) - Math.abs(Math.sin(k2 * 9)) * 6 * k2;
     ctx.fillStyle = "#151515"; ctx.beginPath(); ctx.arc(xOf(x, d), sy, 2.6 * s + 1, 0, 7); ctx.fill();
   }
-
-  // British guns, then the line
+  const ld = lineD();
+  for (const cav of G.cav) if (cav.d > ld + 6) drawCav(cav);
   for (const g of G.guns) drawGun(g);
   for (const sh of G.shots) {
     if (sh.t > sh.dur) continue;
     const k2 = sh.t / sh.dur, d = sh.fd + (sh.col.d - sh.fd) * k2, x = sh.fx + (sh.col.x - sh.fx) * k2, s = sOf(d);
     ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(xOf(x, d), yOf(d) - 14 * s - Math.sin(k2 * Math.PI) * 18, 2.4 * s + 0.8, 0, 7); ctx.fill();
   }
-  for (let i = 0; i < G.bats.length; i++) drawBat(G.bats[i]);
+  const order = G.bats.slice().sort((a, b) => b.d - a.d);
+  for (const bat of order) drawBat(bat);
+  for (const cav of G.cav) if (cav.d <= ld + 6) drawCav(cav);
+  drawWolfe();
 
   // smoke
   for (const s of G.smoke) {
     const a = s.a * (1 - s.age / s.life);
-    ctx.fillStyle = s.dust ? "rgba(120,100,70," + a + ")" : "rgba(236,238,240," + a + ")";
+    ctx.fillStyle = s.dust ? "rgba(120,100,70," + a.toFixed(3) + ")" : "rgba(236,238,240," + a.toFixed(3) + ")";
     ctx.beginPath(); ctx.arc(xOf(s.x, s.d), yOf(s.d) - 18 * sOf(s.d), s.r * sOf(s.d), 0, 7); ctx.fill();
   }
   for (const p of G.flankPuffs) {
     const a = 0.6 * (1 - p.age / 2.5), s = sOf(p.d);
     if (p.age < 0.08) { ctx.fillStyle = "rgba(255,220,120,.95)"; ctx.beginPath(); ctx.arc(p.x, yOf(p.d) - 10 * s, 3 * s, 0, 7); ctx.fill(); }
-    ctx.fillStyle = "rgba(235,235,235," + a + ")"; ctx.beginPath(); ctx.arc(p.x + p.age * 6, yOf(p.d) - 12 * s - p.age * 4, (5 + p.age * 6) * s, 0, 7); ctx.fill();
+    ctx.fillStyle = "rgba(235,235,235," + a.toFixed(3) + ")"; ctx.beginPath(); ctx.arc(p.x + p.age * 6, yOf(p.d) - 12 * s - p.age * 4, (5 + p.age * 6) * s, 0, 7); ctx.fill();
   }
-
   // floating casualty numbers
   ctx.textAlign = "center"; ctx.font = "900 16px Nunito, sans-serif";
   for (const f of G.floats) {
@@ -1224,63 +1623,125 @@ function draw() {
     ctx.globalAlpha = a; ctx.lineWidth = 4; ctx.strokeStyle = "#1a0d08"; ctx.strokeText(f.text, xOf(f.x, f.d), y);
     ctx.fillStyle = f.color; ctx.fillText(f.text, xOf(f.x, f.d), y); ctx.globalAlpha = 1;
   }
-
-  drawHUD();
+}
+function drawCol(col) {
+  if (col.state === "gone") return;
+  const spread = 1 + col.disorder * 0.6;
+  const order = col.figs.filter(f => f.alive).sort((a, b) => b.r - a.r);
+  for (const f of order) {
+    let x = col.x + f.c * 9 * spread + f.jx * col.disorder * 6, d = col.d + f.r * 1.6;
+    if (col.state === "rout") { x += f.jx * col.routT * 20; d += f.jy * col.routT * 6; }
+    const s = sOf(d), sx = xOf(x, d);
+    let sy = yOf(d);
+    if (col.state === "advance" || col.state === "rout") sy -= Math.abs(Math.sin(G.t * (col.state === "rout" ? 14 : 8) + f.ph)) * 1.5 * s;
+    if (col.state === "rout") { // backs turned
+      ctx.fillStyle = f.mil ? COAT.mil : COAT.fr; ctx.fillRect(sx - 3.6 * s, sy - 16 * s, 7.2 * s, 9 * s);
+      ctx.fillStyle = "#232323"; ctx.fillRect(sx - 3 * s, sy - 7 * s, 2.5 * s, 7 * s); ctx.fillRect(sx + 0.5 * s, sy - 7 * s, 2.5 * s, 7 * s);
+      ctx.fillStyle = f.mil ? "#b8322f" : "#151515"; ctx.beginPath(); ctx.arc(sx, sy - 18.5 * s, 2.6 * s, 0, 7); ctx.fill();
+    } else {
+      drawSoldier(sx, sy, s, f.mil ? "mil" : "fr", "stand", col.flashT > 0 && f.r <= 1 && Math.random() < col.flashFrac + 0.1);
+    }
+  }
+  if (col.state !== "rout" && aliveC(col)) {
+    const fd = col.d + 2.5, s = sOf(fd);
+    drawFlag(xOf(col.x, fd), yOf(fd) - 18 * s, s, true, G.t);
+  }
+  // morale bar
+  if (col.state !== "rout" && G.phase === "battle") {
+    const fd = col.d, s = sOf(fd), x = xOf(col.x, fd), y = yOf(fd + 6 * 1.6) - 34 * s;
+    const m = clamp(col.morale / G.D.morale, 0, 1);
+    ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillRect(x - 31, y - 4, 62, 8);
+    ctx.fillStyle = col.state === "waver" ? "#ffd166" : "#6ea8ff"; ctx.fillRect(x - 30, y - 3, 60 * m, 6);
+    ctx.textAlign = "center";
+    if (col.state === "waver") { ctx.fillStyle = "#ffd166"; ctx.font = "900 12px Nunito, sans-serif"; ctx.fillText("WAVERING", x, y - 7); }
+    else if (col.reserve) { ctx.fillStyle = "#cfe0ff"; ctx.font = "900 11px Nunito, sans-serif"; ctx.fillText("RESERVE", x, y - 7); }
+  }
+}
+function drawCav(cav) {
+  if (cav.state === "gone") return;
+  const ride = cav.state === "ride", dir = (cav.side ? -1 : 1) * (ride ? 1 : -1), gallop = !ride || cav.t > cav.dur * 0.55;
+  for (let i = 0; i < cav.n; i++) {
+    const f = cav.figs[i], x = cav.x + f.ox, d = cav.d + f.od, s = sOf(d) * 1.05;
+    drawHorse(xOf(x, d), yOf(d), s, G.t * (gallop ? 18 : 9) + f.ph, dir, "#2d4f9e", "#151515", ride && gallop, true);
+  }
+  if (ride) { // warning marker
+    const s = sOf(cav.d), x = xOf(cav.x, cav.d), y = yOf(cav.d) - 44 * s - Math.abs(Math.sin(G.t * 6)) * 4;
+    ctx.fillStyle = "#e0383f"; ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.font = "900 15px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("!", x, y + 5);
+    // dashed line to the battalion they are aiming at
+    const t = cav.target, tx = xOf(t.x, t.d), ty = yOf(t.d) - 10;
+    ctx.strokeStyle = "rgba(224,56,63,.6)"; ctx.lineWidth = 2; ctx.setLineDash([5, 6]); ctx.beginPath(); ctx.moveTo(x, y + 12); ctx.lineTo(tx, ty); ctx.stroke(); ctx.setLineDash([]);
+  }
 }
 function drawGun(g) {
-  const d = G.b + 3, s = sOf(d) * 1.45, x = xOf(g.x, d), y = yOf(d) + g.recoil * 14 * s;
+  const d = 3, s = sOf(d) * 1.45, x = xOf(g.x, d), y = yOf(d) + g.recoil * 14 * s;
   ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.fillRect(x - 10 * s, y - 1 * s, 20 * s, 3 * s);
-  ctx.fillStyle = "#6b4a2a"; ctx.fillRect(x - 3 * s, y - 6 * s, 6 * s, 9 * s);     // trail
+  ctx.fillStyle = "#6b4a2a"; ctx.fillRect(x - 3 * s, y - 6 * s, 6 * s, 9 * s);
   ctx.strokeStyle = "#3d2a17"; ctx.lineWidth = 1.6 * s;
   ctx.beginPath(); ctx.ellipse(x - 6 * s, y - 5 * s, 1.4 * s, 5 * s, 0, 0, 7); ctx.stroke();
   ctx.beginPath(); ctx.ellipse(x + 6 * s, y - 5 * s, 1.4 * s, 5 * s, 0, 0, 7); ctx.stroke();
-  ctx.fillStyle = "#a07a3a"; ctx.fillRect(x - 1.6 * s, y - 15 * s, 3.2 * s, 10 * s); // brass barrel pointing at the French
+  ctx.fillStyle = "#a07a3a"; ctx.fillRect(x - 1.6 * s, y - 15 * s, 3.2 * s, 10 * s);
   if (g.recoil > 0.22) { ctx.fillStyle = "rgba(255,210,110,.9)"; ctx.beginPath(); ctx.arc(x, y - 17 * s, 5 * s, 0, 7); ctx.fill(); }
   drawSoldier(x - 10 * s, y, s / 1.45, "art", "stand", false);
   drawSoldier(x + 10 * s, y, s / 1.45, "art", "stand", false);
 }
-
+function drawWolfe() {
+  const w = G.wolfe, s = sOf(w.d), x = xOf(w.x, w.d), y = yOf(w.d);
+  if (!w.hit) {
+    drawSoldier(x, y, s * 1.08, "gen", "stand", false);
+    ctx.strokeStyle = "#dfe5ec"; ctx.lineWidth = 1 * s; ctx.beginPath(); ctx.moveTo(x + 3 * s, y - 14 * s); ctx.lineTo(x + 7 * s, y - (G.phase === "battle" && !G.result ? 26 : 18) * s); ctx.stroke();
+    drawSoldier(x - 12 * s, y + 3 * s, s, "gren", "stand", false);
+  } else {
+    drawBody({ x: w.x, d: w.d, py: 2, kind: "gen", rot: 0.15 });
+    drawSoldier(x + 10 * s, y + 4 * s, s * 0.85, "gren", "stand", false);
+    drawSoldier(x - 10 * s, y + 4 * s, s * 0.85, "red", "stand", false);
+  }
+  if (G.phase !== "intro" && !w.hit) { ctx.fillStyle = "rgba(255,255,255,.75)"; ctx.font = "800 10px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("Wolfe", x, y + 12 * s); }
+}
+function batPose(bat) {
+  if (isLying(bat)) return "lie";
+  if (bat.state === "present" || bat.state === "presenting") return "present";
+  if (bat.state === "firing") return "fire";
+  if (bat.state === "charge") return "charge";
+  return "stand";
+}
 function drawBat(bat) {
-  const b = G.b;
-  const n = bat.figs.length;
-  const ranks = [0, 1];
-  let flee = bat.state === "broken" ? bat.flee : 0;
+  const flee = bat.state === "broken" ? bat.flee : 0;
   if (flee > 6) return;
-  const chargeBob = bat.state === "charge";
-  for (const rank of ranks) {
-    for (let i = 0; i < n; i++) {
-      const f = bat.figs[i];
-      if (f.rank !== rank || !f.alive) continue;
-      let x = bat.x + f.ox, d = b;
-      const s = sOf(d);
-      let sy = yOf(d) + rank * 11 * s;
-      let sx = xOf(x, d);
-      if (flee) { sy += flee * 60 + Math.sin(i) * 8 * flee; sx += Math.cos(i * 1.7) * 25 * flee; }
-      let pose = "stand";
-      if (isLying(bat)) pose = "lie";
-      else if (bat.state === "present" || bat.state === "presenting") pose = "present";
-      else if (bat.state === "firing") pose = "fire";
-      else if (chargeBob) pose = "charge";
-      if (chargeBob) sy -= Math.abs(Math.sin(G.t * 14 + i)) * 3;
-      if (G.result === "win" && !flee) sy -= Math.max(0, Math.sin(G.t * 6 + i * 0.7)) * 4;
-      if (bat.state === "rising") sy += 0;
-      drawSoldier(sx, sy, s * (rank ? 1.04 : 1), bat.def.kind, pose, f.flash > 0, bat.bayo);
-    }
+  const d = bat.d, s = sOf(d), pose = batPose(bat), sel = SEL && SEL.has(bat.idx);
+  const figs = bat.figs.filter(f => f.alive).sort((a, b) => a.cr - b.cr);
+  const depth = figs.reduce((m, f) => Math.max(m, f.cr), 0);
+  if (sel && !flee) { // glow under the battalions you have picked
+    ctx.fillStyle = "rgba(242,193,78,.22)"; ctx.beginPath();
+    ctx.ellipse(xOf(bat.x, d), yOf(d) + depth * 5.5 * s, 72 * s, (12 + depth * 7) * s, 0, 0, 7); ctx.fill();
+  }
+  const moving = bat.advT > 0 || bat.formT > 0;
+  for (let i = 0; i < figs.length; i++) {
+    const f = figs[i];
+    let sx = xOf(bat.x + f.cx, d), sy = yOf(d) + f.cr * 11 * s;
+    if (flee) { sy += flee * 60 + Math.sin(f.i) * 8 * flee; sx += Math.cos(f.i * 1.7) * 25 * flee; }
+    if (pose === "charge") sy -= Math.abs(Math.sin(G.t * 14 + f.i)) * 3;
+    else if (moving) sy -= Math.abs(Math.sin(G.t * 9 + f.i * 0.6)) * 1.6;
+    if (G.result === "win" && !flee) sy -= Math.max(0, Math.sin(G.t * 6 + f.i * 0.7)) * 4;
+    drawSoldier(sx, sy, s * (f.cr > 0.5 ? 1.04 : 1), bat.def.kind, pose, f.flash > 0, bat.bayo);
   }
   if (bat.state === "broken") return;
-  // King's colour in the centre
-  const s = sOf(b);
-  if (!isLying(bat)) drawFlag(xOf(bat.x, b) - 2, yOf(b) - 20 * s, s, false, G.t);
-  // label: name, discipline and loaded state
-  const lx = xOf(bat.x, b), ly = yOf(b) + 22 * s + 6;
-  ctx.fillStyle = "rgba(10,8,6,.72)"; roundRect(lx - 62, ly, 124, 38, 7); ctx.fill();
+  if (!isLying(bat)) drawFlag(xOf(bat.x, d) - 2, yOf(d) + (bat.form === "line" ? 0 : depth * 5) * s - 20 * s, s, false, G.t);
+  if (G.phase === "intro") return;
+  // label: name, discipline and what they are doing
+  const lx = xOf(bat.x, d), ly = yOf(d) + (depth * 11 + 22) * s + 6;
+  ctx.fillStyle = sel ? "rgba(70,48,16,.88)" : "rgba(10,8,6,.72)"; roundRect(lx - 62, ly, 124, 38, 7); ctx.fill();
+  if (sel) { ctx.strokeStyle = "#f2c14e"; ctx.lineWidth = 2; ctx.stroke(); }
   ctx.fillStyle = "#fff"; ctx.font = "900 11px Nunito, sans-serif"; ctx.textAlign = "center";
-  ctx.fillText(bat.def.short + "  ·  " + aliveB(bat) * 10 + " men", lx, ly + 12);
+  ctx.fillText(FORMICON[bat.form] + " " + bat.def.short + "  ·  " + aliveB(bat) * 10, lx, ly + 12);
   const dc = bat.disc / 100;
   ctx.fillStyle = "#2b2b2b"; ctx.fillRect(lx - 56, ly + 16, 112, 7);
   ctx.fillStyle = dc > 0.6 ? "#4fcf6a" : dc > 0.35 ? "#f2c14e" : "#e0383f"; ctx.fillRect(lx - 56, ly + 16, 112 * dc, 7);
   ctx.font = "800 9.5px Nunito, sans-serif";
-  if (bat.reloading) {
+  if (bat.formT > 0) { ctx.fillStyle = "#9fe3f0"; ctx.fillText("FORMING " + FORMNAME[bat.form] + "...", lx, ly + 34); }
+  else if (bat.state === "fixing") { ctx.fillStyle = "#e4e9ef"; ctx.fillText("FIXING BAYONETS", lx, ly + 34); }
+  else if (bat.state === "charge") { ctx.fillStyle = "#ffd166"; ctx.fillText("CHARGING!", lx, ly + 34); }
+  else if (bat.reloading) {
     ctx.fillStyle = "#3a3026"; ctx.fillRect(lx - 56, ly + 27, 112, 6);
     ctx.fillStyle = "#e0873a"; ctx.fillRect(lx - 56, ly + 27, 112 * clamp(bat.reload, 0, 1), 6);
   } else {
@@ -1288,30 +1749,46 @@ function drawBat(bat) {
     ctx.fillText((bat.loaded ? "LOADED" + (bat.dbl ? " ×2 BALLS" : "") : "EMPTY") + (bat.state === "present" ? " · READY" : "") + (isLying(bat) ? " · DOWN" : ""), lx, ly + 34);
   }
 }
-function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
-
+function selBats() { if (!G) return []; return SEL ? G.bats.filter(b => SEL.has(b.idx) && b.state !== "broken") : liveBats(); }
+function selRefD() { const b = selBats(); return b.length ? b.reduce((a, x) => a + x.d, 0) / b.length : lineD(); }
+function fmtTime(t) { t = Math.max(0, Math.floor(t)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); }
 function drawHUD() {
-  // range box
-  const r = minRange();
-  ctx.fillStyle = "rgba(10,8,6,.72)"; roundRect(10, 10, 230, 84, 10); ctx.fill();
-  ctx.textAlign = "left"; ctx.fillStyle = "#c7b8a3"; ctx.font = "800 11px Nunito, sans-serif";
-  ctx.fillText(G.phase === "wait" ? "FRENCH ATTACK IN" : "NEAREST FRENCH COLUMN", 20, 27);
-  let big, adv, col;
-  if (G.phase === "wait") { big = Math.ceil(G.waitT) + "s"; adv = "Lie down and wait"; col = "#fff"; }
-  else if (r > 1000) { big = "-"; adv = "They're running!"; col = "#ffd166"; }
-  else {
-    big = Math.round(r) + " yds";
-    if (r > 110) { adv = "HOLD YOUR FIRE"; col = "#fff"; }
-    else if (r > 60) { adv = "Hold... hold..."; col = "#f2c14e"; }
-    else if (r > 50) { adv = "MAKE READY!"; col = "#ffb04e"; }
-    else if (r >= 25) { adv = "FIRE NOW!"; col = "#7dff95"; }
-    else { adv = "Point blank! Fire or charge!"; col = "#ff7b7b"; }
+  ctx.textAlign = "left";
+  if (G.phase === "intro") {
+    const a = clamp(G.t / 0.8, 0, 1) * clamp(G.introT / 0.6, 0, 1);
+    ctx.globalAlpha = a; ctx.textAlign = "center";
+    ctx.fillStyle = "#f2c14e"; ctx.font = "400 40px 'Lilita One', sans-serif"; ctx.lineWidth = 7; ctx.strokeStyle = "#1a0d08";
+    ctx.strokeText("QUEBEC · 13 SEPTEMBER 1759", W / 2, 130); ctx.fillText("QUEBEC · 13 SEPTEMBER 1759", W / 2, 130);
+    ctx.font = "800 17px Nunito, sans-serif"; ctx.fillStyle = "#fff"; ctx.lineWidth = 5;
+    for (const [i, line] of ["In the dark, Wolfe's redcoats climbed the cliffs from the river.", "Now they stand in a thin red line on the Plains of Abraham."].entries()) { ctx.strokeText(line, W / 2, 168 + i * 24); ctx.fillText(line, W / 2, 168 + i * 24); }
+    ctx.font = "800 13px Nunito, sans-serif"; ctx.fillStyle = "rgba(255,255,255,.8)"; ctx.fillText(REPLAY ? "replay" : "tap to skip", W / 2, H - 14);
+    ctx.globalAlpha = 1;
+  } else {
+    // range box
+    const sb = selBats(), r = sb.length ? Math.min(...sb.map(rangeBat)) : minRange();
+    ctx.fillStyle = "rgba(10,8,6,.72)"; roundRect(10, 10, 236, 84, 10); ctx.fill();
+    ctx.fillStyle = "#c7b8a3"; ctx.font = "800 11px Nunito, sans-serif";
+    const who = SEL && sb.length ? (sb.length === 1 ? sb[0].def.short.toUpperCase() : sb.length + " BATTALIONS") : "THE LINE";
+    ctx.fillText(G.phase === "wait" ? "FRENCH ATTACK IN" : "NEAREST FRENCH TO " + who, 20, 27);
+    let big, adv, col;
+    if (G.phase === "wait") { big = Math.ceil(G.waitT) + "s"; adv = "Lie down and wait"; col = "#fff"; }
+    else if (r > 1000) { big = "-"; adv = G.reserveQ.length ? "More are coming!" : "They're running!"; col = "#ffd166"; }
+    else {
+      big = Math.round(r) + " yds";
+      if (r > 110) { adv = "HOLD YOUR FIRE"; col = "#fff"; }
+      else if (r > 60) { adv = "Hold... hold..."; col = "#f2c14e"; }
+      else if (r > 50) { adv = "MAKE READY!"; col = "#ffb04e"; }
+      else if (r >= 25) { adv = "FIRE NOW!"; col = "#7dff95"; }
+      else { adv = "Point blank! Fire or charge!"; col = "#ff7b7b"; }
+    }
+    ctx.fillStyle = col; ctx.font = "400 30px 'Lilita One', sans-serif"; ctx.fillText(big, 20, 58);
+    ctx.font = "900 14px Nunito, sans-serif"; ctx.fillText(adv, 20, 82);
   }
-  ctx.fillStyle = col; ctx.font = "400 30px 'Lilita One', sans-serif"; ctx.fillText(big, 20, 58);
-  ctx.font = "900 14px Nunito, sans-serif"; ctx.fillText(adv, 20, 82);
-  // difficulty tag
-  ctx.textAlign = "right"; ctx.fillStyle = "rgba(10,8,6,.6)"; roundRect(W - 150, 10, 140, 24, 8); ctx.fill();
-  ctx.fillStyle = "#f2c14e"; ctx.font = "900 12px Nunito, sans-serif"; ctx.fillText(G.D.name + " · Quebec 1759", W - 18, 26);
+  // corner tag: difficulty, speed or replay
+  ctx.textAlign = "right"; ctx.fillStyle = "rgba(10,8,6,.66)"; roundRect(W - 200, 10, 190, 24, 8); ctx.fill();
+  ctx.font = "900 12px Nunito, sans-serif";
+  if (REPLAY) { ctx.fillStyle = "#ff8a8a"; ctx.fillText("● REPLAY " + (REPLAY.paused ? "paused" : REPLAY.speed + "x") + " · " + fmtTime(G.t), W - 18, 26); }
+  else { ctx.fillStyle = "#f2c14e"; ctx.fillText(G.D.name + " · Quebec 1759" + (SPEED > 1 ? " · ⏩ " + SPEED + "x" : ""), W - 18, 26); }
   // banners
   ctx.textAlign = "center";
   for (const b of G.banners.slice(0, 1)) {
@@ -1329,49 +1806,107 @@ function drawHUD() {
 const cache = {};
 function setT(id, v) { if (cache[id] !== v) { cache[id] = v; $(id).textContent = v; } }
 function setD(id, v) { const k = id + ":d"; if (cache[k] !== v) { cache[k] = v; $(id).disabled = v; } }
+function setC(el, cls, on) { const k = (el.id || el.dataset.sp) + ":" + cls; if (cache[k] !== on) { cache[k] = on; el.classList.toggle(cls, on); } }
 function fmt(n) { return Math.round(n).toLocaleString("en-AU"); }
+function buildChips() {
+  const bar = $("batBar"); bar.innerHTML = "";
+  BATDEFS.forEach((d, i) => {
+    const b = document.createElement("button"); b.className = "bc"; b.id = "bc" + i; b.title = d.name + " (key " + (i + 1) + ")";
+    b.innerHTML = "<b>" + d.chip + '</b><span class="bar"><i id="bcb' + i + '"></i></span><small id="bcs' + i + '">▬ ✓</small>';
+    b.addEventListener("click", e => { e.preventDefault(); audio(); toggleSel(i); });
+    bar.appendChild(b);
+  });
+  const a = document.createElement("button"); a.className = "bc all"; a.id = "bcAll"; a.title = "The whole line (key 0)";
+  a.innerHTML = "<b>ALL</b><small>whole line</small>";
+  a.addEventListener("click", e => { e.preventDefault(); audio(); selAll(); });
+  bar.appendChild(a);
+}
+function toggleSel(i) {
+  if (!G || G.bats[i].state === "broken") return;
+  if (!SEL) SEL = new Set([i]);
+  else if (SEL.has(i)) { SEL.delete(i); if (!SEL.size) SEL = null; }
+  else SEL.add(i);
+  if (SEL && SEL.size >= liveBats().length) SEL = null;
+  sfx.click();
+}
+function selAll() { SEL = null; sfx.click(); }
 function ui() {
   setT("hCoins", fmt(S.coins)); setT("hWins", fmt(S.wins)); setT("hPerf", fmt(S.perfect)); setT("hBest", fmt(S.best));
   setT("diffHint", DIFFS[S.diff].name);
   $("muteBtn").textContent = S.mute ? "🔇" : "🔊";
   if (!G) return;
-  const done = !!G.result, live = liveBats();
-  const anyUp = live.some(isUp);
-  $("lieBtn").firstChild.nodeValue = anyUp ? "LIE DOWN" : "STAND UP";
-  setD("lieBtn", done || G.charging);
-  setD("readyBtn", done || G.charging || !live.some(b => b.state === "stand" && b.loaded));
-  setD("fireBtn", done || G.charging || !live.some(b => b.loaded && !isLying(b)));
-  const r = minRange();
-  $("fireBtn").classList.toggle("now", !done && G.phase === "battle" && r <= 50 && r >= 20 && live.some(b => b.loaded && isUp(b)));
+  if (SEL && ![...SEL].some(i => G.bats[i].state !== "broken")) SEL = null;
+  // battalion buttons
+  G.bats.forEach((b, i) => {
+    const el = $("bc" + i), broken = b.state === "broken";
+    setC(el, "on", !!(SEL && SEL.has(i))); setC(el, "dead", broken);
+    const bar = $("bcb" + i), dc = broken ? 0 : b.disc / 100, w = Math.round(dc * 100) + "%", c = dc > 0.6 ? "#4fcf6a" : dc > 0.35 ? "#f2c14e" : "#e0383f";
+    if (cache["bw" + i] !== w) { cache["bw" + i] = w; bar.style.width = w; }
+    if (cache["bcol" + i] !== c) { cache["bcol" + i] = c; bar.style.background = c; }
+    const st = broken ? "ran" : FORMICON[b.form] + " " + (b.formT > 0 ? "…" : b.state === "charge" || b.state === "fixing" ? "⚔" : isLying(b) ? "↓" : b.reloading ? Math.round(b.reload * 100) + "%" : b.loaded ? (b.state === "present" ? "◎" : "✓") : "✗");
+    setT("bcs" + i, st);
+  });
+  setC($("bcAll"), "on", !SEL);
+  const done = !!G.result, sb = selBats();
+  const anyUp = sb.some(isUp);
+  const lieLabel = anyUp || !sb.some(isLying) ? "LIE DOWN" : "STAND UP";
+  if (cache.lieL !== lieLabel) { cache.lieL = lieLabel; $("lieBtn").firstChild.nodeValue = lieLabel; }
+  setD("lieBtn", done || !sb.length);
+  setD("readyBtn", done || !sb.some(b => b.state === "stand" && b.loaded && !busy(b)));
+  const canFire = sb.some(b => b.loaded && !isLying(b) && b.state !== "rising" && !busy(b));
+  setD("fireBtn", done || !canFire);
+  setT("fireHint", SEL ? (sb.length === 1 ? sb[0].def.short + " only" : sb.length + " battalions") : "all together · space");
+  const r = sb.length ? Math.min(...sb.map(rangeBat)) : 9999;
+  setC($("fireBtn"), "now", !done && G.phase === "battle" && r <= 50 && r >= 20 && sb.some(b => b.loaded && isUp(b)));
   setD("steadyBtn", done || G.steadyCd > 0);
   setT("steadyHint", G.steadyCd > 0 ? "ready in " + Math.ceil(G.steadyCd) + "s" : "calm the men · S");
-  const rel = live.some(b => b.reloading);
+  const rel = liveBats().some(b => b.reloading);
   setD("drillBtn", done || !rel);
   const [a, z] = drillZone();
   $("dzone").style.left = (a * 100) + "%"; $("dzone").style.width = ((z - a) * 100) + "%";
   $("dmark").style.left = (drillPos() * 100) + "%";
   if (!rel && cache.drillIdle !== true) { cache.drillIdle = true; $("drillHint").textContent = "tap when the marker is in the green · D"; }
   if (rel) cache.drillIdle = false;
-  setD("advBtn", !canAdvance());
-  const cc = canCharge();
-  setD("chargeBtn", !cc);
-  const wav = cc && activeCols().some(c => c.d - G.b <= 120 && c.morale < chargeThr());
-  $("chargeBtn").classList.toggle("go", wav);
-  setT("chargeHint", G.charging && !G.chargeRun ? "fixing bayonets..." : !cc ? (live.length && live.every(b => b.bayo) ? "bayonets fixed · C" : "fix bayonets · C") : wav ? "they're wavering!" : "they look steady...");
+  const advOk = sb.some(canAdvBat);
+  setD("advBtn", done || !advOk);
+  setT("advHint", sb.some(b => b.form === "column") ? "column marches 25 yards · A" : "15 yards, out of the smoke · A");
+  const cc = sb.some(canChargeBat);
+  setD("chargeBtn", done || !cc);
+  const wav = cc && sb.some(b => { const t = chargeTarget(b); return t && t.morale < chargeThr() + (b.form === "column" ? 15 : 0); });
+  setC($("chargeBtn"), "go", wav);
+  setT("chargeHint", sb.some(b => b.state === "fixing") ? "fixing bayonets..." : !cc ? (sb.length && sb.every(b => b.bayo) ? "bayonets fixed · C" : "fix bayonets · C") : wav ? "they're wavering!" : "they look steady...");
+  for (const [id, f] of [["fLine", "line"], ["fCol", "column"], ["fSq", "square"]]) {
+    setC($(id), "on", sb.length > 0 && sb.every(b => b.form === f));
+    setD(id, done || !sb.length);
+  }
+  const spl = "⏩ " + SPEED + "x"; if (cache.spl !== spl) { cache.spl = spl; $("speedBtn").firstChild.nodeValue = spl; }
+  setC($("speedBtn"), "fast", SPEED > 1);
+  if (REPLAY) {
+    const end = REPLAY.rep.end;
+    if (!REPLAY.dragging) { const v = String(Math.min(G.n, end)); if (cache.seek !== v) { cache.seek = v; $("rSeek").value = v; } }
+    setT("rTime", fmtTime(G.t) + " / " + fmtTime(end * DT));
+    setT("rPlay", REPLAY.paused || G.ended ? "▶" : "⏸");
+    document.querySelectorAll("[data-sp]").forEach(b => setC(b, "on", +b.dataset.sp === REPLAY.speed));
+  }
 }
 
 function showStart() {
   document.querySelectorAll("#difPick .dbtn").forEach(b => b.classList.toggle("on", b.dataset.d === S.diff));
   $("dblTog").checked = S.dbl;
   $("startCoins").textContent = fmt(S.coins) + " shillings";
+  const rp = S.replay;
+  $("startReplay").hidden = !rp;
+  if (rp) $("startReplayHint").textContent = (rp.result === "win" ? "Victory" : "Defeat") + " on " + DIFFS[rp.diff].name + " · " + fmtTime(rp.end * DT) + " long";
   $("startOv").hidden = false;
 }
 function startBattle() {
   audio();
+  if (REPLAY) stopReplay(true);
   S.dbl = $("dblTog").checked; save();
   newBattle();
+  SEL = null; DRAMA = null; SLOWT = 0; ACC = 0;
   $("startOv").hidden = true; $("endOv").hidden = true;
-  msg("French sharpshooters are firing from the bushes and their cannon are booming. Order LIE DOWN and wait for the attack.", "");
+  msg("Dawn, 13 September 1759. The fifes and drums play as the redcoats form up. Tap the picture to skip.", "");
 }
 function renderUps() {
   $("upCoins").textContent = fmt(S.coins);
@@ -1394,12 +1929,13 @@ function showEnd() {
   let stars = 0, score;
   if (win) {
     stars = 1 + (G.perfects > 0 ? 1 : 0) + (broke === 0 && G.noOrders === 0 ? 1 : 0);
-    score = Math.round((1000 + alive * 8 + G.perfects * 400 + G.crashing * 100 - G.noOrders * 60 + (broke === 0 ? 300 : 0)) * G.D.mult);
+    score = Math.round((1000 + alive * 8 + G.perfects * 400 + G.crashing * 100 + G.cavBeaten * 200 - G.noOrders * 60 + (broke === 0 ? 300 : 0)) * G.D.mult);
   } else score = Math.round(G.killed * 10 * G.D.mult);
   score = Math.max(0, score);
   const coins = win ? Math.round((40 + stars * 25) * G.D.mult) : Math.round((8 + G.killed / 6) * G.D.mult);
   S.coins += coins; S.battles++; if (win) S.wins++; S.perfect += G.perfects;
   const newBest = score > S.best; if (newBest) S.best = score;
+  S.replay = { v: 2, seed: G.seed, diff: G.diff, dbl: G.dbl0, up: G.up0, cmds: G.log, end: G.n, result: G.result, score, at: Date.now() };
   save();
   if (window.Leaderboard && Leaderboard.getName() && score > 0) {
     Leaderboard.submit(score).then(() => { if (window.PhatCoin) PhatCoin.leaderboard(Leaderboard.getName(), "desc"); });
@@ -1412,24 +1948,55 @@ function showEnd() {
     '<div>Shillings earned<b>+' + fmt(coins) + '</b></div>' +
     '<div>Perfect volleys<b>' + G.perfects + '</b></div>' +
     '<div>Volleys fired<b>' + G.volleys + '</b></div>' +
+    '<div>Cavalry charges beaten<b>' + G.cavBeaten + ' of ' + G.cav.length + '</b></div>' +
     '<div>Fired without orders<b>' + G.noOrders + '</b></div>' +
     '<div>Battalions that ran<b>' + broke + '</b></div>' +
+    '<div>Battle time<b>' + fmtTime(G.t) + '</b></div>' +
     '<div>Your men lost<b>' + fmt(G.lost * 10) + '</b></div>' +
     '<div>French soldiers hit<b>' + fmt(G.killed * 10) + '</b></div>';
   let tip = "";
   if (win && stars < 3) tip = stars === 1 ? " For more stars: get a PERFECT VOLLEY by pressing MAKE READY at about 50 yards and FIRE at 40." : " For the third star: no battalion may run and nobody may fire without orders. Use STEADY, LADS!";
   $("endHist").textContent = win
     ? "That is just how it went in 1759. As the French broke, General Wolfe was hit for the third time. Told the enemy were running, he said \"Now, God be praised, I will die in peace.\" Montcalm was also mortally wounded, and Quebec surrendered five days later." + tip
-    : "In the real battle the British line held its nerve until the French were about 40 yards away. Try again: lie down while you wait, keep discipline up with STEADY, LADS!, and do not fire until they are close.";
+    : "In the real battle the British line held its nerve until the French were about 40 yards away. Try again: lie down while you wait, form square when the horsemen come, keep discipline up with STEADY, LADS!, and do not fire until they are close. Watch the replay to see where it went wrong.";
   $("endOv").hidden = false;
   ui();
 }
 
+// ---------- replay ----------
+function startReplay(rep) {
+  if (!rep || !rep.cmds) return;
+  $("startOv").hidden = true; $("endOv").hidden = true; $("upOv").hidden = true;
+  REPLAY = { rep, ci: 0, speed: 1, paused: false, dragging: false };
+  newBattle({ seed: rep.seed, diff: rep.diff, dbl: rep.dbl, up: rep.up });
+  SEL = null; DRAMA = null; SLOWT = 0; ACC = 0;
+  $("rSeek").max = rep.end; $("rSeek").value = 0; cache.seek = null;
+  document.body.classList.add("replaying");
+  msg("Watching the replay. Speed it up, pause, or drag the bar to jump to any moment.", "");
+  audio();
+}
+function stopReplay(quiet) {
+  REPLAY = null; document.body.classList.remove("replaying");
+  ambience(false); if (window.speechSynthesis) speechSynthesis.cancel();
+  if (!quiet) { newBattle(); showStart(); msg("Form the line!", ""); }
+}
+function replaySeek(n) {
+  if (!REPLAY) return;
+  n = clamp(Math.round(n), 0, REPLAY.rep.end);
+  if (n < G.n) { newBattle({ seed: REPLAY.rep.seed, diff: REPLAY.rep.diff, dbl: REPLAY.rep.dbl, up: REPLAY.rep.up }); REPLAY.ci = 0; }
+  SILENT = true;
+  try { while (G.n < n && !G.ended) tick(); } finally { SILENT = false; }
+  DRAMA = null; SLOWT = 0; ACC = 0;
+  if (window.speechSynthesis) speechSynthesis.cancel();
+}
+
 // ---------- input ----------
 const tap = (id, fn) => $(id).addEventListener("click", e => { e.preventDefault(); audio(); fn(); });
-tap("lieBtn", orderLie); tap("readyBtn", orderReady); tap("fireBtn", orderFire); tap("steadyBtn", orderSteady);
-tap("advBtn", orderAdvance); tap("chargeBtn", orderCharge);
-$("drillBtn").addEventListener("pointerdown", e => { e.preventDefault(); audio(); orderDrill(); });
+tap("lieBtn", () => cmd("lie")); tap("readyBtn", () => cmd("ready")); tap("fireBtn", () => cmd("fire")); tap("steadyBtn", () => cmd("steady"));
+tap("advBtn", () => cmd("adv")); tap("chargeBtn", () => cmd("charge"));
+tap("fLine", () => cmd("form", "line")); tap("fCol", () => cmd("form", "column")); tap("fSq", () => cmd("form", "square"));
+tap("speedBtn", () => { SPEED = SPEED >= 3 ? 1 : SPEED + 1; });
+$("drillBtn").addEventListener("pointerdown", e => { e.preventDefault(); audio(); cmd("drill"); });
 tap("newBtn", showStart);
 tap("upBtn", () => { renderUps(); $("upOv").hidden = false; });
 tap("diffBtn", showStart);
@@ -1437,26 +2004,66 @@ tap("startUp", () => { renderUps(); $("upOv").hidden = false; });
 tap("endUp", () => { renderUps(); $("upOv").hidden = false; });
 tap("endAgain", startBattle);
 tap("goBtn", startBattle);
+tap("endReplay", () => startReplay(S.replay));
+tap("startReplay", () => startReplay(S.replay));
+tap("rPlay", () => { if (!REPLAY) return; if (G.ended) { replaySeek(0); REPLAY.paused = false; } else REPLAY.paused = !REPLAY.paused; });
+tap("rExit", () => stopReplay(false));
+document.querySelectorAll("[data-sp]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); if (REPLAY) REPLAY.speed = +b.dataset.sp; }));
+$("rSeek").addEventListener("input", () => { if (REPLAY) { REPLAY.dragging = true; setT("rTime", fmtTime(+$("rSeek").value * DT) + " / " + fmtTime(REPLAY.rep.end * DT)); } });
+$("rSeek").addEventListener("change", () => { if (REPLAY) { REPLAY.dragging = false; replaySeek(+$("rSeek").value); } });
 tap("muteBtn", () => { S.mute = !S.mute; save(); if (S.mute && window.speechSynthesis) speechSynthesis.cancel(); if (AC) { if (S.mute) AC.suspend(); else AC.resume(); } ui(); });
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => { $(b.dataset.close).hidden = true; if (!$("startOv").hidden) showStart(); });
 document.querySelectorAll("#difPick .dbtn").forEach(b => b.onclick = () => { S.diff = b.dataset.d; save(); showStart(); ui(); });
+// tap a battalion on the battlefield to pick it
+cv.addEventListener("pointerdown", e => {
+  if (!G) return;
+  audio();
+  if (G.phase === "intro") { if (!REPLAY) cmd("skip"); return; }
+  if (REPLAY || G.result) return;
+  const rc = cv.getBoundingClientRect(), sx = (e.clientX - rc.left) / rc.width * W, sy = (e.clientY - rc.top) / rc.height * H;
+  const wx = (sx - W / 2) / CAM.z + CAM.x, wy = (sy - H / 2) / CAM.z + CAM.y;
+  let best = null, bd = 1e9;
+  for (const b of G.bats) {
+    if (b.state === "broken") continue;
+    const bx = xOf(b.x, b.d), by = yOf(b.d), dx = Math.abs(wx - bx);
+    if (dx < 70 && wy > by - 50 && wy < by + 80 && dx < bd) { bd = dx; best = b; }
+  }
+  if (best) toggleSel(best.idx);
+});
 document.addEventListener("keydown", e => {
-  if (paused() || e.repeat) return;
   if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+  if (REPLAY) { if (e.code === "Space") { e.preventDefault(); REPLAY.paused = !REPLAY.paused; } return; }
+  if (paused() || e.repeat) return;
   const k = e.key.toLowerCase();
-  if (e.code === "Space") { e.preventDefault(); audio(); orderFire(); }
-  else if (k === "l") orderLie(); else if (k === "r") orderReady(); else if (k === "s") orderSteady();
-  else if (k === "d") orderDrill(); else if (k === "a") orderAdvance(); else if (k === "c") orderCharge();
+  if (e.code === "Space") { e.preventDefault(); audio(); cmd("fire"); }
+  else if (k >= "1" && k <= "6") toggleSel(+k - 1);
+  else if (k === "0") selAll();
+  else if (k === "l") cmd("lie"); else if (k === "r") cmd("ready"); else if (k === "s") cmd("steady");
+  else if (k === "d") cmd("drill"); else if (k === "a") cmd("adv"); else if (k === "c") cmd("charge");
+  else if (k === "q") cmd("form", "line"); else if (k === "w") cmd("form", "column"); else if (k === "e") cmd("form", "square");
+  else if (k === "f") SPEED = SPEED >= 3 ? 1 : SPEED + 1;
 });
 window.addEventListener("resize", resize);
 
 // ---------- loop ----------
-let last = performance.now();
+// The battle runs in fixed steps of 1/60 s, so the same orders on the same step always give the same battle.
+let last = performance.now(), ACC = 0;
 function frame(now) {
-  const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  step(dt); draw(); ui();
+  const rdt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (G) {
+    let rate;
+    if (REPLAY) rate = REPLAY.paused || G.ended ? 0 : REPLAY.speed;
+    else rate = paused() || G.ended ? 0 : SPEED;
+    if (SLOWT > 0) { SLOWT -= rdt; if (!(REPLAY && REPLAY.speed >= 4)) rate *= 0.3; }
+    ACC += rdt * rate;
+    let n = 0;
+    while (ACC >= DT && n < 600) { ACC -= DT; n++; tick(); if (G.ended) { ACC = 0; break; } }
+    if (n >= 600) ACC = 0;
+  }
+  camStep(rdt); draw(); ui();
   requestAnimationFrame(frame);
 }
+buildChips();
 resize();
 newBattle();
 showStart();

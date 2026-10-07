@@ -215,8 +215,11 @@ function fmt(n) {
 // ---------------- game data ----------------
 const COLS = [["#ff5d5d", "#b8302f"], ["#ff9b3d", "#b55e12"], ["#ffd23d", "#b08a0e"], ["#4fcf6a", "#22813a"], ["#2fc1ae", "#137a6d"], ["#4aa8ff", "#1f62b0"], ["#a46cff", "#5f2fb3"], ["#ff6fa3", "#b02c61"]];
 // tiers: radius of each thing and how many are in a world
-const TIER_R = [7, 10, 14, 20, 28, 38, 52, 70, 92, 120, 165, 220, 300, 400];
-const TIER_N = [14400, 11200, 8000, 5600, 4000, 2700, 1900, 1270, 860, 600, 415, 290, 190, 125];
+const TIER_R = [7, 10, 14, 20, 28, 38, 52, 70, 92, 120, 165, 220, 300, 400, 520, 680, 900, 1200, 1600];
+const TIER_N = [14400, 11200, 8000, 5600, 4000, 2700, 1900, 1270, 860, 600, 415, 290, 190, 125, 80, 55, 36, 24, 16];
+// giant things for giant players, the same in every world
+const GIANTS = ["🏔️", "🏙️", "🌍", "🪐", "🌞"];
+const thingOf = (w, t) => w.things[t] || GIANTS[t - 14];
 const WORLDS = [
   { n: "Park",   e: "🌳", cost: 0,    mult: 1,   ground: "#6dbb4f", grid: "#62ad46", edge: "#3f7d2c", things: ["🍪","🍎","🍔","🍕","🐔","🛒","🚗","🚌","🌳","🏠","🏰","🏢","⛰️","🌋"] },
   { n: "City",   e: "🏙️", cost: 25e3, mult: 3,   ground: "#8b919c", grid: "#7f8590", edge: "#4c5059", things: ["🍩","🥤","🌭","🍟","🐦","🛴","🚕","🚓","🚒","🏪","🏬","🏨","🏙️","🗼"] },
@@ -355,18 +358,20 @@ const DAILY = [ // coins are times your best world's multi
   { c: 300, e: "🪙" }, { c: 600, e: "🪙" }, { c: 1000, egg: 1, e: "🥚" }, { c: 1500, e: "💰" },
   { c: 2500, e: "💰" }, { c: 4000, e: "💎" }, { c: 8000, egg: 3, e: "🎁" }
 ];
-const UPS = {   // 200 levels (Tough Skin and Pet Slots stop at 100)
-  sp:   { n: "Speed 👟",  max: 200, cost: l => 30 * Math.pow(1.55, l), d: l => `+${l * 6}% speed` },
-  bite: { n: "Big Bites 😋", max: 200, cost: l => 50 * Math.pow(1.7, l), d: l => `x${(1 + l * 0.25).toFixed(2)} growing` },
-  mag:  { n: "Long Reach 🧲", max: 200, cost: l => 80 * Math.pow(1.6, l), d: l => `+${l * 6}% eating reach` },
-  coin: { n: "Coin Boost 🪙", max: 200, cost: l => 70 * Math.pow(1.75, l), d: l => `x${(1 + l * 0.25).toFixed(2)} coins` },
-  boostUp: { n: "Super Boost 🚀", max: 200, cost: l => 60 * Math.pow(1.7, l), d: l => `Boost lasts ${boostLen(l).toFixed(1)}s, ready every ${boostCd(l).toFixed(1)}s` },
-  luck: { n: "Lucky Eggs 🍀", max: 200, cost: l => 150 * Math.pow(1.8, l), d: l => `x${fmt(luckF(l))} luck on Legendary pets (max x1T)` },
+const UPS = {   // 1000 levels (Tough Skin and Pet Slots stop at 100)
+  sp:   { n: "Speed 👟",  max: 1000, cost: l => 30 * Math.pow(1.55, l), d: l => `+${Math.round((spF(l) - 1) * 100)}% speed` },
+  bite: { n: "Big Bites 😋", max: 1000, cost: l => 50 * Math.pow(1.7, l), d: l => `x${(1 + l * 0.25).toFixed(2)} growing` },
+  mag:  { n: "Long Reach 🧲", max: 1000, cost: l => 80 * Math.pow(1.6, l), d: l => `+${Math.round((reachF(l) - 1) * 100)}% eating reach` },
+  coin: { n: "Coin Boost 🪙", max: 1000, cost: l => 70 * Math.pow(1.75, l), d: l => `x${(1 + l * 0.25).toFixed(2)} coins` },
+  boostUp: { n: "Super Boost 🚀", max: 1000, cost: l => 60 * Math.pow(1.7, l), d: l => `Boost lasts ${boostLen(l).toFixed(1)}s, ready every ${boostCd(l).toFixed(1)}s` },
+  luck: { n: "Lucky Eggs 🍀", max: 1000, cost: l => 150 * Math.pow(1.8, l), d: l => `x${fmt(luckF(l))} luck on Legendary pets (max x1T)` },
   keep: { n: "Tough Skin 🛡️", max: 100, cost: l => 100 * Math.pow(1.8, l), d: l => `Keep ${Math.round(keepF(l) * 100)}% of your size when eaten` },
   slots: { n: "Pet Slots 🐾", max: 100, cost: l => 50000 * Math.pow(25, l), d: l => `Equip ${3 + l} pets at once`, keepOnRebirth: true }
 };
-const boostLen = l => 1.3 + l * 0.02, boostCd = l => Math.max(0.9, 5 - l * 0.0205);   // level 200: ready every 0.9s
-const luckF = l => Math.pow(1e12, l / 200),   // level 200 = x1,000,000,000,000 luck
+const boostLen = l => 1.3 + l * 0.02 * (l <= 200 ? 1 : 200 / l) + Math.max(0, l - 200) * 0.002, boostCd = l => Math.max(0.9, 5 - l * 0.0205);   // ready every 0.9s from level 200
+// past level 200 speed and reach still go up, but more gently, so the game stays playable
+const spF = l => 1 + 0.06 * Math.min(l, 200) + 0.01 * Math.max(0, l - 200), reachF = l => 1 + 0.06 * Math.min(l, 200) + 0.005 * Math.max(0, l - 200);
+const luckF = l => Math.pow(1e12, l / 1000),   // level 1000 = x1,000,000,000,000 luck
       keepF = l => 0.3 + l * 0.006;
 const MAX_PETS = 150;
 const eqMax = () => 3 + (S.slots || 0);
@@ -461,8 +466,8 @@ const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 // so every player sees the same things in the same places. Far-away chunks are forgotten again.
 const CH = 2000, CHN = W / CH;
 const DENS = TIER_N.map(n => n * 1.3 * CH * CH / (24000 * 24000));   // a bit more packed than the old map
-const GROUP_OF = t => t <= 4 ? 0 : t <= 9 ? 1 : 2, GROUP_MAXR = [28, 120, 400];
-const GROUP_TIERS = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9], [10, 11, 12, 13]];
+const GROUP_OF = t => t <= 4 ? 0 : t <= 9 ? 1 : t <= 13 ? 2 : 3, GROUP_MAXR = [28, 120, 400, 1600];
+const GROUP_TIERS = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9], [10, 11, 12, 13], [14, 15, 16, 17, 18]];
 let CHUNKS = new Map(), EATEN = new Map(), chunkTick = 0;
 function placeItem(it) {
   const r = rnd((it.seed + Math.imul(it.g + 1, 2654435761)) >>> 0);
@@ -471,7 +476,7 @@ function placeItem(it) {
 function chunkGroup(cx, cy, g) {
   const key = cx + "," + cy;
   let c = CHUNKS.get(key);
-  if (!c) { c = { groups: [null, null, null], used: 0 }; CHUNKS.set(key, c); }
+  if (!c) { c = { groups: [null, null, null, null], used: 0 }; CHUNKS.set(key, c); }
   c.used = chunkTick;
   if (!c.groups[g]) {
     const arr = [];
@@ -491,7 +496,7 @@ function chunkGroup(cx, cy, g) {
 function itemsIn(x0, y0, x1, y1, fn, minR) {
   const cx0 = Math.max(0, Math.floor(x0 / CH)), cy0 = Math.max(0, Math.floor(y0 / CH));
   const cx1 = Math.min(CHN - 1, Math.floor(x1 / CH)), cy1 = Math.min(CHN - 1, Math.floor(y1 / CH));
-  for (let g = 0; g < 3; g++) {
+  for (let g = 0; g < GROUP_TIERS.length; g++) {
     if (minR && GROUP_MAXR[g] < minR) continue;
     for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
       const a = chunkGroup(cx, cy, g);
@@ -506,7 +511,7 @@ function forgetFarChunks() {
   for (let i = 0; i < old.length - 350; i++) CHUNKS.delete(old[i][0]);
 }
 function eatItem(it) {
-  if (online) foodQ.push([it.key, it.g]);
+  if (online && it.t >= 3) foodQ.push([it.key, it.g]);
   it.g++; EATEN.set(it.key, it.g); placeItem(it);
 }
 function buildItems() { CHUNKS = new Map(); EATEN = new Map(); }
@@ -575,7 +580,7 @@ function grow(amount, x, y, show) {
 }
 function eatItemsFor(e, isMe) {
   const m = isMe ? S.mass : e.m, r = radius(m);
-  const reach = r * (isMe ? 1 + S.mag * 0.06 : 1);
+  const reach = isMe ? Math.min(r * reachF(S.mag), r + 6000) : r;   // capped so huge players don't freeze the game
   if (!isMe && e.m > e.cap) return;
   const gm = isMe ? gainMult() : e.gm;
   itemsIn(e.x - reach, e.y - reach, e.x + reach, e.y + reach, it => {
@@ -655,7 +660,7 @@ function botThink(b) {
   else if (Math.hypot(b.tx - b.x, b.ty - b.y) < 60) { b.mode = "wander"; b.tx = b.x + (Math.random() - 0.5) * 6000; b.ty = b.y + (Math.random() - 0.5) * 6000; }
 }
 // bigger players move faster across the world so they never feel slower on screen as the camera zooms out
-function speedOf(m, lv, boost) { return 165 * (1 + lv * 0.06) * Math.pow(radius(m) / 12, 0.7) * (boost > 0 ? 1.75 : 1); }
+function speedOf(m, lv, boost) { return 165 * spF(lv) * Math.pow(radius(m) / 12, 0.7) * (boost > 0 ? 1.75 : 1); }
 // the boss is always 1.6 times bigger than the biggest player or computer player
 function bossMass() {
   let top = S.mass;
@@ -733,6 +738,7 @@ const SB_URL = "https://bpqaeqswtgtbqrczjcrx.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwcWFlcXN3dGd0YnFyY3pqY3J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzUzOTIsImV4cCI6MjA5NjkxMTM5Mn0.hsEZJ_C4NvySPMb59G9EPPfdJRSNBODbnuo9ij_zxrI";
 function bcast(ev, payload) { if (online && ch) try { ch.send({ type: "broadcast", event: ev, payload }); } catch (e) {} }
 const meta = () => ({ i: MYID, n: NAME, t: joinT });
+let retryT = 2000;
 function connect() {
   disconnect();
   if (!window.supabase || !navigator.onLine) { updateOnlineMsg(); return; }
@@ -743,10 +749,19 @@ function connect() {
     ch.on("broadcast", { event: "bots" }, m => onBots(m.payload));
     ch.on("broadcast", { event: "f" }, m => onFood(m.payload));
     ch.on("broadcast", { event: "ate" }, m => onAte(m.payload));
+    // everything for one moment arrives as one message (fewer messages = no more being kicked offline)
+    ch.on("broadcast", { event: "u" }, m => { const p = m.payload || {}; if (p.me) onMe(p.me); if (p.f) onFood({ l: p.f }); if (p.b) onBots({ b: p.b }); });
     ch.on("presence", { event: "sync" }, onSync);
-    ch.subscribe(async status => {
-      if (status === "SUBSCRIBED") { online = true; try { await ch.track(meta()); } catch (e) {} updateOnlineMsg(); }
-      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") { online = false; becomeHost(); updateOnlineMsg(); }
+    const mine = ch;
+    mine.subscribe(async status => {
+      if (mine !== ch) return;
+      if (status === "SUBSCRIBED") { online = true; retryT = 2000; try { await mine.track(meta()); } catch (e) {} updateOnlineMsg(); }
+      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        online = false; becomeHost(); updateOnlineMsg();
+        // join again by itself after a short wait
+        if (playing && !document.hidden) setTimeout(() => { if (mine === ch && playing && !online && !document.hidden) { joinT = Date.now(); connect(); } }, retryT);
+        retryT = Math.min(20000, retryT * 1.6);
+      }
     });
   } catch (e) { online = false; }
 }
@@ -824,10 +839,11 @@ function onAte(p) {
 let netT = 0; const foodQ = [];
 function netTick(dt) {
   netT -= dt; if (netT > 0 || !online) return;
-  netT = 0.12;
-  if (foodQ.length) bcast("f", { l: foodQ.splice(0, 60) });
-  bcast("me", { i: MYID, n: NAME, x: Math.round(ME.x), y: Math.round(ME.y), m: +S.mass.toPrecision(6), c: S.col, sh: ME.sh > 0 ? 1 : 0, b: ME.boost > 0 ? 1 : 0, p: eqEmojis(), fx: +ME.fx.toFixed(2), fy: +ME.fy.toFixed(2) });
-  if (isHost) bcast("bots", { b: [...E.values()].filter(e => e.bot).map(b => [b.id, b.name, Math.round(b.x), Math.round(b.y), +b.m.toPrecision(6), b.c, b.sh > 0 ? 1 : 0, +b.fx.toFixed(2), +b.fy.toFixed(2)]) });
+  netT = 0.15;
+  const u = { me: { i: MYID, n: NAME, x: Math.round(ME.x), y: Math.round(ME.y), m: +S.mass.toPrecision(6), c: S.col, sh: ME.sh > 0 ? 1 : 0, b: ME.boost > 0 ? 1 : 0, p: eqEmojis(), fx: +ME.fx.toFixed(2), fy: +ME.fy.toFixed(2) } };
+  if (foodQ.length) { if (foodQ.length > 200) foodQ.splice(0, foodQ.length - 200); u.f = foodQ.splice(0, 40); }
+  if (isHost) u.b = [...E.values()].filter(e => e.bot).map(b => [b.id, b.name, Math.round(b.x), Math.round(b.y), +b.m.toPrecision(6), b.c, b.sh > 0 ? 1 : 0, +b.fx.toFixed(2), +b.fy.toFixed(2)]);
+  bcast("u", u);
 }
 // gifts: coins or size sent to a player name (from the GH Games owner) arrive here
 let claiming = false;
@@ -1092,12 +1108,13 @@ function draw(now, dt) {
   itemsIn(camX - halfW, camY - halfH, camX + halfW, camY + halfH, it => {
     if (it.r < minR) return;
     const sr = it.r * scale;
+    if (sr > Math.max(cw, chh) * 0.9) return;   // bigger than the screen: too huge to see, and slow to draw
     const px = sx(it.x), py = sy(it.y);
     if (px < -sr * 1.4 || px > cw + sr * 1.4 || py < -sr * 1.4 || py > chh + sr * 1.4) return;
     if (it.pop > 0) it.pop = Math.max(0, it.pop - 0.03);
     const size = sr * 2 * (1 - it.pop);
-    if (sr > 8 && S.mass < needMass(it.r)) { ctx.beginPath(); ctx.arc(px, py, sr * 1.05, 0, 7); ctx.fill(); }
-    emoji(Wd.things[it.t], px, py, size);
+    if (sr > 8 && sr < 160 && S.mass < needMass(it.r)) { ctx.beginPath(); ctx.arc(px, py, sr * 1.05, 0, 7); ctx.fill(); }
+    emoji(thingOf(Wd, it.t), px, py, size);
   }, minR);
   // players, smallest on the bottom
   const list = [...E.values()].filter(e => !(e.hide > 0)).map(e => ({ e, m: e.m || 1 }));

@@ -136,6 +136,33 @@ canvas{display:block;width:100%;touch-action:none}
 .rtime{font-weight:900;color:var(--muted);font-size:14px;min-width:86px;text-align:center}
 body.replaying .orders,body.replaying .orders2,body.replaying .forms,body.replaying .batbar,body.replaying .btns{display:none}
 body.replaying .rbar{display:flex}
+.arena{display:flex;flex-direction:column;gap:10px}
+.controls{display:flex;flex-direction:column;gap:10px;min-width:0}
+.stagebox{display:flex;justify-content:center;min-width:0}
+.stage{width:100%}
+body.battle{padding-top:6px;padding-bottom:10px}
+body.battle .top{display:none}
+body.battle .controls{gap:6px}
+body.battle .orders,body.battle .orders2,body.battle .forms,body.battle .btns,body.battle .batbar{gap:6px}
+body.battle .bb{padding:8px 5px;font-size:14px;border-radius:12px}
+body.battle .bb.big{font-size:20px}
+body.battle .bb.fire{font-size:24px}
+body.battle .bb small{font-size:10px;margin-top:2px}
+body.battle .msg{min-height:0;padding:7px 10px;font-size:13px}
+body.battle .bc{padding:4px 2px 3px}
+body.battle .dbar{margin-top:4px;height:12px}
+body.tight .bb small{display:none}
+body.tight .bc small{display:none}
+body.tight .bb{padding:7px 4px}
+body.side .wrap{max-width:none}
+body.side .arena{flex-direction:row;align-items:flex-start}
+body.side .stagebox{flex:1}
+body.side .controls{width:340px;flex:none;max-height:calc(100vh - 16px);overflow-y:auto}
+body.side .orders{grid-template-columns:1fr 1fr}
+body.side .orders2{grid-template-columns:1fr 1fr}
+body.side .orders2 .drill{grid-column:1/3}
+body.side .batbar{grid-template-columns:repeat(4,1fr)}
+body.side .bc.all small{display:none}
 .bb.watch{background:#2d6a8f;box-shadow:0 4px 0 #173a52}
 </style>
 </head>
@@ -156,7 +183,9 @@ body.replaying .rbar{display:flex}
     </div>
   </div>
 
-  <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+  <div class="arena" id="arena">
+  <div class="stagebox"><div class="stage" id="stage"><canvas id="cv"></canvas></div></div>
+  <div class="controls" id="controls">
 
   <div class="rbar" id="replayBar">
     <button class="rb" id="rPlay" aria-label="Pause or play">⏸</button>
@@ -193,6 +222,8 @@ body.replaying .rbar{display:flex}
     <button class="bb mode" id="diffBtn">Difficulty<small id="diffHint">Recruit</small></button>
   </div>
   <div class="msg" id="msg">Form the line!</div>
+  </div>
+  </div>
 
   <div class="panel">
     <h2>How to play</h2>
@@ -523,12 +554,23 @@ setInterval(() => { screamBudget = Math.max(0, screamBudget - 3); }, 1000);
 // ---------- canvas ----------
 const cv = $("cv"), ctx = cv.getContext("2d");
 let DPR = 1;
+// Fit the battlefield and every button on one screen: buttons below on a tall screen, beside it on a wide one.
 function resize() {
   DPR = Math.min(2, window.devicePixelRatio || 1);
-  const w = $("stage").clientWidth;
+  const vw = window.innerWidth, vh = window.innerHeight, body = document.body;
+  const side = vw > vh * 1.15 && vw >= 700;
+  body.classList.toggle("side", side);
+  body.classList.toggle("tight", vh < 740);
+  const arena = $("arena"), ctr = $("controls");
+  let maxW = arena.clientWidth, availH;
+  if (side) { maxW = arena.clientWidth - ctr.offsetWidth - 10; availH = vh - 16; }
+  else availH = vh - ctr.offsetHeight - 26;
+  const w = Math.round(Math.max(Math.min(260, maxW), Math.min(maxW, availH * W / H)));
+  $("stage").style.width = w + "px";
   cv.width = Math.round(w * DPR); cv.height = Math.round(w * H / W * DPR);
   cv.style.height = (w * H / W) + "px";
 }
+function battleMode(on) { document.body.classList.toggle("battle", on); resize(); if (on) window.scrollTo(0, 0); }
 const BG = document.createElement("canvas");
 function buildBG() {
   BG.width = W * 2; BG.height = H * 2;
@@ -1896,6 +1938,7 @@ function showStart() {
   $("startReplay").hidden = !rp;
   if (rp) $("startReplayHint").textContent = (rp.result === "win" ? "Victory" : "Defeat") + " on " + DIFFS[rp.diff].name + " · " + fmtTime(rp.end * DT) + " long";
   $("startOv").hidden = false;
+  battleMode(false);
 }
 function startBattle() {
   audio();
@@ -1904,6 +1947,7 @@ function startBattle() {
   newBattle();
   SEL = null; DRAMA = null; SLOWT = 0; ACC = 0;
   $("startOv").hidden = true; $("endOv").hidden = true;
+  battleMode(true);
   msg("Dawn, 13 September 1759. The fifes and drums play as the redcoats form up. Tap the picture to skip.", "");
 }
 function renderUps() {
@@ -1969,6 +2013,7 @@ function startReplay(rep) {
   SEL = null; DRAMA = null; SLOWT = 0; ACC = 0;
   $("rSeek").max = rep.end; $("rSeek").value = 0; cache.seek = null;
   document.body.classList.add("replaying");
+  battleMode(true);
   msg("Watching the replay. Speed it up, pause, or drag the bar to jump to any moment.", "");
   audio();
 }
@@ -2041,6 +2086,7 @@ document.addEventListener("keydown", e => {
   else if (k === "f") SPEED = SPEED >= 3 ? 1 : SPEED + 1;
 });
 window.addEventListener("resize", resize);
+window.addEventListener("orientationchange", () => setTimeout(resize, 250));
 
 // ---------- loop ----------
 // The battle runs in fixed steps of 1/60 s, so the same orders on the same step always give the same battle.

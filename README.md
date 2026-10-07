@@ -33,6 +33,7 @@ ghgames/
   seven-years-war-classic.html  the first, simpler-graphics version of Seven Years' War kept as its own game (own save key syw-classic-save and leaderboard)
   save-your-rabbit.html  intro where a rich guy steals your rabbit, then a 25-stage jump obby: wins from each stage buy jump multis, walls need more jump each stage, stage 25 gets your rabbit back
   poo-simulator.html  hold to push, let go in the gold zone for a perfect poo: poos earn coins, food buys release power, 11 worlds bought with coins (better food, bigger coin multi), rebirths double food and coin multi, Auto Poo, biggest poo ever and this session
+  monster-mayhem.html  be the monster (like You Monster! on Poki): eat zombies to grow, bite and SMASH other monsters, last one standing wins; 100 levels over 10 worlds with a boss every 10th level and a closing purple storm, 8 upgrades, 10 monsters to unlock; Public Arena is one free-for-all room for everyone online (Supabase Realtime, the oldest player runs the computer monsters, each player owns their own health, zombies are the same on every device from a seed); leaderboard is most KOs in one life
   CNAME           contains "ghgames.au" — tells GitHub Pages the domain
   README.md       this file
 ```

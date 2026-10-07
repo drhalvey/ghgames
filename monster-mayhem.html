@@ -1,0 +1,1364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Monster Mayhem</title>
+<meta property="og:title" content="Monster Mayhem · GH Games">
+<meta property="og:description" content="Be the monster! Eat zombies to grow, smash the other monsters, 100 levels and a public arena against real players.">
+<meta property="og:image" content="https://ghgames.au/og/monster-mayhem.png">
+<meta property="og:url" content="https://ghgames.au/monster-mayhem.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#140f1f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Games">
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="monster-mayhem"></script>
+<script src="phatcoin.js" data-game="monster-mayhem" data-pill="none"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#140f1f; --panel:#221a35; --panel2:#2e2448; --line:#4a3c72;
+  --ink:#f6f2ff; --muted:#bdb2dc; --gold:#ffc93c; --pink:#ff6fa3; --green:#5fd36a; --red:#ff5d5d; --blue:#4aa8ff; --lime:#a6f04a;
+  --display:"Lilita One","Arial Rounded MT Bold","Trebuchet MS",sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;touch-action:manipulation}
+button,a,.stage,canvas{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.stage,.stage *,button{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+html,body{background:var(--bg);margin:0}
+body{font-family:var(--body);color:var(--ink);padding:14px 14px 40px;font-size:15px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.home{font-weight:900;color:var(--muted);text-decoration:none;font-size:14px}
+.home:hover{color:var(--gold)}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);margin:0;line-height:1;color:var(--lime);text-shadow:0 3px 0 #3d6b12,0 6px 0 rgba(0,0,0,.3)}
+.hud{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:6px 12px;display:flex;flex-direction:column;align-items:flex-start;color:var(--ink);font-family:var(--body)}
+.chip span{font-size:11px;color:var(--muted);font-weight:800}
+.chip b{font-size:17px;font-weight:900}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--gold)}
+.stage{position:relative;touch-action:none;border-radius:20px;overflow:hidden;border:3px solid var(--line);background:#111}
+canvas{display:block;width:100%;touch-action:none}
+.abtn{position:absolute;bottom:14px;width:86px;height:86px;border-radius:50%;border:none;font-family:var(--display);font-size:18px;color:#3b2200;cursor:pointer;touch-action:none;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.abtn small{display:block;font-family:var(--body);font-size:11px;font-weight:900;margin-top:3px}
+.abtn:active{transform:translateY(3px)}
+.abtn.cool{filter:grayscale(.85) brightness(.65)}
+#smashBtn{right:14px;background:radial-gradient(circle at 35% 30%,#ffe98a,#ffb300);box-shadow:0 6px 0 #a86a00,0 10px 18px rgba(0,0,0,.4)}
+#dashBtn{right:112px;background:radial-gradient(circle at 35% 30%,#b9f6ff,#3fb6ff);box-shadow:0 6px 0 #1b5f99,0 10px 18px rgba(0,0,0,.4);color:#08233d}
+.abtn[hidden],.bar[hidden]{display:none}
+.bar{position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap}
+.bar button,.bar span{font-family:var(--body);font-weight:900;font-size:13px;border:none;border-radius:10px;padding:7px 11px;background:rgba(0,0,0,.55);color:#fff;cursor:pointer}
+.lobby{position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(80,40,120,.97),rgba(20,15,31,.98));display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:12px;padding:16px;overflow:auto;text-align:center}
+.lobby[hidden]{display:none}
+.stage.inlobby > canvas{display:none}
+.stage.inlobby .lobby{position:relative;inset:auto;padding:22px 16px}
+.lobby h2{font-family:var(--display);font-weight:400;margin:4px 0 0;font-size:26px;color:var(--gold)}
+.lobby p{margin:0;color:var(--muted);font-weight:700;max-width:600px}
+.modes{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.mode{font-family:var(--display);font-size:26px;border:none;border-radius:20px;padding:14px 26px;cursor:pointer;min-width:220px;color:#1a1300;box-shadow:0 7px 0 rgba(0,0,0,.35)}
+.mode small{display:block;font-family:var(--body);font-size:13px;font-weight:900;opacity:.85;margin-top:2px}
+.mode.lv{background:linear-gradient(#c6ff6a,#6fcf2a)}
+.mode.ar{background:linear-gradient(#ff9ad1,#ff4f8f);color:#fff}
+.mode:active{transform:translateY(3px)}
+.skins{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.skin{width:86px;border-radius:16px;border:3px solid var(--line);background:var(--panel);cursor:pointer;padding:4px 2px 6px;font-family:var(--body);font-weight:900;font-size:11px;color:var(--ink);display:flex;flex-direction:column;align-items:center}
+.skin canvas{width:70px;height:70px}
+.skin.sel{border-color:var(--gold);background:var(--panel2);box-shadow:0 0 0 3px rgba(255,201,60,.3)}
+.skin.locked{opacity:.5}
+.worldtabs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:760px}
+.wtab{font-family:var(--body);font-weight:900;font-size:13px;border:2px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:6px 10px;cursor:pointer}
+.wtab.sel{border-color:var(--gold);background:var(--panel2)}
+.wtab.locked{opacity:.45}
+.levels{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;width:100%;max-width:520px}
+.lvl{font-family:var(--display);font-size:22px;border:3px solid var(--line);background:var(--panel);color:var(--ink);border-radius:14px;padding:8px 2px 6px;cursor:pointer;line-height:1}
+.lvl small{display:block;font-family:var(--body);font-size:11px;font-weight:900;color:var(--gold);margin-top:4px;letter-spacing:1px}
+.lvl.boss{border-color:#ff5d5d;background:#3a1a2a}
+.lvl.next{border-color:var(--lime);box-shadow:0 0 0 3px rgba(166,240,74,.3)}
+.lvl.locked{opacity:.35;cursor:default}
+.back{font-family:var(--body);font-weight:900;border:none;border-radius:12px;padding:9px 16px;color:#fff;background:#4a3c72;cursor:pointer;box-shadow:0 4px 0 #221a35}
+.msg{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:10px 14px;font-weight:800;min-height:44px}
+.msg.good{border-color:var(--green)}
+.msg.bad{border-color:var(--red)}
+.panel{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:14px 16px}
+.panel h2{font-family:var(--display);font-weight:400;margin:0 0 6px;font-size:24px;color:var(--gold)}
+.sub{color:var(--muted);margin:0 0 10px;font-weight:700}
+.ups{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.up{background:var(--panel2);border:2px solid var(--line);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.up h3{margin:0;font-family:var(--display);font-weight:400;font-size:21px}
+.up .lv{font-weight:900;font-size:15px}
+.up p{margin:0;color:var(--muted);font-weight:700;font-size:13px}
+.buyrow{display:flex;gap:6px}
+.buy{flex:1;font-family:var(--body);font-weight:900;border:none;border-radius:12px;padding:10px 10px;color:#fff;background:var(--pink);cursor:pointer;box-shadow:0 4px 0 #8a1c43;font-size:14px}
+.buy.max{flex:0 0 auto;background:#7d4dff;box-shadow:0 4px 0 #3a1f8a}
+.buy[disabled]{background:#4a4870;box-shadow:0 4px 0 #2a2844;cursor:default}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.overlay[hidden]{display:none}
+.box{background:var(--panel);border:3px solid var(--gold);border-radius:20px;padding:18px;max-width:460px;width:100%;display:flex;flex-direction:column;gap:10px;max-height:90vh;overflow:auto;text-align:center}
+.box h3{font-family:var(--display);font-weight:400;margin:0;font-size:30px;color:var(--gold)}
+.box p{margin:0;font-weight:800}
+.box input{font-family:var(--body);font-weight:800;font-size:20px;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:#120d1e;color:var(--ink);outline:none;width:100%}
+.box .stars{font-size:46px;letter-spacing:6px}
+.box .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.help{margin:0;padding-left:18px;color:var(--muted);font-weight:700;line-height:1.5}
+.help b{color:var(--ink)}
+@media (max-width:600px){
+  .abtn{width:72px;height:72px;font-size:15px;bottom:10px}
+  #smashBtn{right:10px} #dashBtn{right:92px}
+  .bar button,.bar span{font-size:12px;padding:6px 9px}
+  .mode{min-width:0;width:100%;font-size:22px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="home" href="index.html">← GH Games</a>
+  <div class="top">
+    <h1>Monster Mayhem</h1>
+    <div class="hud">
+      <button class="chip" id="nameChip" type="button" title="Change your name"><span>Name ✏️</span><b id="hName">Player</b></button>
+      <div class="chip"><span>Coins 🪙</span><b id="hCoins">0</b></div>
+      <div class="chip"><span>Levels beaten 🏆</span><b id="hLevel">0 / 100</b></div>
+      <div class="chip"><span>Stars ⭐</span><b id="hStars">0</b></div>
+      <div class="chip"><span>Arena KOs 💀</span><b id="hKos">0</b></div>
+    </div>
+  </div>
+
+  <div class="stage inlobby" id="stage">
+    <canvas id="cv" aria-label="Game area. Tap or click to move and attack. Space to smash, Shift to dash."></canvas>
+    <div class="bar" id="bar" hidden>
+      <button id="menuBtn" type="button">☰ Quit</button>
+      <span id="onlineLbl" hidden>Offline</span>
+    </div>
+    <button class="abtn" id="dashBtn" type="button" hidden>DASH<small id="dashLbl">Shift</small></button>
+    <button class="abtn" id="smashBtn" type="button" hidden>SMASH<small id="smashLbl">Space</small></button>
+    <div class="lobby" id="lobby"></div>
+  </div>
+  <div class="msg" id="msg">Pick a mode. Levels to grow strong, Public Arena to fight real people!</div>
+
+  <section class="panel">
+    <h2>Upgrades</h2>
+    <p class="sub">Every zombie you eat and every level you beat earns coins. Your upgrades work in the Public Arena too.</p>
+    <div class="ups" id="ups"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Monsters</h2>
+    <p class="sub">Unlock new monsters with coins. Each one is tougher and bites harder than the one before.</p>
+    <div class="skins" id="skinShop"></div>
+  </section>
+
+  <section class="panel">
+    <h2>How to play</h2>
+    <ul class="help">
+      <li><b>Move</b>: tap or click where you want to go, or hold and drag. Arrow keys or WASD work too.</li>
+      <li><b>Attack</b>: get close to another monster and you bite automatically. Tap a monster to chase it.</li>
+      <li><b>Eat zombies</b> by running into them. Every zombie makes you bigger, tougher and gives coins. Big green <b>Brutes</b> fight back, so bite them a few times first.</li>
+      <li><b>SMASH</b> (Space) hits everything around you hard. <b>DASH</b> (Shift) lunges you forward to catch or escape.</li>
+      <li><b>Levels</b>: be the last monster standing. After a while the <b>purple storm</b> closes in, so you have to fight. Every 10th level is a <b>Boss</b>. 10 worlds, 100 levels. More health left at the end means more stars.</li>
+      <li><b>Public Arena</b>: everyone who is playing is in the same arena. Real players have a 🟢 by their name. Knock them out for big coins. If nobody is on, computer monsters fight you instead.</li>
+    </ul>
+  </section>
+
+  <div id="lb"></div>
+</div>
+
+<div class="overlay" id="overlay" hidden><div class="box" id="box"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="leaderboard.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const SAVE_KEY = "monstermayhem-save";
+
+// ---------------- numbers (George's pattern) ----------------
+const SMALL = ["K","M","B","T","Qa","Qi","Sx","Sp","Oc","No"];
+const NU = ["","U","D","T","Qa","Qi","Sx","Sp","Oc","No"], NT = ["","Dc","Vg","Tg","Qag","Qig","Sxg","Spg","Ocg","Nog"];
+const illion = N => N < 10 ? SMALL[N] : NU[N % 10] + NT[Math.floor(N / 10) % 10];
+function fmt(n) {
+  if (!isFinite(n)) return "MAX";
+  n = Math.floor(n);
+  if (n < 1e4) return n.toLocaleString();
+  const e = Math.floor(Math.log10(n) / 3 + 1e-9), v = n / Math.pow(10, e * 3);
+  return (v >= 100 ? Math.floor(v) : v.toFixed(v >= 10 ? 1 : 2)) + illion(e - 1);
+}
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = a => a[Math.floor(Math.random() * a.length)];
+function rng(seed) { let t = seed >>> 0; return () => { t += 0x6D2B79F5; let r = Math.imul(t ^ t >>> 15, 1 | t); r ^= r + Math.imul(r ^ r >>> 7, 61 | r); return ((r ^ r >>> 14) >>> 0) / 4294967296; }; }
+function hash(s) { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0; return h; }
+
+// ---------------- data ----------------
+const WORLDS = [
+  { n: "Zombie City", e: "🏙️", g1: "#3d4250", g2: "#474d5d", deco: "city", boss: "Big Rat King", bossSkin: 1, bc: "#8b6b5a" },
+  { n: "Spooky Farm", e: "🚜", g1: "#4f7a2f", g2: "#5a8836", deco: "farm", boss: "Mega Pig", bossSkin: 0, bc: "#f2a0b5" },
+  { n: "Hot Desert", e: "🏜️", g1: "#c9a15a", g2: "#d4ad66", deco: "desert", boss: "Sand Worm", bossSkin: 4, bc: "#d9b26a" },
+  { n: "Pirate Beach", e: "🏴‍☠️", g1: "#e2c98a", g2: "#ead296", deco: "beach", boss: "Crab Lord", bossSkin: 6, bc: "#ff6a3d" },
+  { n: "Wild Jungle", e: "🌴", g1: "#2f6b34", g2: "#357a3b", deco: "jungle", boss: "Gorilla Rex", bossSkin: 2, bc: "#55463d" },
+  { n: "Frozen Peaks", e: "🏔️", g1: "#cfe4f2", g2: "#dbecf7", deco: "snow", boss: "Ice Titan", bossSkin: 7, bc: "#9fe3ff" },
+  { n: "Stinky Swamp", e: "🐸", g1: "#3f5a33", g2: "#486638", deco: "swamp", boss: "Bog Beast", bossSkin: 3, bc: "#6d8b3a" },
+  { n: "Lava Land", e: "🌋", g1: "#3a2422", g2: "#452a27", deco: "lava", boss: "Magma Dragon", bossSkin: 5, bc: "#ff5a1f" },
+  { n: "Haunted Castle", e: "🏰", g1: "#2d2a3a", g2: "#363245", deco: "haunted", boss: "Ghost King", bossSkin: 8, bc: "#cfd6ff" },
+  { n: "Outer Space", e: "🚀", g1: "#141533", g2: "#1a1c40", deco: "space", boss: "Alien Overlord", bossSkin: 9, bc: "#7dff8a" },
+];
+const N_LEVELS = WORLDS.length * 10;
+// monsters: drawn from these settings
+const SKINS = [
+  { n: "Blobby", c: "#6ad14b", c2: "#3f9a2a", eyes: 2, price: 0 },
+  { n: "Chomper", c: "#4fa86a", c2: "#2e7044", eyes: 2, spikes: 1, price: 600 },
+  { n: "Yeti", c: "#e9f1ff", c2: "#a9bde0", eyes: 2, fur: 1, horns: 1, price: 8e3 },
+  { n: "Cyclops", c: "#8a6be0", c2: "#5a3fb0", eyes: 1, horns: 1, price: 1e5 },
+  { n: "Spidey", c: "#3b3346", c2: "#1e1826", eyes: 4, legs: 1, price: 1.5e6 },
+  { n: "Dragon", c: "#e2483a", c2: "#9a2219", eyes: 2, horns: 1, wings: 1, spikes: 1, price: 2.5e7 },
+  { n: "Kraken", c: "#ff7a59", c2: "#c24a2e", eyes: 2, tent: 1, price: 4e8 },
+  { n: "Golem", c: "#8c8f99", c2: "#5a5d66", eyes: 2, rock: 1, price: 7e9 },
+  { n: "Demon", c: "#b0123a", c2: "#5e0a1f", eyes: 3, horns: 1, wings: 1, price: 1.2e11 },
+  { n: "Shadow King", c: "#1d1630", c2: "#0b0814", eyes: 2, horns: 1, crown: 1, glow: 1, price: 2.5e12 },
+];
+const skinBonus = i => 1 + 0.06 * i;
+const UPS = {
+  hp:     { n: "Thick Skin", e: "❤️", d: "+8% health each level", base: 25, g: 1.2, max: 250 },
+  bite:   { n: "Sharp Teeth", e: "🦷", d: "+8% bite damage each level", base: 25, g: 1.2, max: 250 },
+  spd:    { n: "Fast Feet", e: "👟", d: "+3% speed each level", base: 60, g: 1.45, max: 25 },
+  hunger: { n: "Big Belly", e: "🍖", d: "+5% growth from zombies", base: 40, g: 1.28, max: 150 },
+  coin:   { n: "Coin Sniffer", e: "🪙", d: "+5% coins from everything", base: 50, g: 1.3, max: 150 },
+  start:  { n: "Head Start", e: "🚀", d: "Start every match a bit bigger", base: 80, g: 1.33, max: 100 },
+  regen:  { n: "Healing", e: "💚", d: "Heal 0.2% of your health a second each level", base: 70, g: 1.4, max: 40 },
+  smash:  { n: "Mega Smash", e: "💥", d: "Smash hits harder and comes back sooner", base: 90, g: 1.3, max: 100 },
+};
+const upCost = (k, lv) => Math.ceil(UPS[k].base * Math.pow(UPS[k].g, lv));
+const ZTYPES = {
+  walker: { xp: 1, coin: 1, r: 11, spd: 34, col: "#7fbf5a", hp: 0 },
+  runner: { xp: 2, coin: 2, r: 10, spd: 62, col: "#9ad46a", hp: 0 },
+  fatty:  { xp: 5, coin: 4, r: 17, spd: 24, col: "#6aa84f", hp: 0 },
+  brute:  { xp: 14, coin: 12, r: 22, spd: 40, col: "#3f8a3a", hp: 1 },
+};
+const BOT_NAMES = ["Gnasher","Grumbo","Slobber","Fang","Mr Munch","Chompy","Bonecrush","Snarl","Goober","Wobble","Fuzzbutt","Gobbler","Toothy","Rumble","Snacky","Burpzilla","Clawdia","Big Steve","Nibbles","Grizzle","Mungus","Squelch","Krunch","Bogey"];
+
+// ---------------- save ----------------
+function blankSave() { const up = {}; for (const k in UPS) up[k] = 0; return { coins: 0, beaten: 0, stars: {}, up, skins: [0], skin: 0, kos: 0, bestStreak: 0, eaten: 0, sel: 0 }; }
+function loadSave() {
+  let s = null; try { s = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) {}
+  const b = blankSave(); if (!s || typeof s !== "object") return b;
+  const num = (v, d) => (typeof v === "number" && isFinite(v) && v >= 0) ? v : d;
+  b.coins = num(s.coins, 0); b.beaten = clamp(Math.floor(num(s.beaten, 0)), 0, N_LEVELS);
+  if (s.stars && typeof s.stars === "object") for (const k in s.stars) { const lv = +k, st = +s.stars[k]; if (lv >= 1 && lv <= N_LEVELS && st >= 1 && st <= 3) b.stars[lv] = st | 0; }
+  for (const k in UPS) b.up[k] = clamp(Math.floor(num(s.up && s.up[k], 0)), 0, UPS[k].max);
+  if (Array.isArray(s.skins)) b.skins = [...new Set([0, ...s.skins.filter(i => SKINS[i])])];
+  b.skin = b.skins.includes(s.skin) ? s.skin : 0;
+  b.kos = Math.floor(num(s.kos, 0)); b.bestStreak = Math.floor(num(s.bestStreak, 0)); b.eaten = Math.floor(num(s.eaten, 0));
+  b.sel = clamp(Math.floor(num(s.sel, 0)), 0, WORLDS.length - 1);
+  return b;
+}
+let S = loadSave();
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+// account.js may pull a newer save from another device into localStorage
+addEventListener("storage", e => { if (e.key === SAVE_KEY && !G) { S = loadSave(); renderAll(); } });
+
+// ---------------- names ----------------
+const NAME_KEY = "ghgames_nick";
+const BAD = ["fuck","shit","bitch","cunt","dick","cock","pussy","asshole","arsehole","wanker","twat","bastard","slut","whore","nigg","fag","retard","penis","vagina","boob","tits","porn","sex","damn","crap","piss","bollock","prick","knob","bugger","bloody","kys","rape","nazi","hitler","dildo","cum"];
+function isRude(v) { const t = (v || "").toLowerCase().replace(/[013457@$!]/g, c => ({"0":"o","1":"i","3":"e","4":"a","5":"s","7":"t","@":"a","$":"s","!":"i"}[c])).replace(/[^a-z]/g, ""); return BAD.some(w => t.includes(w)); }
+function cleanName(v) { return (v || "").replace(/[^A-Za-z0-9 _\-!?.']/g, "").replace(/\s+/g, " ").trim().slice(0, 12); }
+function safeName(v) { const n = cleanName(v); return !n || isRude(n) ? "Player" : n; }
+let NAME = safeName((() => { try { return localStorage.getItem(NAME_KEY); } catch (e) { return ""; } })());
+const hasName = () => NAME && NAME !== "Player";
+
+// ---------------- monster maths ----------------
+const radius = m => Math.min(14 + 5 * Math.sqrt(m), 300);
+const hpBase = m => 60 + 6 * m;
+const biteBase = m => 7 + 0.5 * m;
+const BITE_CD = 0.55;
+function playerMults() {
+  const sb = skinBonus(S.skin);
+  return {
+    hp: Math.pow(1.08, S.up.hp) * sb, dmg: Math.pow(1.08, S.up.bite) * sb, spd: 1 + 0.03 * S.up.spd,
+    xp: 1 + 0.05 * S.up.hunger, coin: 1 + 0.05 * S.up.coin, start: 10 + 2 * S.up.start,
+    regen: 0.002 * S.up.regen, smash: Math.pow(1.1, S.up.smash), smashCd: Math.max(3, 8 - 0.05 * S.up.smash),
+  };
+}
+const powerOf = () => Math.pow(1.08, S.up.hp + S.up.bite) * skinBonus(S.skin) ** 2;
+const lvlWorld = L => Math.floor((L - 1) / 10);
+const isBoss = L => L % 10 === 0;
+const levelReward = L => Math.round(40 * Math.pow(1.2, L - 1));
+const botPow = L => 0.85 * Math.pow(1.095, L - 1);
+
+// ---------------- canvas ----------------
+const cv = $("cv"), ctx = cv.getContext("2d");
+let CW = 800, CH = 560, DPR = 1;
+function resize() {
+  const w = $("stage").clientWidth || 800;
+  const h = w < 600 ? Math.max(380, Math.min(innerHeight * 0.66, w * 1.35)) : Math.max(360, Math.min(innerHeight * 0.74, w * 0.72));
+  DPR = Math.min(2, devicePixelRatio || 1);
+  CW = w; CH = Math.round(h);
+  cv.width = Math.round(CW * DPR); cv.height = Math.round(CH * DPR); cv.style.height = CH + "px";
+}
+addEventListener("resize", resize);
+
+// ---------------- drawing a monster ----------------
+function drawMonster(c, x, y, r, skinI, t, o) {
+  o = o || {};
+  const sk = SKINS[skinI] || SKINS[0];
+  const fx = o.fx || 0, fy = o.fy == null ? 1 : o.fy;
+  const bob = Math.sin(t * 9 + (o.ph || 0)) * (o.moving ? 0.06 : 0.02);
+  const sx = 1 + bob, sy = 1 - bob;
+  c.save(); c.translate(x, y);
+  // shadow
+  c.fillStyle = "rgba(0,0,0,.28)"; c.beginPath(); c.ellipse(0, r * 0.82, r * 0.95, r * 0.32, 0, 0, Math.PI * 2); c.fill();
+  if (sk.glow) { const gr = c.createRadialGradient(0, 0, r * 0.6, 0, 0, r * 1.6); gr.addColorStop(0, "rgba(160,90,255,.45)"); gr.addColorStop(1, "rgba(160,90,255,0)"); c.fillStyle = gr; c.beginPath(); c.arc(0, 0, r * 1.6, 0, Math.PI * 2); c.fill(); }
+  const walk = Math.sin(t * 12 + (o.ph || 0)) * (o.moving ? 1 : 0);
+  // legs / tentacles
+  c.fillStyle = sk.c2; c.strokeStyle = sk.c2;
+  if (sk.legs) {
+    c.lineWidth = r * 0.11; c.lineCap = "round";
+    for (let s = -1; s <= 1; s += 2) for (let i = 0; i < 4; i++) {
+      const a = -0.9 + i * 0.6, w = Math.sin(t * 14 + i + s) * 0.18 * (o.moving ? 1 : 0.2);
+      c.beginPath(); c.moveTo(s * r * 0.6 * Math.cos(a), r * 0.5 * Math.sin(a));
+      c.quadraticCurveTo(s * r * 1.35, r * (Math.sin(a) * 0.5 - 0.45), s * r * (1.35 + w), r * (Math.sin(a) * 0.6 + 0.6)); c.stroke();
+    }
+  } else if (sk.tent) {
+    c.lineWidth = r * 0.17; c.lineCap = "round";
+    for (let i = 0; i < 6; i++) {
+      const bx = (i - 2.5) * r * 0.3, w = Math.sin(t * 6 + i) * r * 0.22;
+      c.beginPath(); c.moveTo(bx, r * 0.4); c.quadraticCurveTo(bx + w, r * 0.85, bx - w * 0.6, r * 1.15); c.stroke();
+    }
+  } else {
+    for (let s = -1; s <= 1; s += 2) { c.beginPath(); c.ellipse(s * r * 0.45, r * 0.78 + (s * walk) * r * 0.06, r * 0.24, r * 0.17, 0, 0, Math.PI * 2); c.fill(); }
+  }
+  // wings
+  if (sk.wings) {
+    c.fillStyle = sk.c2;
+    for (let s = -1; s <= 1; s += 2) {
+      const fl = Math.sin(t * 7) * 0.25;
+      c.beginPath(); c.moveTo(s * r * 0.5, -r * 0.2);
+      c.quadraticCurveTo(s * r * 1.7, -r * (1.2 + fl), s * r * 1.75, r * 0.1);
+      c.quadraticCurveTo(s * r * 1.3, -r * 0.05, s * r * 1.15, r * 0.25);
+      c.quadraticCurveTo(s * r * 0.95, r * 0.05, s * r * 0.55, r * 0.25); c.closePath(); c.fill();
+    }
+  }
+  c.scale(sx, sy);
+  // arms
+  const atk = o.atk || 0;
+  c.fillStyle = sk.c2;
+  for (let s = -1; s <= 1; s += 2) {
+    const ax = s * r * (0.95 + atk * 0.25), ay = r * 0.15 - (s * walk) * r * 0.08 - atk * r * 0.3;
+    c.beginPath(); c.ellipse(ax, ay, r * 0.22, r * 0.3, s * 0.5, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "#fff"; for (let k = -1; k <= 1; k++) { c.beginPath(); c.moveTo(ax + k * r * 0.08, ay + r * 0.24); c.lineTo(ax + k * r * 0.08 - r * 0.03, ay + r * 0.36); c.lineTo(ax + k * r * 0.08 + r * 0.04, ay + r * 0.26); c.fill(); }
+    c.fillStyle = sk.c2;
+  }
+  // body
+  const g = c.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.1, 0, 0, r * 1.05);
+  g.addColorStop(0, lighten(sk.c, 0.35)); g.addColorStop(0.55, sk.c); g.addColorStop(1, sk.c2);
+  c.fillStyle = o.flash ? "#fff" : g;
+  c.beginPath();
+  if (sk.rock) { for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2, rr = r * (0.92 + ((i * 37) % 7) / 50); c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr * 0.95); } c.closePath(); }
+  else if (sk.fur) { for (let i = 0; i < 28; i++) { const a = i / 28 * Math.PI * 2, rr = r * (i % 2 ? 1.04 : 0.93); c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr * 0.95); } c.closePath(); }
+  else c.ellipse(0, 0, r, r * 0.95, 0, 0, Math.PI * 2);
+  c.fill();
+  // spikes along the top
+  if (sk.spikes) { c.fillStyle = sk.c2; for (let i = -2; i <= 2; i++) { const a = -Math.PI / 2 + i * 0.32; c.beginPath(); c.moveTo(Math.cos(a - 0.12) * r * 0.95, Math.sin(a - 0.12) * r * 0.95); c.lineTo(Math.cos(a) * r * 1.25, Math.sin(a) * r * 1.25); c.lineTo(Math.cos(a + 0.12) * r * 0.95, Math.sin(a + 0.12) * r * 0.95); c.fill(); } }
+  // horns
+  if (sk.horns) { c.fillStyle = "#f3e6c4"; for (let s = -1; s <= 1; s += 2) { c.beginPath(); c.moveTo(s * r * 0.35, -r * 0.75); c.quadraticCurveTo(s * r * 0.75, -r * 1.25, s * r * 0.55, -r * 1.45); c.quadraticCurveTo(s * r * 0.55, -r * 1.05, s * r * 0.12, -r * 0.85); c.fill(); } }
+  if (sk.crown) { c.fillStyle = "#ffcf3a"; c.beginPath(); c.moveTo(-r * 0.45, -r * 0.82); c.lineTo(-r * 0.45, -r * 1.2); c.lineTo(-r * 0.22, -r * 1.0); c.lineTo(0, -r * 1.3); c.lineTo(r * 0.22, -r * 1.0); c.lineTo(r * 0.45, -r * 1.2); c.lineTo(r * 0.45, -r * 0.82); c.fill(); }
+  if (o.bossCrown) { c.fillStyle = "#ffcf3a"; c.strokeStyle = "#a8780a"; c.lineWidth = r * 0.04; c.beginPath(); c.moveTo(-r * 0.55, -r * 0.8); c.lineTo(-r * 0.6, -r * 1.3); c.lineTo(-r * 0.27, -r * 1.05); c.lineTo(0, -r * 1.45); c.lineTo(r * 0.27, -r * 1.05); c.lineTo(r * 0.6, -r * 1.3); c.lineTo(r * 0.55, -r * 0.8); c.closePath(); c.fill(); c.stroke(); }
+  // belly
+  c.fillStyle = "rgba(255,255,255,.14)"; c.beginPath(); c.ellipse(0, r * 0.3, r * 0.6, r * 0.45, 0, 0, Math.PI * 2); c.fill();
+  // eyes (look where it is going)
+  const lx = fx * r * 0.08, ly = fy * r * 0.06;
+  const ex = sk.eyes === 1 ? [0] : sk.eyes === 3 ? [-0.38, 0, 0.38] : sk.eyes === 4 ? [-0.42, -0.15, 0.15, 0.42] : [-0.33, 0.33];
+  const er = sk.eyes === 1 ? 0.33 : sk.eyes >= 3 ? 0.15 : 0.22;
+  for (let i = 0; i < ex.length; i++) {
+    const eyY = sk.eyes === 4 && (i === 1 || i === 2) ? -0.48 : -0.3;
+    c.fillStyle = sk.glow ? "#ffe066" : "#fff"; c.beginPath(); c.arc(ex[i] * r + lx, eyY * r + ly, er * r, 0, Math.PI * 2); c.fill();
+    c.fillStyle = sk.glow ? "#b0124a" : "#1a1020"; c.beginPath(); c.arc(ex[i] * r + lx * 2, eyY * r + ly * 2, er * r * 0.5, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "#fff"; c.beginPath(); c.arc(ex[i] * r + lx * 2 - er * r * 0.18, eyY * r + ly * 2 - er * r * 0.2, er * r * 0.16, 0, Math.PI * 2); c.fill();
+    // angry brow
+    c.strokeStyle = sk.c2; c.lineWidth = r * 0.07; c.beginPath(); const bx = ex[i] * r + lx, side = ex[i] < 0 ? -1 : ex[i] > 0 ? 1 : 0;
+    c.moveTo(bx - er * r, eyY * r - er * r * (1.1 + side * 0.35)); c.lineTo(bx + er * r, eyY * r - er * r * (1.1 - side * 0.35)); c.stroke();
+  }
+  // mouth: opens when biting
+  const mo = 0.12 + atk * 0.28;
+  c.fillStyle = "#3a0c18"; c.beginPath(); c.ellipse(lx, r * 0.22 + ly, r * 0.48, r * mo, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "#fff";
+  for (let i = -3; i <= 3; i++) {
+    const tx = lx + i * r * 0.12;
+    c.beginPath(); c.moveTo(tx - r * 0.05, r * 0.22 + ly - r * mo * 0.8); c.lineTo(tx + r * 0.05, r * 0.22 + ly - r * mo * 0.8); c.lineTo(tx, r * 0.22 + ly - r * mo * 0.8 + r * 0.1); c.fill();
+    if (i > -3 && i < 3) { c.beginPath(); c.moveTo(tx - r * 0.04, r * 0.22 + ly + r * mo * 0.8); c.lineTo(tx + r * 0.04, r * 0.22 + ly + r * mo * 0.8); c.lineTo(tx, r * 0.22 + ly + r * mo * 0.8 - r * 0.08); c.fill(); }
+  }
+  c.restore();
+}
+function lighten(hex, a) {
+  const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  return `rgb(${Math.round(r + (255 - r) * a)},${Math.round(g + (255 - g) * a)},${Math.round(b + (255 - b) * a)})`;
+}
+function drawZombie(c, z, t) {
+  const T = ZTYPES[z.type], r = T.r, wob = Math.sin(t * 7 + z.ph) * 0.18;
+  c.save(); c.translate(z.x, z.y);
+  c.fillStyle = "rgba(0,0,0,.25)"; c.beginPath(); c.ellipse(0, r * 0.9, r * 0.8, r * 0.28, 0, 0, Math.PI * 2); c.fill();
+  c.rotate(wob * 0.4);
+  // legs
+  c.fillStyle = "#4b3a6a"; c.fillRect(-r * 0.45, r * 0.3, r * 0.35, r * 0.6 + wob * r * 0.4); c.fillRect(r * 0.1, r * 0.3, r * 0.35, r * 0.6 - wob * r * 0.4);
+  // body (torn shirt)
+  c.fillStyle = z.type === "brute" ? "#6b2f2f" : z.type === "fatty" ? "#b38b3a" : z.type === "runner" ? "#3a6ab3" : "#8a7a5a";
+  c.beginPath(); c.ellipse(0, r * 0.05, r * (z.type === "fatty" ? 0.85 : 0.62), r * 0.55, 0, 0, Math.PI * 2); c.fill();
+  // arms out in front
+  c.fillStyle = T.col; c.fillRect(-r * 0.75, -r * 0.25, r * 0.25, r * 0.6); c.fillRect(r * 0.5, -r * 0.25, r * 0.25, r * 0.6);
+  // head
+  c.beginPath(); c.arc(0, -r * 0.62, r * 0.48, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "#ffef5a"; c.beginPath(); c.arc(-r * 0.17, -r * 0.68, r * 0.11, 0, Math.PI * 2); c.arc(r * 0.17, -r * 0.64, r * 0.09, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = "#2a3a1a"; c.lineWidth = Math.max(1, r * 0.07); c.beginPath(); c.moveTo(-r * 0.18, -r * 0.42); c.lineTo(r * 0.18, -r * 0.45); c.stroke();
+  c.restore();
+  if (z.type === "brute" && z.hp < z.maxHp) bar(c, z.x, z.y - r * 1.4, r * 1.6, z.hp / z.maxHp, "#ff5d5d");
+}
+function bar(c, x, y, w, f, col) {
+  c.fillStyle = "rgba(0,0,0,.55)"; c.fillRect(x - w / 2 - 2, y - 2, w + 4, 8);
+  c.fillStyle = col; c.fillRect(x - w / 2, y, w * clamp(f, 0, 1), 4);
+}
+
+// ---------------- props (scenery) ----------------
+function makeProps(world, W, H, seed) {
+  const R = rng(seed), out = [], n = Math.round(W * H / 90000);
+  for (let i = 0; i < n; i++) out.push({ x: R() * W, y: R() * H, s: 0.7 + R() * 0.8, v: Math.floor(R() * 4), rot: R() * 6.28 });
+  return out;
+}
+function drawProp(c, kind, p, t) {
+  const s = 26 * p.s; c.save(); c.translate(p.x, p.y);
+  switch (kind) {
+    case "city":
+      if (p.v === 0) { c.fillStyle = ["#d94a4a","#3d7bd9","#e0c13a","#6d6d6d"][Math.floor(p.rot) % 4]; c.rotate(p.rot); rr(c, -s * 1.1, -s * 0.55, s * 2.2, s * 1.1, s * 0.3); c.fill(); c.fillStyle = "rgba(180,220,255,.7)"; c.fillRect(-s * 0.4, -s * 0.45, s * 0.8, s * 0.9); }
+      else if (p.v === 1) { c.fillStyle = "#2a2d36"; c.beginPath(); c.arc(0, 0, s * 0.18, 0, 7); c.fill(); c.fillStyle = "rgba(255,230,140,.25)"; c.beginPath(); c.arc(0, 0, s, 0, 7); c.fill(); }
+      else if (p.v === 2) { c.fillStyle = "#8a6a3a"; c.fillRect(-s * 0.5, -s * 0.5, s, s); c.strokeStyle = "#5a4020"; c.lineWidth = 3; c.strokeRect(-s * 0.5, -s * 0.5, s, s); c.beginPath(); c.moveTo(-s * 0.5, -s * 0.5); c.lineTo(s * 0.5, s * 0.5); c.stroke(); }
+      else { c.fillStyle = "rgba(255,255,255,.18)"; c.fillRect(-s * 1.2, -4, s * 2.4, 8); }
+      break;
+    case "farm":
+      if (p.v < 2) { c.fillStyle = "#3b6a24"; c.beginPath(); c.arc(0, 0, s * 1.1, 0, 7); c.fill(); c.fillStyle = "#4f8a2f"; c.beginPath(); c.arc(-s * 0.3, -s * 0.3, s * 0.7, 0, 7); c.fill(); }
+      else if (p.v === 2) { c.fillStyle = "#e6c45a"; rr(c, -s * 0.7, -s * 0.5, s * 1.4, s, s * 0.3); c.fill(); c.strokeStyle = "#b8942e"; c.lineWidth = 2; for (let i = -1; i <= 1; i++) { c.beginPath(); c.moveTo(-s * 0.6, i * s * 0.25); c.lineTo(s * 0.6, i * s * 0.25); c.stroke(); } }
+      else { c.fillStyle = "#e85d8a"; c.beginPath(); c.arc(0, 0, s * 0.15, 0, 7); c.arc(s * 0.4, s * 0.2, s * 0.13, 0, 7); c.fill(); }
+      break;
+    case "desert":
+      if (p.v < 2) { c.fillStyle = "#3f8a3a"; rr(c, -s * 0.2, -s, s * 0.4, s * 2, s * 0.2); c.fill(); rr(c, -s * 0.65, -s * 0.4, s * 0.3, s * 0.8, s * 0.15); c.fill(); rr(c, s * 0.35, -s * 0.7, s * 0.3, s * 0.7, s * 0.15); c.fill(); }
+      else { c.fillStyle = "#a88454"; c.beginPath(); c.ellipse(0, 0, s, s * 0.7, p.rot, 0, 7); c.fill(); c.fillStyle = "#bf9963"; c.beginPath(); c.ellipse(-s * 0.2, -s * 0.15, s * 0.5, s * 0.35, p.rot, 0, 7); c.fill(); }
+      break;
+    case "beach":
+      if (p.v === 0) { c.fillStyle = "#2f8fd1"; c.beginPath(); c.ellipse(0, 0, s * 1.8, s * 1.1, p.rot, 0, 7); c.fill(); c.fillStyle = "rgba(255,255,255,.35)"; c.beginPath(); c.ellipse(-s * 0.4, -s * 0.2, s * 0.6, s * 0.2, p.rot, 0, 7); c.fill(); }
+      else if (p.v === 1) { c.fillStyle = "#6b4a2a"; c.fillRect(-s * 0.15, -s * 0.2, s * 0.3, s); c.fillStyle = "#3f9a3a"; for (let i = 0; i < 5; i++) { c.beginPath(); c.ellipse(Math.cos(i * 1.26) * s * 0.6, -s * 0.2 + Math.sin(i * 1.26) * s * 0.6, s * 0.7, s * 0.2, i * 1.26, 0, 7); c.fill(); } }
+      else if (p.v === 2) { c.fillStyle = "#7a5230"; rr(c, -s * 0.6, -s * 0.45, s * 1.2, s * 0.9, 4); c.fill(); c.fillStyle = "#ffd23a"; c.fillRect(-s * 0.6, -s * 0.1, s * 1.2, s * 0.15); }
+      else { c.fillStyle = "#ff8a5a"; c.beginPath(); for (let i = 0; i < 10; i++) { const a = i / 10 * 6.28, rr2 = i % 2 ? s * 0.2 : s * 0.45; c.lineTo(Math.cos(a) * rr2, Math.sin(a) * rr2); } c.fill(); }
+      break;
+    case "jungle":
+      c.fillStyle = p.v % 2 ? "#1f5a24" : "#28702e"; c.beginPath(); for (let i = 0; i < 7; i++) c.ellipse(Math.cos(i) * s * 0.6, Math.sin(i * 1.3) * s * 0.5, s * 0.8, s * 0.35, i, 0, 7); c.fill();
+      if (p.v === 3) { c.fillStyle = "#ff4f8a"; c.beginPath(); c.arc(0, 0, s * 0.25, 0, 7); c.fill(); }
+      break;
+    case "snow":
+      if (p.v < 2) { c.fillStyle = "#2f6a4a"; c.beginPath(); c.moveTo(0, -s * 1.3); c.lineTo(s * 0.8, s * 0.6); c.lineTo(-s * 0.8, s * 0.6); c.fill(); c.fillStyle = "#fff"; c.beginPath(); c.moveTo(0, -s * 1.3); c.lineTo(s * 0.35, -s * 0.5); c.lineTo(-s * 0.35, -s * 0.5); c.fill(); }
+      else if (p.v === 2) { c.fillStyle = "#a8d8f0"; c.beginPath(); c.ellipse(0, 0, s * 1.5, s * 0.9, p.rot, 0, 7); c.fill(); }
+      else { c.fillStyle = "#fff"; c.beginPath(); c.arc(0, s * 0.3, s * 0.45, 0, 7); c.arc(0, -s * 0.25, s * 0.32, 0, 7); c.fill(); c.fillStyle = "#ff8a2a"; c.beginPath(); c.moveTo(0, -s * 0.25); c.lineTo(s * 0.3, -s * 0.2); c.lineTo(0, -s * 0.15); c.fill(); }
+      break;
+    case "swamp":
+      if (p.v < 2) { c.fillStyle = "#2d4a2a"; c.beginPath(); c.ellipse(0, 0, s * 1.7, s * 1.1, p.rot, 0, 7); c.fill(); c.fillStyle = "#5a9a3a"; c.beginPath(); c.arc(s * 0.4, 0, s * 0.3, 0, 7); c.fill(); }
+      else { c.fillStyle = "#4a3a2a"; c.fillRect(-s * 0.1, -s * 0.8, s * 0.2, s * 1.1); c.fillStyle = "#7a4a2a"; c.beginPath(); c.ellipse(0, -s * 0.85, s * 0.12, s * 0.28, 0, 0, 7); c.fill(); }
+      break;
+    case "lava":
+      if (p.v < 2) { const gl = 0.6 + Math.sin(t * 2 + p.rot) * 0.2; c.fillStyle = `rgba(255,${90 + p.v * 30},20,${gl})`; c.beginPath(); c.ellipse(0, 0, s * 1.6, s, p.rot, 0, 7); c.fill(); c.fillStyle = "rgba(255,220,80,.6)"; c.beginPath(); c.ellipse(0, 0, s * 0.7, s * 0.4, p.rot, 0, 7); c.fill(); }
+      else { c.fillStyle = "#1e1414"; c.beginPath(); c.moveTo(-s, s * 0.5); c.lineTo(-s * 0.3, -s); c.lineTo(s * 0.4, -s * 0.4); c.lineTo(s, s * 0.5); c.fill(); }
+      break;
+    case "haunted":
+      if (p.v === 0) { c.fillStyle = "#77738a"; rr(c, -s * 0.4, -s * 0.7, s * 0.8, s * 1.1, s * 0.35); c.fill(); c.fillStyle = "#4a465a"; c.font = `${Math.round(s * 0.35)}px sans-serif`; c.textAlign = "center"; c.fillText("RIP", 0, -s * 0.15); }
+      else if (p.v === 1) { c.globalAlpha = 0.5 + Math.sin(t * 2 + p.rot) * 0.3; c.fillStyle = "#e6ecff"; c.beginPath(); c.arc(0, 0, s * 0.45, Math.PI, 0); c.lineTo(s * 0.45, s * 0.5); for (let i = 0; i < 4; i++) c.lineTo(s * 0.45 - (i + 0.5) * s * 0.225, s * (i % 2 ? 0.5 : 0.3)); c.lineTo(-s * 0.45, s * 0.5); c.fill(); c.fillStyle = "#222"; c.beginPath(); c.arc(-s * 0.15, -s * 0.05, s * 0.07, 0, 7); c.arc(s * 0.15, -s * 0.05, s * 0.07, 0, 7); c.fill(); }
+      else if (p.v === 2) { c.fillStyle = "#e07a1a"; c.beginPath(); c.ellipse(0, 0, s * 0.5, s * 0.4, 0, 0, 7); c.fill(); c.fillStyle = "#ffe066"; c.beginPath(); c.moveTo(-s * 0.25, -s * 0.05); c.lineTo(-s * 0.1, -s * 0.15); c.lineTo(-s * 0.05, 0); c.fill(); c.beginPath(); c.moveTo(s * 0.25, -s * 0.05); c.lineTo(s * 0.1, -s * 0.15); c.lineTo(s * 0.05, 0); c.fill(); }
+      else { c.fillStyle = "#3d394a"; c.fillRect(-s, -s * 0.15, s * 2, s * 0.3); }
+      break;
+    case "space":
+      if (p.v < 2) { c.fillStyle = "#2a2c55"; c.beginPath(); c.arc(0, 0, s * 0.9, 0, 7); c.fill(); c.fillStyle = "#1c1d3f"; c.beginPath(); c.arc(s * 0.2, s * 0.15, s * 0.45, 0, 7); c.fill(); }
+      else if (p.v === 2) { c.fillStyle = "#ffffff"; c.beginPath(); c.arc(0, 0, 2, 0, 7); c.fill(); c.fillStyle = "rgba(255,255,255,.3)"; c.beginPath(); c.arc(s, s * 0.6, 1.5, 0, 7); c.arc(-s * 0.8, s, 1.5, 0, 7); c.fill(); }
+      else { c.fillStyle = "#c0c6d8"; rr(c, -s * 0.3, -s * 0.8, s * 0.6, s * 1.4, s * 0.3); c.fill(); c.fillStyle = "#e84a4a"; c.beginPath(); c.moveTo(-s * 0.3, -s * 0.5); c.lineTo(0, -s * 1.1); c.lineTo(s * 0.3, -s * 0.5); c.fill(); }
+      break;
+  }
+  c.restore();
+}
+function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+
+// ---------------- the match ----------------
+let G = null;          // current match
+let MYID = (() => { try { let v = sessionStorage.getItem("mm_id"); if (!v) { v = "p" + Math.random().toString(36).slice(2, 9); sessionStorage.setItem("mm_id", v); } return v; } catch (e) { return "p" + Math.random().toString(36).slice(2, 9); } })();
+
+function newMonster(o) {
+  const m = Object.assign({ id: "", name: "", x: 0, y: 0, m: 10, hp: 1, skin: 0, bot: true, alive: true, hpM: 1, dmgM: 1, spdM: 1, xpM: 1, regen: 0,
+    face: [0, 1], vx: 0, vy: 0, biteT: 0, atk: 0, flash: 0, smashCd: 2, smashMax: 8, smashM: 1, dashCd: 1, dashT: 0, ph: Math.random() * 6, kos: 0, moving: false,
+    target: null, tx: null, ty: null, think: 0, aggr: 1, hpShow: 1 }, o);
+  m.hp = maxHp(m); return m;
+}
+const maxHp = M => hpBase(M.m) * M.hpM;
+const biteDmg = M => biteBase(M.m) * M.dmgM;
+const speedOf = M => 205 * M.spdM * Math.max(0.5, 1 - (radius(M.m) - 30) / 520) * (M.dashT > 0 ? 2.8 : 1);
+function grow(M, add) {
+  const f = M.hp / maxHp(M); M.m += add; M.hp = Math.min(maxHp(M), maxHp(M) * f + add * 6 * M.hpM * 0.5);
+}
+
+function startLevel(L) {
+  const wi = lvlWorld(L), W = WORLDS[wi], boss = isBoss(L);
+  const k = (L - 1) % 10;
+  const nBots = boss ? 2 + Math.floor(wi / 3) : Math.min(9, 2 + Math.floor(k / 2) + Math.floor(wi / 2));
+  const size = 1700 + nBots * 140 + wi * 60;
+  G = baseMatch("level", size, size, wi);
+  G.L = L; G.boss = boss;
+  G.zCount = 30 + nBots * 6 + wi * 2;
+  G.ring = { r: Math.hypot(size, size) / 2 + 50, cx: size / 2, cy: size / 2, minR: Math.max(260, size * 0.16), start: boss ? 75 : 50, dur: 70 };
+  const pm = playerMults();
+  G.me = newMonster({ id: MYID, name: NAME, bot: false, x: size / 2, y: size / 2, m: pm.start, skin: S.skin, hpM: pm.hp, dmgM: pm.dmg, spdM: pm.spd, xpM: pm.xp, regen: pm.regen, smashM: pm.smash, smashMax: pm.smashCd, me: true });
+  G.mons.set(G.me.id, G.me);
+  const bp = botPow(L);
+  const used = new Set();
+  for (let i = 0; i < nBots; i++) {
+    const a = i / nBots * Math.PI * 2 + rand(-0.2, 0.2), d = size * 0.36;
+    let nm = pick(BOT_NAMES); while (used.has(nm) && used.size < BOT_NAMES.length) nm = pick(BOT_NAMES); used.add(nm);
+    const sk = Math.min(SKINS.length - 1, Math.floor(Math.random() * (2 + wi)));
+    G.mons.set("b" + i, newMonster({ id: "b" + i, name: nm, x: size / 2 + Math.cos(a) * d, y: size / 2 + Math.sin(a) * d, m: 10 + L * 1.3 * rand(0.7, 1.2),
+      skin: sk, hpM: bp * rand(0.85, 1.1), dmgM: bp * rand(0.85, 1.1), spdM: rand(0.85, 1.05) + wi * 0.01, xpM: 1 + L * 0.04, regen: 0.002 * Math.min(40, L * 0.4), aggr: rand(0.7, 1.4), smashMax: 9, smashM: 1 + L * 0.02 }));
+  }
+  if (boss) {
+    const bm = 10 + L * 1.3;
+    G.mons.set("boss", newMonster({ id: "boss", name: "👑 " + W.boss, boss: true, x: size / 2, y: size * 0.12, m: bm * 3.5, skin: W.bossSkin,
+      hpM: bp * 1.5, dmgM: bp * 0.55, spdM: 0.82, xpM: 1 + L * 0.04, regen: 0.002 * Math.min(40, L * 0.4), aggr: 1.6, smashMax: 6, smashM: 1.4 }));
+  }
+  for (let i = 0; i < G.zCount; i++) spawnZombie(true);
+  G.alive0 = nBots + (boss ? 1 : 0);
+  enterGame();
+  setMsg(boss ? `⚠️ BOSS LEVEL! Beat ${W.boss} and every other monster!` : `Level ${L}: ${W.n}. Eat zombies to grow, then be the last monster standing!`, boss ? "bad" : "");
+}
+function startArena() {
+  const size = 3200;
+  // the arena's world changes every hour (the same for everyone)
+  G = baseMatch("arena", size, size, Math.floor(Date.now() / 3600000) % WORLDS.length);
+  G.zSlots = 90;
+  G.eaten = new Map();
+  G.streak = 0; G.respawn = 0;
+  spawnMe();
+  enterGame();
+  connect();
+  setMsg("Public Arena! Real players have a 🟢 next to their name. Knock them out!", "good");
+}
+function spawnMe() {
+  const pm = playerMults(), size = G.W;
+  let x = size / 2, y = size / 2;
+  for (let k = 0; k < 20; k++) { x = rand(200, size - 200); y = rand(200, size - 200); if (![...G.mons.values()].some(o => o.alive && Math.hypot(o.x - x, o.y - y) < 700)) break; }
+  G.me = newMonster({ id: MYID, name: NAME, bot: false, x, y, m: pm.start, skin: S.skin, hpM: pm.hp, dmgM: pm.dmg, spdM: pm.spd, xpM: pm.xp, regen: pm.regen, smashM: pm.smash, smashMax: pm.smashCd, me: true, shield: 3 });
+  G.mons.set(MYID, G.me);
+  G.streak = 0;
+}
+function baseMatch(mode, W, H, wi) {
+  return { mode, W, H, world: wi, mons: new Map(), zombies: [], fx: [], txt: [], feed: [], t: 0, over: false, shake: 0, cam: { x: W / 2, y: H / 2, z: 1 },
+    props: makeProps(wi, W, H, hash(mode + wi + W)), coinsGot: 0, eatenN: 0 };
+}
+function spawnZombie(initial) {
+  const wi = G.world, L = G.L || 1;
+  let type = "walker"; const r = Math.random();
+  const bruteChance = G.mode === "level" ? Math.min(0.14, 0.02 + L * 0.0015) : 0;
+  if (r < bruteChance) type = "brute"; else if (r < 0.12 + bruteChance) type = "fatty"; else if (r < 0.38) type = "runner";
+  let x, y, tries = 0;
+  do { x = rand(40, G.W - 40); y = rand(40, G.H - 40); tries++; } while (!initial && tries < 10 && [...G.mons.values()].some(M => M.alive && Math.hypot(M.x - x, M.y - y) < 300));
+  if (G.ring && Math.hypot(x - G.ring.cx, y - G.ring.cy) > G.ring.r * 0.9) { const a = Math.random() * 6.28, d = Math.random() * G.ring.r * 0.85; x = G.ring.cx + Math.cos(a) * d; y = G.ring.cy + Math.sin(a) * d; }
+  const T = ZTYPES[type], hpZ = type === "brute" ? 90 * botPow(L) : 1;
+  G.zombies.push({ type, x, y, a: Math.random() * 6.28, ph: Math.random() * 6, hp: hpZ, maxHp: hpZ, hitT: 0, turn: rand(1, 3) });
+}
+
+// ---------------- public arena zombies (the same on every device) ----------------
+function arenaZombie(k, t) {
+  const g = G.eaten.get(k) || 0, R = rng(hash("mmz" + k + ":" + g));
+  const r = R(), type = r < 0.1 ? "fatty" : r < 0.36 ? "runner" : "walker";
+  const bx = 120 + R() * (G.W - 240), by = 120 + R() * (G.H - 240);
+  const s = ZTYPES[type].spd / 40;
+  const p1 = R() * 6.28, p2 = R() * 6.28, p3 = R() * 6.28, p4 = R() * 6.28;
+  const x = clamp(bx + 110 * Math.sin(t * 0.21 * s + p1) + 70 * Math.sin(t * 0.47 * s + p2), 30, G.W - 30);
+  const y = clamp(by + 110 * Math.sin(t * 0.19 * s + p3) + 70 * Math.sin(t * 0.53 * s + p4), 30, G.H - 30);
+  return { k, g, type, x, y, ph: p1, hp: 1, maxHp: 1 };
+}
+function arenaZombies() {
+  const t = netNow() / 1000, out = [];
+  for (let k = 0; k < G.zSlots; k++) out.push(arenaZombie(k, t));
+  return out;
+}
+
+// ---------------- enter / leave ----------------
+let playing = false;
+function enterGame() {
+  playing = true; $("stage").classList.remove("inlobby"); $("lobby").hidden = true;
+  $("bar").hidden = false; $("smashBtn").hidden = false; $("dashBtn").hidden = false;
+  $("onlineLbl").hidden = G.mode !== "arena";
+  resize(); last = performance.now();
+  if (G.me) { G.cam.x = G.me.x; G.cam.y = G.me.y; }
+}
+function leaveGame() {
+  if (G && G.mode === "arena") { disconnect(); if (G.streak) submitStreak(); }
+  G = null; playing = false;
+  $("stage").classList.add("inlobby"); $("lobby").hidden = false; $("bar").hidden = true; $("smashBtn").hidden = true; $("dashBtn").hidden = true;
+  save(); renderAll(); renderLobby();
+}
+
+// ---------------- combat ----------------
+function enemiesOf(M) { const out = []; for (const o of G.mons.values()) if (o !== M && o.alive) out.push(o); return out; }
+function doBite(M, T) {
+  const d = biteDmg(M) * rand(0.9, 1.1);
+  M.biteT = BITE_CD; M.atk = 1;
+  hurt(T, d, M);
+}
+function hurt(T, d, by) {
+  if (!T.alive) return;
+  if (T.shield > 0) return;
+  // arena: remote monsters are owned by someone else, so ask them to take the hit
+  if (G.mode === "arena" && !owns(T)) {
+    bcast("hit", { v: T.id, d: Math.round(d), by: by.id, bn: by.name });
+    T.flash = 0.12; popText(T.x, T.y - radius(T.m), "-" + fmt(d), "#fff"); hitFx(T, by);
+    return;
+  }
+  T.hp -= d; T.flash = 0.12; T.lastHit = by.id; T.lastHitName = by.name; T.lastHitT = G.t;
+  popText(T.x, T.y - radius(T.m), "-" + fmt(d), T.me ? "#ff7a7a" : "#fff");
+  hitFx(T, by);
+  if (T.me) G.shake = Math.min(14, G.shake + 5);
+  if (T.hp <= 0) killMonster(T, by);
+}
+function hitFx(T, by) {
+  const a = by ? Math.atan2(T.y - by.y, T.x - by.x) : Math.random() * 6.28, r = radius(T.m);
+  for (let i = 0; i < 6; i++) G.fx.push({ x: T.x - Math.cos(a) * r * 0.6, y: T.y - Math.sin(a) * r * 0.6, vx: Math.cos(a + rand(-1, 1)) * rand(60, 200), vy: Math.sin(a + rand(-1, 1)) * rand(60, 200), life: 0.5, c: "#ffe066", s: rand(3, 6) });
+  if (by && by.alive) { T.vx += Math.cos(a) * 160; T.vy += Math.sin(a) * 160; }
+}
+function killMonster(T, by) {
+  if (!T.alive) return;
+  T.alive = false; T.hp = 0;
+  const r = radius(T.m), sk = SKINS[T.skin];
+  for (let i = 0; i < 40; i++) G.fx.push({ x: T.x, y: T.y, vx: rand(-1, 1) * 380, vy: rand(-1, 1) * 380, life: rand(0.5, 1.1), c: i % 3 ? sk.c : sk.c2, s: rand(4, 10) * Math.max(1, r / 40) });
+  G.shake = Math.min(18, G.shake + 8);
+  const killer = by && by.name ? by.name : "the storm";
+  addFeed(`${killer} 💀 ${T.name}`);
+  if (by && by.alive && by.m) grow(by, T.m * 0.35);
+  if (G.mode === "arena") { arenaKO(T, by); return; }
+  if (by && by.me) { const c = Math.round(levelReward(G.L) * 0.15 * playerMults().coin); addCoins(c); popText(by.x, by.y - r - 30, `KO! +${fmt(c)} 🪙`, "#ffd23a", true); }
+  if (T.me) setTimeout(() => endLevel(false, killer), 900);
+  else if (G.me.alive && ![...G.mons.values()].some(o => o.alive && !o.me)) setTimeout(() => endLevel(true), 900);
+}
+function smash(M) {
+  if (M.smashCd > 0 || !M.alive) return;
+  M.smashCd = M.smashMax; M.atk = 1;
+  const r = radius(M.m), R = r * 3 + 60;
+  G.fx.push({ ring: true, x: M.x, y: M.y, r: r, R, life: 0.45, max: 0.45 });
+  for (let i = 0; i < 24; i++) { const a = i / 24 * 6.28; G.fx.push({ x: M.x + Math.cos(a) * r, y: M.y + Math.sin(a) * r, vx: Math.cos(a) * 320, vy: Math.sin(a) * 320, life: 0.5, c: "#d9c7a0", s: rand(4, 9) }); }
+  if (M.me || dist(M, G.me) < 700) G.shake = Math.min(16, G.shake + (M.me ? 9 : 5));
+  const d = biteDmg(M) * 2.6 * M.smashM;
+  for (const o of enemiesOf(M)) if (dist(M, o) < R + radius(o.m)) { hurt(o, d, M); const a = Math.atan2(o.y - M.y, o.x - M.x); o.vx += Math.cos(a) * 520; o.vy += Math.sin(a) * 520; }
+  if (G.mode === "level") for (const z of G.zombies) if (z.type === "brute" && Math.hypot(z.x - M.x, z.y - M.y) < R + 20) hurtZombie(z, d, M);
+}
+function dash(M) { if (M.dashCd > 0 || !M.alive) return; M.dashCd = 3.5; M.dashT = 0.32; for (let i = 0; i < 10; i++) G.fx.push({ x: M.x, y: M.y, vx: -M.face[0] * rand(80, 240) + rand(-60, 60), vy: -M.face[1] * rand(80, 240) + rand(-60, 60), life: 0.4, c: "#bfe9ff", s: rand(3, 7) }); }
+function hurtZombie(z, d, by) {
+  z.hp -= d; z.hitT = 0.12; popText(z.x, z.y - 30, "-" + fmt(d), "#fff");
+  if (z.hp <= 0) eatZombie(by, z);
+}
+function eatZombie(M, z) {
+  const T = ZTYPES[z.type];
+  grow(M, T.xp * M.xpM * (G.mode === "level" ? 1 + (G.L - 1) * 0.04 : 1.5));
+  M.hp = Math.min(maxHp(M), M.hp + maxHp(M) * 0.04);
+  for (let i = 0; i < 10; i++) G.fx.push({ x: z.x, y: z.y, vx: rand(-1, 1) * 150, vy: rand(-1, 1) * 150, life: 0.5, c: i % 2 ? "#7fbf5a" : "#b33a3a", s: rand(2, 5) });
+  if (M.me) {
+    const c = Math.max(1, Math.round(T.coin * (G.mode === "level" ? Math.pow(1.15, G.L - 1) : 4 * Math.pow(1.12, Math.min(S.beaten, 100))) * playerMults().coin));
+    addCoins(c); G.eatenN++; S.eaten++;
+    popText(z.x, z.y - 20, "+" + fmt(c), "#ffd23a");
+    M.atk = 0.7;
+  }
+  if (G.mode === "arena") {
+    const ng = z.g + 1; G.eaten.set(z.k, ng); bcast("z", { k: z.k, g: ng });
+  } else {
+    G.zombies.splice(G.zombies.indexOf(z), 1);
+    setTimeout(() => { if (G && G.mode === "level" && !G.over) spawnZombie(false); }, 1500);
+  }
+}
+function addCoins(c) { S.coins += c; G.coinsGot += c; }
+
+// ---------------- bot brains ----------------
+function botThink(B, dt) {
+  B.think -= dt;
+  if (B.think > 0) return;
+  B.think = rand(0.2, 0.4);
+  const myScore = B.hp * biteDmg(B) * B.aggr;
+  let best = null, bd = 1e9, threat = null, td = 1e9;
+  for (const o of enemiesOf(B)) {
+    const d = dist(B, o), their = o.hp * biteDmg(o);
+    const range = 340 + radius(B.m) * 2 + (G.ring && G.t > G.ring.start ? 400 : 0);
+    if (d < range && myScore > their * 0.75 && d < bd) { bd = d; best = o; }
+    if (d < 260 + radius(o.m) && myScore < their * 0.5 && d < td) { td = d; threat = o; }
+  }
+  const calm = G.mode === "level" ? G.t < 8 : G.t - (B.born || 0) < 10;
+  if (calm && !(B.lastHitT != null && G.t - B.lastHitT < 3)) best = null;
+  if (B.boss && !calm) { // bosses go for the player more
+    if (G.me && G.me.alive && dist(B, G.me) < 900 && G.t > 20) best = G.me;
+  }
+  if (threat && !B.boss && Math.random() < 0.85) {
+    const a = Math.atan2(B.y - threat.y, B.x - threat.x) + rand(-0.5, 0.5);
+    B.target = null; B.tx = B.x + Math.cos(a) * 300; B.ty = B.y + Math.sin(a) * 300; B.fleeing = true;
+    if (td < radius(threat.m) + radius(B.m) + 80 && Math.random() < 0.3) dash(B);
+    return;
+  }
+  B.fleeing = false;
+  if (best) {
+    B.target = best;
+    const d = dist(B, best);
+    if (d > 140 && d < 320 && Math.random() < 0.25) dash(B);
+    return;
+  }
+  // otherwise eat
+  B.target = null;
+  const zs = G.mode === "arena" ? G.zCache : G.zombies;
+  let zb = null, zd = 1e9;
+  for (const z of zs) { if (z.type === "brute" && B.m < 30) continue; const d = Math.hypot(z.x - B.x, z.y - B.y); if (d < zd) { zd = d; zb = z; } }
+  if (zb && zd < 900) { B.tx = zb.x; B.ty = zb.y; B.zt = zb; }
+  else { B.tx = rand(G.W * 0.2, G.W * 0.8); B.ty = rand(G.H * 0.2, G.H * 0.8); }
+}
+
+// ---------------- the update ----------------
+const keys = {};
+let pointer = null;
+function stepMonster(M, dt) {
+  if (!M.alive) return;
+  M.biteT -= dt; M.smashCd -= dt; M.dashCd -= dt; M.dashT -= dt; M.atk = Math.max(0, M.atk - dt * 4); M.flash -= dt;
+  if (M.shield > 0) M.shield -= dt;
+  // move
+  let dx = 0, dy = 0;
+  if (M.me) {
+    const k = readKeys();
+    if (k) { dx = k[0]; dy = k[1]; M.tx = null; M.target = null; }
+    else if (pointer && pointer.down) { const w = toWorld(pointer.x, pointer.y); M.tx = w.x; M.ty = w.y; M.target = pointer.mon && pointer.mon.alive ? pointer.mon : null; }
+  }
+  if (!dx && !dy) {
+    let gx = M.tx, gy = M.ty;
+    if (M.target && M.target.alive) { gx = M.target.x; gy = M.target.y; } else if (M.target) M.target = null;
+    if (gx != null) {
+      const ddx = gx - M.x, ddy = gy - M.y, d = Math.hypot(ddx, ddy);
+      const stop = M.target ? radius(M.m) + radius(M.target.m) - 6 : 6;
+      if (d > stop) { dx = ddx / d; dy = ddy / d; }
+      else if (!M.target && M.me) M.tx = null;
+    }
+  }
+  // stay out of the storm
+  if (M.bot && G.ring && G.t > G.ring.start - 3) {
+    const rd = Math.hypot(M.x - G.ring.cx, M.y - G.ring.cy);
+    if (rd > G.ring.r * 0.85) { const a = Math.atan2(G.ring.cy - M.y, G.ring.cx - M.x); dx = dx * 0.3 + Math.cos(a); dy = dy * 0.3 + Math.sin(a); const n = Math.hypot(dx, dy); dx /= n; dy /= n; }
+  }
+  M.moving = !!(dx || dy);
+  if (M.moving) M.face = [dx, dy];
+  const sp = speedOf(M) * (M.boss ? 0.95 : 1);
+  M.x += (dx * sp + M.vx) * dt; M.y += (dy * sp + M.vy) * dt;
+  M.vx *= Math.pow(0.02, dt); M.vy *= Math.pow(0.02, dt);
+  const r = radius(M.m);
+  M.x = clamp(M.x, r * 0.5, G.W - r * 0.5); M.y = clamp(M.y, r * 0.5, G.H - r * 0.5);
+  // regen
+  if (M.regen) M.hp = Math.min(maxHp(M), M.hp + maxHp(M) * M.regen * dt);
+  // storm damage
+  if (G.ring && Math.hypot(M.x - G.ring.cx, M.y - G.ring.cy) > G.ring.r) {
+    M.hp -= maxHp(M) * 0.06 * dt; M.stormT = (M.stormT || 0) + dt;
+    if (M.hp <= 0) killMonster(M, M.lastHit && G.mons.get(M.lastHit) && G.t - M.lastHitT < 6 ? G.mons.get(M.lastHit) : null);
+  }
+  if (!M.alive) return;
+  // bite whoever is touching
+  if (M.biteT <= 0) {
+    let tgt = null, td = 1e9;
+    for (const o of enemiesOf(M)) {
+      if (o.shield > 0) continue;
+      const d = dist(M, o) - radius(o.m) - r;
+      if (d < 14 && (o === M.target ? -1 : d) < td) { td = o === M.target ? -1 : d; tgt = o; }
+    }
+    if (tgt) doBite(M, tgt);
+    else if (G.mode === "level") {
+      for (const z of G.zombies) if (z.type === "brute" && Math.hypot(z.x - M.x, z.y - M.y) < r + ZTYPES.brute.r + 10) { M.biteT = BITE_CD; M.atk = 1; hurtZombie(z, biteDmg(M), M); break; }
+    }
+  }
+  // eat small zombies by touching
+  if (G.mode === "level") {
+    for (let i = G.zombies.length - 1; i >= 0; i--) { const z = G.zombies[i]; if (z.type !== "brute" && Math.hypot(z.x - M.x, z.y - M.y) < r + ZTYPES[z.type].r * 0.6) eatZombie(M, z); }
+  } else if (owns(M)) {
+    for (const z of G.zCache) if (Math.hypot(z.x - M.x, z.y - M.y) < r + ZTYPES[z.type].r * 0.6 && (G.eaten.get(z.k) || 0) === z.g) eatZombie(M, z);
+  }
+}
+function stepZombies(dt) {
+  for (const z of G.zombies) {
+    const T = ZTYPES[z.type];
+    let near = null, nd = 1e9;
+    for (const M of G.mons.values()) if (M.alive) { const d = Math.hypot(M.x - z.x, M.y - z.y); if (d < nd) { nd = d; near = M; } }
+    z.turn -= dt;
+    if (z.type === "brute" && near && nd < 260) z.a = Math.atan2(near.y - z.y, near.x - z.x);
+    else if (near && nd < 170 + radius(near.m)) z.a = Math.atan2(z.y - near.y, z.x - near.x) + Math.sin(G.t * 3 + z.ph) * 0.4;
+    else if (z.turn < 0) { z.turn = rand(1, 3); z.a += rand(-1.5, 1.5); }
+    const sp = T.spd * (near && nd < 200 ? 1.6 : 1);
+    z.x += Math.cos(z.a) * sp * dt; z.y += Math.sin(z.a) * sp * dt;
+    if (z.x < 20 || z.x > G.W - 20) { z.a = Math.PI - z.a; z.x = clamp(z.x, 20, G.W - 20); }
+    if (z.y < 20 || z.y > G.H - 20) { z.a = -z.a; z.y = clamp(z.y, 20, G.H - 20); }
+    if (G.ring && Math.hypot(z.x - G.ring.cx, z.y - G.ring.cy) > G.ring.r) z.a = Math.atan2(G.ring.cy - z.y, G.ring.cx - z.x);
+    z.hitT -= dt;
+    if (z.type === "brute" && near && nd < radius(near.m) + T.r + 6) {
+      z.atkT = (z.atkT || 0) - dt;
+      if (z.atkT <= 0) { z.atkT = 1.1; hurt(near, 6 * botPow(G.L), { id: "brute", name: "a Brute zombie", x: z.x, y: z.y, alive: false }); }
+    }
+  }
+}
+function update(dt) {
+  G.t += dt;
+  if (G.mode === "arena") G.zCache = arenaZombies().filter(z => true);
+  if (G.ring && G.t > G.ring.start) {
+    const f = clamp((G.t - G.ring.start) / G.ring.dur, 0, 1);
+    G.ring.r = lerp(G.ring.r0 || (G.ring.r0 = G.ring.r), G.ring.minR, f);
+  }
+  for (const M of G.mons.values()) {
+    if (M.remote) { stepRemote(M, dt); continue; }
+    if (M.bot && M.alive) botThink(M, dt);
+    if (M.bot && M.alive && M.target && dist(M, M.target) < radius(M.m) * 3 + 50) {
+      const near = enemiesOf(M).filter(o => dist(M, o) < radius(M.m) * 3 + 60 + radius(o.m)).length;
+      if ((near >= 2 || Math.random() < 0.02) && M.smashCd <= 0) smash(M);
+    }
+    stepMonster(M, dt);
+  }
+  // push overlapping monsters apart a little
+  const arr = [...G.mons.values()].filter(m => m.alive);
+  for (let i = 0; i < arr.length; i++) for (let j = i + 1; j < arr.length; j++) {
+    const a = arr[i], b = arr[j], d = dist(a, b), min = (radius(a.m) + radius(b.m)) * 0.85;
+    if (d < min && d > 0.01) { const p = (min - d) / 2, nx = (b.x - a.x) / d, ny = (b.y - a.y) / d; if (!a.remote) { a.x -= nx * p; a.y -= ny * p; } if (!b.remote) { b.x += nx * p; b.y += ny * p; } }
+  }
+  if (G.mode === "level") stepZombies(dt);
+  else arenaTick(dt);
+  // effects
+  for (let i = G.fx.length - 1; i >= 0; i--) { const f = G.fx[i]; f.life -= dt; if (f.life <= 0) { G.fx.splice(i, 1); continue; } if (!f.ring) { f.x += f.vx * dt; f.y += f.vy * dt; f.vx *= 0.92; f.vy *= 0.92; } }
+  for (let i = G.txt.length - 1; i >= 0; i--) { const t = G.txt[i]; t.life -= dt; t.y -= 40 * dt; if (t.life <= 0) G.txt.splice(i, 1); }
+  for (let i = G.feed.length - 1; i >= 0; i--) { G.feed[i].life -= dt; if (G.feed[i].life <= 0) G.feed.splice(i, 1); }
+  G.shake *= Math.pow(0.02, dt);
+  // camera
+  const me = G.me, focus = me && me.alive ? me : [...G.mons.values()].find(o => o.alive) || me;
+  if (focus) {
+    const r = radius(focus.m);
+    const z = clamp(Math.sqrt(CW * CH) / (700 + r * 7.5), 0.25, 1.3);
+    G.cam.z = lerp(G.cam.z, z, 1 - Math.pow(0.05, dt));
+    G.cam.x = lerp(G.cam.x, focus.x, 1 - Math.pow(0.0005, dt)); G.cam.y = lerp(G.cam.y, focus.y, 1 - Math.pow(0.0005, dt));
+  }
+  // smoothed health bar
+  for (const M of G.mons.values()) M.hpShow = lerp(M.hpShow, clamp(M.hp / maxHp(M), 0, 1), 1 - Math.pow(0.01, dt));
+  updateButtons();
+}
+function readKeys() {
+  let x = 0, y = 0;
+  if (keys["arrowleft"] || keys["a"]) x -= 1; if (keys["arrowright"] || keys["d"]) x += 1;
+  if (keys["arrowup"] || keys["w"]) y -= 1; if (keys["arrowdown"] || keys["s"]) y += 1;
+  if (!x && !y) return null; const d = Math.hypot(x, y); return [x / d, y / d];
+}
+function popText(x, y, s, c, big) { if (G.txt.length > 60) G.txt.shift(); G.txt.push({ x: x + rand(-10, 10), y, s, c, life: big ? 1.6 : 0.9, big }); }
+function addFeed(s) { G.feed.unshift({ s, life: 5 }); if (G.feed.length > 5) G.feed.pop(); }
+
+// ---------------- end of a level ----------------
+function endLevel(won, killer) {
+  if (!G || G.over || G.mode !== "level") return;
+  G.over = true;
+  const L = G.L, me = G.me;
+  if (won) {
+    const f = me.hp / maxHp(me), stars = f > 0.6 ? 3 : f > 0.3 ? 2 : 1;
+    const first = L > S.beaten;
+    const rew = Math.round(levelReward(L) * (first ? 1 : 0.5) * playerMults().coin * (isBoss(L) ? 3 : 1));
+    S.coins += rew; S.beaten = Math.max(S.beaten, L); S.stars[L] = Math.max(S.stars[L] || 0, stars);
+    if (L % 10 === 0 && L < N_LEVELS) S.sel = Math.min(WORLDS.length - 1, lvlWorld(L + 1));
+    save();
+    if (window.PhatCoin) try { PhatCoin.earn("win", 5, "Monster Mayhem level " + L); } catch (e) {}
+    showBox(`<h3>${isBoss(L) ? "BOSS BEATEN! 👑" : "YOU WIN! 🏆"}</h3>
+      <div class="stars">${"⭐".repeat(stars)}${"☆".repeat(3 - stars)}</div>
+      <p>Level ${L} done${first ? "" : " (replay pays half)"}.</p>
+      <p>🪙 +${fmt(rew)} for winning, +${fmt(G.coinsGot)} from zombies and KOs</p>
+      <div class="row">${L < N_LEVELS ? `<button class="buy" id="nextBtn">Next level ▶</button>` : `<p>🎉 You beat all 100 levels! You are the ULTIMATE MONSTER!</p>`}
+      <button class="buy max" id="lobbyBtn">Upgrades</button></div>`);
+    if ($("nextBtn")) $("nextBtn").onclick = () => { hideBox(); startLevel(L + 1); };
+  } else {
+    save();
+    showBox(`<h3>KNOCKED OUT! 💀</h3>
+      <p>${killer ? "Beaten by " + esc(killer) : "You got knocked out"} on level ${L}.</p>
+      <p>${G.coinsGot ? "🪙 You still keep +" + fmt(G.coinsGot) + " coins. " : ""}Buy upgrades and try again!</p>
+      <div class="row"><button class="buy" id="againBtn">Try again</button><button class="buy max" id="lobbyBtn">Upgrades</button></div>`);
+    $("againBtn").onclick = () => { hideBox(); startLevel(L); };
+  }
+  $("lobbyBtn").onclick = () => { hideBox(); leaveGame(); $("ups").scrollIntoView({ behavior: "smooth", block: "start" }); };
+}
+function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+// ---------------- drawing ----------------
+let lastT = 0;
+function toWorld(sx, sy) { return { x: (sx - CW / 2) / G.cam.z + G.cam.x, y: (sy - CH / 2) / G.cam.z + G.cam.y }; }
+function draw() {
+  const c = ctx, t = G.t, W = WORLDS[G.world];
+  c.setTransform(DPR, 0, 0, DPR, 0, 0);
+  c.fillStyle = "#0a0710"; c.fillRect(0, 0, CW, CH);
+  const sh = G.shake;
+  c.save();
+  c.translate(CW / 2 + rand(-sh, sh), CH / 2 + rand(-sh, sh)); c.scale(G.cam.z, G.cam.z); c.translate(-G.cam.x, -G.cam.y);
+  // ground checker
+  const tile = 200;
+  const v0 = toWorld(0, 0), v1 = toWorld(CW, CH);
+  c.fillStyle = W.g1; c.fillRect(0, 0, G.W, G.H);
+  c.fillStyle = W.g2;
+  for (let x = Math.max(0, Math.floor(v0.x / tile) * tile); x < Math.min(G.W, v1.x + tile); x += tile)
+    for (let y = Math.max(0, Math.floor(v0.y / tile) * tile); y < Math.min(G.H, v1.y + tile); y += tile)
+      if (((x / tile) + (y / tile)) % 2 === 0) c.fillRect(x, y, Math.min(tile, G.W - x), Math.min(tile, G.H - y));
+  if (W.deco === "city") { c.fillStyle = "rgba(255,255,255,.07)"; for (let x = 400; x < G.W; x += 800) c.fillRect(x - 3, 0, 6, G.H); for (let y = 400; y < G.H; y += 800) c.fillRect(0, y - 3, G.W, 6); }
+  // props
+  for (const p of G.props) if (p.x > v0.x - 80 && p.x < v1.x + 80 && p.y > v0.y - 80 && p.y < v1.y + 80) drawProp(c, W.deco, p, t);
+  // wall
+  c.strokeStyle = "#ff4f8f"; c.lineWidth = 10; c.setLineDash([30, 20]); c.strokeRect(0, 0, G.W, G.H); c.setLineDash([]);
+  // zombies
+  const zs = G.mode === "arena" ? G.zCache : G.zombies;
+  for (const z of zs) if (z.x > v0.x - 40 && z.x < v1.x + 40 && z.y > v0.y - 40 && z.y < v1.y + 40) drawZombie(c, z, t);
+  // monsters, back to front
+  const ms = [...G.mons.values()].filter(m => m.alive).sort((a, b) => a.y - b.y);
+  for (const M of ms) {
+    const r = radius(M.m);
+    if (M.x < v0.x - r * 2 || M.x > v1.x + r * 2 || M.y < v0.y - r * 2 || M.y > v1.y + r * 2) continue;
+    if (M.shield > 0) { c.globalAlpha = 0.5 + Math.sin(t * 20) * 0.3; }
+    if (M.me) { c.strokeStyle = "rgba(166,240,74,.8)"; c.lineWidth = 4 / G.cam.z; c.beginPath(); c.ellipse(M.x, M.y + r * 0.82, r * 1.05, r * 0.38, 0, 0, Math.PI * 2); c.stroke(); }
+    drawMonster(c, M.x, M.y, r, M.skin, t, { fx: M.face[0], fy: M.face[1], moving: M.moving, atk: M.atk, flash: M.flash > 0, ph: M.ph, bossCrown: M.boss });
+    c.globalAlpha = 1;
+  }
+  for (const M of ms) {
+    const r = radius(M.m);
+    if (M.x < v0.x - r * 2 || M.x > v1.x + r * 2 || M.y < v0.y - r * 2 || M.y > v1.y + r * 2) continue;
+    const s = 1 / G.cam.z, bw = Math.max(60 * s, r * 1.6);
+    c.save(); c.translate(M.x, M.y - r * 1.25 - 16 * s); c.scale(s, s);
+    bar(c, 0, 0, bw / s, M.hpShow, M.me ? "#5fd36a" : M.boss ? "#ff3d6b" : M.remote ? "#4aa8ff" : "#ff8a3d");
+    c.font = "900 14px Nunito, sans-serif"; c.textAlign = "center"; c.lineWidth = 4; c.strokeStyle = "rgba(0,0,0,.75)";
+    const label = (M.remote && !M.bot ? "🟢 " : "") + M.name + "  " + fmt(M.m);
+    c.strokeText(label, 0, -8); c.fillStyle = M.me ? "#c6ff6a" : "#fff"; c.fillText(label, 0, -8);
+    c.restore();
+  }
+  // tap target marker
+  if (G.me && G.me.alive && G.me.tx != null && !G.me.target) { c.strokeStyle = "rgba(255,255,255,.6)"; c.lineWidth = 3 / G.cam.z; c.beginPath(); c.arc(G.me.tx, G.me.ty, 12 / G.cam.z, 0, 6.28); c.stroke(); }
+  if (G.me && G.me.target && G.me.target.alive) { const T = G.me.target, r = radius(T.m); c.strokeStyle = "rgba(255,80,80,.9)"; c.lineWidth = 4 / G.cam.z; c.setLineDash([12, 8]); c.beginPath(); c.arc(T.x, T.y, r * 1.25, t * 2, t * 2 + 6.28); c.stroke(); c.setLineDash([]); }
+  // effects
+  for (const f of G.fx) {
+    if (f.ring) { const k = 1 - f.life / f.max; c.strokeStyle = `rgba(255,230,150,${f.life / f.max})`; c.lineWidth = 12 * (1 - k) + 2; c.beginPath(); c.arc(f.x, f.y, lerp(f.r, f.R, k), 0, 6.28); c.stroke(); continue; }
+    c.globalAlpha = clamp(f.life * 2, 0, 1); c.fillStyle = f.c; c.beginPath(); c.arc(f.x, f.y, f.s, 0, 6.28); c.fill();
+  }
+  c.globalAlpha = 1;
+  // storm
+  if (G.ring) {
+    c.fillStyle = "rgba(120,40,200,.38)"; c.beginPath(); c.rect(-3000, -3000, G.W + 6000, G.H + 6000); c.moveTo(G.ring.cx + G.ring.r, G.ring.cy); c.arc(G.ring.cx, G.ring.cy, G.ring.r, 0, Math.PI * 2); c.fill("evenodd");
+    c.strokeStyle = "rgba(200,120,255,.9)"; c.lineWidth = 8; c.beginPath(); c.arc(G.ring.cx, G.ring.cy, G.ring.r, 0, 6.28); c.stroke();
+  }
+  // floating text
+  for (const tx of G.txt) {
+    c.save(); c.translate(tx.x, tx.y); c.scale(1 / G.cam.z, 1 / G.cam.z);
+    c.globalAlpha = clamp(tx.life * 2, 0, 1); c.font = `900 ${tx.big ? 28 : 17}px Nunito, sans-serif`; c.textAlign = "center"; c.lineWidth = 4; c.strokeStyle = "rgba(0,0,0,.7)"; c.strokeText(tx.s, 0, 0); c.fillStyle = tx.c; c.fillText(tx.s, 0, 0);
+    c.restore();
+  }
+  c.globalAlpha = 1;
+  c.restore();
+  drawHUD(c);
+}
+function drawHUD(c) {
+  const me = G.me;
+  c.font = "900 15px Nunito, sans-serif"; c.textAlign = "right"; c.textBaseline = "top";
+  let y = 12;
+  const top = G.mode === "level"
+    ? [`Level ${G.L} · ${WORLDS[G.world].e} ${WORLDS[G.world].n}`, `👹 Monsters left: ${[...G.mons.values()].filter(o => o.alive && !o.me).length}`]
+    : [`💀 KOs this life: ${G.streak}`, `🏆 Best: ${S.bestStreak}`];
+  for (const s of top) { const w = c.measureText(s).width; c.fillStyle = "rgba(0,0,0,.55)"; rr(c, CW - w - 22, y - 4, w + 14, 26, 8); c.fill(); c.fillStyle = "#fff"; c.fillText(s, CW - 15, y); y += 30; }
+  if (G.ring) {
+    const left = G.ring.start - G.t;
+    const s = left > 0 ? `🌪️ Storm in ${Math.ceil(left)}s` : "🌪️ Storm closing in!";
+    const w = c.measureText(s).width; c.fillStyle = "rgba(90,30,150,.8)"; rr(c, CW - w - 22, y - 4, w + 14, 26, 8); c.fill(); c.fillStyle = "#fff"; c.fillText(s, CW - 15, y); y += 30;
+  }
+  // kill feed
+  c.font = "800 13px Nunito, sans-serif";
+  for (const f of G.feed) { c.globalAlpha = clamp(f.life, 0, 1); const w = c.measureText(f.s).width; c.fillStyle = "rgba(0,0,0,.55)"; rr(c, CW - w - 22, y - 3, w + 14, 22, 8); c.fill(); c.fillStyle = "#ffd6e6"; c.fillText(f.s, CW - 15, y); y += 25; }
+  c.globalAlpha = 1;
+  // player bars, bottom left
+  if (me) {
+    const bw = Math.min(260, CW * 0.42), x = 14, by = CH - 58;
+    c.fillStyle = "rgba(0,0,0,.6)"; rr(c, x - 6, by - 26, bw + 12, 56, 12); c.fill();
+    c.textAlign = "left"; c.font = "900 14px Nunito, sans-serif"; c.fillStyle = "#fff";
+    c.fillText(`❤️ ${fmt(Math.max(0, me.hp))} / ${fmt(maxHp(me))}`, x, by - 20);
+    c.fillStyle = "#3a1020"; rr(c, x, by, bw, 14, 7); c.fill();
+    c.fillStyle = me.hp / maxHp(me) > 0.3 ? "#5fd36a" : "#ff5d5d"; rr(c, x, by, Math.max(0, bw * me.hpShow), 14, 7); c.fill();
+    c.fillStyle = "#ffd23a"; c.fillText(`📏 Size ${fmt(me.m)}   🦷 ${fmt(biteDmg(me))}   🪙 ${fmt(S.coins)}`, x, by + 16);
+  }
+  // minimap
+  const mm = Math.min(120, CW * 0.24), mx = 12, my = 56, sc = mm / G.W;
+  c.save(); c.fillStyle = "rgba(0,0,0,.5)"; rr(c, mx - 3, my - 3, mm + 6, mm + 6, 8); c.fill(); c.clip();
+  if (G.ring) { c.strokeStyle = "rgba(200,120,255,.9)"; c.lineWidth = 2; c.beginPath(); c.arc(mx + G.ring.cx * sc, my + G.ring.cy * sc, G.ring.r * sc, 0, 6.28); c.stroke(); }
+  for (const M of G.mons.values()) if (M.alive) { c.fillStyle = M.me ? "#c6ff6a" : M.boss ? "#ff3d6b" : M.remote && !M.bot ? "#4aa8ff" : "#ff8a3d"; c.beginPath(); c.arc(mx + M.x * sc, my + M.y * sc, M.me ? 4 : 3, 0, 6.28); c.fill(); }
+  c.restore();
+  // respawn message
+  if (G.mode === "arena" && me && !me.alive) {
+    c.textAlign = "center"; c.textBaseline = "middle"; c.fillStyle = "rgba(0,0,0,.6)"; c.fillRect(0, CH / 2 - 60, CW, 120);
+    c.font = "400 40px 'Lilita One', sans-serif"; c.fillStyle = "#ff6a8a"; c.fillText("KNOCKED OUT!", CW / 2, CH / 2 - 18);
+    c.font = "900 17px Nunito, sans-serif"; c.fillStyle = "#fff"; c.fillText(`${G.koBy ? "By " + G.koBy + ". " : ""}Back in ${Math.ceil(G.respawn)}…`, CW / 2, CH / 2 + 22);
+  }
+  c.textBaseline = "alphabetic";
+}
+function updateButtons() {
+  if (!G || !G.me) return;
+  const me = G.me;
+  $("smashBtn").classList.toggle("cool", me.smashCd > 0 || !me.alive);
+  $("dashBtn").classList.toggle("cool", me.dashCd > 0 || !me.alive);
+  $("smashLbl").textContent = me.smashCd > 0 ? Math.ceil(me.smashCd) + "s" : "Space";
+  $("dashLbl").textContent = me.dashCd > 0 ? Math.ceil(me.dashCd) + "s" : "Shift";
+}
+
+// ---------------- loop ----------------
+let last = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (!G) return;
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (!document.hidden) {
+    if (!G.over) update(dt);
+    else { G.t += dt; for (let i = G.fx.length - 1; i >= 0; i--) { const f = G.fx[i]; f.life -= dt; if (f.life <= 0) G.fx.splice(i, 1); else if (!f.ring) { f.x += f.vx * dt; f.y += f.vy * dt; } } }
+    draw();
+  }
+}
+
+// ---------------- input ----------------
+addEventListener("keydown", e => {
+  if (e.target && e.target.tagName === "INPUT") return;
+  const k = e.key.toLowerCase(); keys[k] = true;
+  if (!playing || !G || !G.me) return;
+  if (k === " ") { smash(G.me); e.preventDefault(); }
+  if (k === "shift" || k === "e") { dash(G.me); e.preventDefault(); }
+  if (["arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) e.preventDefault();
+});
+addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
+addEventListener("blur", () => { for (const k in keys) keys[k] = false; });
+function cvPos(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+function monAt(w) { let best = null; for (const o of G.mons.values()) if (o.alive && !o.me && dist(o, w) < radius(o.m) + 30 / G.cam.z && (!best || dist(o, w) < dist(best, w))) best = o; return best; }
+cv.addEventListener("pointerdown", e => {
+  if (!playing || !G || !G.me) return;
+  cv.setPointerCapture && cv.setPointerCapture(e.pointerId);
+  const p = cvPos(e), w = toWorld(p.x, p.y), mon = monAt(w);
+  pointer = { id: e.pointerId, x: p.x, y: p.y, down: true, mon };
+  G.me.target = mon; G.me.tx = w.x; G.me.ty = w.y;
+  e.preventDefault();
+});
+cv.addEventListener("pointermove", e => { if (pointer && pointer.id === e.pointerId && pointer.down) { const p = cvPos(e); pointer.x = p.x; pointer.y = p.y; if (Math.hypot(p.x - pointer.x, p.y - pointer.y) > 0) pointer.mon = pointer.mon; } });
+const endPtr = e => { if (pointer && pointer.id === e.pointerId) { pointer.down = false; pointer = null; } };
+cv.addEventListener("pointerup", endPtr); cv.addEventListener("pointercancel", endPtr);
+$("smashBtn").addEventListener("pointerdown", e => { if (G && G.me) smash(G.me); e.preventDefault(); e.stopPropagation(); });
+$("dashBtn").addEventListener("pointerdown", e => { if (G && G.me) dash(G.me); e.preventDefault(); e.stopPropagation(); });
+$("menuBtn").onclick = () => {
+  if (!G) return;
+  if (G.mode === "arena") { leaveGame(); return; }
+  showBox(`<h3>Quit the level?</h3><p>You keep the coins you got so far.</p><div class="row"><button class="buy" id="qYes">Quit</button><button class="buy max" id="qNo">Keep playing</button></div>`);
+  $("qYes").onclick = () => { hideBox(); save(); leaveGame(); };
+  $("qNo").onclick = hideBox;
+};
+document.addEventListener("visibilitychange", () => {
+  if (!G || G.mode !== "arena") { save(); return; }
+  if (document.hidden) { if (online) disconnect(); save(); } else if (!online) connect();
+});
+addEventListener("pagehide", save);
+setInterval(() => { if (G) save(); }, 10000);
+
+// ---------------- public arena networking (Supabase Realtime) ----------------
+const SB_URL = "https://bpqaeqswtgtbqrczjcrx.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwcWFlcXN3dGd0YnFyY3pqY3J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzUzOTIsImV4cCI6MjA5NjkxMTM5Mn0.hsEZJ_C4NvySPMb59G9EPPfdJRSNBODbnuo9ij_zxrI";
+let sb = null, ch = null, online = false, peers = [], hostId = MYID, isHost = true, joinT = Date.now(), clockOff = 0;
+const netNow = () => Date.now() + clockOff;
+function bcast(ev, payload) { if (online && ch) try { ch.send({ type: "broadcast", event: ev, payload }); } catch (e) {} }
+const owns = M => !M.remote;   // my own monster, or a bot I run as host
+const meta = () => ({ i: MYID, n: NAME, t: joinT });
+let retryT = 2000;
+function connect() {
+  disconnect();
+  if (!G || G.mode !== "arena") return;
+  becomeHost();
+  if (!window.supabase || !navigator.onLine) { updateOnlineMsg(); return; }
+  try {
+    if (!sb) sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 40 } } });
+    ch = sb.channel("monstermayhem-arena", { config: { broadcast: { self: false }, presence: { key: MYID } } });
+    ch.on("broadcast", { event: "u" }, m => onU(m.payload));
+    ch.on("broadcast", { event: "hit" }, m => onHit(m.payload));
+    ch.on("broadcast", { event: "ko" }, m => onKO(m.payload));
+    ch.on("broadcast", { event: "z" }, m => onZ(m.payload));
+    ch.on("presence", { event: "sync" }, onSync);
+    const mine = ch;
+    mine.subscribe(async status => {
+      if (mine !== ch) return;
+      if (status === "SUBSCRIBED") { online = true; retryT = 2000; try { await mine.track(meta()); } catch (e) {} updateOnlineMsg(); }
+      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        online = false; becomeHost(); updateOnlineMsg();
+        if (G && G.mode === "arena" && !document.hidden) setTimeout(() => { if (mine === ch && G && G.mode === "arena" && !online && !document.hidden) { joinT = Date.now(); connect(); } }, retryT);
+        retryT = Math.min(20000, retryT * 1.6);
+      }
+    });
+  } catch (e) { online = false; }
+}
+function disconnect() { if (ch) { try { ch.untrack(); sb.removeChannel(ch); } catch (e) {} } ch = null; online = false; peers = []; }
+function onSync() {
+  if (!ch || !G) return;
+  const st = ch.presenceState();
+  peers = Object.values(st).map(a => a[0]).filter(Boolean);
+  if (!peers.find(p => p.i === MYID)) peers.push(meta());
+  peers.sort((a, b) => (a.t - b.t) || (a.i < b.i ? -1 : 1));
+  const wasHost = isHost;
+  hostId = peers[0].i;
+  if (hostId === MYID) becomeHost();
+  else if (wasHost) { isHost = false; for (const [id, M] of G.mons) if (M.bot) { M.remote = true; M.tx2 = M.x; M.ty2 = M.y; } }
+  const ids = new Set(peers.map(p => p.i));
+  for (const [id, M] of G.mons) if (!M.bot && M.remote && !ids.has(id)) G.mons.delete(id);
+  updateOnlineMsg();
+}
+function becomeHost() {
+  if (!G) return;
+  isHost = true; hostId = MYID;
+  for (const M of G.mons.values()) if (M.bot) { M.remote = false; if (M.tx2 != null) { M.x = M.tx2; M.y = M.ty2; } M.think = 0; }
+}
+function wantBots() { const humans = Math.max(1, peers.length || 1); return clamp(7 - humans, 3, 5); }
+function arenaBotPower() {
+  // computer monsters match the strongest real player here, a bit either side
+  let p = powerOf();
+  return Math.sqrt(p);
+}
+function fillBots() {
+  if (!isHost) return;
+  let bots = [...G.mons.values()].filter(m => m.bot);
+  const want = wantBots();
+  while (bots.length > want) { const b = bots.pop(); G.mons.delete(b.id); }
+  while (bots.length < want) {
+    const id = "ab" + Math.random().toString(36).slice(2, 7), bp = arenaBotPower() * rand(0.75, 1.2);
+    let a = 0, d = 0, x = 0, y = 0;
+    for (let k = 0; k < 12; k++) { a = Math.random() * 6.28; d = rand(300, G.W * 0.45); x = G.W / 2 + Math.cos(a) * d; y = G.H / 2 + Math.sin(a) * d; if (!G.me || Math.hypot(x - G.me.x, y - G.me.y) > 800) break; }
+    const b = newMonster({ id, born: G.t, x, y, name: pick(BOT_NAMES), m: playerMults().start * rand(0.6, 1.4) + rand(0, 40),
+      skin: Math.floor(Math.random() * Math.min(SKINS.length, 3 + S.skins.length)), hpM: bp, dmgM: bp, spdM: rand(0.85, 1.05), xpM: 1.2, aggr: rand(0.8, 1.3), smashMax: 9, smashM: 1, shield: 2 });
+    G.mons.set(id, b); bots.push(b);
+  }
+}
+function updateOnlineMsg() {
+  const n = peers.length || 1;
+  $("onlineLbl").textContent = online ? (n > 1 ? `🟢 ${n} players in the arena` : "🟢 Online, waiting for players") : "⚪ Offline (computer monsters)";
+}
+let netT = 0, botCheckT = 0;
+function arenaTick(dt) {
+  // respawn
+  if (!G.me.alive) {
+    G.respawn -= dt;
+    if (G.respawn <= 0) { G.mons.delete(G.me.id); spawnMe(); }
+  }
+  botCheckT -= dt; if (botCheckT <= 0) { botCheckT = 1; fillBots(); }
+  // dead bots come back
+  if (isHost) for (const [id, M] of G.mons) if (M.bot && !M.alive) { M.deadT = (M.deadT || 0) + dt; if (M.deadT > 3) G.mons.delete(id); }
+  // remote monsters that went quiet
+  const now = performance.now();
+  for (const [id, M] of G.mons) if (M.remote && now - (M.seen || now) > 6000) G.mons.delete(id);
+  netT -= dt; if (netT > 0 || !online) return;
+  netT = 0.12;
+  const me = G.me;
+  const u = { i: MYID, n: NAME, ck: Date.now(), me: [Math.round(me.x), Math.round(me.y), +me.m.toFixed(1), Math.round(me.hp), Math.round(maxHp(me)), me.skin, +me.face[0].toFixed(2), +me.face[1].toFixed(2), me.alive ? 1 : 0, +me.dmgM.toPrecision(4), me.atk > 0.5 ? 1 : 0, me.shield > 0 ? 1 : 0] };
+  if (isHost) u.b = [...G.mons.values()].filter(m => m.bot).map(b => [b.id, b.name, Math.round(b.x), Math.round(b.y), +b.m.toFixed(1), Math.round(b.hp), Math.round(maxHp(b)), b.skin, +b.face[0].toFixed(2), +b.face[1].toFixed(2), b.alive ? 1 : 0, +b.dmgM.toPrecision(4), b.atk > 0.5 ? 1 : 0]);
+  bcast("u", u);
+}
+function remoteMon(id, name, bot) {
+  let M = G.mons.get(id);
+  if (!M) { M = newMonster({ id, name, bot, remote: true }); G.mons.set(id, M); }
+  return M;
+}
+function applyRemote(M, x, y, m, hp, mhp, skin, fx, fy, alive, dmgM, atk) {
+  const wasAlive = M.alive;
+  M.tx2 = +x || 0; M.ty2 = +y || 0; if (M.x === 0 && M.y === 0) { M.x = M.tx2; M.y = M.ty2; }
+  M.m = Math.max(1, +m || 1); M.hpM = (+mhp || 1) / hpBase(M.m); M.hp = +hp || 0;
+  M.skin = clamp(skin | 0, 0, SKINS.length - 1); M.face = [+fx || 0, +fy || 1]; M.dmgM = Math.min(1e30, +dmgM || 1);
+  M.alive = !!alive; if (atk) M.atk = 1;
+  if (!wasAlive && M.alive) { M.x = M.tx2; M.y = M.ty2; }
+  M.seen = performance.now();
+}
+function stepRemote(M, dt) {
+  if (M.tx2 == null) return;
+  const k = 1 - Math.pow(0.0001, dt);
+  const dx = M.tx2 - M.x, dy = M.ty2 - M.y;
+  M.moving = Math.hypot(dx, dy) > 2;
+  if (Math.hypot(dx, dy) > 600) { M.x = M.tx2; M.y = M.ty2; } else { M.x += dx * k; M.y += dy * k; }
+  M.atk = Math.max(0, M.atk - dt * 4); M.flash -= dt;
+}
+function onU(p) {
+  if (!G || G.mode !== "arena" || !p || p.i === MYID || !Array.isArray(p.me)) return;
+  if (typeof p.ck === "number" && peers.length && p.i === hostId) clockOff = lerp(clockOff, p.ck - Date.now(), 0.1);
+  const M = remoteMon(String(p.i).slice(0, 20), safeName(p.n), false);
+  M.name = safeName(p.n);
+  applyRemote(M, ...p.me.slice(0, 11));
+  M.shield = p.me[11] ? 1 : 0;
+  if (Array.isArray(p.b) && p.i === hostId && !isHost) {
+    const ids = new Set();
+    for (const a of p.b) {
+      if (!Array.isArray(a)) continue;
+      const id = String(a[0]).slice(0, 12); ids.add(id);
+      const B = remoteMon(id, String(a[1]).slice(0, 16), true);
+      B.name = safeName(a[1]); applyRemote(B, ...a.slice(2, 13));
+    }
+    for (const [id, B] of G.mons) if (B.bot && !ids.has(id)) G.mons.delete(id);
+  }
+}
+function onHit(p) {
+  if (!G || G.mode !== "arena" || !p) return;
+  const T = G.mons.get(p.v); if (!T || !T.alive || T.remote) return;   // only the owner takes the hit
+  if (T.shield > 0) return;
+  const A = G.mons.get(p.by);
+  let d = +p.d || 0;
+  if (A) {
+    if (dist(A, T) > radius(A.m) * 3 + 60 + radius(T.m) + 220) return;     // too far away, ignore
+    d = Math.min(d, biteBase(A.m) * A.dmgM * 3 * Math.max(1, A.smashM || 1) * 1.5 + 5);
+  } else d = Math.min(d, 500);
+  T.hp -= d; T.flash = 0.12; T.lastHit = p.by; T.lastHitName = safeName(p.bn); T.lastHitT = G.t;
+  popText(T.x, T.y - radius(T.m), "-" + fmt(d), T.me ? "#ff7a7a" : "#fff");
+  if (A) hitFx(T, A);
+  if (T.me) G.shake = Math.min(14, G.shake + 5);
+  if (T.hp <= 0) killMonster(T, A || { id: p.by, name: safeName(p.bn) });
+}
+function arenaKO(T, by) {
+  // I own T (me or a bot I run) and it just got knocked out
+  const byId = by && by.id, byName = by && by.name ? by.name : "the arena";
+  bcast("ko", { v: T.id, vn: T.name, by: byId, bn: byName, m: +T.m.toFixed(1) });
+  if (T.me) { G.respawn = 3.5; G.koBy = byName; if (G.streak) submitStreak(); }
+  if (T.bot) T.deadT = 0;
+  if (by && by.me) rewardKO(T);
+}
+function onKO(p) {
+  if (!G || G.mode !== "arena" || !p) return;
+  const T = G.mons.get(p.v);
+  if (T && T.remote) { if (T.alive) killFx(T); T.alive = false; }
+  addFeed(`${safeName(p.bn)} 💀 ${safeName(p.vn)}`);
+  const A = G.mons.get(p.by);
+  if (A && A.me) { grow(A, Math.min(5000, Math.max(0, +p.m || 0)) * 0.35); rewardKO(T || { m: +p.m || 10, name: safeName(p.vn), bot: String(p.v).startsWith("ab") }); }
+  else if (A && A.bot && !A.remote) grow(A, Math.min(5000, +p.m || 0) * 0.35);
+}
+function killFx(T) { const sk = SKINS[T.skin]; for (let i = 0; i < 30; i++) G.fx.push({ x: T.x, y: T.y, vx: rand(-1, 1) * 380, vy: rand(-1, 1) * 380, life: rand(0.5, 1), c: i % 2 ? sk.c : sk.c2, s: rand(4, 9) }); }
+function rewardKO(T) {
+  const human = T && !T.bot;
+  const c = Math.round((human ? 400 : 120) * Math.pow(1.13, Math.min(S.beaten, 100)) * playerMults().coin);
+  addCoins(c); S.kos++; G.streak++;
+  if (G.streak > S.bestStreak) S.bestStreak = G.streak;
+  popText(G.me.x, G.me.y - radius(G.me.m) - 30, `${human ? "PLAYER KO!" : "KO!"} +${fmt(c)} 🪙`, human ? "#7dd8ff" : "#ffd23a", true);
+  setMsg(`💀 You knocked out ${T.name || "a monster"}! ${G.streak} in a row.`, "good");
+  if (window.PhatCoin) try { PhatCoin.earn("win", 5, "Monster Mayhem KO"); } catch (e) {}
+  save(); renderHUD();
+  if (G.streak >= 3) submitStreak();
+}
+let lbSent = 0;
+function submitStreak() { const v = S.bestStreak; if (v > lbSent && window.Leaderboard) { lbSent = v; try { Leaderboard.submit(v); } catch (e) {} } }
+function onZ(p) {
+  if (!G || G.mode !== "arena" || !p) return;
+  const k = p.k | 0, g = p.g | 0;
+  if (k < 0 || k >= G.zSlots || g > 1e7) return;
+  if ((G.eaten.get(k) || 0) < g) G.eaten.set(k, g);
+}
+
+// ---------------- lobby & panels ----------------
+let lobbyView = "home";
+function skinCanvas(i, size) {
+  const c = document.createElement("canvas"); c.width = size * 2; c.height = size * 2;
+  const x = c.getContext("2d"); x.scale(2, 2); drawMonster(x, size / 2, size / 2 + 4, size * 0.26, i, 0.3, { fy: 1 }); return c;
+}
+function renderLobby() {
+  const el = $("lobby");
+  if (lobbyView === "levels") {
+    const w = S.sel, starsW = Array.from({ length: 10 }, (_, i) => S.stars[w * 10 + i + 1] || 0).reduce((a, b) => a + b, 0);
+    el.innerHTML = `<h2>${WORLDS[w].e} ${WORLDS[w].n}</h2><p>⭐ ${starsW} / 30 stars in this world</p>
+      <div class="worldtabs">${WORLDS.map((W, i) => `<button class="wtab ${i === w ? "sel" : ""} ${i * 10 > S.beaten ? "locked" : ""}" data-w="${i}">${W.e} ${i + 1}</button>`).join("")}</div>
+      <div class="levels">${Array.from({ length: 10 }, (_, i) => { const L = w * 10 + i + 1, st = S.stars[L] || 0, open = L <= S.beaten + 1;
+        return `<button class="lvl ${isBoss(L) ? "boss" : ""} ${L === S.beaten + 1 ? "next" : ""} ${open ? "" : "locked"}" data-l="${L}" ${open ? "" : "disabled"}>${isBoss(L) ? "👑" : L}<small>${open ? "★".repeat(st) + "☆".repeat(3 - st) : "🔒"}</small></button>`; }).join("")}</div>
+      <button class="back" id="backBtn">← Back</button>`;
+    el.querySelectorAll(".wtab").forEach(b => b.onclick = () => { const i = +b.dataset.w; if (i * 10 > S.beaten) { setMsg(`Beat level ${i * 10} to open ${WORLDS[i].n}.`, "bad"); return; } S.sel = i; save(); renderLobby(); });
+    el.querySelectorAll(".lvl").forEach(b => b.onclick = () => { const L = +b.dataset.l; if (L <= S.beaten + 1) startLevel(L); });
+    $("backBtn").onclick = () => { lobbyView = "home"; renderLobby(); };
+    return;
+  }
+  el.innerHTML = `<h2>Pick your monster</h2><div class="skins" id="skinPick"></div>
+    <div class="modes">
+      <button class="mode lv" id="lvBtn">LEVELS<small>${S.beaten >= N_LEVELS ? "All 100 beaten! 🏆" : "Next: level " + (S.beaten + 1) + " of 100"}</small></button>
+      <button class="mode ar" id="arBtn">PUBLIC ARENA<small>Fight real people online</small></button>
+    </div>
+    <p>Eat zombies to grow huge, then smash every other monster. Be the last monster standing!</p>`;
+  const sp = $("skinPick");
+  S.skins.slice().sort((a, b) => a - b).forEach(i => {
+    const b = document.createElement("button"); b.className = "skin" + (i === S.skin ? " sel" : ""); b.type = "button";
+    b.appendChild(skinCanvas(i, 70)); b.appendChild(document.createTextNode(SKINS[i].n));
+    b.onclick = () => { S.skin = i; save(); renderLobby(); renderShop(); };
+    sp.appendChild(b);
+  });
+  $("lvBtn").onclick = () => { if (S.beaten === 0) { startLevel(1); return; } lobbyView = "levels"; S.sel = Math.min(S.sel, lvlWorld(Math.min(N_LEVELS, S.beaten + 1))); renderLobby(); };
+  $("arBtn").onclick = () => { if (!hasName()) { askName(() => startArena()); return; } startArena(); };
+}
+function renderUps() {
+  const box = $("ups"); box.innerHTML = "";
+  for (const k in UPS) {
+    const U = UPS[k], lv = S.up[k], max = lv >= U.max, cost = upCost(k, lv);
+    const d = document.createElement("div"); d.className = "up";
+    d.innerHTML = `<h3>${U.e} ${U.n}</h3><div class="lv">Level ${lv}${max ? " (MAX)" : " / " + U.max}</div><p>${U.d}</p>
+      <div class="buyrow"><button class="buy" ${max || S.coins < cost ? "disabled" : ""}>${max ? "Maxed!" : "🪙 " + fmt(cost)}</button><button class="buy max" ${max || S.coins < cost ? "disabled" : ""}>Max</button></div>`;
+    const [b1, b2] = d.querySelectorAll("button");
+    b1.onclick = () => buyUp(k, 1); b2.onclick = () => buyUp(k, 1e9);
+    box.appendChild(d);
+  }
+}
+function buyUp(k, n) {
+  let got = 0;
+  while (got < n && S.up[k] < UPS[k].max) { const c = upCost(k, S.up[k]); if (S.coins < c) break; S.coins -= c; S.up[k]++; got++; }
+  if (got) { save(); setMsg(`${UPS[k].e} ${UPS[k].n} is now level ${S.up[k]}!`, "good"); if (G && G.me && G.mode === "arena") applyMults(G.me); }
+  renderAll();
+}
+function applyMults(M) { const pm = playerMults(), f = M.hp / maxHp(M); Object.assign(M, { hpM: pm.hp, dmgM: pm.dmg, spdM: pm.spd, xpM: pm.xp, regen: pm.regen, smashM: pm.smash, smashMax: pm.smashCd }); M.hp = maxHp(M) * f; }
+function renderShop() {
+  const box = $("skinShop"); box.innerHTML = "";
+  SKINS.forEach((sk, i) => {
+    const own = S.skins.includes(i);
+    const b = document.createElement("button"); b.type = "button"; b.className = "skin" + (i === S.skin ? " sel" : "") + (own ? "" : " locked");
+    b.appendChild(skinCanvas(i, 70));
+    b.appendChild(document.createTextNode(sk.n));
+    const s = document.createElement("small"); s.style.color = own ? "#a6f04a" : "#ffc93c"; s.textContent = own ? `+${Math.round((skinBonus(i) - 1) * 100)}% power` : "🪙 " + fmt(sk.price);
+    b.appendChild(s);
+    b.onclick = () => {
+      if (own) { S.skin = i; save(); renderAll(); renderLobby(); setMsg(`You are now ${sk.n}!`, "good"); return; }
+      if (S.coins < sk.price) { setMsg(`${sk.n} costs ${fmt(sk.price)} coins. Keep smashing!`, "bad"); return; }
+      S.coins -= sk.price; S.skins.push(i); S.skin = i; save(); renderAll(); renderLobby(); setMsg(`🎉 You unlocked ${sk.n}!`, "good");
+    };
+    box.appendChild(b);
+  });
+}
+function renderHUD() {
+  $("hName").textContent = NAME; $("hCoins").textContent = fmt(S.coins);
+  $("hLevel").textContent = `${S.beaten} / ${N_LEVELS}`;
+  $("hStars").textContent = Object.values(S.stars).reduce((a, b) => a + b, 0) + " / 300";
+  $("hKos").textContent = fmt(S.kos);
+}
+function renderAll() { renderHUD(); renderUps(); renderShop(); }
+setInterval(() => { renderHUD(); if (!G) return; if (Math.random() < 0.2) renderUps(); }, 1000);
+function setMsg(s, cls) { const m = $("msg"); m.textContent = s; m.className = "msg" + (cls ? " " + cls : ""); }
+function showBox(html) { $("box").innerHTML = html; $("overlay").hidden = false; }
+function hideBox() { $("overlay").hidden = true; }
+function askName(then) {
+  showBox(`<h3>Your monster name</h3><p>Everyone in the arena sees this. No real names!</p><input id="nmIn" maxlength="12" placeholder="e.g. Chompzilla" value="${hasName() ? esc(NAME) : ""}"><div class="row"><button class="buy" id="nmOk">Save</button><button class="buy max" id="nmNo">Cancel</button></div><p id="nmErr" style="color:#ff7a7a"></p>`);
+  const inp = $("nmIn"); setTimeout(() => inp.focus(), 50);
+  const ok = () => {
+    const v = cleanName(inp.value);
+    if (!v) { $("nmErr").textContent = "Type a name first."; return; }
+    if (isRude(v)) { $("nmErr").textContent = "That name is not allowed. Try another!"; return; }
+    NAME = v; try { localStorage.setItem(NAME_KEY, v); } catch (e) {}
+    hideBox(); renderHUD(); if (G && G.me) G.me.name = NAME; if (then) then();
+  };
+  $("nmOk").onclick = ok; inp.onkeydown = e => { if (e.key === "Enter") ok(); };
+  $("nmNo").onclick = hideBox;
+}
+$("nameChip").onclick = () => askName();
+
+// ---------------- start ----------------
+renderAll(); renderLobby(); resize();
+if (window.Leaderboard) Leaderboard.mount({ el: "lb", game: "monster-mayhem", dir: "desc", unit: "KOs", max: 100000, title: "Monster Mayhem — most KOs in one life (Public Arena)" });
+requestAnimationFrame(frame);
+// test hook
+window.__mm = { step: dt => update(dt), buyUp, UPS, S: () => S, G: () => G, startLevel, startArena, leaveGame, smash, setCoins: v => { S.coins = v; renderAll(); } };
+</script>
+</body>
+</html>

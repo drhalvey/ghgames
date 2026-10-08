@@ -162,7 +162,7 @@ canvas{display:block;width:100%;touch-action:none}
   </section>
 
   <section class="panel">
-    <h2>Worlds</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">Worlds</h2><button class="buy go" id="buyAllWorlds" type="button">🌍 Buy all worlds I can</button></div>
     <p class="sub">Each world costs coins to unlock and makes you grow faster. Unlocked worlds stay unlocked, even after a rebirth.</p>
     <div class="ups" id="worlds"></div>
   </section>
@@ -1327,6 +1327,19 @@ function renderWorlds() {
   if (more) h += `<div class="up"><h3>❓ ${more} more world${more > 1 ? "s" : ""}</h3><p>Unlock more worlds to find out what's next!</p></div>`;
   setHTML("worlds", h);
 }
+// buy every world you can afford, cheapest first, then go to the best one
+$("buyAllWorlds").addEventListener("click", () => {
+  const bought = [];
+  for (let i = 0; i < WORLDS.length; i++) {
+    if (S.worlds.includes(i)) continue;
+    if (S.coins.lt(WORLDS[i].cost)) break;   // each world costs more than the last, so stop at the first one you can't afford
+    S.coins = S.coins.sub(WORLDS[i].cost); S.worlds.push(i); bought.push(i);
+  }
+  if (!bought.length) { setMsg("You can't afford the next world yet. Keep eating!", "bad"); return; }
+  const last = WORLDS[bought[bought.length - 1]];
+  setMsg(`You bought ${bought.length} world${bought.length > 1 ? "s" : ""}! Going to ${last.e} ${last.n} now.`, "good");
+  goWorld(bought[bought.length - 1]);
+});
 $("worlds").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   if (b.dataset.unlock) {

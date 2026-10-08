@@ -639,7 +639,8 @@ function addBot(i) {
   const b = { id: "b" + i, bot: true, name: BOT_NAMES[i % BOT_NAMES.length], x, y, vx: 0, vy: 0,
     m: Decimal.max(1, refMass().mul(Math.exp(Math.log(0.02) + Math.random() * Math.log(60)))), c: (i * 3) % COLS.length, sh: 0,
     gm: wm.mul(1 + Math.random() * 2), capF: 0.15 + Math.random() * 2.35, cap: D(1),
-    think: 0, tx: x, ty: y, mode: "eat", boost: 0, boostCd: 0, fx: 1, fy: 0 };
+    think: 0, tx: x, ty: y, mode: "eat", boost: 0, boostCd: 0, fx: 1, fy: 0,
+    pers: ["hunter", "hunter", "grazer", "bully", "coward"][i % 5] };
   E.set(b.id, b); return b;
 }
 function fillBots() {
@@ -722,35 +723,76 @@ function getEaten(byName) {
 }
 
 // ---------------- computer players (host only) ----------------
+// moves a computer player toward its target without overshooting, so it never flips back and forth (which looked like spinning)
+function moveBot(b, sp, dt) {
+  const dx = b.tx - b.x, dy = b.ty - b.y, d = Math.hypot(dx, dy), step = sp * dt;
+  if (d > 1) {
+    const k = Math.min(step, d) / d;
+    b.vx = dx * k / dt; b.vy = dy * k / dt;
+    if (d > step * 4) { b.fx = dx / d; b.fy = dy / d; }   // only turn while it still has a real way to go
+  } else { b.vx = b.vy = 0; }
+  b.x = Math.max(0, Math.min(W, b.x + b.vx * dt)); b.y = Math.max(0, Math.min(W, b.y + b.vy * dt));
+}
+function botSay(b, txt, c) { if (Math.hypot(b.x - ME.x, b.y - ME.y) < radius(S.mass) * 10 + 900) FX.push({ x: b.x, y: b.y - radius(b.m), t: 0, txt, c: c || "#ffb07a" }); }
 function botThink(b) {
-  const r = radius(b.m);
+  const r = radius(b.m), pers = b.pers || "grazer", full = !b.boss && !b.tiny && b.m.gte(b.cap);
   const all = [...E.values()].filter(o => o !== b && !(o.hide > 0));
-  all.push({ x: ME.x, y: ME.y, m: S.mass, sh: ME.sh, me: true });
+  all.push({ x: ME.x, y: ME.y, m: S.mass, sh: ME.sh, me: true, name: NAME });
+  // 1. run from anything that can eat it (cowards notice danger from further away and boost sooner)
+  const fear = pers === "coward" ? 800 : pers === "bully" ? 300 : 450;
   let fx = 0, fy = 0, threat = false;
   for (const o of all) {
     const d = Math.hypot(o.x - b.x, o.y - b.y);
-    if (canEat(o.m, b.m) && d < radius(o.m) + 450) { fx += (b.x - o.x) / (d + 1); fy += (b.y - o.y) / (d + 1); threat = true; }
+    if (canEat(o.m, b.m) && d < radius(o.m) + fear) { fx += (b.x - o.x) / (d + 1); fy += (b.y - o.y) / (d + 1); threat = true; }
   }
-  if (threat) { b.mode = "flee"; b.tx = b.x + fx * 1000; b.ty = b.y + fy * 1000; if (b.boostCd <= 0 && Math.random() < 0.5) { b.boost = 1.2; b.boostCd = 7; } return; }
+  if (threat) {
+    if (b.mode !== "flee" && pers === "coward") botSay(b, `${b.name}: AAAH! 😱`, "#9fd8ff");
+    b.mode = "flee"; b.prey = null; const fl = Math.hypot(fx, fy) || 1; b.tx = b.x + fx / fl * 1500; b.ty = b.y + fy / fl * 1500;
+    if (b.boostCd <= 0 && Math.random() < (pers === "coward" ? 0.9 : 0.5)) { b.boost = 1.2; b.boostCd = 7; }
+    return;
+  }
+  // 2. chase something it can eat. Hunters and bullies look much further, and a full computer player (no more growing from food) goes hunting too
+  const range = (pers === "hunter" || pers === "bully" || full ? 1700 : 650) + r * (full ? 4 : 2);
   let prey = null, pd = 1e9;
   for (const o of all) {
     if (o.sh > 0 || !canEat(b.m, o.m)) continue;
-    if (!o.bot && o.m.lt(b.m.mul(0.03))) continue;   // too tiny to bother chasing
-    const d = Math.hypot(o.x - b.x, o.y - b.y);
-    if (d < 650 + r && d < pd) { pd = d; prey = o; }
+    if (!o.bot && o.m.lt(b.m.mul(pers === "bully" ? 0.005 : 0.03))) continue;   // too tiny to bother chasing (bullies chase anyone)
+    let d = Math.hypot(o.x - b.x, o.y - b.y);
+    if (b.prey && (o === b.prey || (o.me && b.prey === "me"))) d *= 0.6;   // stick with the one it is already chasing
+    if (d < range && d < pd) { pd = d; prey = o; }
   }
-  if (prey && Math.random() < 0.8) { b.mode = "hunt"; b.tx = prey.x; b.ty = prey.y; if (pd < 300 + r && b.boostCd <= 0 && Math.random() < 0.3) { b.boost = 1.2; b.boostCd = 7; } return; }
+  const huntChance = pers === "hunter" || pers === "bully" || full ? 1 : 0.6;
+  if (prey && (b.mode === "hunt" || Math.random() < huntChance)) {
+    const tag = prey.me ? "me" : prey;
+    if (b.prey !== tag && prey.me) botSay(b, pers === "bully" ? `${b.name}: Come here, snack! 😈` : `${b.name} is chasing you! 👀`, "#ff7a7a");
+    b.mode = "hunt"; b.prey = tag;
+    // aim a little ahead of where the prey is going
+    const lead = Math.min(1, pd / 600);
+    b.tx = prey.x + (prey.me ? ME.vx : prey.vx || 0) * lead; b.ty = prey.y + (prey.me ? ME.vy : prey.vy || 0) * lead;
+    if (pd < 450 + r && b.boostCd <= 0 && Math.random() < (pers === "grazer" ? 0.3 : 0.7)) { b.boost = 1.2; b.boostCd = 7; }
+    return;
+  }
+  b.prey = null;
+  // 3. eat food: keep going for the snack it already picked unless something clearly better turns up
   let best = null, bs = 0;
-  const look = Math.min(1400, 500 + r * 3);
+  const look = Math.min(2200, 700 + r * 3);
   const bmn = numOf(b.m);
-  if (b.m.lte(b.cap)) itemsIn(b.x - look, b.y - look, b.x + look, b.y + look, it => {
+  itemsIn(b.x - look, b.y - look, b.x + look, b.y + look, it => {
     if (bmn < needMass(it.r)) return;
     const d = Math.hypot(it.x - b.x, it.y - b.y);
     const s = itemVal(it.r) / (d + 60);
     if (s > bs) { bs = s; best = it; }
   });
-  if (best) { b.mode = "eat"; b.tx = best.x; b.ty = best.y; }
-  else if (Math.hypot(b.tx - b.x, b.ty - b.y) < 60) { b.mode = "wander"; b.tx = b.x + (Math.random() - 0.5) * 6000; b.ty = b.y + (Math.random() - 0.5) * 6000; }
+  const cur = b.mode === "eat" && b.ti && b.ti.g === b.tg ? b.ti : null;
+  if (cur) { const s = itemVal(cur.r) / (Math.hypot(cur.x - b.x, cur.y - b.y) + 60); if (!best || bs < s * 1.6) { best = cur; } }
+  if (best) { b.mode = "eat"; b.ti = best; b.tg = best.g; b.tx = best.x; b.ty = best.y; return; }
+  // 4. nothing to do nearby: head off somewhere new (towards the real players more often than not, so there is always action)
+  if (b.mode !== "wander" || Math.hypot(b.tx - b.x, b.ty - b.y) < 80) {
+    b.mode = "wander"; b.ti = null;
+    if (Math.random() < 0.6) { const sp = humanSpots(), [hx, hy] = sp[Math.floor(Math.random() * sp.length)]; b.tx = hx + (Math.random() - 0.5) * 2500; b.ty = hy + (Math.random() - 0.5) * 2500; }
+    else { b.tx = b.x + (Math.random() - 0.5) * 6000; b.ty = b.y + (Math.random() - 0.5) * 6000; }
+    b.tx = Math.max(0, Math.min(W, b.tx)); b.ty = Math.max(0, Math.min(W, b.ty));
+  }
 }
 // bigger players move faster across the world so they never feel slower on screen as the camera zooms out
 function speedOf(m, lv, boost) { return 165 * spF(lv) * Math.pow(radius(m) / 12, 0.7) * (boost > 0 ? 1.75 : 1); }
@@ -784,8 +826,7 @@ function hostTick(dt) {
       b.think -= dt; if (b.think <= 0) { b.think = 0.4; botThink(b); }
       const dx = b.tx - b.x, dy = b.ty - b.y, d = Math.hypot(dx, dy);
       const sp = speedOf(smallestHuman(), 0, 0) * 0.85;   // a bit slower than players, so it can be caught
-      if (d > 4) { b.vx = dx / d * sp; b.vy = dy / d * sp; b.fx = dx / d; b.fy = dy / d; } else { b.vx = b.vy = 0; }
-      b.x = Math.max(0, Math.min(W, b.x + b.vx * dt)); b.y = Math.max(0, Math.min(W, b.y + b.vy * dt));
+      moveBot(b, sp, dt);
       continue;
     }
     if (b.boss) {
@@ -793,8 +834,7 @@ function hostTick(dt) {
       b.think -= dt; if (b.think <= 0) { b.think = 0.5; botThink(b); }
       const dx = b.tx - b.x, dy = b.ty - b.y, d = Math.hypot(dx, dy);
       const sp = speedOf(S.mass, 0, 0) * 0.8;   // slower than you, so you can always run away
-      if (d > 4) { b.vx = dx / d * sp; b.vy = dy / d * sp; b.fx = dx / d; b.fy = dy / d; } else { b.vx = b.vy = 0; }
-      b.x = Math.max(0, Math.min(W, b.x + b.vx * dt)); b.y = Math.max(0, Math.min(W, b.y + b.vy * dt));
+      moveBot(b, sp, dt);
       if (ME.sh <= 0 && touching(b, ME, b.m, S.mass)) { FX.push({ x: b.x, y: b.y, t: 0, txt: `${b.name} ate you!`, c: "#ff5d5d", big: true }); getEaten(b.name); }
       for (const o of E.values()) {
         if (o === b || o.sh > 0 || o.hide > 0 || !touching(b, o, b.m, o.m)) continue;
@@ -808,8 +848,7 @@ function hostTick(dt) {
     b.think -= dt; if (b.think <= 0) { b.think = 0.35 + Math.random() * 0.2; botThink(b); }
     const dx = b.tx - b.x, dy = b.ty - b.y, d = Math.hypot(dx, dy);
     const sp = speedOf(b.m, 0, b.boost) * 0.92;
-    if (d > 4) { b.vx = dx / d * sp; b.vy = dy / d * sp; b.fx = dx / d; b.fy = dy / d; } else { b.vx = b.vy = 0; }
-    b.x = Math.max(0, Math.min(W, b.x + b.vx * dt)); b.y = Math.max(0, Math.min(W, b.y + b.vy * dt));
+    moveBot(b, sp, dt);
     b.cap = Decimal.max(20, refMass().mul(b.capF));
     if (b.m.gt(b.cap.mul(1.5))) b.m = b.m.mul(1 - 0.08 * dt);
     eatItemsFor(b, false);

@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Rugby Kicker Classic</title>
+<meta property="og:title" content="Rugby Kicker · GH Games">
+<meta property="og:description" content="Aim, stop the power bar and boot the ball as high as you can. Into the clouds, into space, past the Moon.">
+<meta property="og:image" content="https://ghgames.au/og/rugby-kicker.png">
+<meta property="og:url" content="https://ghgames.au/rugby-kicker-classic.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0c0e1d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Games">
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="rugby-kicker"></script>
+<script src="phatcoin.js" data-game="rugby-kicker" data-pill="none"></script>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#13201a; --panel:#1d2e24; --panel2:#283d30; --line:#3d5a46;
+  --ink:#f1fff4; --muted:#b4cdb9; --gold:#ffc93c; --green:#4fcf6a; --red:#ff5d5d; --blue:#4aa8ff;
+  --display:"Lilita One","Arial Rounded MT Bold","Trebuchet MS",sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;touch-action:manipulation}
+button,a,canvas{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.stage,.stage *,button{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+html,body{background:var(--bg);margin:0}
+body{font-family:var(--body);color:var(--ink);padding:14px 14px 60px;font-size:15px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.home{font-weight:900;color:var(--muted);text-decoration:none;font-size:14px}
+.home:hover{color:var(--gold)}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);margin:0;line-height:1;color:var(--gold);text-shadow:0 3px 0 #1f7a3a,0 6px 0 rgba(0,0,0,.25)}
+.hud{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:6px 12px;display:flex;flex-direction:column;align-items:flex-start;color:var(--ink);font-family:var(--body);min-width:84px}
+.chip span{font-size:11px;color:var(--muted);font-weight:800}
+.chip b{font-size:17px;font-weight:900}
+.chip.wins b{color:var(--gold)}
+.stage{position:relative;border-radius:20px;overflow:hidden;border:3px solid var(--line);background:#111}
+canvas{display:block;width:100%;touch-action:none;cursor:pointer}
+.btns{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px}
+@media (max-width:620px){.btns{grid-template-columns:1fr 1fr 1fr}.btns .kick{grid-column:1/-1}}
+.bb{font-family:var(--body);font-weight:900;font-size:16px;border:none;border-radius:14px;padding:12px 10px;color:#fff;cursor:pointer;background:var(--blue);box-shadow:0 4px 0 #1f5a9a}
+.bb small{display:block;font-size:11px;font-weight:800;opacity:.9}
+.bb:active{transform:translateY(3px);box-shadow:0 1px 0 #1f5a9a}
+.bb.kick{background:#e8384f;box-shadow:0 4px 0 #8f1626;font-size:22px;font-family:var(--display);font-weight:400;letter-spacing:.5px}
+.bb.shop{background:#e8873a;box-shadow:0 4px 0 #9a4f12}
+.bb.world{background:#22a77f;box-shadow:0 4px 0 #11684e}
+.bb.mode{background:#7b4fd6;box-shadow:0 4px 0 #4a2a90}
+.bb[disabled]{filter:grayscale(.7) brightness(.75);cursor:default}
+.msg{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:10px 14px;font-weight:800;min-height:44px}
+.msg.good{border-color:var(--green)}
+.msg.bad{border-color:var(--red)}
+.panel{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:14px 16px}
+.panel h2{font-family:var(--display);font-weight:400;margin:0 0 6px;font-size:24px;color:var(--gold)}
+.panel ul{margin:0;padding-left:20px;color:var(--muted);font-weight:700;line-height:1.5}
+.overlay{position:fixed;inset:0;background:rgba(5,10,7,.74);display:flex;align-items:center;justify-content:center;padding:14px;z-index:50}
+.overlay[hidden]{display:none}
+.box{background:var(--panel);border:3px solid var(--line);border-radius:20px;padding:16px;max-width:560px;width:100%;max-height:88vh;overflow:auto}
+.box h2{font-family:var(--display);font-weight:400;margin:0 0 8px;color:var(--gold);font-size:28px}
+.box p{margin:0 0 10px;color:var(--muted);font-weight:700}
+.row{display:flex;align-items:center;gap:10px;background:var(--panel2);border:2px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:8px}
+.row .ic{font-size:30px;width:40px;text-align:center;flex:none}
+.row .tx{flex:1;min-width:0}
+.row .tx b{display:block;font-size:16px}
+.row .tx small{display:block;color:var(--muted);font-weight:700;font-size:12.5px}
+.row .act{display:flex;flex-direction:column;gap:6px;flex:none}
+.row.on{border-color:var(--gold)}
+.row.locked{opacity:.6}
+.sm{font-family:var(--body);font-weight:900;font-size:14px;border:none;border-radius:10px;padding:8px 12px;color:#fff;cursor:pointer;background:#3fae3f;box-shadow:0 3px 0 #1f6e1f;white-space:nowrap}
+.sm.max{background:#2b7de0;box-shadow:0 3px 0 #164c95}
+.sm.go{background:#22a77f;box-shadow:0 3px 0 #11684e}
+.sm[disabled]{filter:grayscale(.8) brightness(.7);cursor:default}
+.close{margin-top:12px;width:100%}
+.diffs{display:grid;gap:10px;margin-top:6px}
+.diff{display:block;width:100%;text-align:left;font-family:var(--body);color:#fff;border:3px solid transparent;border-radius:16px;padding:12px 14px;cursor:pointer}
+.diff b{font-family:var(--display);font-weight:400;font-size:26px;display:block}
+.diff small{font-weight:800;font-size:13px;opacity:.95}
+.diff.easy{background:#2e9d4a}.diff.medium{background:#e08a1e}.diff.hard{background:#d63048}
+.diff.last{border-color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <a class="home" href="index.html">&larr; GH Games</a> <a class="home" href="rugby-kicker.html">Play the new 3D version</a>
+      <h1>Rugby Kicker</h1>
+    </div>
+    <div class="hud">
+      <div class="chip wins"><span>WINS</span><b id="hWins">0</b></div>
+      <div class="chip"><span>BEST KICK</span><b id="hBest">0 m</b></div>
+      <div class="chip"><span>STADIUM</span><b id="hStad">Backyard</b></div>
+      <div class="chip"><span>MODE</span><b id="hMode">Easy</b></div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+
+  <div class="btns">
+    <button class="bb kick" id="kickBtn">LOCK AIM</button>
+    <button class="bb shop" id="upBtn">Upgrades<small id="upHint">make kicks higher</small></button>
+    <button class="bb world" id="stBtn">Stadiums<small id="stHint">bigger kicks</small></button>
+    <button class="bb mode" id="modeBtn">Difficulty<small id="modeHint">Easy</small></button>
+  </div>
+
+  <div class="msg" id="msg">Tap to lock your aim, then tap again to stop the power bar.</div>
+
+  <div class="panel">
+    <h2>How to play</h2>
+    <ul>
+      <li>The arrow swings up and down. Tap (or press space) to lock the angle.</li>
+      <li>Then the power bar goes up and down. Tap to stop it. The gold bit at the top is a PERFECT kick.</li>
+      <li>The higher the ball goes, the more Wins you get.</li>
+      <li>Get it over the posts for double Wins. Kick too straight up and it won't reach them!</li>
+      <li>Watch the wind. It blows the ball towards the posts or away from them.</li>
+      <li>Spend Wins on upgrades and new stadiums to kick into the clouds, into space and past the Moon.</li>
+      <li>Hard mode is trickier but pays way more Wins.</li>
+    </ul>
+  </div>
+
+  <div id="lb"></div>
+</div>
+
+<!-- pick difficulty -->
+<div class="overlay" id="startOv">
+  <div class="box">
+    <h2>Pick your difficulty</h2>
+    <p>You can change it any time with the Difficulty button.</p>
+    <div class="diffs">
+      <button class="diff easy" data-d="easy"><b>Easy</b><small>Slow arrow and power bar, gentle wind. Normal Wins.</small></button>
+      <button class="diff medium" data-d="medium"><b>Medium</b><small>Faster bars, more wind. 1.5&times; Wins.</small></button>
+      <button class="diff hard" data-d="hard"><b>Hard</b><small>Super fast bars, crazy wind. 2.5&times; Wins!</small></button>
+    </div>
+  </div>
+</div>
+
+<!-- upgrades -->
+<div class="overlay" id="upOv" hidden>
+  <div class="box">
+    <h2>Upgrades</h2>
+    <p>You have <b id="upWins" style="color:var(--gold)">0</b> Wins.</p>
+    <div id="upList"></div>
+    <button class="bb close" data-close="upOv">Done</button>
+  </div>
+</div>
+
+<!-- stadiums -->
+<div class="overlay" id="stOv" hidden>
+  <div class="box">
+    <h2>Stadiums</h2>
+    <p>Every new stadium makes every kick go way higher. You have <b id="stWins" style="color:var(--gold)">0</b> Wins.</p>
+    <div id="stList"></div>
+    <button class="bb close" data-close="stOv">Done</button>
+  </div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script>
+"use strict";
+// =====================================================================
+// Rugby Kicker: George's game. The higher you kick, the more Wins you get.
+// =====================================================================
+const SAVE_KEY = "rugbykicker-save";
+
+// ---------- George's big numbers: K M B T Qa Qi Sx Sp Oc No Dc, UDc ... NoDc, Vg ----------
+const SMALL = ["K","M","B","T","Qa","Qi","Sx","Sp","Oc","No"];
+const NU = ["","U","D","T","Qa","Qi","Sx","Sp","Oc","No"];
+const NT = ["","Dc","Vg","Tg","Qag","Qig","Sxg","Spg","Ocg","Nog"];
+const NH = ["","Ce","Du","Tr","Qd","Qn","Sc","St","Og","Nn"];
+function illion(N){ return N < 10 ? SMALL[N] : NU[N % 10] + NT[Math.floor(N / 10) % 10] + NH[Math.floor(N / 100) % 10]; }
+function fmt(n){
+  if (!isFinite(n)) return "MAX";
+  if (n < 1000) return n < 10 && n % 1 ? n.toFixed(1) : Math.floor(n).toLocaleString();
+  const e = Math.floor(Math.log10(n) / 3 + 1e-9);
+  const v = n / Math.pow(10, e * 3);
+  return (v >= 100 ? Math.floor(v) : v >= 10 ? v.toFixed(1) : v.toFixed(2)) + illion(e - 1);
+}
+function fmtH(m){
+  if (!isFinite(m)) return "MAX";
+  if (m < 100) return m.toFixed(1) + " m";
+  if (m < 1000) return Math.round(m) + " m";
+  const km = m / 1000;
+  if (km < 100) return km.toFixed(1) + " km";
+  return fmt(km) + " km";
+}
+
+// ---------- game data ----------
+const DIFFS = {
+  easy:   { name: "Easy",   aim: 0.55, meter: 0.75, wind: 0.6, pay: 1 },
+  medium: { name: "Medium", aim: 0.85, meter: 1.25, wind: 1.8, pay: 1.5 },
+  hard:   { name: "Hard",   aim: 1.25, meter: 1.9,  wind: 3.4, pay: 2.5 }
+};
+
+const SKY_DAY = [[0,"#8fd0ff"],[2000,"#5aa7f0"],[15000,"#2f6cc4"],[50000,"#142c66"],[100000,"#050816"]];
+const SKY_NIGHT = [[0,"#10204a"],[5000,"#0b1636"],[100000,"#050816"]];
+const SKY_RAIN = [[0,"#7f8c9b"],[2500,"#6e8fb0"],[6000,"#4f8fdc"],[50000,"#142c66"],[100000,"#050816"]];
+const SKY_SNOW = [[0,"#c9d7e6"],[2500,"#9fc2e6"],[15000,"#2f6cc4"],[50000,"#142c66"],[100000,"#050816"]];
+const SKY_MTN = [[0,"#6fb6f5"],[8000,"#2f6cc4"],[40000,"#142c66"],[100000,"#050816"]];
+const SKY_SPACE = [[0,"#050816"]];
+const SKY_MARS = [[0,"#e0a27a"],[5000,"#b56a48"],[60000,"#2a1220"],[120000,"#050816"]];
+
+// mult = how much higher every kick goes there
+const STADS = [
+  { name: "Backyard",      icon: "🏡", mult: 1,     cost: 0,     sky: SKY_DAY,   grass: "#5cb84a", grass2: "#52a941", stands: 0, fence: true },
+  { name: "School Oval",   icon: "🏫", mult: 3,     cost: 400,   sky: SKY_DAY,   grass: "#62bd4c", grass2: "#57ad43", stands: 1 },
+  { name: "Club Ground",   icon: "🏟️", mult: 10,    cost: 15e3,  sky: SKY_DAY,   grass: "#4fb04a", grass2: "#45a040", stands: 2 },
+  { name: "Big Stadium",   icon: "💡", mult: 40,    cost: 6e5,   sky: SKY_NIGHT, grass: "#3fa64a", grass2: "#36953f", stands: 3, night: true },
+  { name: "Rainy Stadium", icon: "🌧️", mult: 160,   cost: 3e7,   sky: SKY_RAIN,  grass: "#3c9446", grass2: "#33853d", stands: 3, weather: "rain" },
+  { name: "Snow Stadium",  icon: "❄️", mult: 700,   cost: 1.5e9, sky: SKY_SNOW,  grass: "#eef4f9", grass2: "#dde8f1", stands: 3, weather: "snow" },
+  { name: "Mountain Top",  icon: "🏔️", mult: 3500,  cost: 1e11,  sky: SKY_MTN,   grass: "#7a8b6a", grass2: "#6c7c5d", stands: 0, mountain: true },
+  { name: "Space Station", icon: "🛰️", mult: 25e3,  cost: 1e13,  sky: SKY_SPACE, grass: "#9aa4b5", grass2: "#8892a3", stands: 0, space: true, earth: true },
+  { name: "Moon Stadium",  icon: "🌕", mult: 2e5,   cost: 2e15,  sky: SKY_SPACE, grass: "#c4c4c4", grass2: "#b3b3b3", stands: 0, space: true, craters: true },
+  { name: "Mars Arena",    icon: "🔴", mult: 2e6,   cost: 5e17,  sky: SKY_MARS,  grass: "#c1592e", grass2: "#b04e27", stands: 2, craters: true },
+  { name: "Galaxy Arena",  icon: "🌌", mult: 3e7,   cost: 2e20,  sky: SKY_SPACE, grass: "#5b3fa8", grass2: "#4f3696", stands: 3, space: true, galaxy: true }
+];
+
+const UPS = [
+  { id: "leg",  icon: "🦵", name: "Leg Power",    base: 15,  grow: 2.1,  max: Infinity,
+    desc: l => "Every kick goes 35% higher. Now ×" + fmt(Math.pow(1.35, l)) },
+  { id: "ball", icon: "🏉", name: "Super Ball",   base: 60,  grow: 2.5,  max: Infinity,
+    desc: l => "A slippier ball flies 25% higher. Now ×" + fmt(Math.pow(1.25, l)) },
+  { id: "boot", icon: "👟", name: "Grippy Boots", base: 40,  grow: 2.3,  max: 15,
+    desc: l => "Slower power bar and a bigger PERFECT zone (" + Math.round(perfZone(l) * 100) + "%)" },
+  { id: "luck", icon: "🍀", name: "Lucky Tee",    base: 150, grow: 2.4,  max: 16,
+    desc: l => "Chance of a SUPER KICK that goes 5× higher: " + Math.round(luckChance(l) * 100) + "%" }
+];
+function upCost(u, l){ return u.base * Math.pow(u.grow, l); }
+function perfZone(boot){ return 0.06 + 0.01 * boot; }
+function luckChance(luck){ return Math.min(0.5, 0.03 + 0.03 * luck); }
+
+// things you kick past (real height in metres)
+const SIGHTS = [
+  { h: 12,      e: "🐦", x: 12, msg: "" },
+  { h: 120,     e: "🪁", x: 20, msg: "Higher than a kite!" },
+  { h: 330,     e: "🗼", x: 30, msg: "Higher than a skyscraper!" },
+  { h: 2000,    e: "☁️", x: 8,  msg: "Above the clouds!", more: [24, 42] },
+  { h: 8849,    e: "🏔️", x: 36, msg: "Higher than Mount Everest!" },
+  { h: 11000,   e: "✈️", x: 16, msg: "Higher than a plane!" },
+  { h: 35000,   e: "🎈", x: 30, msg: "Past the weather balloon!" },
+  { h: 100000,  e: "🚀", x: 10, msg: "YOU KICKED IT INTO SPACE!", line: "SPACE" },
+  { h: 408000,  e: "🛰️", x: 30, msg: "Past the Space Station!" },
+  { h: 3.84e8,  e: "🌕", x: 14, msg: "Past the Moon!" },
+  { h: 1.5e11,  e: "☀️", x: 34, msg: "Past the Sun!" },
+  { h: 2.3e11,  e: "🔴", x: 10, msg: "Past Mars!" },
+  { h: 7.8e11,  e: "🟠", x: 28, msg: "Past Jupiter!" },
+  { h: 1.4e12,  e: "🪐", x: 16, msg: "Past Saturn!" },
+  { h: 4.5e12,  e: "🔵", x: 36, msg: "Past Neptune!" },
+  { h: 4e16,    e: "⭐", x: 20, msg: "Past the nearest star!" },
+  { h: 9.5e20,  e: "🌌", x: 12, msg: "Out of the Milky Way!" },
+  { h: 2.4e22,  e: "🌀", x: 32, msg: "Past Andromeda!" },
+  { h: 4.4e26,  e: "🌈", x: 18, msg: "Edge of the universe!" },
+  { h: 1e30,    e: "✨", x: 26, msg: "Into a NEW universe!" }
+];
+
+// ---------- save ----------
+const FRESH = { v: 1, wins: 0, best: 0, kicks: 0, goals: 0, lv: { leg: 0, ball: 0, boot: 0, luck: 0 }, owned: 0, stad: 0, diff: "easy", picked: false };
+let S = JSON.parse(JSON.stringify(FRESH));
+try {
+  const raw = JSON.parse(localStorage.getItem(SAVE_KEY));
+  if (raw && typeof raw === "object") {
+    S = Object.assign(S, raw);
+    S.lv = Object.assign({ leg: 0, ball: 0, boot: 0, luck: 0 }, raw.lv || {});
+  }
+} catch (e) {}
+if (!DIFFS[S.diff]) S.diff = "easy";
+S.owned = Math.max(0, Math.min(STADS.length - 1, S.owned | 0));
+S.stad = Math.max(0, Math.min(S.owned, S.stad | 0));
+function saveNow(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+window.addEventListener("pagehide", saveNow);
+document.addEventListener("visibilitychange", () => { if (document.hidden) saveNow(); });
+
+// ---------- physics (metres, seconds) ----------
+const G = 9.81, V0 = 28, POSTS_X = 30, BAR = 3, TEE_Y = 0.3;
+const MIN_A = 15 * Math.PI / 180, MAX_A = 88 * Math.PI / 180;
+
+// The camera squashes huge heights so the Moon fits in one kick: real height -> screen height
+function vis(h){ return h < 20 ? Math.max(0, h) : 20 + 55 * Math.log10(h / 20); }
+function unvis(v){ return v < 20 ? v : 20 * Math.pow(10, (v - 20) / 55); }
+
+// ---------- canvas ----------
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d"), stage = document.getElementById("stage");
+let W = 800, H = 480, DPR = 1, PPM = 17, GROUND = 400;
+function resize(){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = stage.clientWidth;
+  H = Math.round(Math.max(270, Math.min(W * 0.6, window.innerHeight * 0.64)));
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  cv.style.height = H + "px";
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  PPM = W / 44;
+  GROUND = H - Math.max(36, H * 0.15);
+}
+window.addEventListener("resize", resize);
+resize();
+
+// ---------- state ----------
+let phase = "aim";          // aim -> power -> flight -> result
+let aimT = 0, powT = 0, angle = 1.1, power = 0, wind = 0;
+let F = null;               // current flight
+let camX = -5, camY = 0;
+let banner = null;          // { text, t }
+let trail = [];
+let kickAnim = 0;
+let lastResult = null;
+let particles = [];
+
+function D(){ return DIFFS[S.diff]; }
+function stad(){ return STADS[S.stad]; }
+function legMult(){ return Math.pow(1.35, S.lv.leg); }
+function ballMult(){ return Math.pow(1.25, S.lv.ball); }
+
+function newKick(){
+  phase = "aim";
+  aimT = Math.random() * 2;
+  powT = 0;
+  wind = (Math.random() * 2 - 1) * D().wind;
+  F = null; trail = []; lastResult = null; kickAnim = 0;
+  camX = -5; camY = 0;
+  setMsg(windText() + " Tap to lock your aim.");
+  updateUI();
+}
+function windText(){
+  const kmh = Math.round(Math.abs(wind) * 9);
+  if (kmh < 2) return "No wind.";
+  return "Wind " + (wind > 0 ? "→ towards" : "← away from") + " the posts, " + kmh + " km/h.";
+}
+
+function tri(t){ const f = t - Math.floor(t); return f < 0.5 ? f * 2 : 2 - f * 2; }   // 0..1..0
+
+function act(){
+  if (!document.getElementById("startOv").hidden) return;
+  if (phase === "aim") {
+    angle = MIN_A + (MAX_A - MIN_A) * tri(aimT);
+    phase = "power"; powT = 0;
+    setMsg("Angle " + Math.round(angle * 180 / Math.PI) + "°. Now stop the power bar in the gold!");
+  } else if (phase === "power") {
+    power = tri(powT);
+    launch();
+  } else if (phase === "flight") {
+    if (F) F.fast = 4;
+  } else if (phase === "result") {
+    newKick();
+  }
+  updateUI();
+}
+
+function launch(){
+  const perfect = power >= 1 - perfZone(S.lv.boot);
+  const p = perfect ? 1 : power;
+  const v = V0 * (0.3 + 0.7 * p);
+  const sup = Math.random() < luckChance(S.lv.luck);
+  const mult = legMult() * ballMult() * stad().mult * (sup ? 5 : 1) * (perfect ? 1.25 : 1);
+  const vx = v * Math.cos(angle), vy = v * Math.sin(angle);
+  const tFlight = (vy + Math.sqrt(vy * vy + 2 * G * TEE_Y)) / G;
+  const peakVis = vis((TEE_Y + vy * vy / (2 * G)) * mult);
+  const tVis = Math.min(9, 2.2 + peakVis * 0.008);
+  F = { t: 0, vx, vy, mult, perfect, sup, x: 0, y: TEE_Y, peak: 0, goal: null, landed: false, landT: 0,
+        speed: tFlight / tVis, fast: 1, sight: 0, spin: 0 };
+  phase = "flight"; kickAnim = 0.001; trail = [];
+  if (sup) showBanner("🍀 SUPER KICK! 5× HIGHER!");
+  else if (perfect) showBanner("PERFECT KICK!");
+  setMsg(perfect ? "PERFECT power! Tap to speed it up." : "Power " + Math.round(power * 100) + "%. Tap to speed it up.");
+}
+
+function showBanner(text){ banner = { text, t: 0 }; }
+
+function finish(){
+  phase = "result";
+  const d = D();
+  const goal = !!F.goal;
+  const earned = Math.max(1, Math.floor(F.peak / 4 * d.pay * (goal ? 2 : 1)));
+  S.wins = Math.min(1e300, S.wins + earned);
+  S.kicks++;
+  if (goal) S.goals++;
+  if (window.PhatCoin && (goal || F.peak >= 20)) PhatCoin.earn("win", goal ? 3 : 1, goal ? "a goal" : "a big kick");
+  const newBest = F.peak > S.best;
+  if (newBest) {
+    S.best = F.peak;
+    if (window.Leaderboard && Leaderboard.getName()) Leaderboard.submit(Math.min(1e300, Math.round(S.best)));
+  }
+  lastResult = { peak: F.peak, goal, earned, newBest, perfect: F.perfect, sup: F.sup };
+  saveNow();
+  setMsg((goal ? "GOAL! Over the posts, double Wins! " : "Missed the posts. ") + "+" + fmt(earned) + " Wins. Tap for the next kick.", goal ? "good" : "");
+  updateUI();
+}
+
+// ---------- update ----------
+function step(dt){
+  if (phase === "aim") aimT += dt * D().aim;
+  if (phase === "power") powT += dt * D().meter * (1 - 0.04 * S.lv.boot);
+  if (kickAnim > 0) kickAnim = Math.min(1, kickAnim + dt * 4);
+  if (banner) { banner.t += dt; if (banner.t > 2.2) banner = null; }
+
+  if (phase === "flight" && F) {
+    if (!F.landed) {
+      F.t += dt * F.speed * F.fast;
+      const t = F.t;
+      const px = F.x;
+      F.x = F.vx * t + 0.5 * wind * t * t;
+      F.y = TEE_Y + F.vy * t - 0.5 * G * t * t;
+      F.spin += dt * 9;
+      const real = Math.max(0, F.y * F.mult);
+      if (real > F.peak) F.peak = real;
+      // over the posts? (crossbar is 3 m high, real metres)
+      if (F.goal === null && px < POSTS_X && F.x >= POSTS_X) {
+        F.goal = real >= BAR;
+        if (F.goal) showBanner("GOAL! ×2 WINS");
+      }
+      if (F.goal === null && F.x < POSTS_X && F.y <= 0) F.goal = false;
+      // sights
+      while (F.sight < SIGHTS.length && real >= SIGHTS[F.sight].h) {
+        if (SIGHTS[F.sight].msg && (!banner || banner.t > 0.8)) showBanner(SIGHTS[F.sight].msg);
+        F.sight++;
+      }
+      trail.push({ x: F.x, v: vis(real) });
+      if (trail.length > 50) trail.shift();
+      if (F.y <= 0 && F.t > 0.05) {
+        F.y = 0; F.landed = true;
+        if (F.goal === null) F.goal = false;
+      }
+    } else {
+      F.landT += dt;
+      if (F.landT > 0.7) finish();
+    }
+    camX = Math.max(-5, F.x - (W / PPM) * 0.4);
+    camY = Math.max(0, vis(Math.max(0, F.y * F.mult)) - ((GROUND / PPM) * 0.5));
+  }
+
+  // weather particles near the ground
+  const s = stad();
+  if (s.weather && camY < 40) {
+    const n = s.weather === "rain" ? 6 : 2;
+    for (let i = 0; i < n; i++) particles.push({ x: Math.random() * W, y: -10, vy: s.weather === "rain" ? 650 + Math.random() * 200 : 50 + Math.random() * 40, vx: s.weather === "rain" ? -60 : Math.random() * 30 - 15 });
+  }
+  for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; }
+  particles = particles.filter(p => p.y < H + 10);
+  if (particles.length > 400) particles.splice(0, particles.length - 400);
+}
+
+// ---------- draw ----------
+function hex(c){ return [parseInt(c.slice(1,3),16), parseInt(c.slice(3,5),16), parseInt(c.slice(5,7),16)]; }
+function skyAt(h){
+  const st = stad().sky;
+  if (h <= st[0][0]) return st[0][1];
+  for (let i = 1; i < st.length; i++) {
+    if (h <= st[i][0]) {
+      const a = st[i-1], b = st[i];
+      const k = (Math.log10(h + 1) - Math.log10(a[0] + 1)) / (Math.log10(b[0] + 1) - Math.log10(a[0] + 1));
+      const A = hex(a[1]), B = hex(b[1]);
+      return "rgb(" + A.map((x, j) => Math.round(x + (B[j] - x) * k)).join(",") + ")";
+    }
+  }
+  return st[st.length - 1][1];
+}
+const sx = x => (x - camX) * PPM;
+const sy = v => GROUND - (v - camY) * PPM;
+
+const STARS = Array.from({ length: 140 }, (_, i) => ({ x: (i * 7919 % 1000) / 1000, y: (i * 104729 % 1000) / 1000, r: (i % 3) * 0.5 + 0.6 }));
+
+function draw(){
+  const s = stad();
+  const topH = unvis(camY + GROUND / PPM), botH = unvis(camY);
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, skyAt(topH)); g.addColorStop(1, skyAt(botH));
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+  // stars
+  const midH = unvis(camY + GROUND / PPM * 0.5);
+  const starA = s.space ? 1 : Math.max(0, Math.min(1, (Math.log10(midH + 1) - 4.3) / 0.7));
+  if (starA > 0 || s.night) {
+    ctx.fillStyle = "#fff";
+    for (const st of STARS) {
+      ctx.globalAlpha = (s.night && !s.space ? Math.max(starA, 0.5) : starA) * (0.5 + 0.5 * Math.sin(st.x * 50 + performance.now() / 700));
+      const y = ((st.y * H + camY * PPM * 0.05) % H + H) % H;
+      ctx.beginPath(); ctx.arc(((st.x * W - camX * PPM * 0.05) % W + W) % W, y, st.r, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (s.galaxy) {
+    const rg = ctx.createRadialGradient(W * 0.7, sy(18), 10, W * 0.7, sy(18), W * 0.45);
+    rg.addColorStop(0, "rgba(190,120,255,.45)"); rg.addColorStop(1, "rgba(190,120,255,0)");
+    ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+  }
+  if (s.earth) emoji("🌍", sx(26), sy(22), PPM * 9);
+
+  // height ruler
+  ctx.font = "800 12px Nunito, system-ui, sans-serif";
+  ctx.textAlign = "left"; ctx.textBaseline = "middle";
+  for (let k = 1; k < 32; k++) {
+    const v = vis(Math.pow(10, k));
+    const y = sy(v);
+    if (y < -10 || y > GROUND - 8) continue;
+    ctx.fillStyle = "rgba(255,255,255,.45)"; ctx.fillRect(0, y, 14, 2);
+    ctx.fillText(fmtH(Math.pow(10, k)), 18, y);
+  }
+
+  // sights in the sky
+  for (const it of SIGHTS) {
+    const v = vis(it.h);
+    const y = sy(v);
+    if (y < -80 || y > H + 80) continue;
+    if (it.line) {
+      ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.setLineDash([10, 8]); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = "#fff"; ctx.font = "900 15px Nunito, system-ui, sans-serif"; ctx.textAlign = "right";
+      ctx.fillText(it.line + " · 100 km", W - 10, y - 12); ctx.textAlign = "left";
+    }
+    const xs = [it.x].concat(it.more || []);
+    for (const x of xs) for (const off of [0, 60]) emoji(it.e, sx(x + off), y, Math.max(26, PPM * 2.6));
+  }
+
+  drawGround(s);
+
+  // trail
+  for (let i = 0; i < trail.length; i++) {
+    const p = trail[i];
+    ctx.globalAlpha = i / trail.length * 0.6;
+    ctx.fillStyle = F && F.sup ? "#ffd84a" : "#ffffff";
+    ctx.beginPath(); ctx.arc(sx(p.x), sy(p.v), 2 + i / trail.length * 4, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  drawKicker();
+  drawBall();
+
+  // weather
+  if (particles.length) {
+    ctx.strokeStyle = "rgba(220,235,255,.6)"; ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 1.5;
+    for (const p of particles) {
+      if (stad().weather === "rain") { ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - 4, p.y + 14); ctx.stroke(); }
+      else { ctx.beginPath(); ctx.arc(p.x, p.y, 2.4, 0, 7); ctx.fill(); }
+    }
+  }
+
+  drawAim();
+  drawHUD();
+}
+
+function emoji(e, x, y, size){
+  ctx.font = Math.round(size) + "px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(e, x, y);
+}
+
+function drawGround(s){
+  const gy = sy(0);
+  if (gy > H + 400) return;
+  // background scenery
+  if (s.mountain) {
+    ctx.fillStyle = "#8b98a8";
+    ctx.beginPath(); ctx.moveTo(sx(-30), gy);
+    for (let i = -30; i <= 120; i += 15) ctx.lineTo(sx(i + 7), sy(9 + (i * 37 % 7))), ctx.lineTo(sx(i + 15), gy - 4);
+    ctx.lineTo(sx(130), gy); ctx.fill();
+    ctx.fillStyle = "#fff";
+    for (let i = -30; i <= 120; i += 15) { ctx.beginPath(); ctx.moveTo(sx(i + 7), sy(9 + (i * 37 % 7))); ctx.lineTo(sx(i + 5), sy(6.5 + (i * 37 % 7))); ctx.lineTo(sx(i + 9), sy(6.5 + (i * 37 % 7))); ctx.fill(); }
+  }
+  if (s.stands) {
+    const h = [0, 2.2, 4.5, 7][s.stands];
+    ctx.fillStyle = s.night ? "#2a2f45" : "#6b6f80";
+    ctx.fillRect(sx(-40), sy(h + 1), (200) * PPM, h * PPM + PPM);
+    // crowd
+    for (let i = -40; i < 160; i += 0.9) {
+      for (let r = 0; r < s.stands; r++) {
+        const c = ["#e8384f","#ffc93c","#4aa8ff","#ffffff","#4fcf6a","#ff8a3d"][(Math.floor(i * 3) + r * 2) % 6];
+        ctx.fillStyle = c;
+        const bob = phase === "result" && lastResult && lastResult.goal ? Math.abs(Math.sin(performance.now() / 120 + i)) * 4 : 0;
+        ctx.beginPath(); ctx.arc(sx(i + (r % 2) * 0.45), sy(1.4 + r * 2) - bob, Math.max(1.5, PPM * 0.28), 0, 7); ctx.fill();
+      }
+    }
+    if (s.night) {
+      for (const lx of [-8, 22, 52]) {
+        ctx.fillStyle = "#555b70"; ctx.fillRect(sx(lx), sy(16), PPM * 0.4, 16 * PPM);
+        ctx.fillStyle = "#fff8d0"; ctx.fillRect(sx(lx) - PPM, sy(17), PPM * 2.4, PPM * 1.2);
+        const lg = ctx.createRadialGradient(sx(lx), sy(16.4), 2, sx(lx), sy(16.4), PPM * 10);
+        lg.addColorStop(0, "rgba(255,248,200,.45)"); lg.addColorStop(1, "rgba(255,248,200,0)");
+        ctx.fillStyle = lg; ctx.fillRect(sx(lx) - PPM * 10, sy(26), PPM * 20, PPM * 20);
+      }
+    }
+  }
+  if (s.fence) {
+    ctx.fillStyle = "#d9b98a";
+    for (let i = -40; i < 160; i += 1.4) ctx.fillRect(sx(i), sy(1.8), PPM * 0.9, PPM * 1.8);
+    ctx.fillRect(sx(-40), sy(1.4), 200 * PPM, PPM * 0.25);
+  }
+  // field
+  ctx.fillStyle = s.grass; ctx.fillRect(0, gy, W, H - gy + 400);
+  ctx.fillStyle = s.grass2;
+  for (let i = Math.floor(camX / 5) * 5; i < camX + W / PPM + 5; i += 10) ctx.fillRect(sx(i), gy, 5 * PPM, H - gy + 400);
+  if (s.craters) {
+    ctx.fillStyle = "rgba(0,0,0,.14)";
+    for (let i = Math.floor(camX / 9) * 9; i < camX + W / PPM + 9; i += 9) { ctx.beginPath(); ctx.ellipse(sx(i + 3), gy + 14, PPM * 1.6, 5, 0, 0, 7); ctx.fill(); }
+  }
+  // try line + posts
+  ctx.fillStyle = "rgba(255,255,255,.75)"; ctx.fillRect(sx(POSTS_X) - 1.5, gy, 3, H - gy);
+  const pw = 2.8;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(sx(POSTS_X - pw) - 3, sy(16), 6, 16 * PPM);
+  ctx.fillRect(sx(POSTS_X + pw) - 3, sy(16), 6, 16 * PPM);
+  ctx.fillRect(sx(POSTS_X - pw) - 3, sy(BAR) - 3, pw * 2 * PPM + 6, 6);
+  ctx.fillStyle = "#e8384f";
+  ctx.fillRect(sx(POSTS_X - pw) - 4, sy(1.8), 8, 1.8 * PPM);
+  ctx.fillRect(sx(POSTS_X + pw) - 4, sy(1.8), 8, 1.8 * PPM);
+  // tee
+  ctx.fillStyle = "#ff8a3d";
+  ctx.beginPath(); ctx.moveTo(sx(-0.35), gy); ctx.lineTo(sx(0.35), gy); ctx.lineTo(sx(0.12), sy(0.15)); ctx.lineTo(sx(-0.12), sy(0.15)); ctx.fill();
+}
+
+function drawKicker(){
+  const gy = sy(0);
+  if (gy > H + 200) return;
+  let bx = -1.4;
+  if (kickAnim > 0) bx = -1.4 + Math.min(1, kickAnim * 2) * 0.9;
+  const x = sx(bx), u = PPM;
+  const legA = kickAnim > 0 ? (-0.9 + Math.min(1, kickAnim * 1.6) * 2.4) : -0.5;
+  ctx.lineCap = "round";
+  // back leg
+  ctx.strokeStyle = "#243047"; ctx.lineWidth = u * 0.42;
+  ctx.beginPath(); ctx.moveTo(x, gy - u * 1.0); ctx.lineTo(x - u * 0.3, gy - u * 0.05); ctx.stroke();
+  // kicking leg
+  ctx.save(); ctx.translate(x, gy - u * 1.0); ctx.rotate(-legA);
+  ctx.strokeStyle = "#243047"; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, u * 0.95); ctx.stroke();
+  ctx.fillStyle = "#ffc93c"; ctx.beginPath(); ctx.ellipse(u * 0.15, u * 1.0, u * 0.28, u * 0.15, 0, 0, 7); ctx.fill();
+  ctx.restore();
+  // body
+  ctx.fillStyle = "#e8384f";
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - u * 0.4, gy - u * 2.2, u * 0.8, u * 1.3, u * 0.25) : ctx.rect(x - u * 0.4, gy - u * 2.2, u * 0.8, u * 1.3); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.font = "900 " + Math.round(u * 0.6) + "px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("10", x, gy - u * 1.55);
+  // arms
+  ctx.strokeStyle = "#f5c29a"; ctx.lineWidth = u * 0.24;
+  ctx.beginPath(); ctx.moveTo(x - u * 0.35, gy - u * 2.0); ctx.lineTo(x - u * 0.9, gy - u * 1.4 - (kickAnim > 0 ? u * 0.6 : 0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x + u * 0.35, gy - u * 2.0); ctx.lineTo(x + u * 0.8, gy - u * 1.5); ctx.stroke();
+  // head
+  ctx.fillStyle = "#f5c29a"; ctx.beginPath(); ctx.arc(x, gy - u * 2.65, u * 0.45, 0, 7); ctx.fill();
+  ctx.fillStyle = "#2b1a10"; ctx.beginPath(); ctx.arc(x, gy - u * 2.8, u * 0.45, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = "#1b1b1b"; ctx.beginPath(); ctx.arc(x + u * 0.2, gy - u * 2.62, u * 0.07, 0, 7); ctx.fill();
+}
+
+function drawBall(){
+  let x, v, rot;
+  if (F) { x = F.x; v = vis(Math.max(0, F.y * F.mult)); rot = F.spin; }
+  else { x = 0; v = TEE_Y + 0.15; rot = -0.3; }
+  const px = sx(x), py = sy(v) - (F && F.landed ? 0 : 0) - PPM * 0.15;
+  const r = Math.max(9, PPM * 0.55);
+  ctx.save(); ctx.translate(px, py); ctx.rotate(rot);
+  if (F && F.sup) { ctx.shadowColor = "#ffd84a"; ctx.shadowBlur = 18; }
+  ctx.fillStyle = "#f6f1e4"; ctx.strokeStyle = "#1b1b2b"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(0, 0, r * 1.45, r * 0.9, 0, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "#e8384f"; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(-r * 0.5, -r * 0.82); ctx.lineTo(-r * 0.5, r * 0.82); ctx.moveTo(r * 0.5, -r * 0.82); ctx.lineTo(r * 0.5, r * 0.82); ctx.stroke();
+  ctx.restore();
+  // off-screen marker isn't needed: camera follows the ball
+}
+
+function drawAim(){
+  if (phase !== "aim" && phase !== "power") return;
+  const a = phase === "aim" ? MIN_A + (MAX_A - MIN_A) * tri(aimT) : angle;
+  const ox = sx(0), oy = sy(TEE_Y + 0.15) - PPM * 0.15;
+  const L = PPM * 7;
+  // arc of possible angles
+  ctx.strokeStyle = "rgba(255,255,255,.3)"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(ox, oy, L, -MAX_A, -MIN_A); ctx.stroke();
+  // arrow
+  ctx.save(); ctx.translate(ox, oy); ctx.rotate(-a);
+  ctx.fillStyle = phase === "aim" ? "#ffc93c" : "#ffffff";
+  ctx.strokeStyle = "#17162b"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(PPM * 0.8, -4); ctx.lineTo(L - 16, -4); ctx.lineTo(L - 16, -11); ctx.lineTo(L, 0); ctx.lineTo(L - 16, 11); ctx.lineTo(L - 16, 4); ctx.lineTo(PPM * 0.8, 4); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.restore();
+  ctx.font = "900 16px Nunito, system-ui, sans-serif"; ctx.fillStyle = "#fff"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+  ctx.fillText(Math.round(a * 180 / Math.PI) + "°", ox + Math.cos(a) * (L + 10), oy - Math.sin(a) * (L + 10));
+
+  if (phase === "power") {
+    const bw = 30, bh = Math.max(90, Math.min(220, GROUND - 82)), bx = W - bw - 18, by = Math.max(54, (GROUND - bh) / 2);
+    const pz = perfZone(S.lv.boot);
+    ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(bx - 5, by - 5, bw + 10, bh + 10);
+    const gr = ctx.createLinearGradient(0, by + bh, 0, by);
+    gr.addColorStop(0, "#4fcf6a"); gr.addColorStop(0.6, "#ffcc33"); gr.addColorStop(1, "#ff5d5d");
+    ctx.fillStyle = gr; ctx.globalAlpha = 0.35; ctx.fillRect(bx, by, bw, bh); ctx.globalAlpha = 1;
+    const p = tri(powT);
+    ctx.fillStyle = gr; ctx.fillRect(bx, by + bh * (1 - p), bw, bh * p);
+    ctx.fillStyle = "#ffd700"; ctx.fillRect(bx - 5, by, bw + 10, bh * pz);
+    ctx.fillStyle = "#ffd700"; ctx.font = "900 11px Nunito, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("PERFECT", bx + bw / 2, by - 11);
+    ctx.fillStyle = "#fff"; ctx.fillRect(bx - 8, by + bh * (1 - p) - 2, bw + 16, 4);
+    ctx.font = "900 15px Nunito, sans-serif"; ctx.fillText("POWER", bx + bw / 2, by + bh + 18);
+  }
+}
+
+function drawHUD(){
+  // wind
+  ctx.font = "900 15px Nunito, system-ui, sans-serif"; ctx.textAlign = "right"; ctx.textBaseline = "top";
+  const kmh = Math.round(Math.abs(wind) * 9);
+  ctx.fillStyle = "rgba(0,0,0,.4)"; ctx.fillRect(W - 150, 10, 140, 30);
+  ctx.fillStyle = "#fff";
+  ctx.fillText("Wind " + (kmh < 2 ? "calm" : (wind > 0 ? "→ " : "← ") + kmh + " km/h"), W - 18, 17);
+
+  // live height
+  if (F) {
+    const h = Math.max(0, F.y * F.mult);
+    ctx.textAlign = "center";
+    ctx.font = "400 " + Math.round(Math.min(46, W / 14)) + "px 'Lilita One', sans-serif";
+    ctx.lineWidth = 6; ctx.strokeStyle = "#17162b"; ctx.fillStyle = "#ffc93c";
+    const txt = (F.landed ? "Highest: " : "") + fmtH(F.landed ? F.peak : h);
+    ctx.strokeText(txt, W / 2, 12); ctx.fillText(txt, W / 2, 12);
+  }
+
+  if (banner) {
+    const a = banner.t < 0.2 ? banner.t / 0.2 : banner.t > 1.8 ? (2.2 - banner.t) / 0.4 : 1;
+    const sc = 1 + Math.max(0, 0.25 - banner.t) * 1.5;
+    ctx.save(); ctx.globalAlpha = Math.max(0, a);
+    ctx.translate(W / 2, Math.min(H * 0.28, 110)); ctx.scale(sc, sc);
+    ctx.font = "400 " + Math.round(Math.min(38, W / 16)) + "px 'Lilita One', sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.lineWidth = 7; ctx.strokeStyle = "#17162b"; ctx.fillStyle = "#ffffff";
+    ctx.strokeText(banner.text, 0, 0); ctx.fillText(banner.text, 0, 0);
+    ctx.restore();
+  }
+
+  if (phase === "result" && lastResult) {
+    const r = lastResult;
+    const bw = Math.min(360, W - 40), bh = 178, bx = (W - bw) / 2, by = Math.max(60, (H - bh) / 2);
+    ctx.fillStyle = "rgba(15,22,18,.88)"; ctx.strokeStyle = r.goal ? "#4fcf6a" : "#ffc93c"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, 18) : ctx.rect(bx, by, bw, bh); ctx.fill(); ctx.stroke();
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#ffc93c";
+    ctx.font = "400 34px 'Lilita One', sans-serif"; ctx.fillText(fmtH(r.peak) + " high!", W / 2, by + 34);
+    ctx.font = "900 18px Nunito, sans-serif"; ctx.fillStyle = r.goal ? "#7dff8f" : "#ffb0b0";
+    ctx.fillText(r.goal ? "GOAL! Over the posts ×2" : "Missed the posts", W / 2, by + 72);
+    ctx.fillStyle = "#fff"; ctx.font = "900 22px Nunito, sans-serif";
+    ctx.fillText("+" + fmt(r.earned) + " Wins", W / 2, by + 104);
+    ctx.font = "900 15px Nunito, sans-serif"; ctx.fillStyle = "#ffd84a";
+    ctx.fillText(r.newBest ? "🏆 NEW BEST KICK!" : "Best: " + fmtH(S.best), W / 2, by + 134);
+    ctx.fillStyle = "#b4cdb9"; ctx.font = "800 13px Nunito, sans-serif";
+    ctx.fillText("Tap for the next kick", W / 2, by + 158);
+  }
+}
+
+// ---------- UI ----------
+const $ = id => document.getElementById(id);
+function setMsg(t, kind){ const m = $("msg"); m.textContent = t; m.className = "msg" + (kind ? " " + kind : ""); }
+
+function updateUI(){
+  $("hWins").textContent = fmt(S.wins);
+  $("hBest").textContent = fmtH(S.best);
+  $("hStad").textContent = stad().icon + " " + stad().name;
+  $("hMode").textContent = D().name;
+  $("modeHint").textContent = D().name + " · " + D().pay + "× Wins";
+  const kb = $("kickBtn");
+  kb.textContent = phase === "aim" ? "LOCK AIM" : phase === "power" ? "KICK!" : phase === "flight" ? "SPEED UP" : "NEXT KICK";
+  // can afford anything?
+  const cheap = UPS.some(u => S.lv[u.id] < u.max && S.wins >= upCost(u, S.lv[u.id]));
+  $("upHint").textContent = cheap ? "✨ you can buy one!" : "make kicks higher";
+  const next = STADS[S.owned + 1];
+  $("stHint").textContent = next ? (S.wins >= next.cost ? "✨ new stadium ready!" : "next: " + fmt(next.cost) + " Wins") : "all unlocked!";
+  if (!$("upOv").hidden) renderUps();
+  if (!$("stOv").hidden) renderStads();
+}
+
+function buy(u, many){
+  let bought = 0;
+  while (S.lv[u.id] < u.max && S.wins >= upCost(u, S.lv[u.id])) {
+    S.wins -= upCost(u, S.lv[u.id]); S.lv[u.id]++; bought++;
+    if (!many) break;
+  }
+  if (bought) { saveNow(); updateUI(); }
+}
+
+function renderUps(){
+  $("upWins").textContent = fmt(S.wins);
+  const L = $("upList"); L.innerHTML = "";
+  for (const u of UPS) {
+    const l = S.lv[u.id], maxed = l >= u.max, c = upCost(u, l);
+    const row = document.createElement("div"); row.className = "row";
+    row.innerHTML = '<div class="ic">' + u.icon + '</div><div class="tx"><b>' + u.name + ' <span style="color:var(--muted)">Lv ' + l + (u.max < Infinity ? "/" + u.max : "") + '</span></b><small>' + u.desc(l) + '</small></div>'
+      + '<div class="act">' + (maxed ? '<button class="sm" disabled>MAXED</button>'
+        : '<button class="sm one">' + fmt(c) + ' Wins</button><button class="sm max">Upgrade to max</button>') + '</div>';
+    if (!maxed) {
+      const one = row.querySelector(".one"), mx = row.querySelector(".max");
+      one.disabled = S.wins < c; mx.disabled = S.wins < c;
+      one.onclick = () => buy(u, false);
+      mx.onclick = () => buy(u, true);
+    }
+    L.appendChild(row);
+  }
+}
+
+function renderStads(){
+  $("stWins").textContent = fmt(S.wins);
+  const L = $("stList"); L.innerHTML = "";
+  STADS.forEach((s, i) => {
+    const row = document.createElement("div");
+    const owned = i <= S.owned, next = i === S.owned + 1;
+    row.className = "row" + (i === S.stad ? " on" : "") + (!owned && !next ? " locked" : "");
+    let btn;
+    if (i === S.stad) btn = '<button class="sm" disabled>Playing here</button>';
+    else if (owned) btn = '<button class="sm go">Play here</button>';
+    else if (next) btn = '<button class="sm buy"' + (S.wins < s.cost ? " disabled" : "") + '>Buy ' + fmt(s.cost) + '</button>';
+    else btn = '<button class="sm" disabled>' + fmt(s.cost) + '</button>';
+    row.innerHTML = '<div class="ic">' + s.icon + '</div><div class="tx"><b>' + s.name + '</b><small>Kicks go ' + fmt(s.mult) + '× higher' + (!owned && !next ? " · buy the one before first" : "") + '</small></div><div class="act">' + btn + '</div>';
+    const go = row.querySelector(".go"), b = row.querySelector(".buy");
+    if (go) go.onclick = () => { S.stad = i; saveNow(); if (phase !== "flight") newKick(); updateUI(); };
+    if (b) b.onclick = () => {
+      if (S.wins < s.cost) return;
+      S.wins -= s.cost; S.owned = i; S.stad = i; saveNow();
+      if (phase !== "flight") newKick();
+      setMsg("You unlocked " + s.name + "! Kicks go " + fmt(s.mult) + "× higher here.", "good");
+      updateUI();
+    };
+    L.appendChild(row);
+  });
+}
+
+function openOv(id){ $(id).hidden = false; if (id === "upOv") renderUps(); if (id === "stOv") renderStads(); }
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => { $(b.dataset.close).hidden = true; });
+document.querySelectorAll(".overlay").forEach(o => o.addEventListener("pointerdown", e => { if (e.target === o && o.id !== "startOv") o.hidden = true; }));
+$("upBtn").onclick = () => openOv("upOv");
+$("stBtn").onclick = () => openOv("stOv");
+$("modeBtn").onclick = () => showStart();
+$("kickBtn").onclick = act;
+cv.addEventListener("pointerdown", e => { e.preventDefault(); act(); });
+window.addEventListener("keydown", e => {
+  if ((e.code === "Space" || e.code === "Enter") && document.querySelectorAll(".overlay:not([hidden])").length === 0) { e.preventDefault(); act(); }
+});
+
+function showStart(){
+  document.querySelectorAll(".diff").forEach(b => b.classList.toggle("last", S.picked && b.dataset.d === S.diff));
+  $("startOv").hidden = false;
+}
+document.querySelectorAll(".diff").forEach(b => b.onclick = () => {
+  S.diff = b.dataset.d; S.picked = true; saveNow();
+  $("startOv").hidden = true;
+  if (phase !== "flight") newKick();
+  updateUI();
+});
+
+// ---------- loop ----------
+let last = performance.now();
+function frame(now){
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  step(dt); draw();
+  requestAnimationFrame(frame);
+}
+newKick();
+showStart();
+requestAnimationFrame(frame);
+
+// ---------- leaderboard ----------
+if (window.Leaderboard) {
+  Leaderboard.mount({ el: "lb", game: "rugby-kicker", dir: "desc", unit: "m", title: "Rugby Kicker — highest kick (metres)" });
+  if (Leaderboard.getName() && S.best >= 1) Leaderboard.submit(Math.min(1e300, Math.round(S.best)));
+}
+</script>
+</body>
+</html>

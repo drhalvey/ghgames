@@ -1,0 +1,1697 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Crazy Dads Classic</title>
+<meta property="og:title" content="Crazy Dads · GH Games">
+<meta property="og:description" content="The dads want hugs and they hug way too hard. Pick a team and a map, knock the dads out with soda, then beat the boss: Monica riding Didi the greyhound.">
+<meta property="og:image" content="https://ghgames.au/og/crazy-dads.png">
+<meta property="og:url" content="https://ghgames.au/crazy-dads-classic.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0c0e1d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Games">
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="crazy-dads"></script>
+<script src="phatcoin.js" data-game="crazy-dads" data-pill="none"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#2a1740; --panel:#3a2159; --panel2:#4a2b70; --line:#6a4596;
+  --ink:#fff6ee; --muted:#d3bde8; --gold:#ffc93c; --dad:#4aa3ff; --kid:#ff8a3c; --pink:#ff6fa3; --green:#4fcf6a; --red:#ff5d5d;
+  --display:"Lilita One","Arial Rounded MT Bold","Trebuchet MS",sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+html,body{background:var(--bg);margin:0}
+body{font-family:var(--body);color:var(--ink);padding:14px 14px 40px;font-size:15px}
+.wrap{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.home{font-weight:900;color:var(--muted);text-decoration:none;font-size:14px}
+.home:hover{color:var(--gold)}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(32px,6vw,48px);margin:0;line-height:1;color:var(--gold);text-shadow:0 3px 0 #b8452f,0 6px 0 rgba(0,0,0,.25)}
+.hud{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:6px 12px;display:flex;flex-direction:column;align-items:flex-start;color:var(--ink);font-family:var(--body)}
+.chip span{font-size:11px;color:var(--muted);font-weight:800}
+.chip b{font-size:17px;font-weight:900}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--gold)}
+.stage{position:relative;border-radius:20px;overflow:hidden;border:3px solid var(--line);background:#111;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;touch-action:none}
+.dash{position:absolute;right:14px;bottom:14px;width:92px;height:92px;border-radius:50%;border:none;font-family:var(--display);font-size:22px;color:#fff;background:radial-gradient(circle at 35% 30%,#ff9ac0,#e0336f);box-shadow:0 6px 0 #8a1c43,0 10px 18px rgba(0,0,0,.4);cursor:pointer;touch-action:none}
+.dash:active{transform:translateY(3px);box-shadow:0 3px 0 #8a1c43}
+.dash[disabled]{filter:grayscale(.8) brightness(.7)}
+.act{position:absolute;right:118px;bottom:20px;min-width:92px;height:74px;border-radius:22px;border:none;font-family:var(--display);font-size:20px;color:#3b2200;background:linear-gradient(#ffe27a,#ffb300);box-shadow:0 6px 0 #a86a00,0 10px 18px rgba(0,0,0,.4);cursor:pointer;touch-action:none;padding:0 12px}
+.act small{display:block;font-family:var(--body);font-size:11px;font-weight:900}
+.act:active{transform:translateY(3px)}
+.act[hidden]{display:none}
+
+.dash small{display:block;font-family:var(--body);font-size:11px;font-weight:900}
+.bar{position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap;max-width:calc(100% - 250px)}
+.stage:fullscreen{border-radius:0;border:none}
+.bar button[hidden]{display:none}
+.bar button{font-family:var(--body);font-weight:900;font-size:13px;border:none;border-radius:10px;padding:7px 11px;background:rgba(0,0,0,.55);color:#fff;cursor:pointer}
+.lobby{position:absolute;inset:0;background:linear-gradient(160deg,rgba(42,23,64,.96),rgba(74,43,112,.96));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;overflow:auto;text-align:center}
+.lobby[hidden]{display:none}
+.stage.inlobby canvas{display:none}
+.stage.inlobby .lobby{position:relative;inset:auto;padding:22px 16px}
+.lobby h2{font-family:var(--display);font-weight:400;margin:0;font-size:24px;color:var(--gold)}
+.lobby p{margin:0;color:var(--muted);font-weight:700;max-width:560px}
+.pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;width:100%;max-width:640px}
+.bar[hidden],.dash[hidden]{display:none}
+.opt{font-family:var(--body);cursor:pointer;border:3px solid var(--line);background:var(--panel);color:var(--ink);border-radius:16px;padding:10px 12px;font-weight:900;font-size:15px}
+.opt .e{display:block;font-size:34px;line-height:1.1}
+.opt small{display:block;color:var(--muted);font-size:11px;font-weight:800}
+.opt.sel{border-color:var(--gold);background:var(--panel2);box-shadow:0 0 0 3px rgba(255,201,60,.25)}
+.opt.dad.sel{border-color:var(--dad)}
+.opt.kid.sel{border-color:var(--kid)}
+.play{font-family:var(--display);font-size:30px;border:none;border-radius:18px;padding:10px 46px;color:#3b2200;background:linear-gradient(#ffd966,#ffb300);box-shadow:0 6px 0 #a86a00;cursor:pointer}
+.play:active{transform:translateY(3px);box-shadow:0 3px 0 #a86a00}
+.msg{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:10px 14px;font-weight:800;min-height:44px}
+.msg.good{border-color:var(--green)}
+.msg.bad{border-color:var(--red)}
+.panel{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:14px 16px}
+.panel h2{font-family:var(--display);font-weight:400;margin:0 0 6px;font-size:24px;color:var(--gold)}
+.sub{color:var(--muted);margin:0 0 10px;font-weight:700}
+.shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.hat{background:var(--panel2);border:2px solid var(--line);border-radius:14px;padding:10px;text-align:center;cursor:pointer;color:var(--ink);font-family:var(--body);font-weight:900}
+.hat .e{font-size:34px;display:block}
+.hat small{display:block;color:var(--muted);font-weight:800}
+.hat.on{border-color:var(--gold)}
+.hat.locked{opacity:.75}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.small{font-family:var(--body);font-weight:900;border:none;border-radius:12px;padding:9px 14px;color:#fff;background:var(--pink);cursor:pointer;box-shadow:0 4px 0 #8a1c43}
+.small.alt{background:#6a4596;box-shadow:0 4px 0 #3a2159}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.overlay[hidden]{display:none}
+.box{background:var(--panel);border:3px solid var(--gold);border-radius:20px;padding:18px;max-width:440px;width:100%;display:flex;flex-direction:column;gap:10px}
+.box h3{font-family:var(--display);font-weight:400;margin:0;font-size:26px;color:var(--gold)}
+.box input{font-family:var(--body);font-weight:800;font-size:20px;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:#23123a;color:var(--ink);outline:none;width:100%}
+.box input:focus{border-color:var(--gold)}
+.hint{color:var(--muted);font-size:13px;margin:0;font-weight:700}
+.picks{display:flex;flex-wrap:wrap;gap:8px}
+.picks .hat{min-width:80px}
+.picks .hat.sel{border-color:var(--gold);background:#5b3888}
+.help{margin:0;padding-left:18px;color:var(--muted);font-weight:700;line-height:1.5}
+.help b{color:var(--ink)}
+@media (max-width:600px){
+  .dash{width:74px;height:74px;font-size:18px;right:10px;bottom:10px}
+  .act{right:92px;bottom:14px;height:60px;min-width:80px;font-size:17px}
+  .bar{top:auto;bottom:78px;left:10px;max-width:calc(100% - 20px)}
+  .bar button{font-size:12px;padding:6px 9px}
+}</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="home" href="index.html">← GH Games</a> <a class="home" href="crazy-dads.html" style="margin-left:14px">Play the new 3D version</a>
+  <div class="top">
+    <h1>Crazy Dads</h1>
+    <div class="hud">
+      <button class="chip" id="nameChip" type="button" title="Change your name"><span>Name ✏️</span><b id="hName">Player</b></button>
+      <div class="chip"><span>Socks 🧦</span><b id="hSocks">0</b></div>
+      <div class="chip"><span>Best round</span><b id="hBest">0</b></div>
+    </div>
+  </div>
+
+  <div class="stage inlobby" id="stage">
+    <canvas id="cv" aria-label="Game area. Move with arrow keys, WASD or by dragging. Space to dash."></canvas>
+    <div class="bar" id="bar" hidden>
+      <button id="menuBtn" type="button" title="Menu">☰</button>
+      <button id="sideBtn" type="button" title="Switch team next round">⇄ Switch team</button>
+      <button id="zoomOut" type="button" aria-label="See more of the map">🔍−</button>
+      <button id="zoomIn" type="button" aria-label="Zoom in">🔍+</button>
+      <button id="fullBtn" type="button" title="Big screen">⛶</button>
+      <button id="buckBtn" type="button" title="Pay 100 socks to bring Uncle Buck" aria-label="Pay 100 socks to bring Uncle Buck">🍔 100🧦</button>
+    </div>
+    <button class="dash" id="dashBtn" type="button" hidden>DASH<small id="dashLbl">Space</small></button>
+    <button class="act" id="actBtn" type="button" hidden><span id="actTxt">DROP</span><small id="actLbl">E key</small></button>
+    <div class="lobby" id="lobby">
+      <h2>Pick your team</h2>
+      <div class="pick" id="sidePick">
+        <button class="opt dad" data-side="dad" type="button"><span class="e">🧔</span>Dads<small>Chase kids and touch them to hug. Stay away from kids holding soda 🥤!</small></button>
+        <button class="opt kid" data-side="kid" type="button"><span class="e">🧒</span>Kids<small>Run away! A hugged kid turns into a dad.</small></button>
+      </div>
+      <h2>Pick a map</h2>
+      <div class="pick" id="mapPick"></div>
+      <button class="play" id="playBtn" type="button">PLAY!</button>
+      <p>Friends who pick the same map play in the same game. Computer players fill any empty spots.</p>
+    </div>
+  </div>
+  <div class="msg" id="msg">Pick a team and a map, then press PLAY. Each round lasts 5 minutes.</div>
+
+  <section class="panel">
+    <h2>How to play</h2>
+    <ul class="help">
+      <li><b>Move:</b> arrow keys or WASD, or hold the mouse button and your character walks to the pointer. On a tablet, touch and drag anywhere on the game.</li>
+      <li><b>See more of the map:</b> press 🔍− (or the minus key, or scroll the mouse wheel) to zoom out, 🔍+ to zoom in, and ⛶ to fill the whole screen.</li>
+      <li><b>Dash:</b> Space or the pink DASH button. Then wait for it to charge again.</li>
+      <li><b>Dads</b> start frozen for 3 seconds while the kids run. Then they chase. A hug is so tight the kid turns into a dad.</li>
+      <li><b>Playing as a dad:</b> kids you can hug have a pink ❤️ over their head, and a pink arrow at the edge of the screen points to the nearest one. Kids holding a soda 🥤 have a red dashed ring: keep away from them, or you'll drink it and pass out.</li>
+      <li><b>Soda:</b> there are 6 soda machines 🥤 on every map and the soda is free. Kids walk into a machine to grab one, then touch a dad. He drinks it and naps for 30 seconds 💤 (mash WAKE UP to wake up faster), then he is back chasing. Each machine takes 20 seconds to refill, and a soda goes flat after 12 seconds, so not every kid has one.</li>
+      <li><b>Boss:</b> when every dad is asleep at the same time, Monica arrives riding Didi, her massive greyhound 🐕. If Didi catches you, you get slobbered and you are out. Players who were dads wake up as kids and join the boss fight too.</li>
+      <li><b>Beat the boss:</b> grab a peanut butter jar 🥜 (Didi will chase you!) and press DROP (E key) to lure her. While Didi slurps for 10 seconds, every kid gets TNT 🧨. Place it around her (E key) and it blows up 2 seconds later. Enough blasts and the kids win.</li>
+      <li><b>Mega boss:</b> any player can pay 100 socks 🧦 (the 🍔 100🧦 button at the top of the game) to bring UNCLE BUCK into the game, once per round. All the dads fall asleep in fright. He's enormous and he EATS kids. Everyone gets back up for this fight. Grab a cheeseburger 🍔 and drop it: he stops to eat it for 5 seconds, and every kid gets 2 nukes ☢️ to place around him. Beating him is worth 600 points.</li>
+      <li><b>Win:</b> kids win if someone is still free when the 5 minutes run out, or if they beat Monica and Didi. Dads win if every kid gets hugged. Monica wins if Didi slobbers every kid.</li>
+      <li><b>Points:</b> kids get 1 point a second while free, 40 for each dad knocked out with soda, 50 for luring Didi, 30 for each TNT blast that hits her, 200 for escaping and 300 for beating the boss. Dads get 50 for every hug. Every 5 points gives you a sock 🧦.</li>
+      <li><b>Maps:</b> water and sand slow you down, slides, trampolines and hot sand speed you up, and ice makes you slide.</li>
+    </ul>
+  </section>
+
+  <section class="panel">
+    <h2>Hat shop</h2>
+    <p class="sub">Spend socks on hats. Your hat shows on your character, and friends online can see it.</p>
+    <div class="shop" id="shop"></div>
+  </section>
+
+  <section class="panel">
+    <div class="row" style="justify-content:space-between">
+      <h2>Gifts</h2>
+      <div class="row"><button class="small" id="giftSocksBtn" type="button">Give socks</button><button class="small alt" id="giftHatBtn" type="button">Give a hat</button></div>
+    </div>
+    <p class="sub">Type a friend's in-game name and send them socks or one of your hats. You can only give what you have, and it leaves your game straight away. Gifts arrive while their Crazy Dads game is open. Both of you need a name set.</p>
+  </section>
+
+  <div id="lb"></div>
+</div>
+
+<div class="overlay" id="overlay" hidden><div class="box" id="box"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="leaderboard.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const W = 1600, H = 1000;
+const QS = new URLSearchParams(location.search);
+const ROUND_MS = QS.has("quick") ? 40000 : 300000;   // 5 minutes
+const END_MS = 9000, FREEZE_MS = 3000, STUN_MS = 1500;
+const TARGET_DADS = 2, TARGET_KIDS = 6;
+const R = { dad: 21, kid: 17 };
+const SPEED = { dad: 205, kid: 212, botdad: 168, botkid: 196 };
+const DASH_T = 0.28, DASH_X = 2.3, DASH_CD = 3.5, BOT_DASH_CD = 4.2;
+// soda and boss
+const SODA_CD = 5;                        // seconds before a kid can grab another soda
+const MACH_REFILL = 20;                   // a soda machine takes this long to refill after someone takes a soda
+const NAP = 30;                           // a dad who drinks a soda naps this long, then wakes up and chases again
+const WAKE_TAP = 0.6;                     // each WAKE UP tap takes this many seconds off the nap
+const SODA_LIFE = 12;                     // a soda goes flat after this many seconds
+const BOSS_R = 58, BOSS_BODY = 38, DIDI_SPEED = 205, INTRO_MS = 3500;
+const SLURP_MS = 10000, FUSE_MS = 2000, BLAST = 150, TNT_EACH = 2, JAR_EVERY = 6;
+// the two bosses: Monica on Didi, and the mega boss Uncle Buck (comes after Monica is beaten 3 times in a row)
+const BK = {
+  monica: { name: "Monica & Didi", short: "Didi", her: "her", r: 58, body: 38, speed: 205, eat: SLURP_MS, blast: BLAST, each: TNT_EACH, item: "🥜", itemName: "peanut butter", bomb: "🧨", bombName: "TNT", catchWord: "SLOBBER!", eatWord: "SLUUURP!" },
+  buck: { name: "Uncle Buck", short: "Uncle Buck", her: "him", r: 100, body: 58, speed: 172, eat: 5000, blast: 240, each: 2, item: "🍔", itemName: "cheeseburger", bomb: "☢️", bombName: "nuke", catchWord: "CHOMP!", eatWord: "NOM NOM NOM!" },
+};
+const bk = () => BK[(boss && boss.kind) || "monica"];
+const BUCK_PRICE = 100;   // socks one player pays to summon Uncle Buck
+let buckUsed = false;     // Uncle Buck can be summoned once per round
+
+// ---------------- save ----------------
+const SAVE_KEY = "crazydads-save";
+let S = { socks: 0, hats: ["none"], hat: "none", side: "kid", map: "backyard", best: 0, zoom: 1 };
+try { const raw = localStorage.getItem(SAVE_KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+
+// ---------------- names (shared with the other GH Games) ----------------
+const NAME_KEY = "ghgames_nick";
+const BAD = ["fuck","shit","bitch","cunt","dick","cock","pussy","asshole","arsehole","wanker","twat","bastard","slut","whore","nigg","fag","retard","penis","vagina","boob","tits","porn","sex","damn","crap","piss","bollock","prick","knob","bugger","bloody","hell","kys","rape","nazi","hitler","dildo","cum"];
+function isRude(v) { const t = (v || "").toLowerCase().replace(/[013457@$!]/g, c => ({"0":"o","1":"i","3":"e","4":"a","5":"s","7":"t","@":"a","$":"s","!":"i"}[c])).replace(/[^a-z]/g, ""); return BAD.some(w => t.includes(w)); }
+function cleanName(v) { return (v || "").replace(/[^A-Za-z0-9 _\-!?.']/g, "").replace(/\s+/g, " ").trim().slice(0, 12); }
+function safeName(v) { const n = cleanName(v); return !n || isRude(n) ? "Player" : n; }
+let NAME = "Player";
+try { NAME = safeName(localStorage.getItem(NAME_KEY)); } catch (e) {}
+const hasName = () => NAME && NAME !== "Player";
+
+// ---------------- hats ----------------
+const HATS = [
+  { id: "none", e: "", n: "No hat", p: 0 },
+  { id: "cap", e: "🧢", n: "Cap", p: 30 },
+  { id: "bow", e: "🎀", n: "Bow", p: 60 },
+  { id: "grad", e: "🎓", n: "Smart hat", p: 90 },
+  { id: "hotdog", e: "🌭", n: "Hot dog", p: 120 },
+  { id: "top", e: "🎩", n: "Top hat", p: 160 },
+  { id: "sun", e: "👒", n: "Sun hat", p: 200 },
+  { id: "duck", e: "🦆", n: "Duck", p: 260 },
+  { id: "helmet", e: "⛑️", n: "Helmet", p: 320 },
+  { id: "army", e: "🪖", n: "Army hat", p: 400 },
+  { id: "octo", e: "🐙", n: "Octopus", p: 600 },
+  { id: "crown", e: "👑", n: "Crown", p: 1000 },
+];
+const HAT = Object.fromEntries(HATS.map(h => [h.id, h]));
+
+// ---------------- maps ----------------
+// solids: r = rectangle, c = circle.  zones: slow / fast / ice.  soda: 6 soda machines.
+const MAPS = {
+  backyard: {
+    name: "Backyard", e: "🏡", desc: "Pool, trampoline, BBQ and the shed",
+    ground: "#5fae4a", stripe: "#56a142",
+    solids: [
+      { r: [0, 0, 360, 200], c: "#c98f5a", e: "🏠" },
+      { r: [1360, 50, 190, 150], c: "#8a6a4a", e: "🛖" },
+      { r: [700, 110, 100, 70], c: "#555", e: "🔥" },
+      { r: [220, 400, 260, 40], c: "#2f7a2a", e: "" },
+      { r: [1150, 300, 40, 220], c: "#2f7a2a", e: "" },
+      { r: [760, 830, 300, 40], c: "#2f7a2a", e: "" },
+      { c: [620, 430, 45], col: "#3d8a36", e: "🌳" },
+      { c: [1000, 250, 50], col: "#3d8a36", e: "🌳" },
+      { c: [170, 860, 50], col: "#3d8a36", e: "🌳" },
+      { c: [1480, 880, 45], col: "#3d8a36", e: "🌳" },
+    ],
+    zones: [
+      { k: "slow", r: [960, 520, 380, 220], c: "#3fb6e8", e: "🛟" },
+      { k: "fast", c: [420, 650, 95], col: "#303a48", e: "🤸" },
+    ],
+    soda: [[520, 90], [1260, 250], [90, 330], [880, 480], [560, 910], [1460, 690]],
+    deco: [["🦆", 1080, 600], ["🌼", 520, 300], ["🌼", 1300, 420], ["⚽", 900, 700], ["🐕", 250, 300]],
+    kidSpawn: [950, 60, 380, 180], dadSpawn: [60, 520, 260, 220],
+  },
+  supermarket: {
+    name: "Supermarket", e: "🛒", desc: "Aisles, trolleys and a slippery freezer",
+    ground: "#e9e4d8", stripe: "#dcd5c6",
+    solids: [
+      ...[0, 1, 2, 3, 4, 5].flatMap(i => {
+        const cols = ["#d9534f", "#f0ad4e", "#5bc0de", "#5cb85c", "#9b59b6", "#e67e22"], em = ["🥫", "🍞", "🥛", "🧃", "🍫", "🧻"];
+        return [{ r: [250 + i * 190, 190, 60, 240], c: cols[i], e: em[i] }, { r: [250 + i * 190, 520, 60, 260], c: cols[i], e: em[i] }];
+      }),
+      { r: [300, 40, 90, 50], c: "#777", e: "🛒" }, { r: [560, 40, 90, 50], c: "#777", e: "🛒" }, { r: [820, 40, 90, 50], c: "#777", e: "🛒" }, { r: [1080, 40, 90, 50], c: "#777", e: "🛒" },
+      { c: [170, 300, 28], col: "#999", e: "🛒" }, { c: [1330, 890, 28], col: "#999", e: "🛒" }, { c: [760, 900, 28], col: "#999", e: "🛒" },
+    ],
+    zones: [
+      { k: "ice", r: [1420, 160, 170, 680], c: "#bfe9ff", e: "❄️" },
+      { k: "ice", c: [150, 620, 75], col: "#a8d8ff", e: "🧼" },
+    ],
+    soda: [[375, 300], [755, 650], [1135, 300], [70, 450], [1330, 130], [565, 890]],
+    deco: [["🍌", 470, 470], ["🍎", 850, 470], ["🧀", 1230, 470], ["🥕", 660, 850]],
+    kidSpawn: [40, 830, 560, 140], dadSpawn: [1180, 30, 200, 120],
+  },
+  playground: {
+    name: "Playground", e: "🛝", desc: "Slides, sandpit, swings and a merry-go-round",
+    ground: "#8fcf62", stripe: "#86c55a",
+    solids: [
+      { r: [600, 620, 230, 26], c: "#b04a3a", e: "" },
+      { r: [1050, 420, 170, 170], c: "#e0a02a", e: "🧗" },
+      { c: [300, 770, 70], col: "#d24d8a", e: "🎠" },
+      { c: [150, 120, 45], col: "#3d8a36", e: "🌳" },
+      { c: [1470, 140, 50], col: "#3d8a36", e: "🌳" },
+      { c: [840, 910, 45], col: "#3d8a36", e: "🌳" },
+      { c: [1360, 900, 24], col: "#6d7b8a", e: "🚰" },
+      { r: [700, 380, 40, 40], c: "#6d4c2b", e: "" },
+    ],
+    zones: [
+      { k: "slow", c: [420, 320, 150], col: "#ecd49a", e: "🏖️" },
+      { k: "fast", r: [880, 190, 320, 70], c: "#ffd23f", e: "🛝" },
+      { k: "fast", r: [1260, 640, 70, 250], c: "#ffd23f", e: "🛝" },
+    ],
+    soda: [[130, 300], [760, 110], [1390, 420], [540, 520], [1010, 780], [110, 940]],
+    deco: [["🪁", 1000, 80], ["🐿️", 560, 820], ["🌻", 1500, 520], ["🎈", 240, 480]],
+    kidSpawn: [1220, 250, 330, 200], dadSpawn: [40, 480, 220, 150],
+  },
+  beach: {
+    name: "Beach", e: "🏖️", desc: "Umbrellas, sandcastles, hot sand and waves",
+    ground: "#f2d59b", stripe: "#ecce90",
+    solids: [
+      { c: [300, 250, 52], col: "#ff5d8f", e: "⛱️" },
+      { c: [700, 450, 52], col: "#3fa9f5", e: "⛱️" },
+      { c: [1100, 220, 52], col: "#ffb000", e: "⛱️" },
+      { c: [1350, 560, 52], col: "#8e5cf0", e: "⛱️" },
+      { c: [500, 650, 52], col: "#29c47f", e: "⛱️" },
+      { c: [900, 690, 36], col: "#d9b36a", e: "🏰" },
+      { c: [200, 520, 36], col: "#d9b36a", e: "🏰" },
+      { c: [1240, 380, 36], col: "#d9b36a", e: "🏰" },
+    ],
+    zones: [
+      { k: "slow", r: [0, 830, 1600, 170], c: "#38a6e0", e: "🌊" },
+      { k: "fast", r: [800, 70, 300, 80], c: "#ff9a4a", e: "🔥" },
+      { k: "fast", r: [60, 700, 260, 70], c: "#ff9a4a", e: "🔥" },
+      { k: "ice", c: [1460, 170, 85], col: "#6c8a7a", e: "🪸" },
+    ],
+    soda: [[160, 380], [540, 110], [900, 330], [1510, 420], [1100, 600], [320, 640]],
+    deco: [["🐚", 620, 300], ["🦀", 1000, 560], ["🐦", 800, 330], ["🏐", 1450, 700], ["🐚", 1150, 780]],
+    kidSpawn: [1150, 40, 250, 140], dadSpawn: [40, 40, 300, 140],
+  },
+};
+// soda machines are solid boxes too; expand everything into simple shapes for collision
+for (const m of Object.values(MAPS)) {
+  for (const [x, y] of m.soda) m.solids.push({ r: [x - 23, y - 23, 46, 46], c: "#e63946", e: "🥤", soda: true });
+  m.S = m.solids.map(s => s.r ? { t: "r", x: s.r[0], y: s.r[1], w: s.r[2], h: s.r[3] } : { t: "c", x: s.c[0], y: s.c[1], r: s.c[2] });
+  m.Z = m.zones.map(z => Object.assign({ k: z.k }, z.r ? { t: "r", x: z.r[0], y: z.r[1], w: z.r[2], h: z.r[3] } : { t: "c", x: z.c[0], y: z.c[1], r: z.c[2] }));
+}
+let MAP = MAPS[S.map] || MAPS.backyard;
+
+const rad = e => e.rad || R[e.team];
+function hitSolid(x, y, r) {
+  if (x < r || y < r || x > W - r || y > H - r) return true;
+  for (const s of MAP.S) {
+    if (s.t === "r") {
+      const cx = Math.max(s.x, Math.min(x, s.x + s.w)), cy = Math.max(s.y, Math.min(y, s.y + s.h));
+      if ((x - cx) ** 2 + (y - cy) ** 2 < r * r) return true;
+    } else if ((x - s.x) ** 2 + (y - s.y) ** 2 < (s.r + r) ** 2) return true;
+  }
+  return false;
+}
+function pushOut(e) {
+  const r = rad(e);
+  for (let pass = 0; pass < 2; pass++) {
+    for (const s of MAP.S) {
+      if (s.t === "r") {
+        const cx = Math.max(s.x, Math.min(e.x, s.x + s.w)), cy = Math.max(s.y, Math.min(e.y, s.y + s.h));
+        const dx = e.x - cx, dy = e.y - cy, d = Math.hypot(dx, dy);
+        if (d < r) {
+          if (d < 0.001) { // centre is inside the box: push out the nearest side
+            const L = e.x - s.x, Rt = s.x + s.w - e.x, T = e.y - s.y, B = s.y + s.h - e.y, m = Math.min(L, Rt, T, B);
+            if (m === L) e.x = s.x - r; else if (m === Rt) e.x = s.x + s.w + r; else if (m === T) e.y = s.y - r; else e.y = s.y + s.h + r;
+          } else { e.x = cx + dx / d * r; e.y = cy + dy / d * r; }
+        }
+      } else {
+        const dx = e.x - s.x, dy = e.y - s.y, d = Math.hypot(dx, dy) || 0.001;
+        if (d < s.r + r) { e.x = s.x + dx / d * (s.r + r); e.y = s.y + dy / d * (s.r + r); }
+      }
+    }
+    e.x = Math.max(r, Math.min(W - r, e.x)); e.y = Math.max(r, Math.min(H - r, e.y));
+  }
+}
+function zoneAt(x, y) {
+  let k = null;
+  for (const z of MAP.Z) {
+    const inside = z.t === "r" ? (x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h) : ((x - z.x) ** 2 + (y - z.y) ** 2 <= z.r * z.r);
+    if (inside) k = z.k;
+  }
+  return k;
+}
+function spawnIn(area, r) {
+  for (let i = 0; i < 80; i++) {
+    const x = area[0] + Math.random() * area[2], y = area[1] + Math.random() * area[3];
+    if (!hitSolid(x, y, r + 4)) return [x, y];
+  }
+  for (let i = 0; i < 400; i++) { const x = Math.random() * W, y = Math.random() * H; if (!hitSolid(x, y, r + 4)) return [x, y]; }
+  return [W / 2, H / 2];
+}
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+// simple grid path finding so Didi and the dads can get round long aisles and hedges
+const CELL = 40, GW = W / CELL, GH = H / CELL;
+let freeCache = {};
+function freeGrid(r) {
+  const key = MAP.name + r;
+  if (freeCache[key]) return freeCache[key];
+  const g = new Uint8Array(GW * GH);
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) g[y * GW + x] = hitSolid(x * CELL + CELL / 2, y * CELL + CELL / 2, r) ? 0 : 1;
+  return (freeCache[key] = g);
+}
+function clearLine(ax, ay, bx, by, r) {
+  const d = Math.hypot(bx - ax, by - ay), n = Math.ceil(d / 20);
+  for (let i = 1; i <= n; i++) { const t = i / n; if (hitSolid(ax + (bx - ax) * t, ay + (by - ay) * t, r)) return false; }
+  return true;
+}
+function pathAngle(e, tx, ty) {
+  const r = rad(e) - 2;
+  if (clearLine(e.x, e.y, tx, ty, r)) return Math.atan2(ty - e.y, tx - e.x);
+  const g = freeGrid(Math.max(8, r - 6));
+  const cell = (x, y) => Math.max(0, Math.min(GH - 1, Math.floor(y / CELL))) * GW + Math.max(0, Math.min(GW - 1, Math.floor(x / CELL)));
+  const start = cell(e.x, e.y), goal = cell(tx, ty);
+  const prev = new Int32Array(GW * GH).fill(-1); prev[goal] = goal;
+  const q = [goal]; let found = false;
+  for (let qi = 0; qi < q.length; qi++) {
+    const c = q[qi]; if (c === start) { found = true; break; }
+    const cx = c % GW, cy = (c / GW) | 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      if (!dx && !dy) continue;
+      const nx = cx + dx, ny = cy + dy; if (nx < 0 || ny < 0 || nx >= GW || ny >= GH) continue;
+      const n = ny * GW + nx; if (prev[n] !== -1) continue;
+      if (!g[n] && n !== start) continue;
+      if (dx && dy && (!g[cy * GW + nx] || !g[ny * GW + cx])) continue;
+      prev[n] = c; q.push(n);
+    }
+  }
+  if (!found) return Math.atan2(ty - e.y, tx - e.x);
+  // walk a few steps along the path and aim at the furthest point we can see
+  let c = prev[start], aim = c;
+  for (let i = 0; i < 6 && c !== goal; i++) { const nx = (c % GW) * CELL + CELL / 2, ny = ((c / GW) | 0) * CELL + CELL / 2; if (clearLine(e.x, e.y, nx, ny, r)) aim = c; else break; c = prev[c]; }
+  return Math.atan2(((aim / GW) | 0) * CELL + CELL / 2 - e.y, (aim % GW) * CELL + CELL / 2 - e.x);
+}
+
+// ---------------- entities ----------------
+const MYID = Math.random().toString(36).slice(2, 10);
+const DAD_FACES = ["🧔", "👨", "👨‍🦲", "🧔", "👴"], KID_FACES = ["🧒", "👦", "👧"];
+const BOT_DADS = ["Bob", "Kev", "Gaz", "Steve", "Phil", "Barry", "Trev", "Dazza"], BOT_KIDS = ["Mia", "Leo", "Zoe", "Max", "Ava", "Sam", "Ollie", "Ruby", "Finn", "Ivy"];
+const DAD_SAY = ["Come here, champ!", "Just ONE hug!", "Who wants a cuddle?", "Group hug!", "I'm not crying!", "Bear hug time!", "Love you, mate!", "Daddy's coming!", "Hug o'clock!", "No soda for me!"];
+const KID_SAY = ["NOOO!", "Dad, stop!", "Too squishy!", "So embarrassing!", "Run!!", "Not the beard!", "Want a soda, Dad?", "Help!"];
+const BOSS_KID_SAY = ["DIDI NO!", "Get the peanut butter!", "She's so fast!", "RUN!!", "Good girl, Didi…", "TNT time!"];
+const HUG_SAY = ["TOO TIGHT!", "SQUEEEEZE!", "BEAR HUG!", "CRUNCH!", "MWAH!", "LOVE YOU SON!", "SQUISH!", "OOF!"];
+const SODA_SAY = ["GLUG GLUG…", "*BURP* zzz", "Ahhh… zzz", "So fizzy… 💤", "Nap time…"];
+const BUCK_SAY = ["I'M SO HUNGRY!", "Is that a burger?", "Come to Uncle Buck!", "Fee-fi-fo-YUM!", "Snack time!", "Group hug… in my TUMMY!"];
+const BUCK_KID_SAY = ["HE'S HUGE!", "Get the cheeseburger!", "NUKE HIM!", "RUN!!", "Don't eat me!", "He's so slow… but so BIG!"];
+const MONICA_SAY = ["Go, Didi, go!", "Faster, Didi!", "Get them, girl!", "Didi, heel! …no?", "Nobody escapes Didi!"];
+function hash(s) { let h = 7; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
+function face(e) { const h = hash(e.id); return e.team === "dad" ? DAD_FACES[h % DAD_FACES.length] : KID_FACES[h % KID_FACES.length]; }
+
+let E = new Map();   // id -> entity
+function mkEnt(id, o) {
+  const e = Object.assign({ id, name: "Player", bot: false, team: "kid", side: "kid", hat: "none", x: W / 2, y: H / 2, vx: 0, vy: 0,
+    rx: W / 2, ry: H / 2, dashT: 0, dashCd: 0, stun: 0, seen: 0, pref: 1, tgt: null, tgtT: 0, wa: Math.random() * 6.28, say: "", sayT: 0, sayNext: 3 + Math.random() * 8,
+    soda: false, sodaCd: 0, down: false, out: false, tnt: 0, pb: false, pbT: 0, actCd: 0, brave: Math.random() < 0.6 }, o);
+  e.rx = e.x; e.ry = e.y;
+  E.set(id, e); return e;
+}
+const me = () => E.get(MYID);
+const freeKids = () => [...E.values()].filter(e => e.team === "kid" && !e.out);
+const upDads = () => [...E.values()].filter(e => e.team === "dad" && !e.down);
+
+// ---------------- game / network state ----------------
+let playing = false;      // in a game (not in the lobby)
+let isHost = true;
+let hostId = MYID;
+let phase = "play", round = 0, winner = "", timeLeft = ROUND_MS, freezeLeft = 0, endLeft = 0;
+let boss = null;          // { x, y, vx, vy, hp, max, mode: "intro"|"chase"|"slurp", left, speed, t, say, sayT }
+let jar = null;           // { x, y, by, drop }
+let tnts = [];            // { x, y, fuse, by }
+let jarTimer = 0;
+let machCd = [0, 0, 0, 0, 0, 0];   // seconds until each soda machine has a soda again
+let lastSt = null;        // last state from the host
+let sb = null, ch = null, online = false, joinT = 0, peers = [];
+let survived = 0, hugs = 0, sodas = 0, lures = 0, booms = 0, roundScored = true, myRound = -1;
+
+function setMsg(t, k) { const m = $("msg"); m.textContent = t; m.className = "msg" + (k ? " " + k : ""); }
+
+// ---- host: rounds and bots ----
+function startRound() {
+  round++;
+  for (const [id, e] of E) if (e.bot) E.delete(id);
+  const humans = [...E.values()];
+  humans.forEach(e => { e.team = e.side; });
+  let dads = humans.filter(e => e.team === "dad").length, kids = humans.length - dads;
+  let bi = Math.floor(Math.random() * 20);
+  while (dads < TARGET_DADS) { addBot("dad", bi++); dads++; }
+  while (kids < TARGET_KIDS) { addBot("kid", bi++); kids++; }
+  for (const e of E.values()) {
+    const [x, y] = spawnIn(e.team === "dad" ? MAP.dadSpawn : MAP.kidSpawn, R[e.team]);
+    Object.assign(e, { x, y, rx: x, ry: y, vx: 0, vy: 0, stun: 0, dashT: 0, dashCd: 0, soda: false, sodaCd: 0, down: false, out: false, tnt: 0, pb: false });
+  }
+  boss = null; jar = null; tnts = [];
+  machCd = MAP.soda.map(() => 0); buckUsed = false;
+  phase = "play"; winner = ""; timeLeft = ROUND_MS; freezeLeft = FREEZE_MS;
+  sendState(true);
+}
+function addBot(team, i) {
+  const list = team === "dad" ? BOT_DADS : BOT_KIDS;
+  const id = "b" + Math.random().toString(36).slice(2, 7);
+  const [x, y] = spawnIn(team === "dad" ? MAP.dadSpawn : MAP.kidSpawn, R[team]);
+  return mkEnt(id, { bot: true, team, side: team, name: list[i % list.length] + " 🤖", x, y });
+}
+function startBoss(kind) {
+  kind = kind || "monica";
+  const K = BK[kind];
+  phase = "boss";
+  // for the mega boss everyone gets back up, even kids Didi slobbered
+  if (kind === "buck") for (const e of E.values()) { if (e.team === "kid") { e.out = false; e.pb = false; e.tnt = 0; } else if (e.bot) { e.down = true; e.napT = 999; e.vx = e.vy = 0; } }
+  // real players who were napping dads wake up as kids so everyone can fight Monica and Didi
+  const wokeDads = [];
+  for (const e of E.values()) if (!e.bot && e.team === "dad") { e.team = "kid"; e.down = false; e.napT = 0; e.out = false; e.stun = 0; wokeDads.push(e.id); }
+  const kids = freeKids();
+  const spots = [[220, 220], [1380, 220], [220, 780], [1380, 780], [800, 500]];
+  let best = spots[0], bd = -1;
+  for (const s of spots) { const d = Math.min(...kids.map(k => Math.hypot(k.x - s[0], k.y - s[1]))); if (d > bd) { bd = d; best = s; } }
+  const [x, y] = spawnIn([best[0] - 120, best[1] - 120, 240, 240], K.body);
+  const hp = kind === "buck" ? kids.length * 3 + 4 : kids.length * 2 + 2;
+  boss = { kind, x, y, rx: x, ry: y, vx: 0, vy: 0, hp, max: hp, mode: "intro", left: INTRO_MS, speed: K.speed, t: 0, rad: K.body, team: "boss", pref: 1, say: kind === "buck" ? "I'M SO HUNGRY!" : "Didi, GET THEM!", sayT: 3, sayNext: 8 };
+  jar = null; tnts = []; jarTimer = 2;
+  for (const k of kids) { k.soda = false; k.tnt = 0; }
+  ev({ t: "boss", dads: wokeDads, kind, by: startBoss.by || null }); startBoss.by = null;
+  sendState(true);
+}
+function hostTick(dt) {
+  if (phase === "play" || phase === "boss") {
+    if (phase === "play") { timeLeft -= dt * 1000; freezeLeft = Math.max(0, freezeLeft - dt * 1000); }
+    for (const e of E.values()) if (e.bot) botThink(e, dt);
+    for (const e of E.values()) if (e.bot) move(e, dt, e.ix, e.iy, e.wantDash);
+    for (const e of E.values()) if (e.bot && e.wantAct) doAct(e, e.wantAct);
+    for (const e of E.values()) if (!e.bot && e.id !== MYID) e.stun = Math.max(0, e.stun - dt);
+    for (const e of E.values()) {
+      e.sodaCd = Math.max(0, e.sodaCd - dt);
+      if (e.soda) { e.sodaT = (e.sodaT || SODA_LIFE) - dt; if (e.sodaT <= 0) { e.soda = false; e.sodaCd = 3; if (e.id === MYID) setMsg("😖 Your soda went flat! Find a machine that is full.", "bad"); } }
+    }
+    for (let i = 0; i < machCd.length; i++) machCd[i] = Math.max(0, machCd[i] - dt);
+    if (phase === "play") {
+      for (const d of E.values()) if (d.down) {
+        d.napT = (d.napT || NAP) - dt;
+        if (d.napT <= 0) { d.down = false; d.napT = 0; d.stun = 0.6; ev({ t: "wake", d: d.id, x: d.x, y: d.y }); }
+      }
+      playRules();
+    }
+    else bossRules(dt);
+  } else {
+    endLeft -= dt * 1000;
+    if (endLeft <= 0) startRound();
+  }
+}
+function playRules() {
+  // grab a soda from a machine
+  for (const k of E.values()) {
+    if (k.team !== "kid" || k.soda || k.sodaCd > 0) continue;
+    MAP.soda.forEach(([x, y], i) => {
+      if (k.soda || machCd[i] > 0 || Math.hypot(k.x - x, k.y - y) >= 23 + R.kid + 14) return;
+      k.soda = true; k.sodaT = SODA_LIFE; machCd[i] = MACH_REFILL;
+      if (k.id === MYID) setMsg(`🥤 You grabbed a free soda! Touch a dad before it goes flat in ${SODA_LIFE} seconds.`, "good");
+    });
+  }
+  // dads touching kids: soda knocks the dad out, otherwise it's a hug
+  if (freezeLeft <= 0) {
+    for (const d of E.values()) {
+      if (d.team !== "dad" || d.down || d.stun > 0) continue;
+      for (const k of E.values()) {
+        if (k.team !== "kid" || d.down) continue;
+        const rr = R.dad + R.kid + 2;
+        if ((d.x - k.x) ** 2 + (d.y - k.y) ** 2 >= rr * rr) continue;
+        if (k.soda) { d.down = true; d.napT = NAP; d.vx = d.vy = 0; k.soda = false; k.sodaCd = SODA_CD; ev({ t: "soda", d: d.id, k: k.id, x: d.x, y: d.y, m: SODA_SAY[Math.floor(Math.random() * SODA_SAY.length)] }); }
+        else { k.team = "dad"; k.stun = STUN_MS / 1000; k.vx = k.vy = 0; ev({ t: "hug", d: d.id, k: k.id, x: (d.x + k.x) / 2, y: (d.y + k.y) / 2, m: HUG_SAY[Math.floor(Math.random() * HUG_SAY.length)] }); }
+      }
+    }
+  }
+  const kids = freeKids().length;
+  if (kids === 0) endRound("dads");
+  else if (upDads().length === 0) startBoss();
+  else if (timeLeft <= 0) endRound("kids");
+}
+function bossRules(dt) {
+  const b = boss, K = bk(); b.t += dt;
+  b.sayT = Math.max(0, b.sayT - dt); b.sayNext -= dt;
+  if (b.sayNext <= 0) { const L = b.kind === "buck" ? BUCK_SAY : MONICA_SAY; b.say = L[Math.floor(Math.random() * L.length)]; b.sayT = 2.4; b.sayNext = 6 + Math.random() * 8; }
+  const kids = freeKids();
+  // peanut butter jars
+  if (!jar && b.mode !== "slurp") {
+    jarTimer -= dt;
+    if (jarTimer <= 0) {
+      let p = null;
+      for (let i = 0; i < 60; i++) { const q = spawnIn([80, 80, W - 160, H - 160], 24); if (Math.hypot(q[0] - b.x, q[1] - b.y) > 450) { p = q; break; } }
+      if (!p) p = spawnIn([80, 80, W - 160, H - 160], 24);
+      jar = { x: p[0], y: p[1], by: null, drop: null };
+      ev({ t: "jar" });
+    }
+  }
+  if (jar && !jar.by && !jar.drop && b.mode !== "slurp") {
+    for (const k of kids) if (Math.hypot(k.x - jar.x, k.y - jar.y) < R.kid + 22) { jar.by = k.id; k.pb = true; k.pbT = 0; if (k.id === MYID) setMsg(`${K.item} You've got the ${K.itemName}! ${K.short} can smell it. Press DROP (E) to lure ${K.her}.`, "good"); break; }
+  }
+  if (jar && jar.by) { const c = E.get(jar.by); if (!c || c.out) { jar = null; jarTimer = 3; } else { jar.x = c.x; jar.y = c.y; c.pbT += dt; } }
+  // Didi
+  if (b.mode === "intro") { b.left -= dt * 1000; if (b.left <= 0) b.mode = "chase"; }
+  else if (b.mode === "slurp") {
+    b.left -= dt * 1000; b.vx = b.vy = 0;
+    if (b.left <= 0) { b.mode = "chase"; jar = null; jarTimer = JAR_EVERY; for (const k of E.values()) k.tnt = 0; ev({ t: "slurped" }); }
+  } else {
+    let tx, ty, tgt = null;
+    if (jar && !jar.by) { tx = jar.x; ty = jar.y; }
+    else if (jar && jar.by) { tgt = E.get(jar.by); }
+    else { let bd = 1e12; for (const k of kids) { const d = (k.x - b.x) ** 2 + (k.y - b.y) ** 2; if (d < bd) { bd = d; tgt = k; } } }
+    if (tgt) { tx = tgt.x + tgt.vx * 0.3; ty = tgt.y + tgt.vy * 0.3; }
+    if (tx !== undefined) {
+      b.pathT = (b.pathT || 0) - dt;
+      if (b.pathT <= 0) { b.pathA = pathAngle(b, tx, ty); b.pathT = 0.25; }
+      const a = steer(b, b.pathA, 60);
+      b.speed = K.speed + Math.floor(b.t / 20) * 4;
+      const k2 = Math.min(1, dt * 6);
+      b.vx += (Math.cos(a) * b.speed - b.vx) * k2; b.vy += (Math.sin(a) * b.speed - b.vy) * k2;
+      const z = zoneAt(b.x, b.y); const f = z === "slow" ? 0.6 : z === "fast" ? 1.3 : 1;
+      b.x += b.vx * dt * f; b.y += b.vy * dt * f; pushOut(b);
+    }
+    if (jar && !jar.by && Math.hypot(jar.x - b.x, jar.y - b.y) < K.r + 20) {
+      b.mode = "slurp"; b.left = K.eat;
+      for (const k of freeKids()) k.tnt = K.each;
+      ev({ t: "slurp", by: jar.drop });
+    }
+    for (const k of kids) if (b.mode === "chase" && Math.hypot(k.x - b.x, k.y - b.y) < K.r + R.kid - 8) {
+      k.out = true; k.vx = k.vy = 0; k.tnt = 0;
+      if (k.pb) { k.pb = false; jar = null; jarTimer = 3; }
+      ev({ t: "slob", k: k.id, x: k.x, y: k.y });
+    }
+  }
+  b.rx = b.x; b.ry = b.y;
+  // TNT
+  for (let i = tnts.length - 1; i >= 0; i--) {
+    const t = tnts[i]; t.fuse -= dt * 1000;
+    if (t.fuse <= 0) {
+      tnts.splice(i, 1);
+      const hit = Math.hypot(t.x - b.x, t.y - b.y) < K.blast + K.r * 0.5;
+      if (hit) b.hp--;
+      ev({ t: "boom", x: t.x, y: t.y, hit: hit ? 1 : 0, by: t.by });
+      if (b.hp <= 0) {
+        if (b.kind === "buck") { endRound("kidsbuck"); return; }
+        endRound("kidsboss"); return;
+      }
+    }
+  }
+  if (freeKids().length === 0) { if (b.kind === "buck") endRound("buck"); else endRound("monica"); }
+}
+// actions: drop the peanut butter, place TNT
+function doAct(e, a) {
+  if (!e) return;
+  if (a === "summon") {
+    if (!buckUsed && (phase === "play" || (phase === "boss" && boss && boss.kind !== "buck"))) { buckUsed = true; startBoss.by = e.id; startBoss("buck"); }
+    return;
+  }
+  if (a === "wake") { if (e.down && phase === "play" && e.actCd <= 0) { e.napT = Math.max(0.05, (e.napT || NAP) - WAKE_TAP); e.actCd = 0.08; } return; }
+  if (e.team !== "kid" || e.out || phase !== "boss") return;
+  if (a === "drop" && e.pb && jar && jar.by === e.id) { e.pb = false; jar.by = null; jar.drop = e.id; jar.x = e.x; jar.y = e.y; ev({ t: "drop", k: e.id }); }
+  else if (a === "tnt" && e.tnt > 0 && boss && boss.mode === "slurp" && e.actCd <= 0) { e.tnt--; e.actCd = 0.35; tnts.push({ x: e.x, y: e.y, fuse: FUSE_MS, by: e.id }); }
+}
+function endRound(w) {
+  phase = "end"; winner = w; endLeft = END_MS; timeLeft = Math.max(0, timeLeft);
+  sendState(true);
+  finishMyRound();
+}
+function sendState() {
+  if (!online || !ch) return;
+  const e = [...E.values()].map(v => [v.id, v.team === "dad" ? 1 : 0, Math.round(v.x), Math.round(v.y), Math.round(v.vx), Math.round(v.vy), v.bot ? 1 : 0, v.name, v.hat,
+    v.stun > 0 ? 1 : 0, v.dashT > 0 ? 1 : 0, v.sayT > 0 ? v.say : "", (v.soda ? 1 : 0) | (v.down ? 2 : 0) | (v.out ? 4 : 0) | (v.pb ? 8 : 0), v.tnt, v.down ? Math.ceil(v.napT || 0) : 0]);
+  const bb = boss ? [Math.round(boss.x), Math.round(boss.y), Math.round(boss.vx), Math.round(boss.vy), boss.hp, boss.max, boss.mode, Math.round(boss.left), boss.sayT > 0 ? boss.say : "", boss.kind] : null;
+  const jj = jar ? [Math.round(jar.x), Math.round(jar.y), jar.by] : null;
+  const tt = tnts.map(t => [Math.round(t.x), Math.round(t.y), Math.round(t.fuse)]);
+  bcast("st", { u: buckUsed ? 1 : 0, m: machCd.map(v => Math.ceil(v)), h: MYID, p: phase, t: Math.round(timeLeft), f: Math.round(freezeLeft), n: Math.round(endLeft), r: round, w: winner, e, b: bb, j: jj, x: tt });
+}
+
+// ---- bots ----
+function steer(e, ang, look) {
+  look = look || 46;
+  const r = rad(e) - 2, offs = [0, 0.45, 0.9, 1.35, 1.8, 2.3, 2.8];
+  for (const o of offs) for (const sgn of [e.pref, -e.pref]) {
+    const a = ang + o * sgn;
+    if (!hitSolid(e.x + Math.cos(a) * look, e.y + Math.sin(a) * look, r) && !hitSolid(e.x + Math.cos(a) * look * 0.5, e.y + Math.sin(a) * look * 0.5, r)) {
+      if (o > 0) e.pref = sgn;
+      return a;
+    }
+    if (o === 0) break;
+  }
+  return ang + Math.PI;
+}
+// pick the best of 16 directions: far from threats, towards the goal, away from walls, corners and other kids
+function bestDir(e, threats, goal, gw) {
+  const r = rad(e), prev = Math.atan2(e.iy || 0, e.ix || 1);
+  let best = -1e9, ba = prev;
+  for (let i = 0; i < 16; i++) {
+    const a = i / 16 * Math.PI * 2, c = Math.cos(a), sn = Math.sin(a);
+    if (hitSolid(e.x + c * 40, e.y + sn * 40, r - 2)) continue;
+    let px = e.x + c * 110, py = e.y + sn * 110, sc = 0;
+    if (hitSolid(px, py, r - 2)) { px = e.x + c * 50; py = e.y + sn * 50; sc -= 120; }
+    let md = 1e9;
+    for (const d of threats) md = Math.min(md, Math.hypot(px - (d.x + d.vx * 0.4), py - (d.y + d.vy * 0.4)) - (d.big || 0));
+    if (threats.length) sc += Math.min(md, 500);
+    if (goal) sc -= Math.hypot(px - goal.x, py - goal.y) * gw;
+    for (const o of E.values()) if (o !== e && o.team === "kid" && !o.out) { const od = Math.hypot(px - o.x, py - o.y); if (od < 140) sc -= (140 - od) * 0.8; }
+    const edge = Math.min(px, py, W - px, H - py);
+    if (edge < 160) sc -= (160 - edge) * 1.3;
+    const ex = Math.min(px, W - px), ey = Math.min(py, H - py);
+    if (ex < 300 && ey < 300) sc -= (300 - ex) * (300 - ey) / 200;
+    let da = Math.abs(a - prev); if (da > Math.PI) da = 2 * Math.PI - da;
+    sc -= da * 12;
+    if (sc > best) { best = sc; ba = a; }
+  }
+  return ba;
+}
+function botSay(e, list) { e.say = list[Math.floor(Math.random() * list.length)]; e.sayT = 2.4; e.sayNext = 7 + Math.random() * 12; }
+function botThink(e, dt) {
+  e.wantDash = false; e.wantAct = null; e.actCd = Math.max(0, e.actCd - dt);
+  e.ix = e.iy = 0;
+  if (e.down || e.out) return;
+  e.sayNext -= dt;
+  if (e.sayNext <= 0) botSay(e, e.team === "dad" ? DAD_SAY : phase === "boss" ? (boss && boss.kind === "buck" ? BUCK_KID_SAY : BOSS_KID_SAY) : KID_SAY);
+  const go = a => { e.ix = Math.cos(a); e.iy = Math.sin(a); };
+  if (e.team === "dad") {
+    // keep away from kids holding soda
+    let sk = null, sd = 1e9;
+    for (const k of E.values()) if (k.team === "kid" && k.soda) { const d = dist(e, k); if (d < sd) { sd = d; sk = k; } }
+    if (sk && sd < 220) { go(steer(e, Math.atan2(e.y - sk.y, e.x - sk.x))); if (sd < 80 && e.dashCd <= 0) e.wantDash = true; return; }
+    e.tgtT -= dt;
+    const bad = t => !t || t.team !== "kid" || t.soda || t.out;
+    if (e.tgtT <= 0 || bad(E.get(e.tgt))) {
+      let best = null, bd = 1e12;
+      for (const k of E.values()) if (!bad(k)) { const d = (k.x - e.x) ** 2 + (k.y - e.y) ** 2 + Math.random() * 20000; if (d < bd) { bd = d; best = k; } }
+      e.tgt = best ? best.id : null; e.tgtT = 0.6 + Math.random() * 0.5;
+    }
+    const t = E.get(e.tgt);
+    if (!t) { e.wa += (Math.random() - 0.5) * dt * 3; go(steer(e, e.wa)); return; }
+    const d = dist(e, t);
+    e.pathT = (e.pathT || 0) - dt;
+    if (e.pathT <= 0) { e.pathA = pathAngle(e, t.x + t.vx * 0.35, t.y + t.vy * 0.35); e.pathT = 0.3; }
+    go(steer(e, e.pathA));
+    if (d < 90 && e.dashCd <= 0 && Math.random() < 0.05) e.wantDash = true;
+    return;
+  }
+  // ----- kid bots -----
+  if (phase === "boss") {
+    const b = boss; if (!b) return;
+    const BR = bk().r;
+    const threat = b.mode === "slurp" ? [] : [{ x: b.x, y: b.y, vx: b.vx, vy: b.vy, big: BR }];
+    const db = dist(e, b);
+    if (e.pb) {
+      if (e.pbT > 2.2 || db < 230) { e.wantAct = "drop"; }
+      go(bestDir(e, threat, null, 0));
+    } else if (b.mode === "slurp" && e.tnt > 0) {
+      if (db < BR + 70) { e.wantAct = "tnt"; go(Math.atan2(e.y - b.y, e.x - b.x) + (Math.random() - 0.5)); }
+      else go(steer(e, pathAngle(e, b.x, b.y)));
+    } else if (b.mode === "slurp") {
+      go(bestDir(e, [{ x: b.x, y: b.y, vx: 0, vy: 0, big: 60 }], null, 0));   // run clear of the blasts
+    } else if (jar && !jar.by && !jar.drop && dist(jar, b) > 300) {
+      // the kid nearest the jar goes for it
+      let nearest = null, nd = 1e9;
+      for (const k of freeKids()) { const d = dist(k, jar); if (d < nd) { nd = d; nearest = k; } }
+      if (nearest === e) go(bestDir(e, threat, jar, 1.2)); else go(bestDir(e, threat, null, 0));
+    } else {
+      if (db > 520) { e.wa += (Math.random() - 0.5) * dt * 3; go(steer(e, e.wa)); }
+      else go(bestDir(e, threat, null, 0));
+    }
+    if (db < BR + 70 && b.mode === "chase" && e.dashCd <= 0) e.wantDash = true;
+    return;
+  }
+  const dads = upDads();
+  const threats = dads.filter(d => dist(d, e) < 480);
+  let near = 1e9; for (const d of dads) near = Math.min(near, dist(d, e));
+  if (e.soda && e.brave) {
+    // go and give a dad a soda
+    let t = null, td = 1e9; for (const d of dads) { const dd = dist(d, e); if (dd < td) { td = dd; t = d; } }
+    if (t && td < 350) { go(steer(e, Math.atan2(t.y + t.vy * 0.3 - e.y, t.x + t.vx * 0.3 - e.x))); if (td < 100 && e.dashCd <= 0) e.wantDash = true; return; }
+  }
+  if (!e.soda && e.sodaCd <= 0) {
+    let m = null, md = 1e9; MAP.soda.forEach(([x, y], i) => { if (machCd[i] > 0) return; const d = Math.hypot(x - e.x, y - e.y); if (d < md) { md = d; m = { x, y }; } });
+    if (m && (near > 260 || md < 140)) { go(threats.length ? bestDir(e, threats, m, 1.4) : steer(e, Math.atan2(m.y - e.y, m.x - e.x))); if (near < 110 && e.dashCd <= 0) e.wantDash = true; return; }
+  }
+  if (!threats.length) {
+    e.wa += (Math.random() - 0.5) * dt * 3;
+    const fx = Math.cos(e.wa) * 0.4 + (W / 2 - e.x) / W * 0.3, fy = Math.sin(e.wa) * 0.4 + (H / 2 - e.y) / H * 0.3;
+    if (Math.random() < dt * 0.4) return;
+    go(steer(e, Math.atan2(fy, fx)));
+  } else go(bestDir(e, threats, null, 0));
+  if (near < 110 && e.dashCd <= 0) e.wantDash = true;
+}
+
+// ---- movement (used for me and for bots) ----
+function move(e, dt, ix, iy, dash) {
+  e.dashCd = Math.max(0, e.dashCd - dt); e.dashT = Math.max(0, e.dashT - dt); e.sayT = Math.max(0, e.sayT - dt); e.actCd = Math.max(0, e.actCd - dt);
+  if (e.stun > 0) { e.stun -= dt; ix = iy = 0; }
+  const frozen = (phase !== "play" && phase !== "boss") || (e.team === "dad" && freezeLeft > 0 && phase === "play") || e.down || e.out;
+  if (frozen) { ix = iy = 0; }
+  if (dash && e.dashCd <= 0 && !frozen && e.stun <= 0 && (ix || iy)) { e.dashT = DASH_T; e.dashCd = e.bot ? BOT_DASH_CD : DASH_CD; }
+  const len = Math.hypot(ix, iy); if (len > 1) { ix /= len; iy /= len; }
+  const z = zoneAt(e.x, e.y);
+  let sp = SPEED[(e.bot ? "bot" : "") + e.team];
+  if (z === "slow") sp *= 0.55; else if (z === "fast") sp *= 1.5;
+  if (e.pb) sp *= 0.92;
+  if (e.dashT > 0) sp *= e.bot && e.team === "dad" ? 1.8 : DASH_X;
+  const acc = z === "ice" ? 1.6 : 14;
+  const k = Math.min(1, dt * acc);
+  e.vx += (ix * sp - e.vx) * k; e.vy += (iy * sp - e.vy) * k;
+  if (frozen && z !== "ice") { e.vx = e.vy = 0; }
+  if (z === "ice") { const v = Math.hypot(e.vx, e.vy), mx = sp * 1.15; if (v > mx) { e.vx *= mx / v; e.vy *= mx / v; } }
+  e.x += e.vx * dt; e.y += e.vy * dt;
+  const ox = e.x, oy = e.y;
+  pushOut(e);
+  if (z === "ice") { if (ox !== e.x) e.vx *= -0.4; if (oy !== e.y) e.vy *= -0.4; }
+  e.rx = e.x; e.ry = e.y;
+}
+
+// ---------------- events (host makes them, everyone shows them) ----------------
+const FX = [];
+function ev(p) { onEv(p); bcast("ev", p); }
+function onEv(p) {
+  const M = me(), name = id => { const x = E.get(id); return x ? x.name : "someone"; };
+  if (p.t === "hug") {
+    FX.push({ x: p.x, y: p.y, t: 0, m: p.m, e: "🫂", col: "#ff6fa3" });
+    for (let i = 0; i < 10; i++) FX.push({ x: p.x, y: p.y, t: 0, part: "❤️", vx: (Math.random() - 0.5) * 220, vy: -60 - Math.random() * 180 });
+    const k = E.get(p.k); if (k) { k.team = "dad"; k.stun = STUN_MS / 1000; k.soda = false; }
+    if (p.d === MYID) { hugs++; setMsg(`🤗 ${p.m} You hugged ${name(p.k)}! +50 points.`, "good"); shake = 0.25; }
+    if (p.k === MYID) { setMsg(`😵 ${name(p.d)} hugged you too hard! Now YOU are a dad. Go and hug the others! (Watch out for kids with soda 🥤)`, "bad"); shake = 0.5; }
+  } else if (p.t === "soda") {
+    FX.push({ x: p.x, y: p.y, t: 0, m: p.m, e: "🥤", col: "#7fd4ff" });
+    for (let i = 0; i < 8; i++) FX.push({ x: p.x, y: p.y, t: 0, part: "🫧", vx: (Math.random() - 0.5) * 160, vy: -80 - Math.random() * 160 });
+    const d = E.get(p.d); if (d) { d.down = true; }
+    const k = E.get(p.k); if (k) k.soda = false;
+    if (p.k === MYID) { sodas++; setMsg(`🥤 ${name(p.d)} drank your soda and passed out! +40 points. Grab another one!`, "good"); }
+    if (p.d === MYID) { setMsg(`💤 You drank ${name(p.k)}'s soda and passed out! You wake up in ${NAP} seconds. Mash WAKE UP (or the E key) to wake up faster!`, "bad"); shake = 0.4; }
+    if (d) d.napT = NAP;
+  } else if (p.t === "wake") {
+    const d = E.get(p.d); if (d) { d.down = false; d.napT = 0; }
+    FX.push({ x: p.x, y: p.y, t: 0, m: "I'M AWAKE!", e: "⏰", col: "#7fd4ff" });
+    if (p.d === MYID) setMsg("⏰ You're awake! Go and hug some kids. Watch out for soda 🥤!", "good");
+  } else if (p.t === "monicaDown") {
+    FX.push({ x: boss ? boss.x : W / 2, y: boss ? boss.y : H / 2, t: 0, boom: true, hit: 1 });
+  } else if (p.t === "boss" && p.kind === "buck") {
+    bossBanner = 4.5; shake = 1; buckUsed = true;
+    const who = p.by ? (E.get(p.by) || {}).name || "Someone" : "Someone";
+    if (p.by === MYID) { S.socks = Math.max(0, S.socks - BUCK_PRICE); save(); renderHUD(); renderShop(); }
+    for (const id of p.dads || []) { const x = E.get(id); if (x) { x.team = "kid"; x.down = false; x.napT = 0; } }
+    for (const e of E.values()) if (e.team === "kid") e.out = false;
+    setMsg((p.by === MYID ? `🍔 You paid ${BUCK_PRICE} socks and called UNCLE BUCK!` : `🍔 ${who} paid ${BUCK_PRICE} socks and called UNCLE BUCK!`) + " MEGA BOSS! He wants to EAT you, and all the dads fell asleep in fright. Everyone is back up. Grab a cheeseburger 🍔, drop it to distract him for 5 seconds, then place your 2 nukes ☢️ around him!", "bad");
+  } else if (p.t === "boss") {
+    bossBanner = 3.5; shake = 0.6;
+    const M2 = me();
+    const wasDad = !!(p.dads && p.dads.includes(MYID));
+    for (const id of p.dads || []) { const x = E.get(id); if (x) { x.team = "kid"; x.down = false; x.napT = 0; } }
+    if (wasDad || (M2 && M2.team === "kid")) setMsg(wasDad ? "🐕 Every dad is asleep, and Monica has arrived on Didi! You've woken up as a KID. Help the others beat her: grab the peanut butter 🥜!" : "🐕 ALL THE DADS ARE DOWN! Monica is here riding Didi, her massive greyhound. Grab the peanut butter 🥜 and lure Didi!", "bad");
+    else setMsg(M2 && M2.team === "kid" ? "🐕 ALL THE DADS ARE DOWN! Monica is here riding Didi, her massive greyhound. Grab the peanut butter 🥜 and lure Didi!" : "🐕 All the dads are down! Monica and Didi have arrived. Watch the kids try to beat them!", "bad");
+  } else if (p.t === "jar") {
+    const K = bk();
+    if (M && M.team === "kid" && !M.out) setMsg(`${K.item} A ${K.itemName} appeared! Grab it, then DROP it to lure ${K.short}.`, "");
+  } else if (p.t === "drop") {
+    if (p.k === MYID) { const K = bk(); setMsg(`${K.item} ${K.itemName[0].toUpperCase() + K.itemName.slice(1)} dropped! Get away, ${K.short}'s coming for it…`, "good"); }
+  } else if (p.t === "slurp") {
+    const K = bk();
+    FX.push({ x: boss ? boss.x : W / 2, y: boss ? boss.y - 40 : H / 2, t: 0, m: K.eatWord, e: K.item, col: "#ffc93c" });
+    if (p.by === MYID) lures++;
+    if (M && M.team === "kid" && !M.out) setMsg(`${K.bomb} ${K.short} is eating for ${K.eat / 1000} seconds! You got ${K.each} ${K.bombName}${K.each > 1 && K.bombName === "nuke" ? "s" : ""}. Run up to ${K.her} and press ${K.bombName.toUpperCase()} (E key) to place it. It blows up 2 seconds later!${p.by === MYID ? " +50 for the lure." : ""}`, "good");
+  } else if (p.t === "slurped") {
+    if (M && M.team === "kid" && !M.out) { const K = bk(); setMsg(`${K.short} finished the ${K.itemName} and is hungry again! Wait for the next ${K.itemName} ${K.item}.`, ""); }
+  } else if (p.t === "slob") {
+    const buck = boss && boss.kind === "buck";
+    FX.push({ x: p.x, y: p.y, t: 0, m: buck ? "CHOMP!" : "SLOBBER!", e: buck ? "😋" : "💦", col: "#7fd4ff" });
+    const k = E.get(p.k); if (k) { k.out = true; k.pb = false; k.tnt = 0; }
+    if (p.k === MYID) { setMsg(buck ? "😋 CHOMP! Uncle Buck ate you! You're out. Cheer on the other kids!" : "💦 Didi caught you and slobbered all over you! You're out. Cheer on the other kids!", "bad"); shake = 0.5; }
+  } else if (p.t === "boom") {
+    FX.push({ x: p.x, y: p.y, t: 0, boom: true, hit: p.hit });
+    shake = Math.max(shake, 0.35);
+    if (p.hit && p.by === MYID) { booms++; const K = bk(); setMsg(`💥 BOOM! Your ${K.bombName} hit ${K.short}! +30 points.`, "good"); }
+  }
+}
+let bossBanner = 0;
+function iWon() {
+  const M = me(); if (!M) return false;
+  if (winner === "kids" || winner === "kidsboss" || winner === "kidsbuck") return M.team === "kid" && !M.out;
+  if (winner === "dads") return M.team === "dad";
+  return false;
+}
+function roundPoints() {
+  const M = me(), end = phase === "end", free = M && M.team === "kid" && !M.out;
+  return Math.floor(survived) + hugs * 50 + sodas * 40 + lures * 50 + booms * 30 + (end && winner === "kids" && free ? 200 : 0) + (end && winner === "kidsboss" && free ? 300 : 0) + (end && winner === "kidsbuck" && free ? 600 : 0);
+}
+function resetMyRound() { survived = 0; hugs = 0; sodas = 0; lures = 0; booms = 0; roundScored = false; }
+const WIN_TXT = { kids: "The kids escaped!", kidsboss: "The kids beat Monica and Didi!", dads: "The dads hugged everyone!", monica: "Monica and Didi slobbered everyone!", kidsbuck: "The kids nuked UNCLE BUCK!", buck: "Uncle Buck ate everyone!" };
+function finishMyRound() {
+  if (roundScored) return; roundScored = true;
+  const p = roundPoints(), socks = Math.floor(p / 5);
+  S.socks += socks; if (p > S.best) S.best = p; save(); renderHUD(); renderShop();
+  if (iWon() && window.PhatCoin) PhatCoin.earn("win", 5, "winning the round");
+  setMsg(`${WIN_TXT[winner] || "Round over!"} You scored ${p} points and earned ${socks} 🧦. Next round starts soon.`, iWon() ? "good" : "");
+  if (window.Leaderboard && hasName() && p > 0) Leaderboard.submit(p);
+}
+
+// ---------------- networking (Supabase Realtime) ----------------
+const SB_URL = "https://bpqaeqswtgtbqrczjcrx.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwcWFlcXN3dGd0YnFyY3pqY3J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzUzOTIsImV4cCI6MjA5NjkxMTM5Mn0.hsEZJ_C4NvySPMb59G9EPPfdJRSNBODbnuo9ij_zxrI";
+function bcast(ev, payload) { if (online && ch) try { ch.send({ type: "broadcast", event: ev, payload }); } catch (e) {} }
+function meta() { return { i: MYID, n: NAME, s: S.side, h: S.hat, t: joinT }; }
+function connect() {
+  disconnect();
+  if (!window.supabase || !navigator.onLine) return;
+  try {
+    if (!sb) sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 40 } } });
+    ch = sb.channel("crazydads-" + S.map, { config: { broadcast: { self: false }, presence: { key: MYID } } });
+    ch.on("broadcast", { event: "me" }, m => onMe(m.payload));
+    ch.on("broadcast", { event: "st" }, m => onSt(m.payload));
+    ch.on("broadcast", { event: "ev" }, m => { if (!isHost) onEv(m.payload); });
+    ch.on("broadcast", { event: "act" }, m => { if (isHost) doAct(E.get(m.payload.i), m.payload.a); });
+    ch.on("presence", { event: "sync" }, onSync);
+    ch.subscribe(async status => {
+      if (status === "SUBSCRIBED") { online = true; try { await ch.track(meta()); } catch (e) {} updateOnlineMsg(); }
+      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") { online = false; becomeHost(); }
+    });
+  } catch (e) { online = false; }
+}
+function disconnect() { if (ch) { try { ch.untrack(); sb.removeChannel(ch); } catch (e) {} } ch = null; online = false; peers = []; }
+function onSync() {
+  const st = ch.presenceState();
+  peers = Object.values(st).map(a => a[0]).filter(Boolean);
+  if (!peers.find(p => p.i === MYID)) peers.push(meta());
+  peers.sort((a, b) => (a.t - b.t) || (a.i < b.i ? -1 : 1));
+  const newHost = peers[0].i;
+  const was = isHost;
+  hostId = newHost;
+  if (newHost === MYID) { if (!was) becomeHost(); }
+  else if (was) { isHost = false; for (const [id] of E) if (id !== MYID) E.delete(id); lastSt = null; boss = null; jar = null; tnts = []; }
+  if (isHost) syncHumans();
+  updateOnlineMsg();
+}
+function syncHumans() {
+  const ids = new Set(peers.map(p => p.i));
+  for (const p of peers) {
+    let e = E.get(p.i);
+    if (!e) {
+      const team = phase === "boss" ? "kid" : p.s;
+      const [x, y] = spawnIn(team === "dad" ? MAP.dadSpawn : MAP.kidSpawn, R[team]);
+      e = mkEnt(p.i, { team, side: p.s, x, y });
+      const bot = [...E.values()].find(b => b.bot && b.team === team && !b.down && !b.out); if (bot) E.delete(bot.id);
+    }
+    e.name = safeName(p.n); e.side = p.s; e.hat = HAT[p.h] ? p.h : "none";
+  }
+  for (const [id, e] of E) if (!e.bot && !ids.has(id) && id !== MYID) {
+    E.delete(id);
+    if (phase === "play") { const nb = addBot(e.team, Math.floor(Math.random() * 9)); nb.x = e.x; nb.y = e.y; nb.down = e.down; }
+    if (jar && jar.by === id) { jar = null; jarTimer = 3; }
+  }
+  sendState(true);
+}
+function becomeHost() {
+  if (isHost && round > 0) return;
+  isHost = true; hostId = MYID;
+  if (lastSt && lastSt.r > 0) {
+    buckUsed = !!lastSt.u;
+    phase = lastSt.p; round = lastSt.r; winner = lastSt.w; timeLeft = lastSt.t; freezeLeft = lastSt.f; endLeft = lastSt.n || END_MS;
+    for (const e of E.values()) if (e.bot) { e.x = e.rx; e.y = e.ry; }
+    if (boss) { boss.x = boss.rx; boss.y = boss.ry; boss.t = boss.t || 0; boss.rad = bk().body; boss.team = "boss"; boss.pref = 1; boss.sayNext = 5; }
+    if (phase === "boss" && !boss) startBoss(lastSt.b && lastSt.b[9]);
+    tnts = tnts.map(t => ({ x: t.x, y: t.y, fuse: t.fuse, by: null }));
+    jarTimer = 3;
+  } else startRound();
+}
+function onMe(p) {
+  let e = E.get(p.i);
+  if (!e) { if (!isHost) return; e = mkEnt(p.i, { x: p.x, y: p.y }); }
+  if (e.bot) return;
+  e.x = p.x; e.y = p.y; e.vx = p.vx; e.vy = p.vy; e.dashT = p.d ? 0.1 : 0; e.seen = performance.now();
+}
+function onSt(p) {
+  if (p.h !== hostId && peers.length) return;
+  if (isHost) { if (p.h === MYID) return; isHost = false; }
+  const newRound = p.r !== round;
+  lastSt = p; phase = p.p; round = p.r; winner = p.w; timeLeft = p.t; freezeLeft = p.f; endLeft = p.n;
+  const ids = new Set();
+  for (const a of p.e) {
+    const [id, team, x, y, vx, vy, bot, name, hat, stun, dash, say, fl, tnt, nap] = a; ids.add(id);
+    let e = E.get(id);
+    if (!e) e = mkEnt(id, { x, y, bot: !!bot });
+    const t = team ? "dad" : "kid";
+    if (id === MYID && e.soda && !(fl & 1) && phase === "play" && !e.down) { /* used or went flat */ }
+    if (!(id === MYID && e.down && (fl & 2) && e.napT < nap)) e.napT = nap || 0;
+    e.soda = !!(fl & 1); e.down = !!(fl & 2); e.out = !!(fl & 4); e.pb = !!(fl & 8); e.tnt = tnt || 0;
+    if (id === MYID) {
+      e.team = t;
+      if (newRound) { e.x = e.rx = x; e.y = e.ry = y; e.vx = e.vy = 0; }
+      continue;
+    }
+    e.team = t; e.bot = !!bot; e.name = bot ? String(name).slice(0, 16) : safeName(name); e.hat = HAT[hat] ? hat : "none";
+    if (say && e.say !== say) { e.say = String(say).slice(0, 30); e.sayT = 2.4; }
+    e.stun = stun ? 0.3 : 0; e.dashT = dash ? 0.1 : 0;
+    if (bot || performance.now() - e.seen > 1200) { e.x = x; e.y = y; e.vx = vx; e.vy = vy; e.seen2 = performance.now(); }
+    if (newRound) { e.rx = x; e.ry = y; }
+  }
+  for (const id of [...E.keys()]) if (!ids.has(id) && id !== MYID) E.delete(id);
+  if (p.b) {
+    const [x, y, vx, vy, hp, max, mode, left, say, kind] = p.b;
+    if (!boss) boss = { rx: x, ry: y, t: 0 };
+    Object.assign(boss, { x, y, vx, vy, hp, max, mode, left, kind: kind || "monica", seen: performance.now() });
+    if (say && boss.say !== say) { boss.say = say; boss.sayT = 2.4; }
+  } else boss = null;
+  jar = p.j ? { x: p.j[0], y: p.j[1], by: p.j[2] } : null;
+  tnts = (p.x || []).map(t => ({ x: t[0], y: t[1], fuse: t[2] }));
+  if (p.m) machCd = p.m.slice();
+  buckUsed = !!p.u;
+  if (phase === "end") finishMyRound();
+}
+function updateOnlineMsg() {
+  if (!playing) return;
+  const n = peers.length || 1;
+  $("onlineLbl").textContent = online ? (n > 1 ? `${n} players online` : "Online, just you so far") : "Offline";
+}
+
+// ---------------- input ----------------
+const keys = {};
+let dashQueued = false, actQueued = false;
+addEventListener("keydown", e => {
+  if (e.target && (e.target.tagName === "INPUT")) return;
+  const k = e.key.toLowerCase();
+  keys[k] = true;
+  if (k === " " && playing) { dashQueued = true; e.preventDefault(); }
+  if ((k === "e" || k === "enter") && playing) { actQueued = true; e.preventDefault(); }
+  if (playing && ["arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) e.preventDefault();
+});
+addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
+addEventListener("blur", () => { for (const k in keys) keys[k] = false; });
+let joy = null; // {id, bx, by, x, y}
+const cv = $("cv");
+cv.addEventListener("pointerdown", e => { if (!playing) return; cv.setPointerCapture(e.pointerId); const r = cv.getBoundingClientRect(); joy = { id: e.pointerId, mouse: e.pointerType === "mouse", bx: e.clientX - r.left, by: e.clientY - r.top, x: e.clientX - r.left, y: e.clientY - r.top }; e.preventDefault(); });
+cv.addEventListener("pointermove", e => { if (!joy || e.pointerId !== joy.id) return; const r = cv.getBoundingClientRect(); joy.x = e.clientX - r.left; joy.y = e.clientY - r.top; });
+const endJoy = e => { if (joy && e.pointerId === joy.id) joy = null; };
+cv.addEventListener("pointerup", endJoy); cv.addEventListener("pointercancel", endJoy);
+$("dashBtn").addEventListener("pointerdown", e => { dashQueued = true; e.preventDefault(); e.stopPropagation(); });
+$("actBtn").addEventListener("pointerdown", e => { actQueued = true; e.preventDefault(); e.stopPropagation(); });
+function readInput() {
+  let x = 0, y = 0;
+  if (keys["arrowleft"] || keys["a"]) x -= 1; if (keys["arrowright"] || keys["d"]) x += 1;
+  if (keys["arrowup"] || keys["w"]) y -= 1; if (keys["arrowdown"] || keys["s"]) y += 1;
+  if (joy && joy.mouse) {
+    // with a mouse: hold the button and your character walks towards the pointer
+    const M = me();
+    if (M) { const dx = joy.x - (M.rx - camX) * scale, dy = joy.y - (M.ry - camY) * scale, d = Math.hypot(dx, dy); if (d > 12) { x = dx / d; y = dy / d; } }
+  } else if (joy) { const dx = joy.x - joy.bx, dy = joy.y - joy.by, d = Math.hypot(dx, dy); if (d > 8) { const m = Math.min(1, d / 50); x = dx / d * m; y = dy / d * m; } }
+  return [x, y];
+}
+function myAction() {
+  const M = me(); if (!M) return null;
+  if (M.down && phase === "play") return "wake";
+  if (phase !== "boss" || M.team !== "kid" || M.out) return null;
+  if (M.pb) return "drop";
+  if (M.tnt > 0 && boss && boss.mode === "slurp") return "tnt";
+  return null;
+}
+function useAction() {
+  const a = myAction(); if (!a) return;
+  const M = me();
+  if (isHost) doAct(M, a);
+  else {
+    bcast("act", { i: MYID, a });
+    if (a === "tnt" && M.actCd <= 0) { M.tnt = Math.max(0, M.tnt - 1); M.actCd = 0.35; tnts.push({ x: M.x, y: M.y, fuse: FUSE_MS }); }
+    if (a === "drop") M.pb = false;
+    if (a === "wake") M.napT = Math.max(0.05, (M.napT || NAP) - WAKE_TAP);
+  }
+}
+
+// ---------------- drawing ----------------
+const ctx = cv.getContext("2d");
+let cw = 0, chh = 0, dpr = 1, scale = 1, camX = 0, camY = 0, shake = 0;
+let BG = null, MINI = null, dprCap = 1.5;
+function resize() {
+  const st = $("stage"); cw = st.clientWidth;
+  const full = document.fullscreenElement || document.webkitFullscreenElement;
+  chh = full ? innerHeight : Math.round(cw < 600 ? Math.max(300, Math.min(innerHeight * 0.64, cw * 1.15)) : Math.max(300, Math.min(innerHeight * 0.8, cw * 0.66)));
+  dpr = Math.min(devicePixelRatio || 1, dprCap);
+  // keep the number of pixels we draw each frame sensible on big screens
+  const px = cw * chh * dpr * dpr; if (px > 2.4e6) dpr = Math.max(1, Math.sqrt(2.4e6 / (cw * chh)));
+  cv.width = Math.round(cw * dpr); cv.height = Math.round(chh * dpr); cv.style.height = chh + "px";
+  const visW = Math.max(640, Math.min(1300, cw * 1.5)) * (S.zoom || 1);
+  scale = cw / visW;
+  if (chh / scale > H) scale = chh / H;
+  if (cw / scale > W) scale = cw / W;
+}
+function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+// Drawing emoji and outlined text is slow, especially on iPads, so each one is drawn once
+// onto a small picture and that picture is reused every frame.
+const GLYPHS = new Map();
+function glyphCache(key, make) {
+  let g = GLYPHS.get(key);
+  if (!g) { if (GLYPHS.size > 600) GLYPHS.clear(); g = make(); GLYPHS.set(key, g); }
+  return g;
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => GLYPHS.clear());
+function emoji(c, e, x, y, size) {
+  if (!e) return;
+  const sz = Math.max(4, Math.round(size));
+  const g = glyphCache("e" + e + sz, () => {
+    const k = 2, w = Math.ceil(sz * 1.5), cv2 = document.createElement("canvas"); cv2.width = cv2.height = w * k;
+    const q = cv2.getContext("2d"); q.scale(k, k);
+    q.font = `${sz}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`; q.textAlign = "center"; q.textBaseline = "middle"; q.fillStyle = "#000";
+    q.fillText(e, w / 2, w / 2 + sz * 0.05);
+    return { c: cv2, w, h: w };
+  });
+  c.drawImage(g.c, x - g.w / 2, y - g.h / 2, g.w, g.h);
+}
+function textPic(t, size, weight, fill, stroke, lw) {
+  return glyphCache("t" + t + "|" + size + weight + fill + stroke + lw, () => {
+    const m = document.createElement("canvas").getContext("2d"); m.font = `${weight} ${size}px Nunito, sans-serif`;
+    const w = Math.ceil(m.measureText(t).width + lw * 2 + 4), h = Math.ceil(size * 1.5 + lw * 2), k = 2;
+    const cv2 = document.createElement("canvas"); cv2.width = w * k; cv2.height = h * k;
+    const q = cv2.getContext("2d"); q.scale(k, k);
+    q.font = `${weight} ${size}px Nunito, sans-serif`; q.textAlign = "center"; q.textBaseline = "middle"; q.lineJoin = "round";
+    if (lw) { q.lineWidth = lw; q.strokeStyle = stroke; q.strokeText(t, w / 2, h / 2); }
+    q.fillStyle = fill; q.fillText(t, w / 2, h / 2);
+    return { c: cv2, w, h };
+  });
+}
+function label(c, t, x, y, size, fill, stroke) { const g = textPic(String(t), size, 900, fill || "#fff", stroke || "rgba(0,0,0,.6)", 3); c.drawImage(g.c, x - g.w / 2, y - g.h / 2, g.w, g.h); }
+function buildBG() {
+  const k = 1.25, c = document.createElement("canvas"); c.width = W * k; c.height = H * k;
+  const g = c.getContext("2d"); g.scale(k, k);
+  g.fillStyle = MAP.ground; g.fillRect(0, 0, W, H);
+  g.fillStyle = MAP.stripe;
+  if (MAP === MAPS.supermarket) { for (let x = 0; x < W; x += 80) for (let y = 0; y < H; y += 80) if (((x + y) / 80) % 2 === 0) g.fillRect(x, y, 80, 80); }
+  else for (let x = 0; x < W; x += 120) g.fillRect(x, 0, 60, H);
+  for (const z of MAP.zones) {
+    g.globalAlpha = 0.85; g.fillStyle = z.c || z.col;
+    if (z.r) { rr(g, z.r[0], z.r[1], z.r[2], z.r[3], 18); g.fill(); } else { g.beginPath(); g.arc(z.c[0], z.c[1], z.c[2], 0, 7); g.fill(); }
+    g.globalAlpha = 0.25; g.strokeStyle = "#fff"; g.lineWidth = 4; g.setLineDash([12, 10]);
+    if (z.r) { rr(g, z.r[0] + 4, z.r[1] + 4, z.r[2] - 8, z.r[3] - 8, 14); g.stroke(); } else { g.beginPath(); g.arc(z.c[0], z.c[1], z.c[2] - 6, 0, 7); g.stroke(); }
+    g.setLineDash([]); g.globalAlpha = 0.9;
+    const cx = z.r ? z.r[0] + z.r[2] / 2 : z.c[0], cy = z.r ? z.r[1] + z.r[3] / 2 : z.c[1];
+    if (z.r && z.r[2] > 900) { for (let x = 80; x < W; x += 260) emoji(g, z.e, x, cy, 40); }
+    else if (z.r && z.r[3] > 400) { for (let y = z.r[1] + 60; y < z.r[1] + z.r[3]; y += 160) emoji(g, z.e, cx, y, 36); }
+    else emoji(g, z.e, cx, cy, 40);
+  }
+  g.globalAlpha = 0.8; for (const d of MAP.deco) emoji(g, d[0], d[1], d[2], 30);
+  g.globalAlpha = 1;
+  for (const s of MAP.solids) {
+    g.fillStyle = "rgba(0,0,0,.22)";
+    if (s.r) {
+      rr(g, s.r[0] + 6, s.r[1] + 8, s.r[2], s.r[3], 10); g.fill(); g.fillStyle = s.c; rr(g, s.r[0], s.r[1], s.r[2], s.r[3], 10); g.fill();
+      g.strokeStyle = s.soda ? "#fff" : "rgba(0,0,0,.3)"; g.lineWidth = 3; g.stroke();
+      emoji(g, s.e, s.r[0] + s.r[2] / 2, s.r[1] + s.r[3] / 2 + (s.soda ? 3 : 0), Math.min(56, Math.min(s.r[2], s.r[3]) * 0.75));
+      if (s.soda) label(g, "FREE SODA", s.r[0] + s.r[2] / 2, s.r[1] - 10, 12, "#fff", "#8a1020");
+    }
+    else { g.beginPath(); g.arc(s.c[0] + 5, s.c[1] + 7, s.c[2], 0, 7); g.fill(); g.fillStyle = s.col; g.beginPath(); g.arc(s.c[0], s.c[1], s.c[2], 0, 7); g.fill(); g.strokeStyle = "rgba(0,0,0,.3)"; g.lineWidth = 3; g.stroke(); emoji(g, s.e, s.c[0], s.c[1], s.c[2] * 1.3); }
+  }
+  g.strokeStyle = "rgba(0,0,0,.35)"; g.lineWidth = 10; g.strokeRect(0, 0, W, H);
+  BG = c;
+}
+function bubble(t, x, y) {
+  ctx.font = "900 14px Nunito, sans-serif"; const w = ctx.measureText(t).width + 16;
+  ctx.fillStyle = "rgba(255,255,255,.95)"; rr(ctx, x - w / 2, y - 24, w, 24, 10); ctx.fill();
+  ctx.fillStyle = "#2a1740"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(t, x, y - 12);
+}
+const SKINS = ["#ffdcc0", "#f5c79a", "#d9a06b", "#a86b3d", "#7a4a26"];
+const HAIRS = ["#3b2314", "#6b3e1f", "#e0b04a", "#1d1d1d", "#b5542a", "#8a8a8a"];
+const DAD_SHIRTS = ["#2f7fd6", "#2767b0", "#3f96e8", "#1f5aa0"];
+const KID_SHIRTS = ["#ff8a3c", "#ff6fa3", "#ffb62e", "#ff5d5d", "#f76cd9"];
+function drawEnt(e, now) {
+  const dad = e.team === "dad", x = e.rx, y = e.ry, h = hash(e.id);
+  const U = (dad ? 1.75 : 1.5) * (R[e.team] / 17) * (e.big || 1);             // size unit (drawn a bit bigger than the hit circle so they are easy to see)
+  const lying = e.down || e.out;
+  const spd = Math.hypot(e.vx, e.vy), moving = spd > 25 && !lying && e.stun <= 0;
+  const ph = moving ? now / (e.dashT > 0 ? 40 : 75) + h : 0;
+  const bob = moving ? Math.abs(Math.sin(ph)) * 3 * U : Math.sin(now / 450 + h) * 0.8 * U;
+  if (Math.abs(e.vx) > 8) e.face = e.vx < 0 ? -1 : 1;
+  const dir = e.face || 1;
+  const skin = SKINS[h % SKINS.length], hair = HAIRS[(h >> 3) % HAIRS.length];
+  const shirt = dad ? DAD_SHIRTS[(h >> 5) % DAD_SHIRTS.length] : KID_SHIRTS[(h >> 5) % KID_SHIRTS.length];
+  const M = me();
+  // who is scary / huggable, used for faces and markers
+  let hugReady = false, scared = false;
+  if (dad && !e.down) for (const k of E.values()) if (k.team === "kid" && !k.soda && !k.out && (k.rx - x) ** 2 + (k.ry - y) ** 2 < 120 * 120) { hugReady = true; break; }
+  if (!dad && !e.soda && !e.out) for (const d of E.values()) if (d.team === "dad" && !d.down && (d.rx - x) ** 2 + (d.ry - y) ** 2 < 150 * 150) { scared = true; break; }
+  // ground: shadow, my ring, dad helper markers
+  ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.beginPath(); ctx.ellipse(x, y + 14 * U, 13 * U, 5 * U, 0, 0, 7); ctx.fill();
+  if (e.id === MYID) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, y + 14 * U, 17 * U, 7 * U, 0, 0, 7); ctx.stroke(); }
+  const iAmDad = M && M.team === "dad" && !M.down && phase === "play";
+  if (iAmDad && !dad && !e.out) {
+    if (e.soda) { ctx.strokeStyle = "rgba(255,60,60,.9)"; ctx.lineWidth = 4; ctx.setLineDash([6, 5]); ctx.beginPath(); ctx.arc(x, y, 30 * U, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+    else { ctx.fillStyle = "rgba(255,111,163,.28)"; ctx.beginPath(); ctx.arc(x, y, (26 + Math.sin(now / 180) * 3) * U, 0, 7); ctx.fill(); }
+  }
+  if (e.dashT > 0) { ctx.globalAlpha = 0.3; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.ellipse(x - e.vx * 0.06, y - e.vy * 0.06, 12 * U, 16 * U, 0, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+  ctx.save(); ctx.translate(x, y);
+  if (lying) { ctx.translate(0, 6 * U); ctx.rotate(dir * Math.PI / 2); }
+  if (e.stun > 0) ctx.rotate(Math.sin(now / 50) * 0.25);
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
+  const OL = "rgba(40,20,40,.55)";
+  // legs
+  const sw = moving ? Math.sin(ph) * 4 * U : 0;
+  ctx.fillStyle = dad ? "#34405a" : "#3b5bdb";
+  ctx.beginPath(); ctx.ellipse(-4 * U + sw * 0.3, 11 * U - (sw > 0 ? sw * 0.4 : 0), 3.4 * U, 4.2 * U, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(4 * U - sw * 0.3, 11 * U - (sw < 0 ? -sw * 0.4 : 0), 3.4 * U, 4.2 * U, 0, 0, 7); ctx.fill();
+  ctx.translate(0, -bob);
+  // arms
+  ctx.strokeStyle = skin; ctx.lineWidth = 3.6 * U;
+  if (hugReady) {
+    const w = Math.sin(now / 90) * 2 * U;
+    ctx.beginPath(); ctx.moveTo(-8 * U, 1 * U); ctx.lineTo(-17 * U, -8 * U + w); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8 * U, 1 * U); ctx.lineTo(17 * U, -8 * U - w); ctx.stroke();
+  } else {
+    const a = moving ? Math.sin(ph) * 5 * U : 0;
+    ctx.beginPath(); ctx.moveTo(-8 * U, 1 * U); ctx.lineTo(-11 * U, 8 * U + a); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8 * U, 1 * U); ctx.lineTo(11 * U, 8 * U - a); ctx.stroke();
+  }
+  // body
+  ctx.fillStyle = e.down ? "#7d93ad" : e.out ? "#b09a8c" : shirt;
+  ctx.strokeStyle = OL; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(0, 4 * U, (dad ? 10.5 : 9) * U, 8.5 * U, 0, 0, 7); ctx.fill(); ctx.stroke();
+  if (dad) { ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.beginPath(); ctx.ellipse(0, 3 * U, 3 * U, 5 * U, 0, 0, 7); ctx.fill(); }
+  // head
+  const hx = dir * 0.8 * U, hy = -10 * U, hr = (dad ? 9.5 : 10) * U;
+  ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(hx, hy, hr, 0, 7); ctx.fill(); ctx.stroke();
+  // hair
+  ctx.fillStyle = hair;
+  if (dad) {
+    if (h % 3 !== 0) { ctx.beginPath(); ctx.arc(hx, hy - 1 * U, hr, Math.PI * 1.08, Math.PI * 1.92); ctx.closePath(); ctx.fill(); }
+    else { ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.beginPath(); ctx.ellipse(hx - 3 * U, hy - 6 * U, 2.5 * U, 1.4 * U, -0.4, 0, 7); ctx.fill(); }
+  } else {
+    ctx.beginPath(); ctx.arc(hx, hy - 1.5 * U, hr, Math.PI * 1.02, Math.PI * 1.98); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(hx - 1 * U, hy - hr - 1 * U); ctx.quadraticCurveTo(hx + 3 * U, hy - hr - 6 * U, hx + 5 * U, hy - hr + 1 * U); ctx.lineWidth = 2 * U; ctx.strokeStyle = hair; ctx.stroke();
+    if (h % 2) { ctx.fillStyle = hair; ctx.beginPath(); ctx.arc(hx - hr + 1 * U, hy + 1 * U, 3 * U, 0, 7); ctx.arc(hx + hr - 1 * U, hy + 1 * U, 3 * U, 0, 7); ctx.fill(); }
+  }
+  // face
+  const ex = hx + dir * 1.5 * U, ey = hy + 0.5 * U, gap = 3.6 * U;
+  ctx.fillStyle = "#2a1a2a"; ctx.strokeStyle = "#2a1a2a"; ctx.lineWidth = 1.6 * U;
+  const blink = ((now / 100 + h) % 45) < 1.2;
+  if (e.out || e.stun > 0) {
+    for (const sx of [-1, 1]) { const cx = ex + sx * gap; ctx.beginPath(); ctx.moveTo(cx - 1.6 * U, ey - 1.6 * U); ctx.lineTo(cx + 1.6 * U, ey + 1.6 * U); ctx.moveTo(cx + 1.6 * U, ey - 1.6 * U); ctx.lineTo(cx - 1.6 * U, ey + 1.6 * U); ctx.stroke(); }
+  } else if (e.down || blink) {
+    for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(ex + sx * gap, ey, 1.8 * U, 0.1, Math.PI - 0.1); ctx.stroke(); }
+  } else {
+    const big = scared ? 2.6 : 2.2;
+    for (const sx of [-1, 1]) {
+      ctx.fillStyle = "#2a1a2a"; ctx.beginPath(); ctx.ellipse(ex + sx * gap, ey, big * 0.85 * U, big * U, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(ex + sx * gap + 0.7 * U, ey - 0.8 * U, 0.8 * U, 0, 7); ctx.fill();
+    }
+  }
+  ctx.fillStyle = "rgba(255,110,140,.45)";
+  ctx.beginPath(); ctx.ellipse(ex - gap - 2 * U, ey + 3.2 * U, 2.2 * U, 1.3 * U, 0, 0, 7); ctx.ellipse(ex + gap + 2 * U, ey + 3.2 * U, 2.2 * U, 1.3 * U, 0, 0, 7); ctx.fill();
+  // mouth
+  ctx.strokeStyle = "#2a1a2a"; ctx.fillStyle = "#7a1f35"; ctx.lineWidth = 1.4 * U;
+  const my = ey + 4.5 * U;
+  if (scared || e.stun > 0) { ctx.beginPath(); ctx.ellipse(ex, my + 0.5 * U, 1.6 * U, 2 * U, 0, 0, 7); ctx.fill(); }
+  else if (hugReady) { ctx.beginPath(); ctx.arc(ex, my - 0.5 * U, 3 * U, 0, Math.PI); ctx.closePath(); ctx.fill(); }
+  else if (!e.down) { ctx.beginPath(); ctx.arc(ex, my - 1.2 * U, 2.2 * U, 0.2, Math.PI - 0.2); ctx.stroke(); }
+  // dad moustache and beard
+  if (dad) {
+    ctx.fillStyle = hair === "#e0b04a" ? "#b8862e" : hair;
+    ctx.beginPath(); ctx.ellipse(ex - 1.8 * U, my - 1.6 * U, 2.2 * U, 1.1 * U, -0.25, 0, 7); ctx.ellipse(ex + 1.8 * U, my - 1.6 * U, 2.2 * U, 1.1 * U, 0.25, 0, 7); ctx.fill();
+    if (h % 2 === 0) { ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.arc(hx, hy + 1 * U, hr, 0.25, Math.PI - 0.25); ctx.arc(hx, hy + 3 * U, hr * 0.62, Math.PI - 0.5, 0.5, true); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1; }
+  }
+  ctx.restore();
+  // things they carry
+  if (e.down) { emoji(ctx, "💤", x + 14 * U, y - 16 * U - Math.sin(now / 300) * 4, 18); if (e.napT > 0) label(ctx, Math.ceil(e.napT) + "s", x - 12 * U, y - 16 * U, 14, "#bfe3ff", "#1d2a44"); }
+  if (e.out) emoji(ctx, "💦", x + 14 * U, y - 10 * U, 18);
+  if (e.soda) emoji(ctx, "🥤", x + dir * 15 * U, y + 2 * U - bob, 20);
+  if (e.pb) emoji(ctx, bk().item, x - dir * 15 * U, y + 2 * U - bob, 22);
+  if (e.tnt > 0 && !e.out) { emoji(ctx, bk().bomb, x - dir * 15 * U, y + 4 * U, 18); if (e.tnt > 1) label(ctx, "x" + e.tnt, x - dir * 15 * U, y + 18 * U, 11); }
+  if (iAmDad && !dad && !e.out && !e.soda) emoji(ctx, "❤️", x, y - 34 * U - Math.abs(Math.sin(now / 250)) * 4, 16);
+  const top = y - 20 * U - bob;
+  const hasHat = e.hat && HAT[e.hat] && HAT[e.hat].e && !lying;
+  if (hasHat) emoji(ctx, HAT[e.hat].e, x + dir * 0.8 * U, top - 2 * U, 18 * U);
+  const ny = top - (hasHat ? 14 * U : 3);
+  if (e.name) { const g = textPic(e.name, 13, 800, e.id === MYID ? "#ffe066" : "#fff", "rgba(0,0,0,.6)", 3); ctx.drawImage(g.c, x - g.w / 2, ny - g.h + 3, g.w, g.h); }
+  if (e.sayT > 0 && e.say && !lying) bubble(e.say, x, ny - 16);
+}
+function drawBuck(now) {
+  const b = boss, K = BK.buck, x = b.rx, y = b.ry;
+  if (b.mode === "slurp") {
+    ctx.strokeStyle = "rgba(255,120,40,.45)"; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(x, y, K.blast, 0, 7); ctx.stroke();
+    ctx.strokeStyle = "#ffb13c"; ctx.lineWidth = 7; ctx.beginPath(); ctx.arc(x, y, K.r + 20, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, b.left) / K.eat); ctx.stroke();
+  }
+  if (!b.fake) b.fake = { id: "unclebuck-7", team: "dad", name: "", hat: "cap", big: 3.6, stun: 0, sayT: 0, down: false, out: false, soda: false };
+  const f = b.fake; f.rx = x; f.ry = y + 30; f.vx = b.mode === "chase" ? b.vx : 0; f.vy = b.mode === "chase" ? b.vy : 0;
+  drawEnt(f, now);
+  if (b.mode === "slurp") { emoji(ctx, "🍔", x + (f.face || 1) * 40, y - 20, 54); label(ctx, "NOM NOM", x, y - 245, 20, "#ffb13c", "#4a1c00"); }
+  label(ctx, "UNCLE BUCK", x, y - 222, 20, "#ffd27a", "#4a1c00");
+  ctx.fillStyle = "rgba(0,0,0,.6)"; rr(ctx, x - 72, y - 208, 144, 14, 7); ctx.fill();
+  ctx.fillStyle = "#ff8a1e"; rr(ctx, x - 70, y - 206, 140 * Math.max(0, b.hp) / b.max, 10, 5); ctx.fill();
+  if (b.sayT > 0 && b.say) bubble(b.say, x, y - 262);
+  if (b.mode === "intro") label(ctx, "Get ready…", x, y + 110, 18, "#ffc93c");
+}
+function drawBoss(now) {
+  if (boss.kind === "buck") return drawBuck(now);
+  const b = boss, x = b.rx, y = b.ry;
+  const faceLeft = b.vx < -5 || (Math.abs(b.vx) <= 5 && b.lastLeft);
+  if (Math.abs(b.vx) > 5) b.lastLeft = b.vx < 0;
+  ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(x + 4, y + 40, 70, 22, 0, 0, 7); ctx.fill();
+  if (b.mode === "slurp") {
+    ctx.strokeStyle = "rgba(255,201,60,.5)"; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(x, y, BK.monica.blast, 0, 7); ctx.stroke();
+    ctx.strokeStyle = "#ffc93c"; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(x, y, BK.monica.r + 16, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, b.left) / SLURP_MS); ctx.stroke();
+  }
+  const bob = b.mode === "chase" ? Math.sin(now / 70) * 4 : 0;
+  ctx.save(); ctx.translate(x, y + bob);
+  if (!faceLeft) ctx.scale(-1, 1);          // the dog emoji faces left, so flip it to run right
+  emoji(ctx, "🐕", 0, 6, 128);
+  ctx.restore();
+  emoji(ctx, "👩", x + (faceLeft ? 8 : -8), y - 44 + bob, 46);
+  if (b.mode === "slurp") emoji(ctx, "🥜", x + (faceLeft ? -62 : 62), y + 18, 34);
+  label(ctx, "Monica & Didi", x, y - 84, 15, "#ffd0e4", "#5a0f2e");
+  // hearts
+  ctx.fillStyle = "rgba(0,0,0,.6)"; rr(ctx, x - 52, y - 108, 104, 12, 6); ctx.fill();
+  ctx.fillStyle = "#ff4d7d"; rr(ctx, x - 50, y - 106, 100 * Math.max(0, b.hp) / b.max, 8, 4); ctx.fill();
+  if (b.sayT > 0 && b.say) bubble(b.say, x, y - 112);
+  if (b.mode === "intro") label(ctx, "Get ready…", x, y + 70, 16, "#ffc93c");
+}
+function fmtTime(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+function draw(now, dt) {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const m = me();
+  const vw = cw / scale, vh = chh / scale;
+  if (m) { camX += ((m.rx - vw / 2) - camX) * Math.min(1, dt * 8); camY += ((m.ry - vh / 2) - camY) * Math.min(1, dt * 8); }
+  camX = Math.max(0, Math.min(W - vw, camX)); camY = Math.max(0, Math.min(H - vh, camY));
+  let sx = 0, sy = 0; if (shake > 0) { sx = (Math.random() - 0.5) * 14 * shake; sy = (Math.random() - 0.5) * 14 * shake; }
+  ctx.fillStyle = "#111"; ctx.fillRect(0, 0, cw, chh);
+  ctx.save(); ctx.scale(scale, scale); ctx.translate(-camX + sx, -camY + sy);
+  if (BG) {
+    const k = BG.width / W, sx0 = Math.max(0, camX - 20), sy0 = Math.max(0, camY - 20), sw = Math.min(W - sx0, vw + 40), sh = Math.min(H - sy0, vh + 40);
+    ctx.drawImage(BG, sx0 * k, sy0 * k, sw * k, sh * k, sx0, sy0, sw, sh);
+  }
+  // empty soda machines show a countdown
+  MAP.soda.forEach(([mx0, my0], i) => {
+    if (!(machCd[i] > 0) || phase !== "play") return;
+    ctx.fillStyle = "rgba(40,40,50,.7)"; rr(ctx, mx0 - 23, my0 - 23, 46, 46, 10); ctx.fill();
+    label(ctx, String(Math.ceil(machCd[i])), mx0, my0, 18, "#fff", "#000");
+  });
+  // peanut butter jar on the ground
+  if (jar && !jar.by) {
+    const p = 1 + Math.sin(now / 200) * 0.1;
+    ctx.fillStyle = "rgba(255,201,60,.35)"; ctx.beginPath(); ctx.arc(jar.x, jar.y, 30 * p, 0, 7); ctx.fill();
+    if (!(boss && boss.mode === "slurp")) emoji(ctx, bk().item, jar.x, jar.y, 34);
+  }
+  for (const t of tnts) {
+    emoji(ctx, bk().bomb, t.x, t.y, 30);
+    ctx.strokeStyle = "#ff5d5d"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(t.x, t.y, 22, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, t.fuse) / FUSE_MS); ctx.stroke();
+  }
+  const ents = [...E.values()].sort((a, b) => a.ry - b.ry);
+  for (const e of ents) if (e.down || e.out) drawEnt(e, now);
+  for (const e of ents) if (!e.down && !e.out) drawEnt(e, now);
+  if (boss) drawBoss(now);
+  for (let i = FX.length - 1; i >= 0; i--) {
+    const f = FX[i]; f.t += dt;
+    if (f.part) { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 300 * dt; ctx.globalAlpha = Math.max(0, 1 - f.t / 1.1); emoji(ctx, f.part, f.x, f.y, 18); if (f.t > 1.1) FX.splice(i, 1); }
+    else if (f.boom) {
+      ctx.globalAlpha = Math.max(0, 1 - f.t / 0.9);
+      ctx.fillStyle = f.hit ? "rgba(255,120,40,.5)" : "rgba(255,200,80,.35)"; ctx.beginPath(); ctx.arc(f.x, f.y, bk().blast * Math.min(1, f.t * 4), 0, 7); ctx.fill();
+      emoji(ctx, "💥", f.x, f.y, 70 + f.t * 60);
+      if (f.hit) label(ctx, "HIT!", f.x, f.y - 60 - f.t * 30, 26, "#ffc93c", "#5a0f2e");
+      if (f.t > 0.9) FX.splice(i, 1);
+    } else {
+      ctx.globalAlpha = Math.max(0, 1 - f.t / 1.6); emoji(ctx, f.e, f.x, f.y - f.t * 20, 44 + f.t * 20);
+      ctx.font = "400 30px 'Lilita One', sans-serif"; ctx.textAlign = "center"; ctx.lineWidth = 5; ctx.strokeStyle = "#2a1740"; ctx.strokeText(f.m, f.x, f.y - 44 - f.t * 40); ctx.fillStyle = f.col; ctx.fillText(f.m, f.x, f.y - 44 - f.t * 40);
+      if (f.t > 1.6) FX.splice(i, 1);
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  // HUD
+  const kids = ents.filter(e => e.team === "kid" && !e.out).length, dads = ents.filter(e => e.team === "dad" && !e.down).length;
+  ctx.textBaseline = "middle"; ctx.textAlign = "center";
+  const small = cw < 520;
+  const tbw = small ? 124 : 160; ctx.fillStyle = "rgba(0,0,0,.55)"; rr(ctx, cw / 2 - tbw / 2 - (small ? 20 : 0), 8, tbw, 44, 12); ctx.fill();
+  ctx.font = `400 ${small ? 24 : 30}px 'Lilita One', sans-serif`;
+  const tcx = cw / 2 - (small ? 20 : 0);
+  if (phase === "boss" || (phase === "end" && boss)) { ctx.fillStyle = boss && boss.kind === "buck" ? "#ffb13c" : "#ff8fb8"; ctx.fillText(boss && boss.kind === "buck" ? (small ? "MEGA" : "MEGA BOSS") : "BOSS", tcx, 31); }
+  else { ctx.fillStyle = timeLeft < 30000 && phase === "play" ? "#ff8080" : "#fff"; ctx.fillText(fmtTime(phase === "play" ? timeLeft : 0), tcx, 31); }
+  ctx.font = `900 ${small ? 12 : 14}px Nunito, sans-serif`;
+  const line = phase === "boss" || (phase === "end" && boss) ? (boss && boss.kind === "buck" ? `🧒 Kids free: ${kids}    🍔 Uncle Buck: ${boss.hp} ❤️` : `🧒 Kids free: ${kids}    🐕 Didi: ${boss ? boss.hp : 0} ❤️`) : `🧒 Kids free: ${kids}    🧔 Dads up: ${dads}`;
+  const lw = ctx.measureText(line).width + 24;
+  ctx.fillStyle = "rgba(0,0,0,.55)"; rr(ctx, cw / 2 - lw / 2, 56, lw, 26, 10); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.fillText(line, cw / 2, 69);
+  if (m) {
+    ctx.textAlign = "left"; ctx.font = "900 14px Nunito, sans-serif";
+    let lab, col;
+    if (m.down) { lab = `Napping 💤 ${Math.ceil(m.napT || 0)}s · tap WAKE UP (E) to wake faster!`; col = "rgba(90,127,166,.9)"; }
+    else if (m.out) { lab = "Slobbered! You're out 💦"; col = "rgba(160,128,112,.9)"; }
+    else if (m.team === "dad") { lab = "DAD: touch kids with ❤️ to hug · avoid 🥤"; col = "rgba(47,127,214,.9)"; }
+    else if (phase === "boss") { const K = bk(); lab = m.pb ? `Drop the ${K.itemName}! ${K.item}` : m.tnt > 0 && boss && boss.mode === "slurp" ? `Place your ${K.bombName} near ${K.short}! ${K.bomb}` : `Lure ${K.short} with ${K.itemName} ${K.item}`; col = "rgba(255,138,60,.9)"; }
+    else { lab = m.soda ? "Give a dad your soda! 🥤" : "You are a KID 🧒 run away!"; col = "rgba(255,138,60,.9)"; }
+    const tw = ctx.measureText(lab).width + 20;
+    ctx.fillStyle = col; rr(ctx, 10, chh - 64, tw, 26, 10); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.fillText(lab, 20, chh - 51);
+    const pl = `Points: ${roundPoints()}  ·  ${$("onlineLbl").textContent}`;
+    const pw = ctx.measureText(pl).width + 20;
+    ctx.fillStyle = "rgba(0,0,0,.55)"; rr(ctx, 10, chh - 34, pw, 26, 10); ctx.fill(); ctx.fillStyle = "#fff"; ctx.fillText(pl, 20, chh - 21);
+  }
+  // dads get an arrow pointing to the nearest kid they can hug
+  if (m && m.team === "dad" && !m.down && phase === "play") {
+    let t = null, td = 1e9;
+    for (const k of ents) if (k.team === "kid" && !k.soda && !k.out) { const d = Math.hypot(k.rx - m.rx, k.ry - m.ry); if (d < td) { td = d; t = k; } }
+    if (t) {
+      const sx = (t.rx - camX) * scale, sy = (t.ry - camY) * scale;
+      if (sx < 0 || sy < 0 || sx > cw || sy > chh) {
+        const cx = cw / 2, cy = chh / 2, a = Math.atan2(sy - cy, sx - cx);
+        const k = Math.min((cw / 2 - 40) / Math.abs(Math.cos(a) || 1e-6), (chh / 2 - 40) / Math.abs(Math.sin(a) || 1e-6));
+        const ax = cx + Math.cos(a) * k, ay = cy + Math.sin(a) * k;
+        ctx.save(); ctx.translate(ax, ay); ctx.rotate(a);
+        ctx.fillStyle = "#ff6fa3"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(18, 0); ctx.lineTo(-10, -13); ctx.lineTo(-4, 0); ctx.lineTo(-10, 13); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.restore();
+        label(ctx, "❤️ " + Math.round(td / 10) + "m", ax - Math.cos(a) * 30, ay - Math.sin(a) * 30, 12);
+      }
+    }
+  }
+  // minimap
+  const mw = small ? 120 : 210, mh = mw * H / W, mx = cw - mw - 10, my = 10;
+  ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(mx - 3, my - 3, mw + 6, mh + 6);
+  if (BG) {
+    if (!MINI || MINI.w !== mw || MINI.bg !== BG) { const c2 = document.createElement("canvas"); c2.width = Math.ceil(mw * dpr); c2.height = Math.ceil(mh * dpr); const q = c2.getContext("2d"); q.drawImage(BG, 0, 0, c2.width, c2.height); MINI = { c: c2, w: mw, bg: BG }; }
+    ctx.drawImage(MINI.c, mx, my, mw, mh);
+  }
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(mx + camX / W * mw, my + camY / H * mh, vw / W * mw, vh / H * mh);
+  for (const e of ents) { ctx.globalAlpha = e.down || e.out ? 0.4 : 1; ctx.fillStyle = e.team === "dad" ? "#2f7fd6" : "#ff8a3c"; ctx.beginPath(); ctx.arc(mx + e.rx / W * mw, my + e.ry / H * mh, e.id === MYID ? 4.5 : 3, 0, 7); ctx.fill(); if (e.id === MYID) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke(); } }
+  ctx.globalAlpha = 1;
+  if (boss) { ctx.fillStyle = "#e0336f"; ctx.beginPath(); ctx.arc(mx + boss.rx / W * mw, my + boss.ry / H * mh, 6, 0, 7); ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.stroke(); }
+  if (jar) { ctx.fillStyle = "#ffc93c"; ctx.beginPath(); ctx.arc(mx + jar.x / W * mw, my + jar.y / H * mh, 4, 0, 7); ctx.fill(); }
+  // banners
+  let banner = "", sub = "";
+  if (phase === "play" && freezeLeft > 0) { banner = m && m.team === "dad" ? "Count to 3…" : "RUN!"; sub = `Dads can move in ${Math.ceil(freezeLeft / 1000)}`; }
+  if (bossBanner > 0 && phase === "boss") { if (boss && boss.kind === "buck") { banner = "MEGA BOSS: UNCLE BUCK!"; sub = "He wants to eat you! Distract him with a cheeseburger 🍔, then nuke him ☢️"; } else { banner = "BOSS FIGHT!"; sub = "Monica is riding Didi the greyhound. Lure her with peanut butter 🥜"; } }
+  if (phase === "end") {
+    banner = { kids: "KIDS ESCAPED!", kidsboss: "KIDS WIN!", dads: "DADS WIN!", monica: "MONICA WINS!", kidsbuck: "MEGA WIN!!!", buck: "UNCLE BUCK WINS!" }[winner] || "ROUND OVER";
+    sub = { kids: "Somebody got away from the hugs", kidsboss: "Monica and Didi got blown away 💥", dads: "Everyone got hugged too hard", monica: "Didi slobbered every single kid", kidsbuck: "Uncle Buck got nuked ☢️", buck: "He ate every single kid 😋" }[winner] || "";
+    sub += ` · next round in ${Math.max(0, Math.ceil(endLeft / 1000))}`;
+  }
+  if (banner) {
+    ctx.textAlign = "center"; ctx.font = `400 ${small ? 38 : 56}px 'Lilita One', sans-serif`; ctx.lineWidth = 8; ctx.strokeStyle = "#2a1740";
+    ctx.strokeText(banner, cw / 2, chh / 2 - 10); ctx.fillStyle = "#ffc93c"; ctx.fillText(banner, cw / 2, chh / 2 - 10);
+    ctx.font = `900 ${small ? 13 : 16}px Nunito, sans-serif`; ctx.lineWidth = 4; ctx.strokeText(sub, cw / 2, chh / 2 + 28); ctx.fillStyle = "#fff"; ctx.fillText(sub, cw / 2, chh / 2 + 28);
+  }
+  // joystick
+  if (joy && !joy.mouse) { ctx.globalAlpha = 0.35; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(joy.bx, joy.by, 50, 0, 7); ctx.fill(); ctx.globalAlpha = 0.7; const dx = joy.x - joy.bx, dy = joy.y - joy.by, d = Math.hypot(dx, dy) || 1, k = Math.min(d, 50) / d; ctx.beginPath(); ctx.arc(joy.bx + dx * k, joy.by + dy * k, 22, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+}
+
+// ---------------- main loop ----------------
+let last = performance.now(), meT = 0, lastMeSent = "";
+let slowT = 0, fastMsgShown = false;
+function frame(now) {
+  const raw = (now - last) / 1000;
+  const dt = Math.min(0.05, raw); last = now;
+  if (playing && !document.hidden) {
+    slowT = raw > 0.028 && raw < 0.5 ? slowT + raw : Math.max(0, slowT - raw * 0.5);
+    if (slowT > 2 && dprCap > 1) { dprCap = 1; slowT = 0; resize(); }
+  }
+  if (playing) {
+    const m = me();
+    if (!isHost) {
+      if (phase === "play") { timeLeft -= dt * 1000; freezeLeft = Math.max(0, freezeLeft - dt * 1000); }
+      endLeft -= dt * 1000;
+      for (const t of tnts) t.fuse -= dt * 1000;
+      if (boss && boss.mode === "slurp") boss.left -= dt * 1000;
+    }
+    bossBanner = Math.max(0, bossBanner - dt);
+    if (round !== myRound && phase === "play") { myRound = round; resetMyRound(); }
+    if (m) {
+      const [ix, iy] = readInput();
+      move(m, dt, ix, iy, dashQueued); dashQueued = false;
+      if (actQueued) { useAction(); actQueued = false; }
+      if ((phase === "play" || phase === "boss") && m.team === "kid" && !m.out && freezeLeft <= 0) survived += dt;
+      const btn = $("dashBtn"); const ready = m.dashCd <= 0; btn.disabled = !ready; $("dashLbl").textContent = ready ? (touchy ? "ready" : "Space") : m.dashCd.toFixed(1) + "s";
+      const a = myAction(), ab = $("actBtn");
+      ab.hidden = !a;
+      if (a) { { const K = bk(); $("actTxt").textContent = a === "wake" ? "WAKE UP! 👊" : a === "drop" ? "DROP " + K.item : `${K.bombName.toUpperCase()} ${K.bomb} x${m.tnt}`; } $("actLbl").textContent = touchy ? "tap" : "E key"; }
+    }
+    if (isHost) {
+      hostTick(dt);
+      stTimer += dt; if (stTimer > 0.2) { stTimer = 0; sendState(); }
+    } else {
+      // smooth other players, bots and Didi towards their last known place
+      for (const e of E.values()) {
+        if (e.id === MYID) continue;
+        const age = Math.min(0.25, (now - (e.bot ? (e.seen2 || now) : (e.seen || e.seen2 || now))) / 1000);
+        const tx = e.x + e.vx * age, ty = e.y + e.vy * age;
+        const k = Math.min(1, dt * 10); e.rx += (tx - e.rx) * k; e.ry += (ty - e.ry) * k;
+        e.sayT = Math.max(0, e.sayT - dt); e.stun = Math.max(0, e.stun - dt);
+      }
+      if (boss) { const age = Math.min(0.25, (now - (boss.seen || now)) / 1000), k = Math.min(1, dt * 10); boss.rx += (boss.x + boss.vx * age - boss.rx) * k; boss.ry += (boss.y + boss.vy * age - boss.ry) * k; boss.sayT = Math.max(0, (boss.sayT || 0) - dt); }
+    }
+    if (isHost) for (const e of E.values()) if (!e.bot && e.id !== MYID) { const k = Math.min(1, dt * 10); e.rx += (e.x - e.rx) * k; e.ry += (e.y - e.ry) * k; }
+    // send my position
+    meT += dt;
+    if (online && m && meT > 0.125) {
+      const moving = Math.abs(m.vx) + Math.abs(m.vy) > 5;
+      const sig = Math.round(m.x) + "," + Math.round(m.y);
+      if (moving || sig !== lastMeSent || meT > 0.5) { meT = 0; lastMeSent = sig; bcast("me", { i: MYID, x: Math.round(m.x), y: Math.round(m.y), vx: Math.round(m.vx), vy: Math.round(m.vy), d: m.dashT > 0 ? 1 : 0 }); }
+    }
+    shake = Math.max(0, shake - dt);
+    draw(now, dt);
+  }
+  requestAnimationFrame(frame);
+}
+let stTimer = 0;
+const touchy = matchMedia("(pointer:coarse)").matches;
+
+// ---------------- lobby ----------------
+function renderLobby() {
+  $("sidePick").querySelectorAll(".opt").forEach(b => b.classList.toggle("sel", b.dataset.side === S.side));
+  $("mapPick").innerHTML = Object.entries(MAPS).map(([id, m]) => `<button class="opt${id === S.map ? " sel" : ""}" data-map="${id}" type="button"><span class="e">${m.e}</span>${m.name}<small>${m.desc}</small></button>`).join("");
+  $("mapPick").querySelectorAll(".opt").forEach(b => b.onclick = () => { S.map = b.dataset.map; save(); renderLobby(); });
+}
+$("sidePick").querySelectorAll(".opt").forEach(b => b.onclick = () => { S.side = b.dataset.side; save(); renderLobby(); });
+function startGame() {
+  MAP = MAPS[S.map] || MAPS.backyard; buildBG();
+  buckUsed = false;
+  E = new Map(); FX.length = 0; lastSt = null; round = 0; myRound = -1; isHost = true; hostId = MYID; peers = []; boss = null; jar = null; tnts = [];
+  joinT = Date.now();
+  const [x, y] = spawnIn(S.side === "dad" ? MAP.dadSpawn : MAP.kidSpawn, R[S.side]);
+  mkEnt(MYID, { name: NAME, team: S.side, side: S.side, hat: S.hat, x, y });
+  playing = true; $("lobby").hidden = true; $("stage").classList.remove("inlobby"); $("bar").hidden = false; $("dashBtn").hidden = false;
+  $("onlineLbl").textContent = "Connecting…";
+  startRound();          // play straight away with computer players; friends join in when we connect
+  resetMyRound(); myRound = round;
+  $("sideBtn").textContent = S.side === "dad" ? "⇄ Be a kid" : "⇄ Be a dad";
+  setMsg(`${MAP.name}: you are on the ${S.side === "dad" ? "Dads" : "Kids"} team. ${S.side === "dad" ? "Wait 3 seconds, then hug those kids! Keep away from kids with soda 🥤." : "Run! Grab a free soda 🥤 and give it to a dad to knock him out."}`);
+  connect();
+  resize();
+  $("stage").scrollIntoView({ block: "start", behavior: "smooth" });
+  setTimeout(() => { if (!online && playing) $("onlineLbl").textContent = "Offline, computer players only"; }, 6000);
+}
+$("playBtn").onclick = startGame;
+$("menuBtn").onclick = () => {
+  if (!roundScored && phase !== "end") { roundScored = true; const p = roundPoints(); S.socks += Math.floor(p / 5); save(); renderHUD(); renderShop(); }
+  disconnect(); playing = false; E = new Map(); boss = null; jar = null; tnts = [];
+  $("lobby").hidden = false; $("stage").classList.add("inlobby"); $("bar").hidden = true; $("dashBtn").hidden = true; $("actBtn").hidden = true; renderLobby();
+  setMsg("Pick a team and a map, then press PLAY.");
+};
+function setZoom(z) { S.zoom = Math.max(0.6, Math.min(1.8, Math.round(z * 100) / 100)); save(); resize(); }
+$("zoomOut").onclick = () => setZoom((S.zoom || 1) * 1.2);
+$("zoomIn").onclick = () => setZoom((S.zoom || 1) / 1.2);
+addEventListener("keydown", e => { if (!playing || (e.target && e.target.tagName === "INPUT")) return; if (e.key === "-" || e.key === "_") setZoom((S.zoom || 1) * 1.2); if (e.key === "=" || e.key === "+") setZoom((S.zoom || 1) / 1.2); });
+cv.addEventListener("wheel", e => { if (!playing) return; e.preventDefault(); setZoom((S.zoom || 1) * (e.deltaY > 0 ? 1.1 : 1 / 1.1)); }, { passive: false });
+const stageEl = $("stage");
+const canFull = !!(stageEl.requestFullscreen || stageEl.webkitRequestFullscreen);
+if (!canFull) $("fullBtn").hidden = true;
+$("fullBtn").onclick = () => {
+  const on = document.fullscreenElement || document.webkitFullscreenElement;
+  if (on) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  else (stageEl.requestFullscreen || stageEl.webkitRequestFullscreen).call(stageEl);
+};
+["fullscreenchange", "webkitfullscreenchange"].forEach(ev => document.addEventListener(ev, () => { const on = document.fullscreenElement || document.webkitFullscreenElement; $("fullBtn").textContent = on ? "✕" : "⛶"; setTimeout(resize, 50); }));
+$("buckBtn").onclick = () => {
+  if (!playing) return;
+  if (S.socks < BUCK_PRICE) { setMsg(`You need ${BUCK_PRICE} socks 🧦 to bring Uncle Buck. You have ${S.socks}.`, "bad"); return; }
+  if (buckUsed || (boss && boss.kind === "buck")) { setMsg("Uncle Buck has already been called this round. Try again next round.", "bad"); return; }
+  if (phase !== "play" && phase !== "boss") { setMsg("Wait for the next round to start, then call Uncle Buck.", "bad"); return; }
+  setMsg("📣 Calling Uncle Buck…", "");
+  if (isHost) doAct(me(), "summon"); else bcast("act", { i: MYID, a: "summon" });
+};
+$("sideBtn").onclick = () => {
+  S.side = S.side === "dad" ? "kid" : "dad"; save();
+  const m = me(); if (m) m.side = S.side;
+  if (online && ch) try { ch.track(meta()); } catch (e) {}
+  $("sideBtn").textContent = S.side === "dad" ? "⇄ Be a kid" : "⇄ Be a dad";
+  setMsg(`Next round you will be on the ${S.side === "dad" ? "Dads" : "Kids"} team.`, "good");
+};
+
+// ---------------- HUD, shop ----------------
+function renderHUD() { $("hName").textContent = NAME; $("hSocks").textContent = S.socks.toLocaleString(); $("hBest").textContent = S.best.toLocaleString(); }
+function renderShop() {
+  $("shop").innerHTML = HATS.map(h => {
+    const own = S.hats.includes(h.id), on = S.hat === h.id;
+    return `<button class="hat${on ? " on" : ""}${own ? "" : " locked"}" data-h="${h.id}" type="button"><span class="e">${h.e || "🙂"}</span>${h.n}<small>${on ? "Wearing" : own ? "Tap to wear" : h.p + " 🧦"}</small></button>`;
+  }).join("");
+  $("shop").querySelectorAll(".hat").forEach(b => b.onclick = () => {
+    const h = HAT[b.dataset.h];
+    if (!S.hats.includes(h.id)) {
+      if (S.socks < h.p) { setMsg(`You need ${h.p} socks for the ${h.n}. You have ${S.socks}.`, "bad"); return; }
+      S.socks -= h.p; S.hats.push(h.id); setMsg(`You bought the ${h.n}!`, "good");
+    }
+    S.hat = h.id; save(); renderHUD(); renderShop();
+    const m = me(); if (m) m.hat = S.hat;
+    if (online && ch) try { ch.track(meta()); } catch (e) {}
+  });
+}
+
+// ---------------- name ----------------
+function closeBox() { $("overlay").hidden = true; }
+$("nameChip").onclick = () => {
+  $("box").innerHTML = `<h3>What's your name?</h3><input id="nameIn" maxlength="12" autocomplete="off" spellcheck="false" aria-label="Your name">
+    <p class="hint" id="nameHint">First name or nickname only. Up to 12 letters. It shows above your character and on the leaderboard.</p>
+    <div class="row"><button class="small" id="nameOk" type="button">Save</button><button class="small alt" id="nameCancel" type="button">Cancel</button></div>`;
+  $("overlay").hidden = false; const inp = $("nameIn"); inp.value = hasName() ? NAME : ""; inp.focus();
+  const done = () => {
+    const v = cleanName(inp.value);
+    if (isRude(v)) { inp.value = ""; $("nameHint").textContent = "That name is not allowed. Try another one."; inp.focus(); return; }
+    NAME = v || "Player"; try { localStorage.setItem(NAME_KEY, NAME); } catch (e) {}
+    const m = me(); if (m) m.name = NAME;
+    if (online && ch) try { ch.track(meta()); } catch (e) {}
+    renderHUD(); closeBox(); setMsg(`Hi ${NAME}! Your name is saved.`, "good"); claimGifts();
+  };
+  $("nameOk").onclick = done; $("nameCancel").onclick = closeBox;
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") done(); if (e.key === "Escape") closeBox(); });
+};
+setInterval(() => { try { const n = safeName(localStorage.getItem(NAME_KEY)); if (n !== "Player" && n !== NAME) { NAME = n; renderHUD(); const m = me(); if (m) m.name = NAME; } } catch (e) {} }, 2000);
+
+// ---------------- gifts ----------------
+function sbRest(path, body) {
+  return fetch(SB_URL + "/rest/v1/" + path, { method: "POST",
+    headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify(body) })
+    .then(r => { if (!r.ok) throw new Error("server " + r.status); return r.text().then(t => t ? JSON.parse(t) : []); });
+}
+function needName() { setMsg("Set your name first (tap the Name chip at the top) so your friend knows who it is from.", "bad"); }
+function friendField() { return `<input id="giftTo" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Friend's in-game name" aria-label="Friend's name">`; }
+function readFriend() {
+  const to = cleanName($("giftTo").value);
+  if (!to) { $("giftHint").textContent = "Type your friend's in-game name."; return null; }
+  if (to.toLowerCase() === NAME.toLowerCase()) { $("giftHint").textContent = "That is your own name. Gifts are for friends!"; return null; }
+  return to;
+}
+function sendGift(to, kind, payload, what, undo) {
+  return sbRest("gifts", { to_name: to, from_name: NAME, kind, payload, game: "crazy-dads" }).then(() => {
+    closeBox(); setMsg(`🎁 Sent ${what} to ${to}! It arrives when their Crazy Dads game is open.`, "good");
+  }).catch(() => { undo(); save(); renderHUD(); renderShop(); closeBox(); setMsg("Could not reach the gift server, so nothing was taken. Try again in a minute.", "bad"); });
+}
+$("giftSocksBtn").onclick = () => {
+  if (!hasName()) return needName();
+  $("box").innerHTML = `<h3>Give socks</h3><p>You have <b style="color:var(--gold)">${S.socks}</b> socks.</p>${friendField()}
+    <input id="giftAmt" inputmode="numeric" autocomplete="off" placeholder="How many socks?" aria-label="Socks to give">
+    <p class="hint" id="giftHint">The socks leave your game when you press Send.</p>
+    <div class="row"><button class="small" id="giftGo" type="button">Send socks</button><button class="small alt" id="giftCancel" type="button">Cancel</button></div>`;
+  $("overlay").hidden = false; $("giftTo").focus();
+  const go = () => {
+    const to = readFriend(); if (!to) return;
+    const n = Math.floor(Number(($("giftAmt").value || "").replace(/[^0-9]/g, "")));
+    if (!n || n <= 0) { $("giftHint").textContent = "Type a number bigger than 0."; return; }
+    if (n > S.socks) { $("giftHint").textContent = `You only have ${S.socks} socks. You can only give what you have.`; return; }
+    S.socks -= n; save(); renderHUD(); $("giftGo").disabled = true; $("giftGo").textContent = "Sending…";
+    sendGift(to, "socks", { v: n }, n + " socks", () => { S.socks += n; });
+  };
+  $("giftGo").onclick = go; $("giftCancel").onclick = closeBox;
+  ["giftTo", "giftAmt"].forEach(id => $(id).addEventListener("keydown", e => { if (e.key === "Enter") go(); if (e.key === "Escape") closeBox(); }));
+};
+$("giftHatBtn").onclick = () => {
+  if (!hasName()) return needName();
+  const mine = S.hats.filter(h => h !== "none" && HAT[h]);
+  let chosen = null;
+  $("box").innerHTML = `<h3>Give a hat</h3>${friendField()}
+    <p class="hint">${mine.length ? "Pick the hat to give. It leaves your game when you press Send." : "You have no hats to give yet. Buy one in the Hat shop."}</p>
+    <div class="picks">${mine.map(h => `<button class="hat" data-h="${h}" type="button"><span class="e">${HAT[h].e}</span>${HAT[h].n}</button>`).join("")}</div>
+    <p class="hint" id="giftHint"></p>
+    <div class="row"><button class="small" id="giftGo" type="button" disabled>Pick a hat first</button><button class="small alt" id="giftCancel" type="button">Cancel</button></div>`;
+  $("overlay").hidden = false;
+  $("box").querySelectorAll(".picks .hat").forEach(b => b.onclick = () => { $("box").querySelectorAll(".picks .hat").forEach(x => x.classList.remove("sel")); b.classList.add("sel"); chosen = b.dataset.h; $("giftGo").disabled = false; $("giftGo").textContent = "Send the " + HAT[chosen].n; });
+  $("giftGo").onclick = () => {
+    if (!chosen) return; const to = readFriend(); if (!to) return;
+    const h = chosen, wasOn = S.hat === h;
+    S.hats = S.hats.filter(x => x !== h); if (wasOn) S.hat = "none";
+    const m = me(); if (m) m.hat = S.hat;
+    save(); renderShop(); $("giftGo").disabled = true; $("giftGo").textContent = "Sending…";
+    sendGift(to, "hat", { h }, "the " + HAT[h].n, () => { S.hats.push(h); if (wasOn) S.hat = h; });
+  };
+  $("giftCancel").onclick = closeBox;
+  $("giftTo").addEventListener("keydown", e => { if (e.key === "Escape") closeBox(); });
+};
+let claiming = false;
+function claimGifts() {
+  if (!hasName() || claiming || !navigator.onLine) return;
+  claiming = true;
+  sbRest("rpc/claim_game_gifts", { p_name: NAME, p_game: "crazy-dads" }).then(rows => {
+    claiming = false; if (!rows || !rows.length) return;
+    const got = [];
+    rows.forEach(g => {
+      const pl = g.payload || {}, from = safeName(g.from_name);
+      if (g.kind === "socks" && pl.v > 0) { const n = Math.floor(pl.v); S.socks += n; got.push(`${n} socks from ${from}`); }
+      else if (g.kind === "hat" && HAT[pl.h]) {
+        if (S.hats.includes(pl.h)) { S.socks += HAT[pl.h].p; got.push(`a ${HAT[pl.h].n} from ${from} (you already had one, so you got ${HAT[pl.h].p} socks instead)`); }
+        else { S.hats.push(pl.h); got.push(`a ${HAT[pl.h].n} from ${from}`); }
+      }
+    });
+    if (got.length) { save(); renderHUD(); renderShop(); setMsg("🎁 You got " + got.join(", ") + "!", "good"); }
+  }).catch(() => { claiming = false; });
+}
+
+// ---------------- start up ----------------
+{ const s = document.createElement("span"); s.id = "onlineLbl"; s.hidden = true; document.body.appendChild(s); }
+addEventListener("resize", () => { resize(); });
+// a hidden tab stops running, so leave the online game while hidden (someone else takes over) and rejoin on return
+document.addEventListener("visibilitychange", () => {
+  if (!playing) return;
+  if (document.hidden) { if (online) disconnect(); }
+  else if (!online) { joinT = Date.now(); connect(); }
+});
+renderHUD(); renderShop(); renderLobby(); resize();
+claimGifts(); setInterval(claimGifts, 20000); addEventListener("focus", claimGifts);
+if (window.Leaderboard) Leaderboard.mount({ el: "lb", game: "crazy-dads", dir: "desc", unit: "pts", max: 5000, title: "Crazy Dads — best round" });
+requestAnimationFrame(frame);
+// test hook
+window.__cd = { SPEED, E: () => E, tnts: () => tnts, summon: () => doAct(me(), "summon"), boss: () => boss, jar: () => jar, state: () => ({ phase, round, timeLeft, winner, isHost, online, bossHp: boss && boss.hp }), step: dt => { hostTick(dt); } };
+</script>
+</body>
+</html>

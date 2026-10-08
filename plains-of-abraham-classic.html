@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Plains of Abraham</title>
+<title>Plains of Abraham Classic</title>
 <meta property="og:title" content="Plains of Abraham · GH Games">
 <meta property="og:description" content="Quebec, 1759. Hold the red line, hold your fire until 40 yards, then give the French the perfect volley.">
 <meta property="og:image" content="https://ghgames.au/og/plains-of-abraham.png">
-<meta property="og:url" content="https://ghgames.au/plains-of-abraham.html">
+<meta property="og:url" content="https://ghgames.au/plains-of-abraham-classic.html">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#0c0e1d">
 <link rel="manifest" href="manifest.webmanifest">
@@ -15,7 +15,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="GH Games">
 <script src="analytics.js" defer></script>
-<script src="vendor/three.min.js"></script>
 <script src="account.js" data-game="plains-of-abraham"></script>
 <script src="phatcoin.js" data-game="plains-of-abraham" data-pos="bottom-right"></script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -165,20 +164,13 @@ body.side .orders2 .drill{grid-column:1/3}
 body.side .batbar{grid-template-columns:repeat(4,1fr)}
 body.side .bc.all small{display:none}
 .bb.watch{background:#2d6a8f;box-shadow:0 4px 0 #173a52}
-.stage{touch-action:none}
-.stage canvas{display:block}
-#hud{position:absolute;left:0;top:0;pointer-events:none}
-.camui{position:absolute;right:8px;bottom:8px;display:flex;gap:6px;z-index:2}
-.cb{font-family:var(--body);font-weight:900;font-size:13px;border:2px solid rgba(255,255,255,.25);border-radius:10px;padding:6px 10px;color:#fff;background:rgba(10,8,6,.62);cursor:pointer}
-.cb:active{transform:translateY(1px)}
-body.replaying .camui{bottom:8px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="top">
     <div>
-      <a class="home" href="index.html">&larr; GH Games</a> &nbsp;<a class="home" href="plains-of-abraham-classic.html">Play the Classic (2D) version</a>
+      <a class="home" href="index.html">&larr; GH Games</a> &nbsp;<a class="home" href="plains-of-abraham.html">Play the new 3D version</a>
       <h1>Plains of Abraham</h1>
       <div class="sub">Quebec · 13 September 1759 · Hold the line</div>
     </div>
@@ -192,7 +184,7 @@ body.replaying .camui{bottom:8px}
   </div>
 
   <div class="arena" id="arena">
-  <div class="stagebox"><div class="stage" id="stage"><canvas id="hud"></canvas><div class="camui"><button class="cb" id="viewBtn" aria-label="Change camera">🎥 Auto</button><button class="cb" id="homeCamBtn" aria-label="Reset camera">⟲</button></div></div></div>
+  <div class="stagebox"><div class="stage" id="stage"><canvas id="cv"></canvas></div></div>
   <div class="controls" id="controls">
 
   <div class="rbar" id="replayBar">
@@ -244,7 +236,6 @@ body.replaying .camui{bottom:8px}
       <li>Each battalion has a <b>discipline</b> bar. Low discipline means ragged volleys, men who <b>fire without orders</b>, or a battalion that runs away. Shout <b>STEADY, LADS!</b> to calm them.</li>
       <li>After a volley, tap <b>RELOAD DRILL</b> when the white marker is in the green to reload faster. Your smoke spoils the next shot, so <b>ADVANCE</b> through it.</li>
       <li>When a column is wavering, <b>CHARGE!</b> Two battalions charging the same column together are much harder to stop.</li>
-      <li><b>Camera.</b> Drag the battlefield to swing the camera round, pinch or use the mouse wheel to zoom, and slide two fingers (or right-drag, or the arrow keys) to move it. The 🎥 button switches between <b>Auto</b> (follows the action and drops low behind the redcoats for each volley), <b>Free</b> and <b>Redcoat</b> (stand in the line yourself). ⟲ puts it back. A tap without dragging still picks a battalion.</li>
       <li>Press <b>⏩</b> to speed the battle up. After the battle, <b>Watch replay</b> plays the whole fight back, and you can speed it up to 8x or jump to any moment.</li>
       <li>Win to earn shillings and buy upgrades. Get all three stars with a perfect volley, no broken battalions and nobody firing without orders.</li>
     </ul>
@@ -286,16 +277,6 @@ body.replaying .camui{bottom:8px}
   </div>
 </div>
 
-<!-- no 3D -->
-<div class="overlay" id="noglOv" hidden>
-  <div class="box">
-    <h2>3D won't start here</h2>
-    <p>This device or browser can't show the 3D battlefield (WebGL is switched off or not supported).</p>
-    <p><b>Play the Classic version instead.</b> It uses the same save, so your shillings, upgrades and victories are all there.</p>
-    <a class="bb again big" href="plains-of-abraham-classic.html" style="display:block;text-align:center;text-decoration:none">Play Classic</a>
-  </div>
-</div>
-
 <!-- upgrades -->
 <div class="overlay" id="upOv" hidden>
   <div class="box">
@@ -325,7 +306,6 @@ body.replaying .camui{bottom:8px}
 <script src="leaderboard.js"></script>
 <script>
 "use strict";
-(function () {
 const $ = id => document.getElementById(id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 // Two kinds of luck. RNG decides the battle and is seeded, so a replay plays out exactly the same.
@@ -416,7 +396,7 @@ function out(a, pan) { // where a sound plugs in; pan -1 left .. 1 right
   if (pan && a.createStereoPanner) { const p = a.createStereoPanner(); p.pan.value = clamp(pan, -1, 1); p.connect(MASTER); return p; }
   return MASTER;
 }
-const panX = x => clamp((500 - x) / 520, -1, 1); // 3D: low x is on the right, by the cliff
+const panX = x => clamp((x - 500) / 520, -1, 1);
 function noise(dur, freq, type, vol, q, when, pan) {
   const a = audio(); if (!a) return;
   const t = a.currentTime + (when || 0), src = a.createBufferSource(); src.buffer = NB;
@@ -571,258 +551,186 @@ const sfx = {
 };
 setInterval(() => { screamBudget = Math.max(0, screamBudget - 3); }, 1000);
 
+// ---------- canvas ----------
+const cv = $("cv"), ctx = cv.getContext("2d");
+let DPR = 1;
+// Fit the battlefield and every button on one screen: buttons below on a tall screen, beside it on a wide one.
+function resize() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  const vw = window.innerWidth, vh = window.innerHeight, body = document.body;
+  const side = vw > vh * 1.15 && vw >= 700;
+  body.classList.toggle("side", side);
+  body.classList.toggle("tight", vh < 740);
+  const arena = $("arena"), ctr = $("controls");
+  let maxW = arena.clientWidth, availH;
+  if (side) { maxW = arena.clientWidth - ctr.offsetWidth - 10; availH = vh - 16; }
+  else availH = vh - ctr.offsetHeight - 26;
+  const w = Math.round(Math.max(Math.min(260, maxW), Math.min(maxW, availH * W / H)));
+  $("stage").style.width = w + "px";
+  cv.width = Math.round(w * DPR); cv.height = Math.round(w * H / W * DPR);
+  cv.style.height = (w * H / W) + "px";
+}
+function battleMode(on) { document.body.classList.toggle("battle", on); resize(); if (on) window.scrollTo(0, 0); }
+const BG = document.createElement("canvas");
+function buildBG() {
+  BG.width = W * 2; BG.height = H * 2;
+  const c = BG.getContext("2d"); c.scale(2, 2);
+  const R = mulberry(1759);
+  // dawn sky over Quebec
+  let g = c.createLinearGradient(0, 0, 0, 82); g.addColorStop(0, "#6f7f94"); g.addColorStop(0.65, "#c9c3b8"); g.addColorStop(1, "#e2c9a2");
+  c.fillStyle = g; c.fillRect(0, 0, W, 82);
+  c.fillStyle = "rgba(255,240,215,.22)";
+  for (let i = 0; i < 9; i++) { c.beginPath(); c.ellipse(R() * W, 10 + R() * 30, 80 + R() * 90, 10 + R() * 8, 0, 0, Math.PI * 2); c.fill(); }
+  // Quebec on the skyline
+  c.fillStyle = "#6c7076";
+  c.fillRect(250, 56, 500, 22);
+  for (let i = 0; i < 26; i++) { const x = 255 + i * 19 + R() * 6, h = 8 + R() * 14; c.fillStyle = R() < 0.5 ? "#5a5e66" : "#676b72"; c.fillRect(x, 56 - h, 14, h); c.fillStyle = "#3f434a"; c.beginPath(); c.moveTo(x - 1, 56 - h); c.lineTo(x + 7, 50 - h); c.lineTo(x + 15, 56 - h); c.fill(); }
+  c.fillStyle = "#4f535a"; c.fillRect(468, 18, 10, 40); c.beginPath(); c.moveTo(466, 18); c.lineTo(473, 2); c.lineTo(480, 18); c.fill();
+  c.fillRect(612, 28, 8, 30); c.beginPath(); c.moveTo(610, 28); c.lineTo(616, 14); c.lineTo(622, 28); c.fill();
+  // walls with bastions
+  c.fillStyle = "#8a8578";
+  c.beginPath(); c.moveTo(230, 82); c.lineTo(250, 66); c.lineTo(330, 66); c.lineTo(345, 74); c.lineTo(360, 66); c.lineTo(640, 66); c.lineTo(655, 74); c.lineTo(670, 66); c.lineTo(750, 66); c.lineTo(770, 82); c.fill();
+  c.fillStyle = "#6f6a5f"; c.fillRect(230, 78, 540, 4);
+  // fields
+  g = c.createLinearGradient(0, 80, 0, H); g.addColorStop(0, "#8a9a5a"); g.addColorStop(0.4, "#6f8f41"); g.addColorStop(1, "#557d33");
+  c.fillStyle = g; c.fillRect(0, 80, W, H - 80);
+  // cornfield patches on the flanks
+  c.fillStyle = "rgba(214,184,92,.55)";
+  c.beginPath(); c.moveTo(60, 120); c.lineTo(220, 112); c.lineTo(150, 300); c.lineTo(40, 320); c.fill();
+  c.beginPath(); c.moveTo(800, 110); c.lineTo(950, 118); c.lineTo(960, 330); c.lineTo(860, 300); c.fill();
+  // grass strokes
+  for (let i = 0; i < 1600; i++) {
+    const y = 84 + Math.pow(R(), 0.8) * (H - 84), x = R() * W, s = 0.4 + (y / H);
+    c.strokeStyle = R() < 0.5 ? "rgba(40,70,20,.25)" : "rgba(170,190,110,.22)"; c.lineWidth = s;
+    c.beginPath(); c.moveTo(x, y); c.lineTo(x + (R() - 0.5) * 3 * s, y - 4 * s); c.stroke();
+  }
+  // bushes / tree lines on both flanks
+  for (let side = 0; side < 2; side++) {
+    for (let i = 0; i < 46; i++) {
+      const t = i / 45, y = 92 + t * 380, s = 0.5 + t * 1.1;
+      const x = side ? W - (8 + R() * 50 * s) : 8 + R() * 50 * s;
+      c.fillStyle = ["#2f4a22", "#38552a", "#2a4120", "#41602e"][Math.floor(R() * 4)];
+      c.beginPath(); c.arc(x, y, (10 + R() * 12) * s, 0, Math.PI * 2); c.fill();
+    }
+  }
+  // cliff and the St Lawrence behind the British line, with the fleet at anchor
+  c.fillStyle = "#4e6d2c"; c.fillRect(0, 560, W, 60);
+  c.fillStyle = "#7a6a52";
+  c.beginPath(); c.moveTo(0, 590); for (let x = 0; x <= W; x += 25) c.lineTo(x, 586 + R() * 8); c.lineTo(W, 620); c.lineTo(0, 620); c.fill();
+  g = c.createLinearGradient(0, 600, 0, 620); g.addColorStop(0, "#4f7392"); g.addColorStop(1, "#3a5a78");
+  c.fillStyle = g; c.beginPath(); c.moveTo(0, 604); for (let x = 0; x <= W; x += 25) c.lineTo(x, 600 + R() * 5); c.lineTo(W, 620); c.lineTo(0, 620); c.fill();
+  for (const sx of [120, 340, 700, 880]) {
+    c.fillStyle = "#3a2716"; c.fillRect(sx - 14, 608, 28, 4);
+    c.strokeStyle = "#2a1c10"; c.lineWidth = 1; c.beginPath(); c.moveTo(sx - 5, 608); c.lineTo(sx - 5, 596); c.moveTo(sx + 5, 608); c.lineTo(sx + 5, 594); c.stroke();
+    c.fillStyle = "#e8e2d2"; c.fillRect(sx - 9, 598, 7, 6); c.fillRect(sx + 1, 596, 8, 7);
+  }
+}
+buildBG();
 
-
-// ======================================================================
-// 3D battlefield (three.js). Looks only: nothing below changes the battle,
-// so the replay, the save and the rules are exactly the same as Classic.
-// ======================================================================
-let renderer = null;
-try { if (window.THREE) renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" }); } catch (e) { renderer = null; }
-if (!renderer || !renderer.getContext()) { $("startOv").hidden = true; $("noglOv").hidden = false; return; }
-const COARSE = matchMedia("(pointer:coarse)").matches;
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, COARSE ? 1.6 : 2));
-renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-const cv = renderer.domElement; cv.id = "cv";
-const stageEl = $("stage"); stageEl.insertBefore(cv, stageEl.firstChild);
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(50, W / H, 2, 12000);
-
-// Game x runs along the line (0..1000) and d is yards towards the French.
-// In 3D the British look down -Z. The Louisbourg Grenadiers (low x) sit on the right of the line by
-// the cliff and the St Lawrence, with Wolfe beside them, as on the day.
-const ZS = 2.5, SC = 1.8, RANK = 7.5, COLROW = 1.6 * ZS;
-const WX = x => 500 - x;
-const WZ = d => -d * ZS;
-
-// ---------- light, sky, fog ----------
-const hemi = new THREE.HemisphereLight(0xe6edf7, 0x58683a, 0.82); scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xffe0b0, 0.78); sun.castShadow = true;
-const SM = COARSE ? 1024 : 2048; sun.shadow.mapSize.set(SM, SM); sun.shadow.bias = -0.0009;
-scene.add(sun); scene.add(sun.target);
-const SUN_DIR = new THREE.Vector3(-0.42, 0.6, -0.68).normalize();
-let shadowHalf = 0;
-function aimSun(cx, cz, half) {
-  sun.target.position.set(cx, 0, cz);
-  sun.position.set(cx + SUN_DIR.x * 1400, SUN_DIR.y * 1400, cz + SUN_DIR.z * 1400);
-  if (Math.abs(half - shadowHalf) > 8) {
-    shadowHalf = half; const c = sun.shadow.camera;
-    c.left = -half; c.right = half; c.top = half; c.bottom = -half; c.near = 200; c.far = 3200; c.updateProjectionMatrix();
+// ---------- soldiers ----------
+const COAT = { red: "#c4202c", gren: "#c4202c", high: "#c4202c", gen: "#b51c27", fr: "#e7e2d4", mil: "#7d5f3f", art: "#1f2f6e" };
+function drawSoldier(x, y, s, kind, pose, flash, bayo) {
+  const c = ctx;
+  if (pose === "lie") { // prone, seen from behind
+    c.fillStyle = "#2a2a2a"; c.fillRect(x - 2.2 * s, y - 3 * s, 4.4 * s, 3 * s);
+    c.fillStyle = COAT[kind]; c.fillRect(x - 2.8 * s, y - 10 * s, 5.6 * s, 7.5 * s);
+    c.fillStyle = kind === "high" ? "#22305c" : "#141414"; c.beginPath(); c.ellipse(x, y - 11 * s, 3 * s, 1.6 * s, 0, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = "#5a3a1e"; c.lineWidth = 1.1 * s; c.beginPath(); c.moveTo(x + 2.5 * s, y - 3 * s); c.lineTo(x + 1 * s, y - 15 * s); c.stroke();
+    return;
+  }
+  const french = kind === "fr" || kind === "mil";
+  // legs
+  c.fillStyle = french ? "#d9d3c2" : (kind === "high" ? "#e2b48c" : "#d9cfae");
+  c.fillRect(x - 3 * s, y - 8 * s, 2.5 * s, 4 * s); c.fillRect(x + 0.5 * s, y - 8 * s, 2.5 * s, 4 * s);
+  c.fillStyle = kind === "high" ? "#b8323a" : "#232323";
+  c.fillRect(x - 3 * s, y - 4 * s, 2.5 * s, 4 * s); c.fillRect(x + 0.5 * s, y - 4 * s, 2.5 * s, 4 * s);
+  // coat
+  c.fillStyle = COAT[kind];
+  c.fillRect(x - 3.8 * s, y - 16 * s, 7.6 * s, 9 * s);
+  if (kind === "high") { c.fillStyle = "#1e3a2b"; c.fillRect(x - 3.9 * s, y - 9 * s, 7.8 * s, 3.6 * s); c.fillStyle = "#2b2f55"; c.fillRect(x - 3.9 * s, y - 7.6 * s, 7.8 * s, 0.8 * s); }
+  if (kind === "gen") { c.fillStyle = "#e3b341"; c.fillRect(x - 3.8 * s, y - 16 * s, 7.6 * s, 1 * s); c.fillRect(x - 0.5 * s, y - 16 * s, 1 * s, 9 * s); }
+  else if (french) { if (kind === "fr") { c.fillStyle = "#2d4f9e"; c.fillRect(x - 1.2 * s, y - 15.5 * s, 2.4 * s, 7 * s); } }
+  else if (kind !== "art") { c.strokeStyle = "#f2efe6"; c.lineWidth = 0.9 * s; c.beginPath(); c.moveTo(x - 3.4 * s, y - 15.5 * s); c.lineTo(x + 3.4 * s, y - 8.5 * s); c.moveTo(x + 3.4 * s, y - 15.5 * s); c.lineTo(x - 3.4 * s, y - 8.5 * s); c.stroke(); }
+  // head
+  c.fillStyle = french ? "#e8b893" : "#8a6a4a"; // British seen from behind: hair
+  c.beginPath(); c.arc(x, y - 18 * s, 2.3 * s, 0, Math.PI * 2); c.fill();
+  if (french) { c.fillStyle = "#2b1d14"; c.fillRect(x - 1.1 * s, y - 18.4 * s, 0.7 * s, 0.7 * s); c.fillRect(x + 0.4 * s, y - 18.4 * s, 0.7 * s, 0.7 * s); }
+  // hats
+  if (kind === "gren") { c.fillStyle = "#c4202c"; c.beginPath(); c.moveTo(x - 2.6 * s, y - 19.5 * s); c.lineTo(x, y - 27 * s); c.lineTo(x + 2.6 * s, y - 19.5 * s); c.fill(); c.fillStyle = "#f2efe6"; c.fillRect(x - 2.6 * s, y - 20.3 * s, 5.2 * s, 1 * s); }
+  else if (kind === "high") { c.fillStyle = "#22305c"; c.beginPath(); c.ellipse(x, y - 20 * s, 3.3 * s, 1.5 * s, 0, 0, Math.PI * 2); c.fill(); }
+  else if (kind === "mil") { c.fillStyle = "#b8322f"; c.beginPath(); c.moveTo(x - 2.4 * s, y - 19.5 * s); c.quadraticCurveTo(x + 4 * s, y - 24 * s, x + 2.4 * s, y - 19.5 * s); c.fill(); }
+  else { c.fillStyle = "#151515"; c.beginPath(); c.ellipse(x, y - 20.2 * s, 3.6 * s, 1.6 * s, 0, 0, Math.PI * 2); c.fill(); if (kind === "fr" || kind === "gen") { c.strokeStyle = kind === "gen" ? "#e3b341" : "#f1ead2"; c.lineWidth = 0.5 * s; c.stroke(); } }
+  if (kind === "gen" || kind === "art") return; // the general carries a sword, gunners no musket
+  // musket
+  c.lineWidth = 1.2 * s; c.strokeStyle = "#5a3a1e";
+  c.beginPath();
+  if (pose === "present" || pose === "fire") { c.moveTo(x + 2.5 * s, y - 15 * s); c.lineTo(x + 0.8 * s, y - 27 * s); }
+  else if (pose === "charge") { c.moveTo(x + 3 * s, y - 11 * s); c.lineTo(x - 2 * s, y - 25 * s); }
+  else if (french) { c.moveTo(x - 3.6 * s, y - 9 * s); c.lineTo(x - 4.6 * s, y - 27 * s); }
+  else { c.moveTo(x + 3.6 * s, y - 9 * s); c.lineTo(x + 4.6 * s, y - 27 * s); }
+  c.stroke();
+  if (bayo && pose !== "charge") { // fixed bayonet glinting on the muzzle
+    c.strokeStyle = "#e4e9ef"; c.lineWidth = 0.75 * s; c.beginPath();
+    if (pose === "present" || pose === "fire") { c.moveTo(x + 0.8 * s, y - 27 * s); c.lineTo(x + 0.55 * s, y - 31.5 * s); }
+    else { c.moveTo(x + 4.6 * s, y - 27 * s); c.lineTo(x + 4.9 * s, y - 31.5 * s); }
+    c.stroke();
+  }
+  if (pose === "charge") { c.strokeStyle = "#d8dde4"; c.lineWidth = 0.8 * s; c.beginPath(); c.moveTo(x - 2 * s, y - 25 * s); c.lineTo(x - 3 * s, y - 29 * s); c.stroke(); }
+  if (pose === "present" || pose === "fire") { c.fillStyle = COAT[kind]; c.fillRect(x + 1.2 * s, y - 17 * s, 2.4 * s, 4 * s); }
+  if (flash) {
+    c.fillStyle = "rgba(255,226,120,.95)"; c.beginPath(); c.arc(x + 0.8 * s, y - 28.5 * s, 3.4 * s, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "rgba(255,140,40,.8)"; c.beginPath(); c.arc(x + 0.8 * s, y - 29 * s, 1.8 * s, 0, Math.PI * 2); c.fill();
   }
 }
-const flashLight = new THREE.PointLight(0xffc870, 0, 520, 1); flashLight.position.set(0, 20, -20); scene.add(flashLight);
-const skyU = { top: { value: new THREE.Color(0x5f7a9c) }, mid: { value: new THREE.Color(0xc4c3c2) }, bot: { value: new THREE.Color(0xf2d6ad) }, sd: { value: SUN_DIR.clone() } };
-const sky = new THREE.Mesh(new THREE.SphereGeometry(6000, 24, 14), new THREE.ShaderMaterial({
-  uniforms: skyU, side: THREE.BackSide, depthWrite: false, fog: false,
-  vertexShader: "varying vec3 vP;void main(){vP=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}",
-  fragmentShader: "uniform vec3 top;uniform vec3 mid;uniform vec3 bot;uniform vec3 sd;varying vec3 vP;void main(){float k=vP.y;vec3 c=k<0.1?mix(bot,mid,smoothstep(-0.05,0.1,k)):mix(mid,top,smoothstep(0.1,0.65,k));float s=max(dot(vP,normalize(vec3(sd.x,0.25,sd.z))),0.0);c+=vec3(1.0,0.78,0.5)*pow(s,10.0)*0.35;gl_FragColor=vec4(c,1.0);}"
-}));
-sky.renderOrder = -10; sky.frustumCulled = false; scene.add(sky);
-scene.fog = new THREE.Fog(0xdccfb9, 1700, 7000);
-
-// ---------- helpers ----------
-function cnv(w, h) { const c = document.createElement("canvas"); c.width = w; c.height = h; return [c, c.getContext("2d")]; }
-function tex(c, rep) { const t = new THREE.CanvasTexture(c); t.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy()); if (rep) { t.wrapS = t.wrapT = THREE.RepeatWrapping; } return t; }
-function boxGeo(w, h, d, s) {
-  const g = new THREE.BoxGeometry(w, h, d), uv = g.attributes.uv, dims = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
-  for (let f = 0; f < 6; f++) for (let v = 0; v < 4; v++) { const i = f * 4 + v; uv.setXY(i, uv.getX(i) * dims[f][0] / s, uv.getY(i) * dims[f][1] / s); }
-  return g;
+// a horse and rider, side on; dir 1 faces right
+function drawHorse(x, y, s, ph, dir, coat, hat, sabre, gallop) {
+  const c = ctx, la = gallop ? Math.sin(ph) * 3.2 * s : Math.sin(ph) * 1.2 * s;
+  c.fillStyle = "rgba(0,0,0,.18)"; c.beginPath(); c.ellipse(x, y, 10 * s, 2 * s, 0, 0, 7); c.fill();
+  c.strokeStyle = "#3b2414"; c.lineWidth = 1.7 * s; c.beginPath();
+  c.moveTo(x - 5 * s, y - 7 * s); c.lineTo(x - 5 * s + la, y);
+  c.moveTo(x - 3 * s, y - 7 * s); c.lineTo(x - 3 * s - la, y);
+  c.moveTo(x + 4 * s, y - 7 * s); c.lineTo(x + 4 * s - la, y);
+  c.moveTo(x + 6 * s, y - 7 * s); c.lineTo(x + 6 * s + la, y);
+  c.stroke();
+  c.fillStyle = "#5c3a22"; c.beginPath(); c.ellipse(x, y - 9.5 * s, 8.5 * s, 3.8 * s, 0, 0, 7); c.fill();
+  c.beginPath(); c.moveTo(x + dir * 5.5 * s, y - 12 * s); c.lineTo(x + dir * 10 * s, y - 18.5 * s); c.lineTo(x + dir * 13 * s, y - 16.8 * s); c.lineTo(x + dir * 8.5 * s, y - 9.5 * s); c.closePath(); c.fill();
+  c.strokeStyle = "#2a180c"; c.lineWidth = 1.5 * s; c.beginPath(); c.moveTo(x - dir * 8.2 * s, y - 11 * s); c.lineTo(x - dir * 11 * s, y - 5 * s); c.stroke();
+  c.fillStyle = coat; c.fillRect(x - 2.4 * s, y - 20 * s, 4.8 * s, 8.5 * s);
+  c.fillStyle = "#e8b893"; c.beginPath(); c.arc(x, y - 22 * s, 2 * s, 0, 7); c.fill();
+  c.fillStyle = hat; c.beginPath(); c.ellipse(x, y - 23.7 * s, 3.2 * s, 1.4 * s, 0, 0, 7); c.fill();
+  if (sabre) { c.strokeStyle = "#dfe5ec"; c.lineWidth = 0.9 * s; c.beginPath(); c.moveTo(x + dir * 2 * s, y - 18 * s); c.lineTo(x + dir * 8 * s, y - 28 * s); c.stroke(); }
 }
-const lam = (hex, o) => new THREE.MeshLambertMaterial(Object.assign({ color: hex }, o || {}));
-function mesh(geo, mat, x, y, z, shadow) { const m = new THREE.Mesh(geo, mat); m.position.set(x || 0, y || 0, z || 0); if (shadow !== false) { m.castShadow = true; m.receiveShadow = true; } return m; }
-const _p = new THREE.Vector3(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _s = new THREE.Vector3(), _v = new THREE.Vector3();
-function mk(x, y, z, rx, ry, rz, sx, sy, sz) {
-  _e.set(rx || 0, ry || 0, rz || 0, "YXZ"); _q.setFromEuler(_e); _p.set(x, y, z); _s.set(sx || 1, sy || sx || 1, sz || sx || 1);
-  return new THREE.Matrix4().compose(_p, _q, _s);
-}
-function setM(m, x, y, z, rx, ry, rz, s) { _e.set(rx, ry, rz, "YXZ"); _q.setFromEuler(_e); _p.set(x, y, z); _s.set(s, s, s); return m.compose(_p, _q, _s); }
-function hash(i) { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
-const STONE = (() => {
-  const [c, g] = cnv(128, 128); g.fillStyle = "#fff"; g.fillRect(0, 0, 128, 128);
-  for (let r = 0; r < 8; r++) for (let k = 0; k < 4; k++) {
-    const x = k * 32 + (r % 2) * 16, y = r * 16; g.fillStyle = "rgba(0,0,0," + (0.03 + 0.09 * hash(r * 7 + k)).toFixed(3) + ")"; g.fillRect(x + 1, y + 1, 30, 14);
+function drawBody(b) {
+  const s = sOf(b.d), x = xOf(b.x, b.d), y = yOf(b.d) + b.py * s;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(b.rot);
+  if (b.kind === "horse") {
+    ctx.fillStyle = "#4a2f1c"; ctx.beginPath(); ctx.ellipse(0, -2 * s, 8 * s, 3 * s, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#3b2414"; ctx.lineWidth = 1.4 * s; ctx.beginPath(); ctx.moveTo(-4 * s, -3 * s); ctx.lineTo(-8 * s, -7 * s); ctx.moveTo(3 * s, -3 * s); ctx.lineTo(7 * s, -6 * s); ctx.stroke();
+    ctx.restore(); return;
   }
-  g.fillStyle = "rgba(0,0,0,.28)"; for (let r = 0; r <= 8; r++) g.fillRect(0, r * 16, 128, 1.5);
-  for (let r = 0; r < 8; r++) for (let k = 0; k <= 4; k++) g.fillRect(k * 32 + (r % 2) * 16, r * 16, 1.5, 16);
-  return tex(c, true);
-})();
-
-// ---------- the ground: the plain, the cliff and the river ----------
-function edgeX(z) { return 650 + 28 * Math.sin(z / 160) + 14 * Math.sin(z / 51 + 1); }
-const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
-function groundH(x, z) {
-  const e = edgeX(z);
-  if (x > e) return x > 2100 ? -86 + sstep(2100, 2600, x) * (120 + 30 * Math.sin(z / 380)) : -86;
-  const out = Math.max(-620 - x, -2300 - z, z - 450, 0);
-  let h = sstep(0, 320, out) * (16 + 14 * Math.sin(x / 230 + 1.3) * Math.sin(z / 190));
-  if (x < -900) h -= sstep(-900, -1500, x) * 40;                         // down towards the St Charles
-  h += sstep(-1650, -1800, z) * sstep(-700, 300, x) * 16;                // the town stands higher, on Cap Diamant
-  h -= sstep(e - 60, e, x) * h;                                          // flat at the cliff top
-  return h;
+  ctx.fillStyle = "rgba(0,0,0,.18)"; ctx.fillRect(-7 * s, -1 * s, 14 * s, 4 * s);
+  ctx.fillStyle = COAT[b.kind] || "#2d4f9e"; ctx.fillRect(-5 * s, -2.5 * s, 8 * s, 4.5 * s);
+  ctx.fillStyle = b.kind === "mil" ? "#b8322f" : (b.kind === "high" ? "#22305c" : "#151515"); ctx.fillRect(3 * s, -2.2 * s, 3 * s, 3.6 * s);
+  ctx.fillStyle = "#2a2a2a"; ctx.fillRect(-8 * s, -1.6 * s, 3.4 * s, 2.6 * s);
+  ctx.restore();
 }
-const GX0 = -2800, GX1 = 2900, GZ0 = -5400, GZ1 = 2200;
-const ground = (() => {
-  const SEG = COARSE ? 120 : 160;
-  const g = new THREE.PlaneGeometry(GX1 - GX0, GZ1 - GZ0, SEG, SEG); g.rotateX(-Math.PI / 2); g.translate((GX0 + GX1) / 2, 0, (GZ0 + GZ1) / 2);
-  const p = g.attributes.position;
-  for (let i = 0; i < p.count; i++) p.setY(i, groundH(p.getX(i), p.getZ(i)));
-  g.computeVertexNormals();
-  // painted map: grass, cornfields, the road to Quebec, the rocky cliff
-  const N = 2048, [c, cx] = cnv(N, N), R = mulberry(1759);
-  const U = x => (x - GX0) / (GX1 - GX0) * N, V = z => (z - GZ0) / (GZ1 - GZ0) * N;
-  let gr = cx.createLinearGradient(0, 0, 0, N); gr.addColorStop(0, "#7f9150"); gr.addColorStop(0.5, "#6c8a3d"); gr.addColorStop(1, "#5e8236");
-  cx.fillStyle = gr; cx.fillRect(0, 0, N, N);
-  for (let i = 0; i < 26000; i++) { const x = R() * N, y = R() * N; cx.fillStyle = R() < 0.5 ? "rgba(40,66,20,.16)" : "rgba(176,190,112,.14)"; cx.fillRect(x, y, 2 + R() * 5, 1 + R() * 3); }
-  for (let i = 0; i < 90; i++) { const x = R() * N, y = R() * N; cx.fillStyle = R() < 0.5 ? "rgba(60,80,30,.12)" : "rgba(200,190,120,.10)"; cx.beginPath(); cx.ellipse(x, y, 20 + R() * 60, 10 + R() * 40, R() * 3, 0, 7); cx.fill(); }
-  const poly = (pts, col) => { cx.fillStyle = col; cx.beginPath(); pts.forEach((q, i) => i ? cx.lineTo(U(q[0]), V(q[1])) : cx.moveTo(U(q[0]), V(q[1]))); cx.closePath(); cx.fill(); };
-  // ripe cornfields on both flanks (it was harvest time)
-  poly([[-600, -600], [-430, -640], [-410, -1400], [-620, -1500]], "#c9ad5a");
-  poly([[440, -560], [600, -540], [610, -1400], [420, -1320]], "#c9ad5a");
-  poly([[-760, 300], [-560, 280], [-560, -150], [-770, -120]], "#b8a052");
-  for (let i = 0; i < 900; i++) { const x = U(-620 + R() * 1230), y = V(-1500 + R() * 950); cx.fillStyle = "rgba(120,92,30,.18)"; cx.fillRect(x, y, 1, 4); }
-  // the road from Sillery to the Saint-Louis gate
-  cx.strokeStyle = "rgba(140,112,74,.75)"; cx.lineWidth = 7; cx.lineCap = "round"; cx.beginPath(); cx.moveTo(U(-80), V(2200)); cx.bezierCurveTo(U(-200), V(600), U(-30), V(-700), U(-120), V(-1770)); cx.stroke();
-  cx.strokeStyle = "rgba(120,96,64,.35)"; cx.lineWidth = 12; cx.stroke();
-  // the ditch in front of the walls
-  cx.fillStyle = "rgba(70,60,40,.5)"; cx.fillRect(U(-760), V(-1736), U(700) - U(-760), 9);
-  // rock along the cliff and the river floor
-  for (let z = GZ0; z < GZ1; z += 8) {
-    const e = edgeX(z); cx.fillStyle = "#857762"; cx.fillRect(U(e - 14), V(z), U(e + 70) - U(e - 14), 4);
-    cx.fillStyle = "rgba(60,52,40,.5)"; cx.fillRect(U(e + R() * 40), V(z), 3 + R() * 6, 3);
+function drawFlag(x, y, s, french, t) {
+  ctx.strokeStyle = "#3d2a17"; ctx.lineWidth = 1.4 * s;
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 40 * s); ctx.stroke();
+  const fw = 20 * s, fh = 13 * s, fx = x, fy = y - 40 * s, wave = Math.sin(t * 4 + x) * 1.5 * s;
+  ctx.save(); ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx + fw, fy + wave); ctx.lineTo(fx + fw, fy + fh + wave); ctx.lineTo(fx, fy + fh); ctx.closePath(); ctx.clip();
+  if (french) {
+    ctx.fillStyle = "#f6f3ea"; ctx.fillRect(fx, fy - 3 * s, fw, fh + 6 * s);
+    ctx.fillStyle = "#c9a43a"; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(fx + 5 * s + i * 5 * s, fy + 6.5 * s + wave * 0.5, 1.2 * s, 0, Math.PI * 2); ctx.fill(); }
+  } else { // 1707 Union flag: St George and St Andrew (no St Patrick's cross yet)
+    ctx.fillStyle = "#1d3b8a"; ctx.fillRect(fx, fy - 3 * s, fw, fh + 6 * s);
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2.6 * s; ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx + fw, fy + fh + wave); ctx.moveTo(fx + fw, fy + wave); ctx.lineTo(fx, fy + fh); ctx.stroke();
+    ctx.fillStyle = "#fff"; ctx.fillRect(fx, fy + fh / 2 - 2.6 * s + wave / 2, fw, 5.2 * s); ctx.fillRect(fx + fw / 2 - 2.6 * s, fy - 3 * s, 5.2 * s, fh + 6 * s);
+    ctx.fillStyle = "#c8102e"; ctx.fillRect(fx, fy + fh / 2 - 1.5 * s + wave / 2, fw, 3 * s); ctx.fillRect(fx + fw / 2 - 1.5 * s, fy - 3 * s, 3 * s, fh + 6 * s);
   }
-  cx.fillStyle = "#3e5b6c"; cx.fillRect(U(760), 0, U(2150) - U(760), N);
-  const t = tex(c); t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-  const m = new THREE.Mesh(g, lam(0xffffff, { map: t })); m.receiveShadow = true; scene.add(m);
-  return m;
-})();
-// the St Lawrence
-const WATERT = (() => {
-  const [c, g] = cnv(128, 128); g.fillStyle = "#fff"; g.fillRect(0, 0, 128, 128);
-  for (let i = 0; i < 70; i++) { g.fillStyle = "rgba(160,190,210,.6)"; g.fillRect(hash(i) * 128, hash(i + 9) * 128, 8 + hash(i + 3) * 18, 1.5); }
-  return tex(c, true);
-})();
-WATERT.repeat.set(40, 60);
-const water = new THREE.Mesh(new THREE.PlaneGeometry(2400, GZ1 - GZ0), new THREE.MeshPhongMaterial({ color: 0x4d6f88, map: WATERT, shininess: 60, specular: 0x556677 }));
-water.rotation.x = -Math.PI / 2; water.position.set(1700, -74, (GZ0 + GZ1) / 2); water.receiveShadow = true; scene.add(water);
-// far hills, the Laurentians beyond the St Charles
-{
-  const hm = lam(0x6f8a72);
-  for (let i = 0; i < 9; i++) { const s = mesh(new THREE.SphereGeometry(1, 14, 8), hm, -2600 + i * 360, -60, -5100 - hash(i) * 300, false); s.scale.set(380 + hash(i + 4) * 260, 140 + hash(i + 2) * 160, 300); scene.add(s); }
+  ctx.restore();
 }
-// boulders and scrub on the cliff face
-const RNGv = mulberry(77);
-{
-  const n = 160, rock = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1, 0), lam(0x8a7d68), n), m = new THREE.Matrix4();
-  for (let i = 0; i < n; i++) { const z = -2200 + RNGv() * 4100, e = edgeX(z) + 6 + RNGv() * 40; setM(m, e, -RNGv() * 70, z, RNGv() * 3, RNGv() * 3, 0, 6 + RNGv() * 10); rock.setMatrixAt(i, m); }
-  rock.castShadow = true; rock.receiveShadow = true; scene.add(rock);
-}
-
-// ---------- trees, bushes, corn ----------
-function forest() {
-  const spots = [], R = mulberry(5);
-  const add = (x, z, k) => spots.push([x, z, k]);
-  for (let i = 0; i < 260; i++) add(-650 - R() * 1300, -2000 + R() * 2900, R() < 0.55 ? 1 : 0);       // woods to the left
-  for (let i = 0; i < 70; i++) { const z = -2000 + R() * 2600; add(edgeX(z) - 10 - R() * 60, z, 0); } // scrub on the cliff top
-  for (let i = 0; i < 70; i++) add(-500 + R() * 1100, 360 + R() * 900, R() < 0.4 ? 1 : 0);          // behind the British line
-  for (let i = 0; i < 60; i++) add(2150 + R() * 700, -5000 + R() * 7000, 1);                         // the far shore at Levis
-  return spots;
-}
-{
-  const spots = forest(), n = spots.length, m = new THREE.Matrix4(), col = new THREE.Color();
-  const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(1.2, 1.8, 14, 5), lam(0x5a4028), n);
-  const leaf = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(10, 0), lam(0xffffff), n);
-  const pine = new THREE.InstancedMesh(new THREE.ConeGeometry(9, 30, 6), lam(0xffffff), n);
-  let nl = 0, np = 0;
-  spots.forEach(([x, z, k], i) => {
-    const y = groundH(x, z), s = 0.8 + hash(i) * 0.9;
-    setM(m, x, y + 7 * s, z, 0, 0, 0, s); trunk.setMatrixAt(i, m);
-    if (k) { setM(m, x, y + 22 * s, z, hash(i + 1), hash(i + 2) * 3, 0, s * (1 + hash(i + 5) * 0.3)); leaf.setMatrixAt(nl, m); leaf.setColorAt(nl, col.setHSL(0.24 + hash(i + 3) * 0.1, 0.42, 0.24 + hash(i + 4) * 0.1)); nl++; }
-    else { setM(m, x, y + 26 * s, z, 0, hash(i) * 3, 0, s); pine.setMatrixAt(np, m); pine.setColorAt(np, col.setHSL(0.33 + hash(i + 3) * 0.06, 0.38, 0.18 + hash(i + 4) * 0.08)); np++; }
-  });
-  leaf.count = nl; pine.count = np;
-  for (const q of [trunk, leaf, pine]) { q.castShadow = true; q.receiveShadow = true; scene.add(q); }
-  // bushes on both flanks where the Canadian militia and the warriors hid
-  const nb = 150, bush = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1, 0), lam(0xffffff), nb), R = mulberry(9);
-  for (let i = 0; i < nb; i++) {
-    const side = i % 2 ? 1 : -1, x = side * (440 + R() * 110), z = -50 - R() * 800, s = 6 + R() * 7;
-    setM(m, x, s * 0.45, z, R(), R() * 3, 0, s); bush.setMatrixAt(i, m); bush.setColorAt(i, col.setHSL(0.25 + R() * 0.08, 0.4, 0.2 + R() * 0.1));
-  }
-  bush.castShadow = true; bush.receiveShadow = true; scene.add(bush);
-  // corn stooks in the fields
-  const nc = 420, corn = new THREE.InstancedMesh(new THREE.ConeGeometry(1.8, 6, 5), lam(0xd2b45e), nc);
-  for (let i = 0; i < nc; i++) {
-    const left = i % 2, x = left ? -600 + R() * 170 : 440 + R() * 160, z = -600 - R() * 850;
-    setM(m, x, 3, z, 0, R() * 3, 0, 0.8 + R() * 0.5); corn.setMatrixAt(i, m);
-  }
-  corn.castShadow = true; corn.receiveShadow = true; scene.add(corn);
-}
-// farmhouses on the flanks
-function house(x, z, w, d, h, wallHex, roofHex, rot) {
-  const g = new THREE.Group(), y = groundH(x, z);
-  const body = mesh(boxGeo(w, h, d, 8), lam(wallHex, { map: STONE }), 0, h / 2, 0); g.add(body);
-  const sh = new THREE.Shape(); sh.moveTo(-d / 2 - 1, 0); sh.lineTo(0, h * 0.75); sh.lineTo(d / 2 + 1, 0); sh.lineTo(-d / 2 - 1, 0);
-  const rg = new THREE.ExtrudeGeometry(sh, { depth: w + 2, bevelEnabled: false }); rg.translate(0, 0, -(w + 2) / 2); rg.rotateY(Math.PI / 2);
-  g.add(mesh(rg, lam(roofHex), 0, h, 0));
-  g.add(mesh(new THREE.BoxGeometry(3, 8, 3), lam(0x6d665c), w * 0.3, h + h * 0.5, 0));
-  g.position.set(x, y, z); g.rotation.y = rot || 0; scene.add(g); return g;
-}
-house(-560, -300, 26, 16, 12, 0xd8d0bf, 0x4a4038, 0.2);
-house(-680, -1100, 22, 14, 11, 0xcfc6b2, 0x564836, -0.3);
-house(540, -1600, 24, 15, 12, 0xd8d0bf, 0x4a4038, 0.5);
-
-// ---------- Quebec: walls, bastions and the town on the rock ----------
-{
-  const WZW = -1750, wallH = 20, wm = lam(0xa49b8a, { map: STONE }), R = mulberry(1608);
-  const x0 = -760, x1 = edgeX(WZW) - 6;
-  const cur = mesh(boxGeo(x1 - x0, wallH + 8, 14, 10), wm, (x0 + x1) / 2, groundH(0, WZW) + wallH / 2 - 4, WZW);
-  scene.add(cur);
-  for (const bx of [-600, -280, 40, 360]) { // pointed bastions facing the Plains
-    const sh = new THREE.Shape(); sh.moveTo(-40, 0); sh.lineTo(-40, 26); sh.lineTo(0, 60); sh.lineTo(40, 26); sh.lineTo(40, 0); sh.lineTo(-40, 0);
-    const g = new THREE.ExtrudeGeometry(sh, { depth: wallH + 4, bevelEnabled: false }); g.rotateX(-Math.PI / 2);
-    const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 10, uv.getY(i) / 10);
-    const b = mesh(g, wm, bx, groundH(bx, WZW) - 4, WZW + 4); scene.add(b);
-  }
-  // the Saint-Louis and Saint-Jean gates
-  for (const gx of [-120, -440]) { scene.add(mesh(new THREE.BoxGeometry(14, 14, 3), lam(0x2b2622), gx, groundH(gx, WZW) + 3, WZW + 7.6)); scene.add(mesh(new THREE.BoxGeometry(22, 8, 16), lam(0x9b9282, { map: STONE }), gx, groundH(gx, WZW) + wallH + 6, WZW)); }
-  // the houses of the upper town
-  const n = 150, hb = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), lam(0xffffff, { map: STONE }), n);
-  const rgShape = new THREE.Shape(); rgShape.moveTo(-0.5, 0); rgShape.lineTo(0, 0.6); rgShape.lineTo(0.5, 0); rgShape.lineTo(-0.5, 0);
-  const rg = new THREE.ExtrudeGeometry(rgShape, { depth: 1, bevelEnabled: false }); rg.translate(0, 0, -0.5); rg.rotateY(Math.PI / 2);
-  const rf = new THREE.InstancedMesh(rg, lam(0xffffff), n), m = new THREE.Matrix4(), col = new THREE.Color();
-  for (let i = 0; i < n; i++) {
-    const x = -650 + R() * 1220, z = -1790 - R() * 420; if (x > edgeX(z) - 30) { i--; continue; }
-    const w = 18 + R() * 20, d = 12 + R() * 8, h = 12 + R() * 14, y = groundH(x, z), ry = (R() < 0.5 ? 0 : Math.PI / 2) + (R() - 0.5) * 0.2;
-    _e.set(0, ry, 0, "YXZ"); _q.setFromEuler(_e);
-    m.compose(_p.set(x, y + h / 2, z), _q, _s.set(w, h, d)); hb.setMatrixAt(i, m); hb.setColorAt(i, col.setHSL(0.09, 0.12 + R() * 0.1, 0.62 + R() * 0.16));
-    m.compose(_p.set(x, y + h, z), _q, _s.set(w + 2, d * 1.4, d + 2)); rf.setMatrixAt(i, m); rf.setColorAt(i, col.setHSL(R() < 0.6 ? 0.6 : 0.07, 0.08, 0.25 + R() * 0.12));
-  }
-  hb.receiveShadow = true; scene.add(hb); scene.add(rf);
-  // church towers: the cathedral, the Jesuits, the Ursulines, the Recollets; the Chateau Saint-Louis on the cliff
-  for (const [x, z, h] of [[-40, -1940, 46], [150, -1900, 40], [330, -1860, 34], [430, -1980, 36], [-300, -2020, 30]]) {
-    const y = groundH(x, z);
-    scene.add(mesh(boxGeo(26, h * 0.55, 46, 10), lam(0xbdb4a2, { map: STONE }), x, y + h * 0.27, z - 18, false));
-    scene.add(mesh(boxGeo(11, h, 11, 6), lam(0xc4bba8, { map: STONE }), x, y + h / 2, z, false));
-    scene.add(mesh(new THREE.ConeGeometry(7, 30, 4), lam(0x3d434b), x, y + h + 15, z, false));
-  }
-  { const x = edgeX(-2060) - 50, z = -2060, y = groundH(x, z); scene.add(mesh(boxGeo(30, 22, 90, 10), lam(0xcfc5b1, { map: STONE }), x, y + 11, z, false)); scene.add(mesh(new THREE.BoxGeometry(32, 10, 92), lam(0x3d434b), x, y + 26, z, false)); }
-  // the white flag of the King of France over the walls
-  const fx = 360, fy = groundH(fx, WZW) + wallH + 4;
-  scene.add(mesh(new THREE.CylinderGeometry(0.6, 0.6, 40, 5), lam(0x3d2a17), fx, fy + 20, WZW + 30, false));
-  const ff = new THREE.Mesh(new THREE.PlaneGeometry(22, 14), lam(0xf6f3ea, { side: THREE.DoubleSide })); ff.position.set(fx + 11, fy + 33, WZW + 30); scene.add(ff);
-}
-// the British fleet at anchor in the St Lawrence, and the landing boats below the Anse-au-Foulon
-{
-  const hull = new THREE.BoxGeometry(18, 10, 64), hm = lam(0x3a2716), stripe = new THREE.BoxGeometry(18.4, 2, 60), sm = lam(0xc9a43a);
-  const mast = new THREE.CylinderGeometry(0.8, 1, 60, 5), mm = lam(0x4a3420), sail = new THREE.BoxGeometry(26, 14, 0.6), sailm = lam(0xece6d4);
-  for (const [x, z, r] of [[980, -320, 0.1], [1180, 120, -0.2], [1420, -160, 0.3], [1060, 520, 0.05], [1500, 640, -0.1], [1300, -900, 0.2]]) {
-    const g = new THREE.Group();
-    g.add(mesh(hull, hm, 0, 2, 0, false)); g.add(mesh(stripe, sm, 0, 4, 0, false));
-    for (const mz of [-20, 0, 18]) { g.add(mesh(mast, mm, 0, 34, mz, false)); for (const sy of [22, 38, 52]) { const s = mesh(sail, sailm, 0, sy, mz, false); s.scale.x = sy > 50 ? 0.6 : sy > 30 ? 0.85 : 1; s.rotation.y = Math.PI / 2 + 0.3; g.add(s); } }
-    g.position.set(x, -74, z); g.rotation.y = r; scene.add(g);
-  }
-  const boat = new THREE.BoxGeometry(7, 3, 22);
-  for (let i = 0; i < 7; i++) scene.add(mesh(boat, hm, edgeX(560) + 60 + (i % 3) * 14, -73, 520 + i * 18, false));
-}
+function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 
 // ---------- battle state ----------
 let G = null;
@@ -1554,7 +1462,7 @@ function stepEnemyFire(dt) {
     G.skVis = rnd(0.25, 0.8);
     const side = RNG() < 0.5 ? 0 : 1, d = rnd(30, 330);
     G.flankPuffs.push({ x: side ? rnd(935, 975) : rnd(25, 65), d, age: 0 });
-    if (Math.random() < 0.4) sfx.pop(0.05, side ? -0.9 : 0.9);
+    if (Math.random() < 0.4) sfx.pop(0.05, side ? 0.9 : -0.9);
   }
   const skRate = G.D.sk * (G.phase === "battle" ? 0.6 : 1.6);
   if (RNG() < skRate * dt) {
@@ -1633,6 +1541,306 @@ function stepFx(dt) {
   G.balls = G.balls.filter(b => b.t < b.dur + 0.6);
 }
 
+// ---------- camera and drama (looks only: never changes the battle) ----------
+const CAM = { x: W / 2, y: H / 2, z: 1 };
+let DRAMA = null, SLOWT = 0, FLASH = 0, CINE = 0, SPEED = 1;
+function dramaAt(x, d, secs, z) {
+  if (SILENT || (REPLAY && REPLAY.speed >= 4)) return;
+  DRAMA = { t: secs, x: xOf(x, d), y: yOf(d) - 40, z };
+}
+function clampCam() {
+  const hw = W / (2 * CAM.z), hh = H / (2 * CAM.z);
+  CAM.x = clamp(CAM.x, hw, W - hw); CAM.y = clamp(CAM.y, hh, H - hh);
+}
+function camStep(rdt) {
+  FLASH = Math.max(0, FLASH - rdt * 3);
+  if (!G) return;
+  if (G.phase === "intro") {
+    const p = clamp(1 - G.introT / 5, 0, 1), e = p * p * (3 - 2 * p);
+    CAM.x = 500; CAM.y = 590 + (H / 2 - 590) * e; CAM.z = 2.4 + (1 - 2.4) * e;
+    CINE = 1 - clamp((p - 0.82) / 0.18, 0, 1);
+    clampCam(); return;
+  }
+  let tx = W / 2, ty = H / 2, tz = 1, cine = 0, rate = 2.4;
+  if (DRAMA) {
+    DRAMA.t -= rdt;
+    if (DRAMA.t <= 0) DRAMA = null; else { tx = DRAMA.x; ty = DRAMA.y; tz = DRAMA.z; cine = 1; rate = 3.2; }
+  }
+  if (!DRAMA && !G.result) {
+    const ch = G.bats.filter(b => b.state === "charge");
+    if (ch.length && !(REPLAY && REPLAY.speed >= 4)) {
+      const ax = ch.reduce((a, b) => a + b.x, 0) / ch.length, ad = ch.reduce((a, b) => a + b.d, 0) / ch.length;
+      tx = xOf(ax, ad); ty = yOf(ad) - 60; tz = 1.2; cine = 0.6;
+    }
+  }
+  const k = 1 - Math.exp(-rate * rdt);
+  CAM.x += (tx - CAM.x) * k; CAM.y += (ty - CAM.y) * k; CAM.z += (tz - CAM.z) * k;
+  CINE += (cine - CINE) * Math.min(1, rdt * 4);
+  clampCam();
+}
+
+// ---------- draw ----------
+function draw() {
+  const k = cv.width / W;
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+  ctx.save();
+  ctx.translate(W / 2, H / 2); ctx.scale(CAM.z, CAM.z); ctx.translate(-CAM.x, -CAM.y);
+  if (G && G.shakeT > 0) ctx.translate(vrnd(-1, 1) * G.shakeT * 10, vrnd(-1, 1) * G.shakeT * 6);
+  ctx.drawImage(BG, 0, 0, W, H);
+  if (G) drawWorld();
+  ctx.restore();
+  if (!G) return;
+  if (FLASH > 0) { ctx.fillStyle = "rgba(255,228,170," + (FLASH * 0.17).toFixed(3) + ")"; ctx.fillRect(0, 0, W, H); }
+  if (CINE > 0.01) { ctx.fillStyle = "#000"; const h = 42 * CINE; ctx.fillRect(0, 0, W, h); ctx.fillRect(0, H - h, W, h); }
+  drawHUD();
+}
+function drawWorld() {
+  const ref = selRefD();
+  // range ruler: where the French would be at each distance from the battalions you are commanding
+  if (G.phase !== "intro") {
+    ctx.font = "800 11px Nunito, sans-serif"; ctx.textAlign = "right";
+    const y40 = yOf(ref + 50), y30 = yOf(ref + 30);
+    ctx.fillStyle = "rgba(79,207,106,.16)"; ctx.fillRect(84, y40, 832, y30 - y40);
+    for (const m of [200, 100, 60, 40]) {
+      const y = yOf(ref + m);
+      ctx.strokeStyle = m === 40 ? "rgba(120,255,140,.8)" : "rgba(255,255,255,.32)"; ctx.lineWidth = m === 40 ? 2 : 1;
+      ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(90, y); ctx.lineTo(910, y); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = m === 40 ? "#b8ffc4" : "rgba(255,255,255,.75)";
+      ctx.fillText(m + " yds", 948, y + 4);
+    }
+  }
+  for (const b of G.bodies) drawBody(b);
+
+  // French guns
+  for (const gx of [400, 600]) {
+    const s = sOf(550), x = xOf(gx, 550), y = yOf(550);
+    ctx.fillStyle = "#3a2c1e"; ctx.fillRect(x - 7 * s, y - 4 * s, 14 * s, 3 * s);
+    ctx.fillStyle = "#222"; ctx.fillRect(x - 2 * s, y - 9 * s, 4 * s, 7 * s);
+    ctx.strokeStyle = "#5a4230"; ctx.lineWidth = 1.5 * s; ctx.beginPath(); ctx.arc(x - 6 * s, y - 2 * s, 3 * s, 0, 7); ctx.arc(x + 6 * s, y - 2 * s, 3 * s, 0, 7); ctx.stroke();
+  }
+  // Montcalm on his horse
+  if (G.montcalm.shown) {
+    const m = G.montcalm, s = sOf(m.d), rout = G.cols.every(c => c.state === "rout" || c.state === "gone");
+    drawHorse(xOf(m.x, m.d), yOf(m.d), s * 1.05, G.t * (rout ? 14 : 4), rout ? 1 : -1, "#e7e2d4", "#151515", false, rout);
+  }
+  for (const col of G.cols) drawCol(col);
+
+  // cannonballs from the French guns
+  for (const ball of G.balls) {
+    if (ball.t > ball.dur) continue;
+    const k2 = ball.t / ball.dur, d = 548 + (ball.bat.d - 548) * k2, x = ball.gx + (ball.tx - ball.gx) * k2;
+    const s = sOf(d), sy = yOf(d) - Math.sin(k2 * Math.PI) * 60 * (1 - k2 * 0.4) - Math.abs(Math.sin(k2 * 9)) * 6 * k2;
+    ctx.fillStyle = "#151515"; ctx.beginPath(); ctx.arc(xOf(x, d), sy, 2.6 * s + 1, 0, 7); ctx.fill();
+  }
+  const ld = lineD();
+  for (const cav of G.cav) if (cav.d > ld + 6) drawCav(cav);
+  for (const g of G.guns) drawGun(g);
+  for (const sh of G.shots) {
+    if (sh.t > sh.dur) continue;
+    const k2 = sh.t / sh.dur, d = sh.fd + (sh.col.d - sh.fd) * k2, x = sh.fx + (sh.col.x - sh.fx) * k2, s = sOf(d);
+    ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(xOf(x, d), yOf(d) - 14 * s - Math.sin(k2 * Math.PI) * 18, 2.4 * s + 0.8, 0, 7); ctx.fill();
+  }
+  const order = G.bats.slice().sort((a, b) => b.d - a.d);
+  for (const bat of order) drawBat(bat);
+  for (const cav of G.cav) if (cav.d <= ld + 6) drawCav(cav);
+  drawWolfe();
+
+  // smoke
+  for (const s of G.smoke) {
+    const a = s.a * (1 - s.age / s.life);
+    ctx.fillStyle = s.dust ? "rgba(120,100,70," + a.toFixed(3) + ")" : "rgba(236,238,240," + a.toFixed(3) + ")";
+    ctx.beginPath(); ctx.arc(xOf(s.x, s.d), yOf(s.d) - 18 * sOf(s.d), s.r * sOf(s.d), 0, 7); ctx.fill();
+  }
+  for (const p of G.flankPuffs) {
+    const a = 0.6 * (1 - p.age / 2.5), s = sOf(p.d);
+    if (p.age < 0.08) { ctx.fillStyle = "rgba(255,220,120,.95)"; ctx.beginPath(); ctx.arc(p.x, yOf(p.d) - 10 * s, 3 * s, 0, 7); ctx.fill(); }
+    ctx.fillStyle = "rgba(235,235,235," + a.toFixed(3) + ")"; ctx.beginPath(); ctx.arc(p.x + p.age * 6, yOf(p.d) - 12 * s - p.age * 4, (5 + p.age * 6) * s, 0, 7); ctx.fill();
+  }
+  // floating casualty numbers
+  ctx.textAlign = "center"; ctx.font = "900 16px Nunito, sans-serif";
+  for (const f of G.floats) {
+    const a = clamp(1.6 - f.t, 0, 1), y = yOf(f.d) - 34 * sOf(f.d) - f.t * 26;
+    ctx.globalAlpha = a; ctx.lineWidth = 4; ctx.strokeStyle = "#1a0d08"; ctx.strokeText(f.text, xOf(f.x, f.d), y);
+    ctx.fillStyle = f.color; ctx.fillText(f.text, xOf(f.x, f.d), y); ctx.globalAlpha = 1;
+  }
+}
+function drawCol(col) {
+  if (col.state === "gone") return;
+  const spread = 1 + col.disorder * 0.6;
+  const order = col.figs.filter(f => f.alive).sort((a, b) => b.r - a.r);
+  for (const f of order) {
+    let x = col.x + f.c * 9 * spread + f.jx * col.disorder * 6, d = col.d + f.r * 1.6;
+    if (col.state === "rout") { x += f.jx * col.routT * 20; d += f.jy * col.routT * 6; }
+    const s = sOf(d), sx = xOf(x, d);
+    let sy = yOf(d);
+    if (col.state === "advance" || col.state === "rout") sy -= Math.abs(Math.sin(G.t * (col.state === "rout" ? 14 : 8) + f.ph)) * 1.5 * s;
+    if (col.state === "rout") { // backs turned
+      ctx.fillStyle = f.mil ? COAT.mil : COAT.fr; ctx.fillRect(sx - 3.6 * s, sy - 16 * s, 7.2 * s, 9 * s);
+      ctx.fillStyle = "#232323"; ctx.fillRect(sx - 3 * s, sy - 7 * s, 2.5 * s, 7 * s); ctx.fillRect(sx + 0.5 * s, sy - 7 * s, 2.5 * s, 7 * s);
+      ctx.fillStyle = f.mil ? "#b8322f" : "#151515"; ctx.beginPath(); ctx.arc(sx, sy - 18.5 * s, 2.6 * s, 0, 7); ctx.fill();
+    } else {
+      drawSoldier(sx, sy, s, f.mil ? "mil" : "fr", "stand", col.flashT > 0 && f.r <= 1 && Math.random() < col.flashFrac + 0.1);
+    }
+  }
+  if (col.state !== "rout" && aliveC(col)) {
+    const fd = col.d + 2.5, s = sOf(fd);
+    drawFlag(xOf(col.x, fd), yOf(fd) - 18 * s, s, true, G.t);
+  }
+  // morale bar
+  if (col.state !== "rout" && G.phase === "battle") {
+    const fd = col.d, s = sOf(fd), x = xOf(col.x, fd), y = yOf(fd + 6 * 1.6) - 34 * s;
+    const m = clamp(col.morale / G.D.morale, 0, 1);
+    ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillRect(x - 31, y - 4, 62, 8);
+    ctx.fillStyle = col.state === "waver" ? "#ffd166" : "#6ea8ff"; ctx.fillRect(x - 30, y - 3, 60 * m, 6);
+    ctx.textAlign = "center";
+    if (col.state === "waver") { ctx.fillStyle = "#ffd166"; ctx.font = "900 12px Nunito, sans-serif"; ctx.fillText("WAVERING", x, y - 7); }
+    else if (col.reserve) { ctx.fillStyle = "#cfe0ff"; ctx.font = "900 11px Nunito, sans-serif"; ctx.fillText("RESERVE", x, y - 7); }
+  }
+}
+function drawCav(cav) {
+  if (cav.state === "gone") return;
+  const ride = cav.state === "ride", dir = (cav.side ? -1 : 1) * (ride ? 1 : -1), gallop = !ride || cav.t > cav.dur * 0.55;
+  for (let i = 0; i < cav.n; i++) {
+    const f = cav.figs[i], x = cav.x + f.ox, d = cav.d + f.od, s = sOf(d) * 1.05;
+    drawHorse(xOf(x, d), yOf(d), s, G.t * (gallop ? 18 : 9) + f.ph, dir, "#2d4f9e", "#151515", ride && gallop, true);
+  }
+  if (ride) { // warning marker
+    const s = sOf(cav.d), x = xOf(cav.x, cav.d), y = yOf(cav.d) - 44 * s - Math.abs(Math.sin(G.t * 6)) * 4;
+    ctx.fillStyle = "#e0383f"; ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.font = "900 15px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("!", x, y + 5);
+    // dashed line to the battalion they are aiming at
+    const t = cav.target, tx = xOf(t.x, t.d), ty = yOf(t.d) - 10;
+    ctx.strokeStyle = "rgba(224,56,63,.6)"; ctx.lineWidth = 2; ctx.setLineDash([5, 6]); ctx.beginPath(); ctx.moveTo(x, y + 12); ctx.lineTo(tx, ty); ctx.stroke(); ctx.setLineDash([]);
+  }
+}
+function drawGun(g) {
+  const d = 3, s = sOf(d) * 1.45, x = xOf(g.x, d), y = yOf(d) + g.recoil * 14 * s;
+  ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.fillRect(x - 10 * s, y - 1 * s, 20 * s, 3 * s);
+  ctx.fillStyle = "#6b4a2a"; ctx.fillRect(x - 3 * s, y - 6 * s, 6 * s, 9 * s);
+  ctx.strokeStyle = "#3d2a17"; ctx.lineWidth = 1.6 * s;
+  ctx.beginPath(); ctx.ellipse(x - 6 * s, y - 5 * s, 1.4 * s, 5 * s, 0, 0, 7); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(x + 6 * s, y - 5 * s, 1.4 * s, 5 * s, 0, 0, 7); ctx.stroke();
+  ctx.fillStyle = "#a07a3a"; ctx.fillRect(x - 1.6 * s, y - 15 * s, 3.2 * s, 10 * s);
+  if (g.recoil > 0.22) { ctx.fillStyle = "rgba(255,210,110,.9)"; ctx.beginPath(); ctx.arc(x, y - 17 * s, 5 * s, 0, 7); ctx.fill(); }
+  drawSoldier(x - 10 * s, y, s / 1.45, "art", "stand", false);
+  drawSoldier(x + 10 * s, y, s / 1.45, "art", "stand", false);
+}
+function drawWolfe() {
+  const w = G.wolfe, s = sOf(w.d), x = xOf(w.x, w.d), y = yOf(w.d);
+  if (!w.hit) {
+    drawSoldier(x, y, s * 1.08, "gen", "stand", false);
+    ctx.strokeStyle = "#dfe5ec"; ctx.lineWidth = 1 * s; ctx.beginPath(); ctx.moveTo(x + 3 * s, y - 14 * s); ctx.lineTo(x + 7 * s, y - (G.phase === "battle" && !G.result ? 26 : 18) * s); ctx.stroke();
+    drawSoldier(x - 12 * s, y + 3 * s, s, "gren", "stand", false);
+  } else {
+    drawBody({ x: w.x, d: w.d, py: 2, kind: "gen", rot: 0.15 });
+    drawSoldier(x + 10 * s, y + 4 * s, s * 0.85, "gren", "stand", false);
+    drawSoldier(x - 10 * s, y + 4 * s, s * 0.85, "red", "stand", false);
+  }
+  if (G.phase !== "intro" && !w.hit) { ctx.fillStyle = "rgba(255,255,255,.75)"; ctx.font = "800 10px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("Wolfe", x, y + 12 * s); }
+}
+function batPose(bat) {
+  if (isLying(bat)) return "lie";
+  if (bat.state === "present" || bat.state === "presenting") return "present";
+  if (bat.state === "firing") return "fire";
+  if (bat.state === "charge") return "charge";
+  return "stand";
+}
+function drawBat(bat) {
+  const flee = bat.state === "broken" ? bat.flee : 0;
+  if (flee > 6) return;
+  const d = bat.d, s = sOf(d), pose = batPose(bat), sel = SEL && SEL.has(bat.idx);
+  const figs = bat.figs.filter(f => f.alive).sort((a, b) => a.cr - b.cr);
+  const depth = figs.reduce((m, f) => Math.max(m, f.cr), 0);
+  if (sel && !flee) { // glow under the battalions you have picked
+    ctx.fillStyle = "rgba(242,193,78,.22)"; ctx.beginPath();
+    ctx.ellipse(xOf(bat.x, d), yOf(d) + depth * 5.5 * s, 72 * s, (12 + depth * 7) * s, 0, 0, 7); ctx.fill();
+  }
+  const moving = bat.advT > 0 || bat.formT > 0;
+  for (let i = 0; i < figs.length; i++) {
+    const f = figs[i];
+    let sx = xOf(bat.x + f.cx, d), sy = yOf(d) + f.cr * 11 * s;
+    if (flee) { sy += flee * 60 + Math.sin(f.i) * 8 * flee; sx += Math.cos(f.i * 1.7) * 25 * flee; }
+    if (pose === "charge") sy -= Math.abs(Math.sin(G.t * 14 + f.i)) * 3;
+    else if (moving) sy -= Math.abs(Math.sin(G.t * 9 + f.i * 0.6)) * 1.6;
+    if (G.result === "win" && !flee) sy -= Math.max(0, Math.sin(G.t * 6 + f.i * 0.7)) * 4;
+    drawSoldier(sx, sy, s * (f.cr > 0.5 ? 1.04 : 1), bat.def.kind, pose, f.flash > 0, bat.bayo);
+  }
+  if (bat.state === "broken") return;
+  if (!isLying(bat)) drawFlag(xOf(bat.x, d) - 2, yOf(d) + (bat.form === "line" ? 0 : depth * 5) * s - 20 * s, s, false, G.t);
+  if (G.phase === "intro") return;
+  // label: name, discipline and what they are doing
+  const lx = xOf(bat.x, d), ly = yOf(d) + (depth * 11 + 22) * s + 6;
+  ctx.fillStyle = sel ? "rgba(70,48,16,.88)" : "rgba(10,8,6,.72)"; roundRect(lx - 62, ly, 124, 38, 7); ctx.fill();
+  if (sel) { ctx.strokeStyle = "#f2c14e"; ctx.lineWidth = 2; ctx.stroke(); }
+  ctx.fillStyle = "#fff"; ctx.font = "900 11px Nunito, sans-serif"; ctx.textAlign = "center";
+  ctx.fillText(FORMICON[bat.form] + " " + bat.def.short + "  ·  " + aliveB(bat) * 10, lx, ly + 12);
+  const dc = bat.disc / 100;
+  ctx.fillStyle = "#2b2b2b"; ctx.fillRect(lx - 56, ly + 16, 112, 7);
+  ctx.fillStyle = dc > 0.6 ? "#4fcf6a" : dc > 0.35 ? "#f2c14e" : "#e0383f"; ctx.fillRect(lx - 56, ly + 16, 112 * dc, 7);
+  ctx.font = "800 9.5px Nunito, sans-serif";
+  if (bat.formT > 0) { ctx.fillStyle = "#9fe3f0"; ctx.fillText("FORMING " + FORMNAME[bat.form] + "...", lx, ly + 34); }
+  else if (bat.state === "fixing") { ctx.fillStyle = "#e4e9ef"; ctx.fillText("FIXING BAYONETS", lx, ly + 34); }
+  else if (bat.state === "charge") { ctx.fillStyle = "#ffd166"; ctx.fillText("CHARGING!", lx, ly + 34); }
+  else if (bat.reloading) {
+    ctx.fillStyle = "#3a3026"; ctx.fillRect(lx - 56, ly + 27, 112, 6);
+    ctx.fillStyle = "#e0873a"; ctx.fillRect(lx - 56, ly + 27, 112 * clamp(bat.reload, 0, 1), 6);
+  } else {
+    ctx.fillStyle = bat.loaded ? "#b8ffc4" : "#ffb0b0";
+    ctx.fillText((bat.loaded ? "LOADED" + (bat.dbl ? " ×2 BALLS" : "") : "EMPTY") + (bat.state === "present" ? " · READY" : "") + (isLying(bat) ? " · DOWN" : ""), lx, ly + 34);
+  }
+}
+function selBats() { if (!G) return []; return SEL ? G.bats.filter(b => SEL.has(b.idx) && b.state !== "broken") : liveBats(); }
+function selRefD() { const b = selBats(); return b.length ? b.reduce((a, x) => a + x.d, 0) / b.length : lineD(); }
+function fmtTime(t) { t = Math.max(0, Math.floor(t)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); }
+function drawHUD() {
+  ctx.textAlign = "left";
+  if (G.phase === "intro") {
+    const a = clamp(G.t / 0.8, 0, 1) * clamp(G.introT / 0.6, 0, 1);
+    ctx.globalAlpha = a; ctx.textAlign = "center";
+    ctx.fillStyle = "#f2c14e"; ctx.font = "400 40px 'Lilita One', sans-serif"; ctx.lineWidth = 7; ctx.strokeStyle = "#1a0d08";
+    ctx.strokeText("QUEBEC · 13 SEPTEMBER 1759", W / 2, 130); ctx.fillText("QUEBEC · 13 SEPTEMBER 1759", W / 2, 130);
+    ctx.font = "800 17px Nunito, sans-serif"; ctx.fillStyle = "#fff"; ctx.lineWidth = 5;
+    for (const [i, line] of ["In the dark, Wolfe's redcoats climbed the cliffs from the river.", "Now they stand in a thin red line on the Plains of Abraham."].entries()) { ctx.strokeText(line, W / 2, 168 + i * 24); ctx.fillText(line, W / 2, 168 + i * 24); }
+    ctx.font = "800 13px Nunito, sans-serif"; ctx.fillStyle = "rgba(255,255,255,.8)"; ctx.fillText(REPLAY ? "replay" : "tap to skip", W / 2, H - 14);
+    ctx.globalAlpha = 1;
+  } else {
+    // range box
+    const sb = selBats(), r = sb.length ? Math.min(...sb.map(rangeBat)) : minRange();
+    ctx.fillStyle = "rgba(10,8,6,.72)"; roundRect(10, 10, 236, 84, 10); ctx.fill();
+    ctx.fillStyle = "#c7b8a3"; ctx.font = "800 11px Nunito, sans-serif";
+    const who = SEL && sb.length ? (sb.length === 1 ? sb[0].def.short.toUpperCase() : sb.length + " BATTALIONS") : "THE LINE";
+    ctx.fillText(G.phase === "wait" ? "FRENCH ATTACK IN" : "NEAREST FRENCH TO " + who, 20, 27);
+    let big, adv, col;
+    if (G.phase === "wait") { big = Math.ceil(G.waitT) + "s"; adv = "Lie down and wait"; col = "#fff"; }
+    else if (r > 1000) { big = "-"; adv = G.reserveQ.length ? "More are coming!" : "They're running!"; col = "#ffd166"; }
+    else {
+      big = Math.round(r) + " yds";
+      if (r > 110) { adv = "HOLD YOUR FIRE"; col = "#fff"; }
+      else if (r > 60) { adv = "Hold... hold..."; col = "#f2c14e"; }
+      else if (r > 50) { adv = "MAKE READY!"; col = "#ffb04e"; }
+      else if (r >= 25) { adv = "FIRE NOW!"; col = "#7dff95"; }
+      else { adv = "Point blank! Fire or charge!"; col = "#ff7b7b"; }
+    }
+    ctx.fillStyle = col; ctx.font = "400 30px 'Lilita One', sans-serif"; ctx.fillText(big, 20, 58);
+    ctx.font = "900 14px Nunito, sans-serif"; ctx.fillText(adv, 20, 82);
+  }
+  // corner tag: difficulty, speed or replay
+  ctx.textAlign = "right"; ctx.fillStyle = "rgba(10,8,6,.66)"; roundRect(W - 200, 10, 190, 24, 8); ctx.fill();
+  ctx.font = "900 12px Nunito, sans-serif";
+  if (REPLAY) { ctx.fillStyle = "#ff8a8a"; ctx.fillText("● REPLAY " + (REPLAY.paused ? "paused" : REPLAY.speed + "x") + " · " + fmtTime(G.t), W - 18, 26); }
+  else { ctx.fillStyle = "#f2c14e"; ctx.fillText(G.D.name + " · Quebec 1759" + (SPEED > 1 ? " · ⏩ " + SPEED + "x" : ""), W - 18, 26); }
+  // banners
+  ctx.textAlign = "center";
+  for (const b of G.banners.slice(0, 1)) {
+    const k = b.t < 0.2 ? b.t / 0.2 : 1, fade = b.t > b.life - 0.5 ? (b.life - b.t) / 0.5 : 1;
+    ctx.save(); ctx.globalAlpha = clamp(fade, 0, 1);
+    ctx.translate(W / 2, 250); ctx.scale(0.6 + 0.4 * k, 0.6 + 0.4 * k);
+    ctx.font = "400 " + b.size + "px 'Lilita One', sans-serif";
+    ctx.lineWidth = 8; ctx.strokeStyle = "#1a0d08"; ctx.strokeText(b.text, 0, 0);
+    ctx.fillStyle = b.color; ctx.fillText(b.text, 0, 0);
+    ctx.restore();
+  }
+}
 
 // ---------- UI ----------
 const cache = {};
@@ -1848,655 +2056,24 @@ $("rSeek").addEventListener("change", () => { if (REPLAY) { REPLAY.dragging = fa
 tap("muteBtn", () => { S.mute = !S.mute; save(); if (S.mute && window.speechSynthesis) speechSynthesis.cancel(); if (AC) { if (S.mute) AC.suspend(); else AC.resume(); } ui(); });
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => { $(b.dataset.close).hidden = true; if (!$("startOv").hidden) showStart(); });
 document.querySelectorAll("#difPick .dbtn").forEach(b => b.onclick = () => { S.diff = b.dataset.d; save(); showStart(); ui(); });
-
-
-// ======================================================================
-// 3D drawing, camera and the 2D overlay (looks only)
-// ======================================================================
-// ---------- soldiers: every man is a handful of boxes, all drawn with InstancedMesh ----------
-const MAXF = 1500;
-const CLOTH = (() => {
-  const [c, g] = cnv(32, 32); g.fillStyle = "#fff"; g.fillRect(0, 0, 32, 32);
-  for (let i = 0; i < 70; i++) { g.fillStyle = "rgba(0,0,0," + (0.03 + hash(i) * 0.06).toFixed(3) + ")"; g.fillRect(hash(i + 1) * 32, hash(i + 2) * 32, 2, 2); }
-  g.fillStyle = "rgba(0,0,0,.22)"; g.fillRect(0, 0, 32, 2); g.fillRect(0, 30, 32, 2); g.fillRect(0, 0, 2, 32); g.fillRect(30, 0, 2, 32);
-  g.fillStyle = "rgba(255,255,255,.2)"; g.fillRect(2, 2, 28, 2);
-  return tex(c);
-})();
-const UNIT = new THREE.BoxGeometry(1, 1, 1);
-const _c = new THREE.Color(1, 1, 1);
-function iMesh(geo, mat, n, colored) {
-  const m = new THREE.InstancedMesh(geo, mat, n);
-  m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  if (colored) { for (let i = 0; i < n; i++) m.setColorAt(i, _c); m.instanceColor.setUsage(THREE.DynamicDrawUsage); }
-  m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false; m.count = 0; m.userData.max = n;
-  scene.add(m); return m;
-}
-const clothMat = lam(0xffffff, { map: CLOTH });
-const faceT = (() => {
-  const [c, g] = cnv(64, 64); g.fillStyle = "#e8b893"; g.fillRect(0, 0, 64, 64);
-  g.fillStyle = "#6a4a30"; g.fillRect(0, 0, 64, 12);
-  g.fillStyle = "#2b1d14"; g.fillRect(16, 26, 9, 10); g.fillRect(39, 26, 9, 10);
-  g.fillStyle = "#fff"; g.fillRect(18, 27, 3, 3); g.fillRect(41, 27, 3, 3);
-  g.fillStyle = "#4a3020"; g.fillRect(13, 20, 14, 3); g.fillRect(37, 20, 14, 3);
-  g.fillStyle = "#8a3a2a"; g.fillRect(22, 46, 20, 4);
-  g.fillStyle = "rgba(200,110,90,.35)"; g.fillRect(8, 38, 8, 6); g.fillRect(48, 38, 8, 6);
-  return tex(c);
-})();
-const hairT = (() => { const [c, g] = cnv(32, 32); g.fillStyle = "#6a4a30"; g.fillRect(0, 0, 32, 32); g.fillStyle = "#4a3020"; g.fillRect(13, 10, 6, 22); g.fillStyle = "#1a1a1a"; g.fillRect(12, 18, 8, 4); return tex(c); })();
-const skinM = lam(0xe8b893), hairM = lam(0xffffff, { map: hairT }), faceM = lam(0xffffff, { map: faceT });
-const P3 = {
-  legs: iMesh(UNIT, clothMat, MAXF, true), coat: iMesh(UNIT, clothMat, MAXF, true), front: iMesh(UNIT, lam(0xffffff), MAXF, true),
-  arm: iMesh(UNIT, clothMat, MAXF * 2, true), head: iMesh(UNIT, [skinM, skinM, hairM, skinM, faceM, hairM], MAXF, false),
-  musket: iMesh(UNIT, lam(0x5a3a1e), MAXF, false), bayo: iMesh(UNIT, new THREE.MeshPhongMaterial({ color: 0xe4e9ef, shininess: 90 }), MAXF, false),
-  tri: iMesh(new THREE.ConeGeometry(1, 1, 3), lam(0x151515), MAXF, false),
-  mitre: iMesh(new THREE.ConeGeometry(1, 1, 4), lam(0xc4202c), 200, false),
-  bonnet: iMesh(new THREE.CylinderGeometry(1, 0.9, 1, 10), lam(0x22305c), 200, false),
-  tuque: iMesh(new THREE.ConeGeometry(1, 1, 6), lam(0xb8322f), 400, false)
-};
-P3.bayo.castShadow = false;
-// poses: where each box sits on a man facing +z
-const POSE = {};
-{
-  const STAND = {
-    legs: mk(0, 2.1, 0, 0, 0, 0, 2.6, 4.2, 1.5), coat: mk(0, 6.5, 0, 0, 0, 0, 3.4, 4.6, 2.1), front: mk(0, 6.7, 1.07, 0, 0, 0, 1.4, 3.6, 0.14),
-    armL: mk(-2.2, 6.5, 0, 0, 0, 0.06, 1, 4.2, 1.1), armR: mk(2.2, 6.5, 0, 0, 0, -0.06, 1, 4.2, 1.1), head: mk(0, 9.95, 0, 0, 0, 0, 2.2, 2.2, 2.2),
-    musket: mk(2.85, 8.4, 0.25, 0, 0, 0, 0.38, 10, 0.38), bayo: mk(2.85, 14.6, 0.25, 0, 0, 0, 0.18, 2.6, 0.18),
-    tri: mk(0, 11.45, 0, 0, 0, 0, 2.05, 1.1, 2.05), mitre: mk(0, 12.9, -0.1, 0, Math.PI / 4, 0, 1.45, 3.9, 0.95),
-    bonnet: mk(0, 11.35, -0.1, -0.15, 0, 0, 1.55, 0.8, 1.55), tuque: mk(0, 12.0, -0.4, -0.5, 0, 0, 1.15, 2.8, 1.15)
-  };
-  const PRESENT = Object.assign({}, STAND, {
-    armL: mk(-1.1, 8.0, 2.0, Math.PI / 2, 0, 0.25, 1, 4.2, 1.1), armR: mk(1.4, 8.0, 1.7, Math.PI / 2, 0, -0.1, 1, 4.2, 1.1),
-    musket: mk(1.0, 8.75, 5.1, 0.03, 0, 0, 0.38, 0.38, 10), bayo: mk(1.0, 8.6, 11.3, 0.03, 0, 0, 0.18, 0.18, 2.6), head: mk(0.2, 9.85, 0.2, 0.1, 0.12, 0, 2.2, 2.2, 2.2)
-  });
-  const CHARGE = Object.assign({}, STAND, {
-    armL: mk(-1.1, 7.0, 1.9, 1.2, 0, 0.25, 1, 4.2, 1.1), armR: mk(1.4, 7.0, 1.6, 1.2, 0, -0.1, 1, 4.2, 1.1),
-    musket: mk(1.0, 6.9, 4.6, 0.22, 0, 0, 0.38, 0.38, 10), bayo: mk(1.0, 5.55, 10.75, 0.22, 0, 0, 0.18, 0.18, 2.6)
-  });
-  const set = (name, body, parts) => { const o = {}; for (const k in parts) o[k] = body.clone().multiply(parts[k]); POSE[name] = o; };
-  set("stand", new THREE.Matrix4(), STAND);
-  set("present", new THREE.Matrix4(), PRESENT);
-  set("fire", new THREE.Matrix4(), PRESENT);
-  set("charge", mk(0, 0, 0, 0.28, 0, 0), CHARGE);
-  set("lie", mk(0, 1.2, 0, Math.PI / 2, 0, 0), STAND);
-  set("dead", mk(0, 1.2, 0, -Math.PI / 2, 0, 0), STAND);
-}
-// uniforms: British redcoats, Fraser's Highlanders, Louisbourg Grenadiers; French regulars in grey-white with
-// blue waistcoats, Canadian militia in brown capots and red tuques, gunners of both sides in blue
-const KIND = {
-  red:   { coat: 0xc4202c, front: 0xf2efe6, legs: 0xd9cfae, hat: "tri", gun: true },
-  gren:  { coat: 0xc4202c, front: 0xf2efe6, legs: 0xd9cfae, hat: "mitre", gun: true },
-  high:  { coat: 0xb8262d, front: 0xf2efe6, legs: 0x2b4a37, hat: "bonnet", gun: true },
-  gen:   { coat: 0xb51c27, front: 0xe3b341, legs: 0xe8e2cc, hat: "tri", gun: false },
-  art:   { coat: 0x1f2f6e, front: 0xc4202c, legs: 0xd9cfae, hat: "tri", gun: false },
-  fr:    { coat: 0xe7e2d4, front: 0x2d4f9e, legs: 0xd9d3c2, hat: "tri", gun: true },
-  mil:   { coat: 0x7d5f3f, front: 0x9c7c58, legs: 0x5a4630, hat: "tuque", gun: true },
-  frart: { coat: 0x2d4f9e, front: 0xc4202c, legs: 0xd9d3c2, hat: "tri", gun: false },
-  mont:  { coat: 0x2a3f7a, front: 0xe3b341, legs: 0xe8e2cc, hat: "tri", gun: false }
-};
-const _S = new THREE.Matrix4(), _M = new THREE.Matrix4(), _R = new THREE.Matrix4();
-const FL = []; // muzzle flashes this frame
-function put(im, local, hex) {
-  const i = im.count; if (i >= im.userData.max) return;
-  _M.multiplyMatrices(_S, local); im.setMatrixAt(i, _M);
-  if (hex != null) im.setColorAt(i, _c.setHex(hex));
-  im.count = i + 1;
-}
-function putMan(x, y, z, yaw, pose, kind, o) {
-  const K = KIND[kind] || KIND.red, L = POSE[pose] || POSE.stand;
-  _e.set(0, yaw, 0, "YXZ"); _q.setFromEuler(_e); _S.compose(_p.set(x, y, z), _q, _s.set(SC, SC, SC));
-  put(P3.legs, L.legs, K.legs); put(P3.coat, L.coat, K.coat); put(P3.front, L.front, K.front);
-  put(P3.arm, L.armL, K.coat); put(P3.arm, L.armR, K.coat); put(P3.head, L.head);
-  put(P3[K.hat], L[K.hat]);
-  if (K.gun) { put(P3.musket, L.musket); if (o && o.bayo) put(P3.bayo, L.bayo); }
-  if (o && o.flash && FL.length < 600) { // fire comes out of the muzzle
-    const lx = 1.0 * SC, lz = 10.6 * SC, c = Math.cos(yaw), s = Math.sin(yaw);
-    FL.push(x + lx * c + lz * s, y + 8.7 * SC, z - lx * s + lz * c, 9 + Math.random() * 5);
-  }
-}
-
-// ---------- guns, horses, flags, cannonballs ----------
-function gunModel(fr) {
-  const g = new THREE.Group(), wood = lam(fr ? 0x56606a : 0x6b4a2a), dark = lam(0x2a2018), bronze = new THREE.MeshPhongMaterial({ color: 0xa07a3a, shininess: 50 });
-  g.add(mesh(new THREE.BoxGeometry(5, 3, 18), wood, 0, 4, 5));
-  const wg = new THREE.CylinderGeometry(5, 5, 1.2, 12); wg.rotateZ(Math.PI / 2);
-  g.add(mesh(wg, dark, -3.6, 5, 0)); g.add(mesh(wg, dark, 3.6, 5, 0));
-  const bar = new THREE.CylinderGeometry(1.2, 1.7, 17, 10); bar.rotateX(Math.PI / 2);
-  const b = mesh(bar, bronze, 0, 7.5, -4); g.add(b); g.userData.barrel = b;
-  scene.add(g); return g;
-}
-const GUN3 = [gunModel(false), gunModel(false)];
-const FGUN3 = [400, 600].map(x => { const g = gunModel(true); g.position.set(WX(x), 0, WZ(550)); g.rotation.y = Math.PI; return g; });
-function horseModel(coatHex) {
-  const g = new THREE.Group(), hm = lam(0x2a1a10), body = mesh(new THREE.BoxGeometry(6, 6, 16), hm, 0, 12, 0);
-  g.add(body);
-  const neck = mesh(new THREE.BoxGeometry(4, 9, 4), hm, 0, 17, 7); neck.rotation.x = 0.5; g.add(neck);
-  g.add(mesh(new THREE.BoxGeometry(3.4, 3.6, 7), hm, 0, 21, 11));
-  const tail = mesh(new THREE.BoxGeometry(1.4, 8, 1.4), lam(0x140c08), 0, 11, -8.5); tail.rotation.x = -0.4; g.add(tail);
-  g.add(mesh(new THREE.BoxGeometry(6.4, 1.2, 6), lam(coatHex), 0, 15.4, -0.5));
-  g.userData.legs = [];
-  for (const [lx, lz] of [[-2, 6], [2, 6], [-2, -6], [2, -6]]) { const piv = new THREE.Group(); piv.position.set(lx, 10, lz); const leg = mesh(new THREE.BoxGeometry(1.5, 10, 1.6), hm, 0, -5, 0); piv.add(leg); g.add(piv); g.userData.legs.push(piv); }
-  scene.add(g); return g;
-}
-const HORSE = horseModel(0x2d4f9e);
-function flagTex(french) {
-  const [c, g] = cnv(128, 84);
-  if (french) {
-    g.fillStyle = "#f6f3ea"; g.fillRect(0, 0, 128, 84); g.fillStyle = "#c9a43a";
-    for (let i = 0; i < 9; i++) { const x = 20 + (i % 3) * 44, y = 16 + Math.floor(i / 3) * 26; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); g.fillRect(x - 1.5, y, 3, 9); }
-  } else { // the 1707 Union flag: St George and St Andrew only
-    g.fillStyle = "#1d3b8a"; g.fillRect(0, 0, 128, 84);
-    g.strokeStyle = "#fff"; g.lineWidth = 16; g.beginPath(); g.moveTo(0, 0); g.lineTo(128, 84); g.moveTo(128, 0); g.lineTo(0, 84); g.stroke();
-    g.fillStyle = "#fff"; g.fillRect(0, 31, 128, 22); g.fillRect(53, 0, 22, 84);
-    g.fillStyle = "#c8102e"; g.fillRect(0, 36, 128, 12); g.fillRect(58, 0, 12, 84);
-  }
-  return tex(c);
-}
-const flagMats = [flagTex(false), flagTex(true)].map(t => lam(0xffffff, { map: t, side: THREE.DoubleSide }));
-const poleGeo = new THREE.CylinderGeometry(0.35, 0.35, 30, 5), poleMat = lam(0x3d2a17);
-const FLAGS = [];
-function getFlag(i, french) {
-  while (FLAGS.length <= i) {
-    const g = new THREE.Group(), geo = new THREE.PlaneGeometry(13, 8.5, 8, 1);
-    g.add(mesh(poleGeo, poleMat, 0, 15, 0));
-    const f = new THREE.Mesh(geo, flagMats[0]); f.position.set(6.5, 25, 0); f.castShadow = true; g.add(f);
-    g.userData.f = f; g.userData.base = Float32Array.from(geo.attributes.position.array); scene.add(g); FLAGS.push(g);
-  }
-  const g = FLAGS[i]; g.userData.f.material = flagMats[french ? 1 : 0]; return g;
-}
-function waveFlag(g, t, ph) {
-  const f = g.userData.f, p = f.geometry.attributes.position, b = g.userData.base;
-  for (let i = 0; i < p.count; i++) { const x = b[i * 3] + 6.5; p.setZ(i, Math.sin(t * 4 + ph + x * 0.45) * x * 0.12); }
-  p.needsUpdate = true;
-}
-const ballGeo = new THREE.SphereGeometry(1.5, 8, 6), ballMat = lam(0x151515), BALLS = [];
-function getBall(i) { while (BALLS.length <= i) { const m = mesh(ballGeo, ballMat); scene.add(m); BALLS.push(m); } return BALLS[i]; }
-const ringGeo = new THREE.CircleGeometry(1, 40); ringGeo.rotateX(-Math.PI / 2);
-const ringMat = new THREE.MeshBasicMaterial({ color: 0xf2c14e, transparent: true, opacity: 0.32, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
-const RINGS = BATDEFS.map(() => { const m = new THREE.Mesh(ringGeo, ringMat); m.renderOrder = 2; scene.add(m); return m; });
-// the range ruler on the grass in front of the battalions you command
-const RULER = (() => {
-  const g = new THREE.Group(), lines = {};
-  for (const m of [200, 100, 60, 40]) {
-    const mat = new THREE.MeshBasicMaterial({ color: m === 40 ? 0x78ff8c : 0xffffff, transparent: true, opacity: m === 40 ? 0.75 : 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
-    const geo = new THREE.PlaneGeometry(860, m === 40 ? 2.2 : 1.2); geo.rotateX(-Math.PI / 2);
-    lines[m] = new THREE.Mesh(geo, mat); lines[m].renderOrder = 2; g.add(lines[m]);
-  }
-  const zgeo = new THREE.PlaneGeometry(860, 1); zgeo.rotateX(-Math.PI / 2);
-  const zone = new THREE.Mesh(zgeo, new THREE.MeshBasicMaterial({ color: 0x4fcf6a, transparent: true, opacity: 0.16, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }));
-  zone.renderOrder = 1; g.add(zone);
-  g.userData = { lines, zone }; g.position.y = 0.3; scene.add(g); return g;
-})();
-
-// ---------- smoke and fire: soft round points ----------
-const PUFFT = (() => {
-  const [c, g] = cnv(64, 64), gr = g.createRadialGradient(32, 32, 2, 32, 32, 31);
-  gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.55, "rgba(255,255,255,.7)"); gr.addColorStop(1, "rgba(255,255,255,0)");
-  g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return tex(c);
-})();
-function pointCloud(n, additive) {
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(n * 3), 3).setUsage(THREE.DynamicDrawUsage));
-  geo.setAttribute("psize", new THREE.BufferAttribute(new Float32Array(n), 1).setUsage(THREE.DynamicDrawUsage));
-  geo.setAttribute("alpha", new THREE.BufferAttribute(new Float32Array(n), 1).setUsage(THREE.DynamicDrawUsage));
-  geo.setAttribute("tint", new THREE.BufferAttribute(new Float32Array(n * 3), 3).setUsage(THREE.DynamicDrawUsage));
-  const mat = new THREE.ShaderMaterial({
-    uniforms: { map: { value: PUFFT }, scale: { value: 600 } }, transparent: true, depthWrite: false,
-    blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
-    vertexShader: "attribute float psize;attribute float alpha;attribute vec3 tint;uniform float scale;varying float vA;varying vec3 vT;void main(){vA=alpha;vT=tint;vec4 mv=modelViewMatrix*vec4(position,1.0);gl_PointSize=min(900.0,psize*scale/max(1.0,-mv.z));gl_Position=projectionMatrix*mv;}",
-    fragmentShader: "uniform sampler2D map;varying float vA;varying vec3 vT;void main(){vec4 t=texture2D(map,gl_PointCoord);gl_FragColor=vec4(vT,t.a*vA);}"
-  });
-  const p = new THREE.Points(geo, mat); p.frustumCulled = false; p.userData.n = n; scene.add(p); return p;
-}
-const SMOKE3 = pointCloud(1600, false), FIRE3 = pointCloud(700, true);
-SMOKE3.renderOrder = 5; FIRE3.renderOrder = 6;
-function fillCloud(pc, list) { // list: [x,y,z,size,alpha,r,g,b] ...
-  const g = pc.geometry, P = g.attributes.position.array, Sz = g.attributes.psize.array, A = g.attributes.alpha.array, T = g.attributes.tint.array;
-  const n = Math.min(pc.userData.n, list.length / 8);
-  for (let i = 0; i < n; i++) { const o = i * 8; P[i * 3] = list[o]; P[i * 3 + 1] = list[o + 1]; P[i * 3 + 2] = list[o + 2]; Sz[i] = list[o + 3]; A[i] = list[o + 4]; T[i * 3] = list[o + 5]; T[i * 3 + 1] = list[o + 6]; T[i * 3 + 2] = list[o + 7]; }
-  g.setDrawRange(0, n);
-  for (const k of ["position", "psize", "alpha", "tint"]) g.attributes[k].needsUpdate = true;
-}
-
-// ---------- overlay canvas for labels, banners and the range box ----------
-const hud = $("hud"), ctx = hud.getContext("2d");
-let DPR = 1;
-function resize() {
-  DPR = Math.min(2, window.devicePixelRatio || 1);
-  const vw = window.innerWidth, vh = window.innerHeight, body = document.body;
-  const side = vw > vh * 1.15 && vw >= 700;
-  body.classList.toggle("side", side);
-  body.classList.toggle("tight", vh < 740);
-  const arena = $("arena"), ctr = $("controls");
-  let maxW = arena.clientWidth, availH;
-  if (side) { maxW = arena.clientWidth - ctr.offsetWidth - 10; availH = vh - 16; }
-  else availH = vh - ctr.offsetHeight - 26;
-  const w = Math.round(Math.max(Math.min(260, maxW), Math.min(maxW, availH * W / H))), h = Math.round(w * H / W);
-  $("stage").style.width = w + "px";
-  renderer.setSize(w, h);
-  hud.width = Math.round(w * DPR); hud.height = Math.round(h * DPR); hud.style.width = w + "px"; hud.style.height = h + "px";
-  camera.aspect = W / H; camera.updateProjectionMatrix();
-  SMOKE3.material.uniforms.scale.value = FIRE3.material.uniforms.scale.value = h * renderer.getPixelRatio() / (2 * Math.tan(camera.fov * Math.PI / 360));
-}
-function battleMode(on) { document.body.classList.toggle("battle", on); resize(); if (on) window.scrollTo(0, 0); }
-function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
-function scr(x, y, z) { _v.set(x, y, z).project(camera); if (_v.z > 1 || _v.z < -1) return null; return [(_v.x + 1) / 2 * W, (1 - _v.y) / 2 * H]; }
-
-// ---------- camera ----------
-// CAM is the view you steer: drag to turn, pinch or wheel to zoom, two fingers or right-drag to pan.
-const CAM0 = { tx: 0, tz: -650, yaw: 0.08, pitch: 0.42, dist: 1500 };
-const CAM = Object.assign({}, CAM0);
-const VIEWS = ["auto", "free", "line"], VIEWNAME = { auto: "🎥 Auto", free: "🎥 Free", line: "🎥 Redcoat" };
-let VIEW = "auto";
-let DRAMA = null, SLOWT = 0, FLASH = 0, CINE = 0, SPEED = 1, VOLCAM = 0, WCAM = 0;
-const camPos = new THREE.Vector3(0, 300, 700), camLook = new THREE.Vector3(0, 0, -200);
-const _pA = new THREE.Vector3(), _lA = new THREE.Vector3(), _pB = new THREE.Vector3(), _lB = new THREE.Vector3();
-function dramaAt(x, d, secs, z) {
-  if (SILENT || (REPLAY && REPLAY.speed >= 4)) return;
-  DRAMA = { t: secs, x, d, z };
-}
-function setView(v) { VIEW = v; const b = $("viewBtn"); if (b) b.textContent = VIEWNAME[v]; if (v === "auto") Object.assign(CAM, autoCam()); }
-function orbitPose(c, P, Lk) {
-  const cp = Math.cos(c.pitch);
-  Lk.set(c.tx, 0, c.tz);
-  P.set(c.tx + Math.sin(c.yaw) * cp * c.dist, Math.max(groundH(c.tx, c.tz) + 4, Math.sin(c.pitch) * c.dist), c.tz + Math.cos(c.yaw) * cp * c.dist);
-}
-function nearestFrenchD() { let m = null; for (const c of activeCols()) if (m == null || c.d < m) m = c.d; return m; }
-function autoCam() {
-  if (!G) return CAM0;
-  const ld = lineD(), fd = nearestFrenchD();
-  if (G.result === "win") return { tx: 0, tz: WZ(ld + 120), yaw: 0.35 * Math.sin(G.t * 0.15), pitch: 0.4, dist: 760 };
-  const ch = G.bats.filter(b => b.state === "charge");
-  if (ch.length && !(REPLAY && REPLAY.speed >= 4)) {
-    const ax = ch.reduce((a, b) => a + b.x, 0) / ch.length, ad = ch.reduce((a, b) => a + b.d, 0) / ch.length;
-    return { tx: WX(ax), tz: WZ(ad + 25), yaw: 0.3, pitch: 0.28, dist: 300 };
-  }
-  if (fd == null || G.phase !== "battle") return { tx: 0, tz: WZ(ld + 230), yaw: 0.1, pitch: 0.4, dist: 1250 };
-  const sep = Math.max(0, fd - ld);
-  return { tx: 0, tz: WZ(ld + sep * 0.5), yaw: 0.08, pitch: clamp(0.3 + sep / 2500, 0.3, 0.44), dist: clamp(sep * ZS * 1.05 + 380, 440, 1500) };
-}
-// the low view behind the redcoats, looking down the barrels at the French
-function linePose(P, Lk, cx) {
-  const sb = selBats(), ld = sb.length ? sb.reduce((a, b) => a + b.d, 0) / sb.length : lineD();
-  const x = cx != null ? cx : (sb.length ? WX(sb.reduce((a, b) => a + b.x, 0) / sb.length) : 0);
-  P.set(x + 4, 34, WZ(ld) + 84); Lk.set(x - 4, 10, WZ(ld) - 260);
-}
-function camStep(rdt) {
-  FLASH = Math.max(0, FLASH - rdt * 3);
+// tap a battalion on the battlefield to pick it
+cv.addEventListener("pointerdown", e => {
   if (!G) return;
-  // 1. the base view
-  if (G.phase === "intro") {
-    const p = clamp(1 - G.introT / 5, 0, 1), e = p * p * (3 - 2 * p), a = autoCam();
-    const c = { tx: WX(160) + (a.tx - WX(160)) * e, tz: -30 + (a.tz + 30) * e, yaw: 0.75 + (a.yaw - 0.75) * e, pitch: 0.13 + (a.pitch - 0.13) * e, dist: 230 + (a.dist - 230) * e };
-    orbitPose(c, _pA, _lA);
-    CINE = 1 - clamp((p - 0.82) / 0.18, 0, 1);
-    camPos.copy(_pA); camLook.copy(_lA);
-    if (VIEW === "auto") Object.assign(CAM, a);
-    applyCam(); return;
-  }
-  if (VIEW === "auto") { const a = autoCam(), k = 1 - Math.exp(-1.6 * rdt); for (const key in a) CAM[key] += (a[key] - CAM[key]) * k; }
-  if (VIEW === "line") linePose(_pA, _lA); else orbitPose(CAM, _pA, _lA);
-  // 2. drama shots: perfect volleys, Wolfe, and (in Auto) every volley seen from behind the line
-  let w = 0;
-  if (DRAMA) {
-    DRAMA.t -= rdt;
-    if (DRAMA.t <= 0) DRAMA = null;
-    else if (DRAMA.d < lineD() + 5) { // close on General Wolfe
-      w = 1; const x = WX(DRAMA.x), z = WZ(DRAMA.d); _lB.set(x - 4, 8, z); _pB.set(x + 34, 20, z - 30);
-    } else { w = 1; linePose(_pB, _lB, WX(DRAMA.x) * 0.3); }
-  }
-  if (!w && VIEW === "auto" && !G.result && !(REPLAY && REPLAY.speed >= 4)) {
-    const tense = G.phase === "battle" && liveBats().some(b => b.state === "present" || b.state === "presenting" || b.fireAt >= 0) && minRange() < 90;
-    if (tense || FLASH > 0.2) VOLCAM = 1.3;
-    VOLCAM -= rdt;
-    if (VOLCAM > 0) { w = 1; linePose(_pB, _lB, 0); }
-  }
-  WCAM += (w - WCAM) * Math.min(1, rdt * 3.2);
-  CINE += (w * 0.85 - CINE) * Math.min(1, rdt * 4);
-  if (WCAM > 0.001) {
-    if (!w) linePose(_pB, _lB, 0); // easing back out
-    _pA.lerp(_pB, WCAM); _lA.lerp(_lB, WCAM);
-  }
-  const k = 1 - Math.exp(-10 * rdt);
-  camPos.lerp(_pA, k); camLook.lerp(_lA, k);
-  applyCam();
-}
-function applyCam() {
-  camera.position.copy(camPos);
-  if (G && G.shakeT > 0) camera.position.add(_v.set(vrnd(-1, 1), vrnd(-1, 1), 0).multiplyScalar(G.shakeT * 6));
-  camera.lookAt(camLook);
-  sky.position.copy(camera.position);
-  const half = clamp(camPos.distanceTo(camLook) * 0.6, 160, COARSE ? 700 : 900);
-  aimSun(camLook.x, camLook.z, half);
-}
-
-// ---------- one frame of drawing ----------
-function batPose(bat) {
-  if (isLying(bat)) return "lie";
-  if (bat.state === "present" || bat.state === "presenting") return "present";
-  if (bat.state === "firing") return "fire";
-  if (bat.state === "charge") return "charge";
-  return "stand";
-}
-function selBats() { if (!G) return []; return SEL ? G.bats.filter(b => SEL.has(b.idx) && b.state !== "broken") : liveBats(); }
-function selRefD() { const b = selBats(); return b.length ? b.reduce((a, x) => a + x.d, 0) / b.length : lineD(); }
-function fmtTime(t) { t = Math.max(0, Math.floor(t)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); }
-const SM_ = [], FI_ = [];
-function draw3D() {
-  for (const k in P3) P3[k].count = 0;
-  FL.length = 0; SM_.length = 0; FI_.length = 0;
-  let nf = 0;
-  if (G) {
-    const t = G.t;
-    // dead and wounded on the grass
-    for (const b of G.bodies) {
-      if (b.kind === "horse") continue;
-      const fr = b.kind === "fr" || b.kind === "mil";
-      const z = fr ? WZ(b.d) : WZ(b.d) + (b.py / 11) * RANK;
-      putMan(WX(b.x), 0, z, (fr ? 0 : Math.PI) + b.rot * 2, "dead", b.kind);
-    }
-    // the British battalions
-    G.bats.forEach((bat, bi) => {
-      const flee = bat.state === "broken" ? bat.flee : 0, ring = RINGS[bi];
-      ring.visible = false;
-      if (flee > 6) { if (FLAGS[bi]) FLAGS[bi].visible = false; return; }
-      const pose = batPose(bat), moving = bat.advT > 0 || bat.formT > 0;
-      let depth = 0;
-      for (const f of bat.figs) {
-        if (!f.alive) continue;
-        depth = Math.max(depth, f.cr);
-        let x = WX(bat.x + f.cx), z = WZ(bat.d) + f.cr * RANK, y = 0, yaw = Math.PI;
-        if (flee) { z += flee * 55 + Math.sin(f.i) * 8 * flee; x -= Math.cos(f.i * 1.7) * 25 * flee; yaw = 0.3 * Math.sin(f.i); }
-        if (pose === "charge") y += Math.abs(Math.sin(t * 14 + f.i)) * 1.6;
-        else if (moving || flee) y += Math.abs(Math.sin(t * 9 + f.i * 0.6)) * 0.9;
-        if (G.result === "win" && !flee) y += Math.max(0, Math.sin(t * 6 + f.i * 0.7)) * 3;
-        putMan(x, y, z, yaw, flee ? "stand" : pose, bat.def.kind, { bayo: bat.bayo, flash: f.flash > 0 });
-      }
-      const fg = getFlag(bi, false);
-      fg.visible = bat.state !== "broken" && !isLying(bat);
-      if (fg.visible) { fg.position.set(WX(bat.x) + 3, 0, WZ(bat.d) + (bat.form === "line" ? RANK * 0.5 : depth * RANK * 0.5)); fg.rotation.y = -0.4; waveFlag(fg, t, bi); }
-      if (SEL && SEL.has(bat.idx) && !flee) { ring.visible = true; ring.position.set(WX(bat.x), 0.4, WZ(bat.d) + depth * RANK * 0.5); ring.scale.set(bat.form === "line" ? 78 : 42, 1, 10 + depth * RANK * 0.6); }
-    });
-    // the French columns
-    let fi = BATDEFS.length;
-    for (const col of G.cols) {
-      if (col.state === "gone") continue;
-      const spread = 1 + col.disorder * 0.6, rout = col.state === "rout";
-      const firing = col.flashT > 0;
-      for (const f of col.figs) {
-        if (!f.alive) continue;
-        let x = col.x + f.c * 9 * spread + f.jx * col.disorder * 6, d = col.d;
-        if (rout) { x += f.jx * col.routT * 20; d += f.jy * col.routT * 6; }
-        let y = 0;
-        if (col.state === "advance" || rout) y += Math.abs(Math.sin(t * (rout ? 14 : 8) + f.ph)) * (rout ? 1.4 : 0.8);
-        const front = f.r <= 1 && !rout;
-        putMan(WX(x), y, WZ(d + f.r * 1.6), rout ? Math.PI + f.jx * 0.4 : (col.state === "waver" ? f.jx * 0.3 : 0), firing && front ? "fire" : "stand", f.mil ? "mil" : "fr", { flash: firing && front && Math.random() < col.flashFrac + 0.1 });
-      }
-      if (!rout && aliveC(col)) {
-        const fg = getFlag(fi++, true); fg.visible = true;
-        fg.position.set(WX(col.x) + 4, 0, WZ(col.d + 2.5)); fg.rotation.y = Math.PI - 0.4; waveFlag(fg, t, fi);
-      }
-    }
-    for (let i = fi; i < FLAGS.length; i++) FLAGS[i].visible = false;
-    // British 6-pounders and their gunners
-    G.guns.forEach((g, i) => {
-      const m = GUN3[i], x = WX(g.x), z = WZ(3) + 6 + g.recoil * 22;
-      m.position.set(x, 0, z); m.rotation.y = 0;
-      putMan(x - 9, 0, z + 6, Math.PI, "stand", "art"); putMan(x + 9, 0, z + 8, Math.PI + 0.3, "stand", "art");
-      if (g.recoil > 0.22) FL.push(x, 7.5, z - 14, 36);
-    });
-    // French guns
-    FGUN3.forEach((m, i) => { putMan(m.position.x - 9, 0, m.position.z - 6, 0, "stand", "frart"); putMan(m.position.x + 9, 0, m.position.z - 8, -0.3, "stand", "frart"); });
-    for (const ball of G.balls) if (ball.t < 0.12) FL.push(WX(ball.gx), 7.5, WZ(550) + 14, 34);
-    // Wolfe and his men
-    const w = G.wolfe, wx = WX(w.x), wz = WZ(w.d);
-    if (!w.hit) { putMan(wx, 0, wz, Math.PI, "stand", "gen"); putMan(wx + 12, 0, wz + 6, Math.PI, "stand", "gren"); }
-    else { putMan(wx, 0, wz, Math.PI + 0.3, "dead", "gen"); putMan(wx - 9, 0, wz + 6, Math.PI - 0.6, "stand", "gren"); putMan(wx + 9, 0, wz + 5, Math.PI + 0.6, "stand", "red"); }
-    // Montcalm on his black horse behind his columns
-    HORSE.visible = G.montcalm.shown;
-    if (HORSE.visible) {
-      const m = G.montcalm, rout = G.cols.every(c => c.state === "rout" || c.state === "gone"), hx = WX(m.x), hz = WZ(m.d) - 40;
-      HORSE.position.set(hx, 0, hz); HORSE.rotation.y = rout ? Math.PI : 0.6;
-      const ph = t * (rout ? 14 : 4), sw = rout ? 0.7 : 0.25;
-      HORSE.userData.legs.forEach((l, i) => { l.rotation.x = Math.sin(ph + (i % 2 ? Math.PI : 0) + (i > 1 ? 0.6 : 0)) * sw; });
-      const c = Math.cos(HORSE.rotation.y), s = Math.sin(HORSE.rotation.y);
-      putMan(hx + 0 * c, 13.5 + Math.abs(Math.sin(ph)) * (rout ? 1.2 : 0.3), hz, HORSE.rotation.y, "stand", "mont");
-    }
-    // cannonballs
-    let bi2 = 0;
-    for (const ball of G.balls) {
-      if (ball.t > ball.dur) continue;
-      const k2 = ball.t / ball.dur, d = 548 + (ball.bat.d - 548) * k2, x = ball.gx + (ball.tx - ball.gx) * k2;
-      const h = Math.sin(k2 * Math.PI) * 60 * (1 - k2 * 0.4) + Math.abs(Math.sin(k2 * 9)) * 6 * k2;
-      getBall(bi2++).position.set(WX(x), 2 + h, WZ(d));
-    }
-    for (const sh of G.shots) {
-      if (sh.t > sh.dur) continue;
-      const k2 = sh.t / sh.dur, d = sh.fd + (sh.col.d - sh.fd) * k2, x = sh.fx + (sh.col.x - sh.fx) * k2;
-      getBall(bi2++).position.set(WX(x), 7 + Math.sin(k2 * Math.PI) * 22, WZ(d));
-    }
-    for (let i = 0; i < BALLS.length; i++) BALLS[i].visible = i < bi2;
-    // smoke from muskets and guns, dust from roundshot
-    for (const s of G.smoke) {
-      const a = s.a * (1 - s.age / s.life);
-      if (s.dust) SM_.push(WX(s.x), 4 + s.r * 0.3 + s.age * 6, WZ(s.d), s.r * 2.2, a, 0.5, 0.42, 0.3);
-      else SM_.push(WX(s.x), 9 + s.r * 0.45 + s.age * 2.5, WZ(s.d), s.r * 2.6, a * 0.9, 0.93, 0.93, 0.94);
-    }
-    for (const p of G.flankPuffs) {
-      if (p.age < 0.08) FL.push(WX(p.x), 7, WZ(p.d), 12);
-      SM_.push(WX(p.x + p.age * 6), 8 + p.age * 5, WZ(p.d), (5 + p.age * 6) * 2.6, 0.6 * (1 - p.age / 2.5), 0.92, 0.92, 0.92);
-    }
-    // range ruler
-    const show = G.phase !== "intro" && !G.result && CINE < 0.5;
-    RULER.visible = show;
-    if (show) {
-      const ref = selRefD(), L = RULER.userData.lines;
-      for (const m in L) L[m].position.z = WZ(ref + +m);
-      RULER.userData.zone.position.z = WZ(ref + 40); RULER.userData.zone.scale.z = 20 * ZS;
-    }
-    flashLight.intensity = FLASH * 2.4; flashLight.position.set(camLook.x, 30, WZ(lineD()) - 25);
-  }
-  for (let i = 0; i < FL.length; i += 4) {
-    FI_.push(FL[i], FL[i + 1], FL[i + 2], FL[i + 3], 1, 1, 0.82, 0.45);
-    FI_.push(FL[i], FL[i + 1], FL[i + 2], FL[i + 3] * 0.45, 1, 1, 1, 0.85);
-    SM_.push(FL[i], FL[i + 1] + 1, FL[i + 2], FL[i + 3] * 0.9, 0.35, 0.95, 0.95, 0.95);
-  }
-  fillCloud(SMOKE3, SM_); fillCloud(FIRE3, FI_);
-  for (const k in P3) { P3[k].instanceMatrix.needsUpdate = true; if (P3[k].instanceColor) P3[k].instanceColor.needsUpdate = true; }
-  water.material.map.offset.y = (performance.now() / 60000) % 1;
-  renderer.render(scene, camera);
-}
-
-function draw() {
-  draw3D();
-  const k = hud.width / W;
-  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, hud.width, hud.height);
-  ctx.setTransform(k, 0, 0, k, 0, 0);
-  if (!G) return;
-  if (CINE < 0.5) drawLabels();
-  if (FLASH > 0) { ctx.fillStyle = "rgba(255,228,170," + (FLASH * 0.17).toFixed(3) + ")"; ctx.fillRect(0, 0, W, H); }
-  if (CINE > 0.01) { ctx.fillStyle = "#000"; const h = 42 * CINE; ctx.fillRect(0, 0, W, h); ctx.fillRect(0, H - h, W, h); }
-  drawHUD();
-}
-function drawLabels() {
-  // range ruler numbers
-  if (G.phase !== "intro" && !G.result) {
-    const ref = selRefD(); ctx.font = "800 11px Nunito, sans-serif"; ctx.textAlign = "left";
-    for (const m of [200, 100, 60, 40]) {
-      const p = scr(-436, 0, WZ(ref + m)); if (!p) continue;
-      ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.strokeText(m + " yds", p[0] + 4, p[1] + 4);
-      ctx.fillStyle = m === 40 ? "#b8ffc4" : "rgba(255,255,255,.85)"; ctx.fillText(m + " yds", p[0] + 4, p[1] + 4);
-    }
-  }
-  // French morale bars
-  for (const col of G.cols) {
-    if (col.state === "rout" || col.state === "gone" || G.phase !== "battle") continue;
-    const p = scr(WX(col.x), 40, WZ(col.d + 2.5)); if (!p) continue;
-    const [x, y] = p, m = clamp(col.morale / G.D.morale, 0, 1);
-    ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillRect(x - 31, y - 4, 62, 8);
-    ctx.fillStyle = col.state === "waver" ? "#ffd166" : "#6ea8ff"; ctx.fillRect(x - 30, y - 3, 60 * m, 6);
-    ctx.textAlign = "center";
-    if (col.state === "waver") { ctx.fillStyle = "#ffd166"; ctx.font = "900 12px Nunito, sans-serif"; ctx.fillText("WAVERING", x, y - 7); }
-    else if (col.reserve) { ctx.fillStyle = "#cfe0ff"; ctx.font = "900 11px Nunito, sans-serif"; ctx.fillText("RESERVE", x, y - 7); }
-  }
-  // battalion labels: name, discipline and what they are doing
-  if (G.phase !== "intro") for (const bat of G.bats) {
-    if (bat.state === "broken") continue;
-    const depth = bat.figs.reduce((m, f) => f.alive ? Math.max(m, f.cr) : m, 0);
-    const p = scr(WX(bat.x), 0, WZ(bat.d) + depth * RANK + 10); if (!p) continue;
-    const sel = SEL && SEL.has(bat.idx), lx = p[0], ly = p[1] + 4;
-    if (ly > H + 10 || lx < -80 || lx > W + 80) continue;
-    ctx.fillStyle = sel ? "rgba(70,48,16,.88)" : "rgba(10,8,6,.72)"; roundRect(lx - 62, ly, 124, 38, 7); ctx.fill();
-    if (sel) { ctx.strokeStyle = "#f2c14e"; ctx.lineWidth = 2; ctx.stroke(); }
-    ctx.fillStyle = "#fff"; ctx.font = "900 11px Nunito, sans-serif"; ctx.textAlign = "center";
-    ctx.fillText(FORMICON[bat.form] + " " + bat.def.short + "  ·  " + aliveB(bat) * 10, lx, ly + 12);
-    const dc = bat.disc / 100;
-    ctx.fillStyle = "#2b2b2b"; ctx.fillRect(lx - 56, ly + 16, 112, 7);
-    ctx.fillStyle = dc > 0.6 ? "#4fcf6a" : dc > 0.35 ? "#f2c14e" : "#e0383f"; ctx.fillRect(lx - 56, ly + 16, 112 * dc, 7);
-    ctx.font = "800 9.5px Nunito, sans-serif";
-    if (bat.formT > 0) { ctx.fillStyle = "#9fe3f0"; ctx.fillText("FORMING " + FORMNAME[bat.form] + "...", lx, ly + 34); }
-    else if (bat.state === "fixing") { ctx.fillStyle = "#e4e9ef"; ctx.fillText("FIXING BAYONETS", lx, ly + 34); }
-    else if (bat.state === "charge") { ctx.fillStyle = "#ffd166"; ctx.fillText("CHARGING!", lx, ly + 34); }
-    else if (bat.reloading) {
-      ctx.fillStyle = "#3a3026"; ctx.fillRect(lx - 56, ly + 27, 112, 6);
-      ctx.fillStyle = "#e0873a"; ctx.fillRect(lx - 56, ly + 27, 112 * clamp(bat.reload, 0, 1), 6);
-    } else {
-      ctx.fillStyle = bat.loaded ? "#b8ffc4" : "#ffb0b0";
-      ctx.fillText((bat.loaded ? "LOADED" + (bat.dbl ? " ×2 BALLS" : "") : "EMPTY") + (bat.state === "present" ? " · READY" : "") + (isLying(bat) ? " · DOWN" : ""), lx, ly + 34);
-    }
-  }
-  // General Wolfe's name
-  if (G.phase !== "intro" && !G.wolfe.hit) { const p = scr(WX(G.wolfe.x), 26, WZ(G.wolfe.d)); if (p) { ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.font = "800 11px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("Wolfe", p[0], p[1]); } }
-  // floating casualty numbers
-  ctx.textAlign = "center"; ctx.font = "900 16px Nunito, sans-serif";
-  for (const f of G.floats) {
-    const p = scr(WX(f.x), 22 + f.t * 16, WZ(f.d)); if (!p) continue;
-    const a = clamp(1.6 - f.t, 0, 1);
-    ctx.globalAlpha = a; ctx.lineWidth = 4; ctx.strokeStyle = "#1a0d08"; ctx.strokeText(f.text, p[0], p[1]);
-    ctx.fillStyle = f.color; ctx.fillText(f.text, p[0], p[1]); ctx.globalAlpha = 1;
-  }
-}
-
-
-// ---------- the 2D overlay: range box, corner tag, banners (as Classic) ----------
-function drawHUD() {
-  ctx.textAlign = "left";
-  if (G.phase === "intro") {
-    const a = clamp(G.t / 0.8, 0, 1) * clamp(G.introT / 0.6, 0, 1);
-    ctx.globalAlpha = a; ctx.textAlign = "center";
-    ctx.fillStyle = "#f2c14e"; ctx.font = "400 40px 'Lilita One', sans-serif"; ctx.lineWidth = 7; ctx.strokeStyle = "#1a0d08";
-    ctx.strokeText("QUEBEC · 13 SEPTEMBER 1759", W / 2, 130); ctx.fillText("QUEBEC · 13 SEPTEMBER 1759", W / 2, 130);
-    ctx.font = "800 17px Nunito, sans-serif"; ctx.fillStyle = "#fff"; ctx.lineWidth = 5;
-    for (const [i, line] of ["In the dark, Wolfe's redcoats climbed the cliffs from the river.", "Now they stand in a thin red line on the Plains of Abraham."].entries()) { ctx.strokeText(line, W / 2, 168 + i * 24); ctx.fillText(line, W / 2, 168 + i * 24); }
-    ctx.font = "800 13px Nunito, sans-serif"; ctx.fillStyle = "rgba(255,255,255,.8)"; ctx.fillText(REPLAY ? "replay" : "tap to skip", W / 2, H - 14);
-    ctx.globalAlpha = 1;
-  } else {
-    // range box
-    const sb = selBats(), r = sb.length ? Math.min(...sb.map(rangeBat)) : minRange();
-    ctx.fillStyle = "rgba(10,8,6,.72)"; roundRect(10, 10, 236, 84, 10); ctx.fill();
-    ctx.fillStyle = "#c7b8a3"; ctx.font = "800 11px Nunito, sans-serif";
-    const who = SEL && sb.length ? (sb.length === 1 ? sb[0].def.short.toUpperCase() : sb.length + " BATTALIONS") : "THE LINE";
-    ctx.fillText(G.phase === "wait" ? "FRENCH ATTACK IN" : "NEAREST FRENCH TO " + who, 20, 27);
-    let big, adv, col;
-    if (G.phase === "wait") { big = Math.ceil(G.waitT) + "s"; adv = "Lie down and wait"; col = "#fff"; }
-    else if (r > 1000) { big = "-"; adv = G.reserveQ.length ? "More are coming!" : "They're running!"; col = "#ffd166"; }
-    else {
-      big = Math.round(r) + " yds";
-      if (r > 110) { adv = "HOLD YOUR FIRE"; col = "#fff"; }
-      else if (r > 60) { adv = "Hold... hold..."; col = "#f2c14e"; }
-      else if (r > 50) { adv = "MAKE READY!"; col = "#ffb04e"; }
-      else if (r >= 25) { adv = "FIRE NOW!"; col = "#7dff95"; }
-      else { adv = "Point blank! Fire or charge!"; col = "#ff7b7b"; }
-    }
-    ctx.fillStyle = col; ctx.font = "400 30px 'Lilita One', sans-serif"; ctx.fillText(big, 20, 58);
-    ctx.font = "900 14px Nunito, sans-serif"; ctx.fillText(adv, 20, 82);
-  }
-  // corner tag: difficulty, speed or replay
-  ctx.textAlign = "right"; ctx.fillStyle = "rgba(10,8,6,.66)"; roundRect(W - 200, 10, 190, 24, 8); ctx.fill();
-  ctx.font = "900 12px Nunito, sans-serif";
-  if (REPLAY) { ctx.fillStyle = "#ff8a8a"; ctx.fillText("● REPLAY " + (REPLAY.paused ? "paused" : REPLAY.speed + "x") + " · " + fmtTime(G.t), W - 18, 26); }
-  else { ctx.fillStyle = "#f2c14e"; ctx.fillText(G.D.name + " · Quebec 1759" + (SPEED > 1 ? " · ⏩ " + SPEED + "x" : ""), W - 18, 26); }
-  // banners
-  ctx.textAlign = "center";
-  for (const b of G.banners.slice(0, 1)) {
-    const k = b.t < 0.2 ? b.t / 0.2 : 1, fade = b.t > b.life - 0.5 ? (b.life - b.t) / 0.5 : 1;
-    ctx.save(); ctx.globalAlpha = clamp(fade, 0, 1);
-    ctx.translate(W / 2, 250); ctx.scale(0.6 + 0.4 * k, 0.6 + 0.4 * k);
-    ctx.font = "400 " + b.size + "px 'Lilita One', sans-serif";
-    ctx.lineWidth = 8; ctx.strokeStyle = "#1a0d08"; ctx.strokeText(b.text, 0, 0);
-    ctx.fillStyle = b.color; ctx.fillText(b.text, 0, 0);
-    ctx.restore();
-  }
-}
-
-// ---------- 3D camera and battlefield input ----------
-// One finger or the mouse: tap a battalion to pick it, drag to swing the camera round.
-// Two fingers: pinch to zoom, slide to pan. Mouse wheel zooms, right-drag or arrow keys pan.
-const PTR = new Map();
-let gest = null;
-function stageXY(e) { const rc = cv.getBoundingClientRect(); return [(e.clientX - rc.left) / rc.width * W, (e.clientY - rc.top) / rc.height * H]; }
-function toFree() { if (VIEW !== "free") { if (VIEW === "line") Object.assign(CAM, autoCam()); setView("free"); } DRAMA = null; VOLCAM = 0; }
-function panCam(dx, dz) { // screen-relative pan in world units
-  const c = Math.cos(CAM.yaw), s = Math.sin(CAM.yaw);
-  CAM.tx = clamp(CAM.tx + dx * c + dz * s, -900, 900);
-  CAM.tz = clamp(CAM.tz - dx * s + dz * c, -2300, 700);
-}
-function zoomCam(f) { CAM.dist = clamp(CAM.dist * f, 70, 2600); }
-function pickBat(sx, sy) {
+  audio();
+  if (G.phase === "intro") { if (!REPLAY) cmd("skip"); return; }
+  if (REPLAY || G.result) return;
+  const rc = cv.getBoundingClientRect(), sx = (e.clientX - rc.left) / rc.width * W, sy = (e.clientY - rc.top) / rc.height * H;
+  const wx = (sx - W / 2) / CAM.z + CAM.x, wy = (sy - H / 2) / CAM.z + CAM.y;
   let best = null, bd = 1e9;
   for (const b of G.bats) {
     if (b.state === "broken") continue;
-    const depth = b.figs.reduce((m, f) => f.alive ? Math.max(m, f.cr) : m, 0);
-    const c = scr(WX(b.x), 6, WZ(b.d) + depth * RANK * 0.5), l = scr(WX(b.x) + 60, 6, WZ(b.d)), r = scr(WX(b.x) - 60, 6, WZ(b.d));
-    if (!c || !l || !r) continue;
-    const half = Math.max(34, Math.abs(l[0] - r[0]) / 2 + 8), dx = Math.abs(sx - c[0]), dy = sy - c[1];
-    if (dx < half && dy > -60 && dy < 70 && dx < bd) { bd = dx; best = b; }
+    const bx = xOf(b.x, b.d), by = yOf(b.d), dx = Math.abs(wx - bx);
+    if (dx < 70 && wy > by - 50 && wy < by + 80 && dx < bd) { bd = dx; best = b; }
   }
-  return best;
-}
-cv.addEventListener("contextmenu", e => e.preventDefault());
-cv.addEventListener("pointerdown", e => {
-  e.preventDefault(); audio();
-  try { cv.setPointerCapture(e.pointerId); } catch (er) {}
-  const [x, y] = stageXY(e);
-  PTR.set(e.pointerId, { x, y, x0: x, y0: y, moved: false, btn: e.button });
-  if (PTR.size === 2) { const [a, b] = [...PTR.values()]; gest = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 }; }
-  if (G && G.phase === "intro" && !REPLAY) cmd("skip");
+  if (best) toggleSel(best.idx);
 });
-cv.addEventListener("pointermove", e => {
-  const p = PTR.get(e.pointerId); if (!p) return;
-  const [x, y] = stageXY(e), dx = x - p.x, dy = y - p.y;
-  p.x = x; p.y = y;
-  if (Math.hypot(x - p.x0, y - p.y0) > 9) p.moved = true;
-  if (!p.moved) return;
-  const scale = CAM.dist / 600;
-  if (PTR.size >= 2 && gest) {
-    const [a, b] = [...PTR.values()], d = Math.hypot(a.x - b.x, a.y - b.y), cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
-    toFree();
-    if (gest.d > 10 && d > 10) zoomCam(gest.d / d);
-    panCam(-(cx - gest.cx) * scale * 1.2, -(cy - gest.cy) * scale * 2.2);
-    gest = { d, cx, cy };
-  } else if (p.btn === 2 || e.shiftKey) { toFree(); panCam(-dx * scale * 1.2, -dy * scale * 2.2); }
-  else { toFree(); CAM.yaw -= dx * 0.006; CAM.pitch = clamp(CAM.pitch + dy * 0.004, 0.04, 1.35); }
-});
-function endPtr(e) {
-  const p = PTR.get(e.pointerId); if (!p) return;
-  PTR.delete(e.pointerId); if (PTR.size < 2) gest = null;
-  if (p.moved || e.type === "pointercancel" || !G || REPLAY || G.result || G.phase === "intro") return;
-  const b = pickBat(p.x, p.y); if (b) toggleSel(b.idx);
-}
-cv.addEventListener("pointerup", endPtr); cv.addEventListener("pointercancel", endPtr);
-cv.addEventListener("wheel", e => { e.preventDefault(); toFree(); zoomCam(Math.exp(clamp(e.deltaY, -200, 200) * 0.0015)); }, { passive: false });
-$("viewBtn").addEventListener("click", e => { e.preventDefault(); const i = VIEWS.indexOf(VIEW); setView(VIEWS[(i + 1) % VIEWS.length]); DRAMA = null; VOLCAM = 0; });
-$("homeCamBtn").addEventListener("click", e => { e.preventDefault(); setView("auto"); });
-
 document.addEventListener("keydown", e => {
   if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
-  // camera: arrows pan, + and - zoom, V changes the view (letters are the officers' orders, as in Classic)
-  const ck = { ArrowLeft: [-30, 0], ArrowRight: [30, 0], ArrowUp: [0, -40], ArrowDown: [0, 40] }[e.key];
-  if (ck) { e.preventDefault(); toFree(); panCam(ck[0] * CAM.dist / 600, ck[1] * CAM.dist / 600); return; }
-  if (e.key === "+" || e.key === "=") { toFree(); zoomCam(0.85); return; }
-  if (e.key === "-" || e.key === "_") { toFree(); zoomCam(1.18); return; }
-  if (e.key.toLowerCase() === "v" && !e.repeat) { $("viewBtn").click(); return; }
   if (REPLAY) { if (e.code === "Space") { e.preventDefault(); REPLAY.paused = !REPLAY.paused; } return; }
   if (paused() || e.repeat) return;
   const k = e.key.toLowerCase();
@@ -2535,16 +2112,12 @@ newBattle();
 showStart();
 ui();
 requestAnimationFrame(frame);
-// a small hook for automated tests (reads only, plus the same orders a player can give)
-window.__poa = { get G() { return G; }, get S() { return S; }, cmd, toggleSel, selAll, startBattle, startReplay, setView, get VIEW() { return VIEW; }, CAM, step: n => { for (let i = 0; i < n && !G.ended; i++) tick(); } };
 
 // ---------- leaderboard ----------
 if (window.Leaderboard) {
   Leaderboard.mount({ el: "lb", game: "plains-of-abraham", dir: "desc", unit: "pts", title: "Plains of Abraham: best battle score" });
   if (Leaderboard.getName() && S.best >= 1) Leaderboard.submit(S.best);
 }
-
-})();
 </script>
 </body>
 </html>

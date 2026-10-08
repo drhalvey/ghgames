@@ -41,6 +41,11 @@ ghgames/
 
 Open any `index.html` in a browser right now to play — nothing needs to be online to test.
 
+## 3D versions and Classic copies (October 2026)
+
+Every game is now 3D (three.js r128, kept locally in `vendor/three.min.js`, no CDN). The 2D version of each is kept as `<name>-classic.html`, linked from the top of the 3D page; it uses the same save key and `data-game`, so progress is shared and online games still mix 3D and Classic players. Seven Years' War's 2D copy is `seven-years-war-2d.html`, because `seven-years-war-classic.html` was already its own older game. If a device cannot run WebGL, the 3D page shows a link to the Classic.
+New games: build them 3D from the start (save-your-rabbit.html is a good pattern: sky dome, studded blocks, blocky characters, follow camera, joystick on iPad).
+
 ## Putting it online (one-time setup — Ed does these)
 
 These three steps need your card, your identity, and your logins, so they're yours, not George's.

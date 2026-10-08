@@ -336,7 +336,9 @@ function mixHex(a, b, t) {
   }
 }
 // every world costs 100 times more than the one before it (City is still 2.5M)
-for (let i = 2; i < WORLDS.length; i++) WORLDS[i].cost = WORLDS[i - 1].cost.mul(100);
+// ...and that x100 step itself grows by 2.5% for each galaxy (x102.5 in galaxy 2, x105 ish in galaxy 3, and so on)
+const stepFor = (base, i) => base * Math.pow(1.025, Math.floor(i / 25));
+for (let i = 2; i < WORLDS.length; i++) WORLDS[i].cost = WORLDS[i - 1].cost.mul(stepFor(100, i));
 const EGGS = [
   { cost: 1000, pow: 1 }, { cost: 30e3, pow: 2.5 }, { cost: 2.5e6, pow: 6 },
   { cost: 2.5e8, pow: 15 }, { cost: 6e10, pow: 40 }, { cost: 2.5e13, pow: 100 },
@@ -347,7 +349,7 @@ for (const e of EGGS) e.cost = D(e.cost);
 for (const e of EGGS) e.lp = Math.log10(e.pow);
 while (EGGS.length < WORLDS.length) { const i = EGGS.length; EGGS.push({ cost: WORLDS[i].cost.mul(1.25), lp: EGGS[i - 1].lp + Math.log10(2.5) }); }   // egg power stored as a log so it never gets too big
 // every world's egg costs 80 times more than the egg before it (Park egg is still 1K)
-for (let i = 1; i < EGGS.length; i++) EGGS[i].cost = EGGS[i - 1].cost.mul(80);
+for (let i = 1; i < EGGS.length; i++) EGGS[i].cost = EGGS[i - 1].cost.mul(stepFor(80, i));   // also +2.5% per galaxy
 const RAR = [
   { n: "Common",    c: "#c3c9d8", p: 58, m: 1.2 },
   { n: "Uncommon",  c: "#5fd27a", p: 26, m: 1.5 },
@@ -443,21 +445,24 @@ const DAILY = [ // coins are times your best world's multi
   { c: 300, e: "🪙" }, { c: 600, e: "🪙" }, { c: 1000, egg: 1, e: "🥚" }, { c: 1500, e: "💰" },
   { c: 2500, e: "💰" }, { c: 4000, e: "💎" }, { c: 8000, egg: 3, e: "🎁" }
 ];
-const UPS = {   // 2500 levels (Tough Skin and Pet Slots stop at 100); prices are big numbers
-  sp:   { n: "Speed 👟",  max: 2500, cost: l => Decimal.pow(1.55, l).mul(30), d: l => `+${Math.round((spF(l) - 1) * 100)}% speed` },
-  bite: { n: "Big Bites 😋", max: 2500, cost: l => Decimal.pow(1.7, l).mul(50), d: l => `x${(1 + l * 0.25).toFixed(2)} growing` },
-  mag:  { n: "Long Reach 🧲", max: 2500, cost: l => Decimal.pow(1.6, l).mul(80), d: l => `+${Math.round((reachF(l) - 1) * 100)}% eating reach` },
-  coin: { n: "Coin Boost 🪙", max: 2500, cost: l => Decimal.pow(1.75, l).mul(70), d: l => `x${(1 + l * 0.25).toFixed(2)} coins` },
-  boostUp: { n: "Super Boost 🚀", max: 2500, cost: l => Decimal.pow(1.7, l).mul(60), d: l => `Boost lasts ${boostLen(l).toFixed(1)}s, ready every ${boostCd(l).toFixed(1)}s` },
-  luck: { n: "Lucky Eggs 🍀", max: 2500, cost: l => Decimal.pow(1.8, l).mul(150), d: l => `x${fmt(luckF(l))} luck (max x${fmt(LUCK_MAX)}) · eggs can hatch up to ${RAR[hatchTop(l)] ? RAR[hatchTop(l)].n : "Absolute"}` },
+const UPG_MAX = 7500;   // top level for Speed, Big Bites, Long Reach, Coin Boost, Super Boost and Lucky Eggs
+const UPS = {   // 7500 levels (Tough Skin and Pet Slots stop at 100); prices are big numbers
+  sp:   { n: "Speed 👟",  max: UPG_MAX, cost: l => Decimal.pow(1.55, l).mul(30), d: l => `+${Math.round((spF(l) - 1) * 100)}% speed` },
+  bite: { n: "Big Bites 😋", max: UPG_MAX, cost: l => Decimal.pow(1.7, l).mul(50), d: l => `x${(1 + l * 0.25).toFixed(2)} growing` },
+  mag:  { n: "Long Reach 🧲", max: UPG_MAX, cost: l => Decimal.pow(1.6, l).mul(80), d: l => `+${Math.round((reachF(l) - 1) * 100)}% eating reach` },
+  coin: { n: "Coin Boost 🪙", max: UPG_MAX, cost: l => Decimal.pow(1.75, l).mul(70), d: l => `x${(1 + l * 0.25).toFixed(2)} coins` },
+  boostUp: { n: "Super Boost 🚀", max: UPG_MAX, cost: l => Decimal.pow(1.7, l).mul(60), d: l => `Boost lasts ${boostLen(l).toFixed(1)}s, ready every ${boostCd(l).toFixed(1)}s` },
+  luck: { n: "Lucky Eggs 🍀", max: UPG_MAX, cost: l => Decimal.pow(1.8, l).mul(150), d: l => `x${fmt(luckF(l))} luck (max x${fmt(LUCK_MAX)}) · eggs can hatch up to ${RAR[hatchTop(l)] ? RAR[hatchTop(l)].n : "Absolute"}` },
   keep: { n: "Tough Skin 🛡️", max: 100, cost: l => Decimal.pow(1.8, l).mul(100), d: l => `Keep ${Math.round(keepF(l) * 100)}% of your size when eaten` },
   slots: { n: "Pet Slots 🐾", max: 100, cost: l => Decimal.pow(25, l).mul(50000), d: l => `Equip ${3 + l} pets at once`, keepOnRebirth: true }
 };
 const boostLen = l => 1.3 + l * 0.02 * (l <= 200 ? 1 : 200 / l) + Math.max(0, l - 200) * 0.002, boostCd = l => Math.max(0.9, 5 - l * 0.0205);   // ready every 0.9s from level 200
 // past level 200 speed and reach still go up, but more gently, so the game stays playable
 const spF = l => 1 + 0.06 * Math.min(l, 200) + 0.01 * Math.max(0, l - 200), reachF = l => 1 + 0.06 * Math.min(l, 200) + 0.005 * Math.max(0, l - 200);
-const LUCK_MAX = 1e273;
-const luckF = l => Math.pow(LUCK_MAX, l / 2500),   // level 2500 = x1Nog (1e273) luck
+// Lucky Eggs: level 7500 = x1SpgDu luck (1e813). That is too big for normal numbers, so luck is kept as a log.
+const LUCK_MAX_LOG = 813, LUCK_MAX = Decimal.pow(10, LUCK_MAX_LOG);
+const luckLog = l => LUCK_MAX_LOG * Math.min(l, UPG_MAX) / UPG_MAX;
+const luckF = l => Decimal.pow(10, luckLog(l)),
       keepF = l => 0.3 + l * 0.006;
 const MAX_PETS = 150;
 const eqMax = () => 3 + (S.slots || 0);
@@ -1419,14 +1424,15 @@ function renderPets() {
   }).join("");
 }
 // pick a random pet from an egg; Lucky Eggs make each rarer kind more likely (only hatchable rarities count)
-const hatchTop = l => Math.min(RAR.length - 1, 4 + Math.round((RAR.length - 5) * Math.min(1, l / 2500)));
+const hatchTop = l => Math.min(RAR.length - 1, 4 + Math.round((RAR.length - 5) * Math.min(1, l / UPG_MAX)));
 function rollPet() {
-  const L = luckF(S.luck || 0);
-  const wts = RAR.map((R, i) => R.p ? R.p * Math.pow(L, i / 4) : 0);
+  // weights worked out with logs so huge luck never overflows
+  const lg = luckLog(S.luck || 0), logs = RAR.map((R, i) => R.p ? Math.log10(R.p) + lg * i / 4 : -Infinity), top = Math.max(...logs);
+  const wts = logs.map(x => x === -Infinity ? 0 : Math.pow(10, x - top));
   let roll = Math.random() * wts.reduce((a, b) => a + b, 0), r = 0;
   while (r < wts.length - 1 && roll >= wts[r]) { roll -= wts[r]; r++; }
   // a Legendary can keep climbing past Legendary: Lucky Eggs set how high (level 1000 = all the way to Absolute)
-  if (r === 4) { const q = Math.min(1, (S.luck || 0) / 2500), top = hatchTop(S.luck || 0), c = 0.9 + 0.099 * q; while (r < top && Math.random() < c) r++; }
+  if (r === 4) { const q = Math.min(1, (S.luck || 0) / UPG_MAX), top = hatchTop(S.luck || 0), c = 0.9 + 0.099 * q; while (r < top && Math.random() < c) r++; }
   const opts = PETS.map((p, k) => ({ p, k })).filter(o => o.p.r === r);
   return { pick: opts[Math.floor(Math.random() * opts.length)], r };
 }

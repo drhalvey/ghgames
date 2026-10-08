@@ -1366,6 +1366,7 @@ function renderEggs() {
   const spare = S.pets.length - S.eq.length;
   h += `<button class="small alt" id="bestBtn" type="button">Equip best</button>`;
   h += `<button class="small alt" id="delAllBtn" type="button" ${spare > 0 ? "" : "disabled"}>🗑️ Delete unequipped (${spare})</button>`;
+  h += `<button class="small" id="delEveryBtn" type="button" style="background:#c62828;box-shadow:0 4px 0 #7a1414" ${S.pets.length ? "" : "disabled"}>💥 Delete ALL pets (${S.pets.length})</button>`;
   h += `<span class="hint">Pets ${S.pets.length}/${MAX_PETS} · Equipped ${S.eq.length}/${eqMax()} · Pet multi x${fmt(petMult())}</span>`;
   setHTML("eggRow", h);
   // fusing: 3 pets of one rarity make 1 pet of the next rarity
@@ -1445,6 +1446,16 @@ $("eggRow").addEventListener("click", e => {
   if (b.id === "eggBtn") hatch(false);
   else if (b.id === "eggMaxBtn") hatchMax();
   else if (b.id === "freeEggBtn") hatch(true);
+  else if (b.id === "delEveryBtn") {
+    if (!S.pets.length) return;
+    const n = S.pets.length;
+    $("box").innerHTML = `<h3>Delete ALL ${n} pets?</h3>
+      <p class="hint">This deletes every pet you own, <b>including the ones you have equipped</b>. Your pet multi goes back to x1. You can't undo this.</p>
+      <div class="row"><button class="small" id="delAllYes" type="button" style="background:#c62828;box-shadow:0 4px 0 #7a1414">Yes, delete them all</button><button class="small alt" id="delAllNo" type="button">Cancel</button></div>`;
+    $("overlay").hidden = false;
+    $("delAllNo").onclick = closeBox;
+    $("delAllYes").onclick = () => { S.pets = []; S.eq = []; save(); renderAll(); closeBox(); setMsg(`Deleted all ${n} pets. Time to hatch some new ones!`, "good"); };
+  }
   else if (b.id === "delAllBtn") {
     const spare = S.pets.filter(p => !S.eq.includes(p.id));
     if (!spare.length) return;

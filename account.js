@@ -38,6 +38,7 @@
     "iron-command": { title: "Iron Command", keys: ["ironcommand-save", "ironcommand-battle"] },
     "poo-simulator": { title: "Poo Simulator", keys: ["poosim-save"] },
     "monster-mayhem": { title: "Monster Mayhem", keys: ["monstermayhem-save"] },
+    "rail-dash": { title: "Rail Dash", keys: ["raildash-save"] },
   };
 
   var TOKEN = "ghacct_token", USER = "ghacct_user", NICK = "ghgames_nick";

@@ -34,6 +34,7 @@ ghgames/
   save-your-rabbit.html  intro where a rich guy steals your rabbit, then a 25-stage jump obby: wins from each stage buy jump multis, walls need more jump each stage, stage 25 gets your rabbit back
   poo-simulator.html  hold to push, let go in the gold zone for a perfect poo: poos earn coins, food buys release power, 11 worlds bought with coins (better food, bigger coin multi), rebirths double food and coin multi, Auto Poo, biggest poo ever and this session
   monster-mayhem.html  be the monster (like You Monster! on Poki): eat zombies to grow, bite and SMASH other monsters, last one standing wins; 100 levels over 10 worlds with a boss every 10th level and a closing purple storm, 8 upgrades, 10 monsters to unlock; Public Arena is one free-for-all room for everyone online (Supabase Realtime, the oldest player runs the computer monsters, each player owns their own health, zombies are the same on every device from a seed); leaderboard is most KOs in one life
+  rail-dash.html  endless train-track runner (like Subway Surfers, no ads): swipe or arrow keys to change track, jump red barriers, roll under yellow signs, run up ramps onto train roofs, dodge moving trains; stumble twice and Bolt the guard bot catches you; power-ups (magnet, shield, rocket, double coins) with coin upgrades, score multi, 6 runners, 5 worlds, 3 rolling missions; leaderboard is highest score
   CNAME           contains "ghgames.au" — tells GitHub Pages the domain
   README.md       this file
 ```

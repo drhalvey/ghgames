@@ -73,6 +73,7 @@ canvas{display:block;width:100%;touch-action:none}
 .opt.sel{border-color:var(--gold);background:var(--panel2);box-shadow:0 0 0 3px rgba(255,201,60,.25)}
 .opt.locked{opacity:.55}
 .galhead{grid-column:1/-1;font-family:var(--display);font-size:20px;color:#b9a4ff;text-align:left;margin-top:6px}
+.unihead{font-size:26px;color:var(--gold);border-bottom:2px solid var(--line);padding-bottom:4px;margin-top:12px}
 .play{font-family:var(--display);font-size:30px;border:none;border-radius:18px;padding:10px 46px;color:#3b2200;background:linear-gradient(#ffd966,#ffb300);box-shadow:0 6px 0 #a86a00;cursor:pointer}
 .play:active{transform:translateY(3px);box-shadow:0 3px 0 #a86a00}
 .msg{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:10px 14px;font-weight:800;min-height:44px}
@@ -312,8 +313,12 @@ for (const w of WORLDS) { w.cost = D(w.cost); w.mult = D(w.mult); }
 for (const w of MORE_WORLDS) { const last = WORLDS[WORLDS.length - 1]; w.cost = last.cost.mul(300); w.mult = last.mult.mul(6); WORLDS.push(w); }
 WORLDS[4].stars = WORLDS[11].stars = true;
 for (let i = 1; i < WORLDS.length; i++) WORLDS[i].cost = WORLDS[i].cost.mul(100);   // worlds cost 100 times more
-// 20 galaxies of 25 worlds. Galaxies 3 to 20 are new versions of the first 50 worlds with their own colours.
-const GALAXIES = ["Milky Way", "Andromeda", "Nebula", "Starburst", "Cosmic Rift", "The Void", "Quasar", "Infinity", "Supernova", "Black Hole", "Wormhole", "Hyperspace", "Celestial Sea", "Eclipse", "Omniverse", "Dreamscape", "The Beyond", "Paradise", "Chaos Realm", "Final Frontier"];
+// 40 galaxies of 25 worlds (2 universes). Galaxies 3 to 40 are new versions of the first 50 worlds with their own colours.
+const GALAXIES = ["Milky Way", "Andromeda", "Nebula", "Starburst", "Cosmic Rift", "The Void", "Quasar", "Infinity", "Supernova", "Black Hole", "Wormhole", "Hyperspace", "Celestial Sea", "Eclipse", "Omniverse", "Dreamscape", "The Beyond", "Paradise", "Chaos Realm", "Final Frontier",
+  "Starfall", "Moonrise", "Sunburst", "Nebula Prime", "Stardust", "Comet Trail", "Aurora", "Meteor Storm", "Twin Suns", "Ice Giant", "Red Giant", "White Dwarf", "Pulsar", "Magnetar", "Dark Matter", "Antimatter", "Singularity", "Event Horizon", "Big Crunch", "The End of Everything"];
+// 2 universes of 20 galaxies each
+const UNIVERSES = ["Origin", "Beyond"], GPU = 20;
+const universeOf = i => Math.floor(Math.floor(i / 25) / GPU);
 const WPG = 25;
 const galaxyOf = i => Math.floor(i / WPG);
 function mixHex(a, b, t) {
@@ -322,11 +327,12 @@ function mixHex(a, b, t) {
 }
 {
   const STYLE = [["Neon", "#ff00ff", 0.3], ["Shadow", "#000000", 0.55], ["Crystal", "#9ee7ff", 0.4], ["Golden", "#ffd700", 0.35], ["Mega", "#ff4500", 0.3], ["Ultimate", "#7d4dff", 0.4],
-    ["Rainbow", "#ff7ad9", 0.35], ["Lava", "#ff3d00", 0.4], ["Frozen", "#cfefff", 0.45], ["Toxic", "#7dff3b", 0.35], ["Cosmic", "#2a1a6e", 0.5], ["Royal", "#7a2cff", 0.35], ["Glitch", "#00ffd5", 0.4], ["Dream", "#ffb3ff", 0.4], ["Beyond", "#ffffff", 0.45], ["Paradise", "#7dffb0", 0.4], ["Chaos", "#ff2a6d", 0.4], ["Frontier", "#ffd166", 0.4]];
+    ["Rainbow", "#ff7ad9", 0.35], ["Lava", "#ff3d00", 0.4], ["Frozen", "#cfefff", 0.45], ["Toxic", "#7dff3b", 0.35], ["Cosmic", "#2a1a6e", 0.5], ["Royal", "#7a2cff", 0.35], ["Glitch", "#00ffd5", 0.4], ["Dream", "#ffb3ff", 0.4], ["Beyond", "#ffffff", 0.45], ["Paradise", "#7dffb0", 0.4], ["Chaos", "#ff2a6d", 0.4], ["Frontier", "#ffd166", 0.4],
+    ["Starfall", "#c9d6ff", 0.4], ["Moonrise", "#d9d9f0", 0.4], ["Sunburst", "#ffb000", 0.35], ["Prime", "#b388ff", 0.4], ["Stardust", "#f5e6ff", 0.4], ["Comet", "#7fd8ff", 0.4], ["Aurora", "#5cffb8", 0.35], ["Meteor", "#ff7b3b", 0.4], ["Twin Sun", "#ffe066", 0.35], ["Ice Giant", "#a8e6ff", 0.45], ["Red Giant", "#ff4d4d", 0.4], ["White Dwarf", "#f0f0ff", 0.5], ["Pulsar", "#00e5ff", 0.35], ["Magnetar", "#ff00aa", 0.35], ["Dark Matter", "#14082e", 0.55], ["Antimatter", "#00ffaa", 0.35], ["Singularity", "#000000", 0.6], ["Horizon", "#ff9e57", 0.4], ["Crunch", "#8a2be2", 0.45], ["Last", "#ffffff", 0.55]];
   while (WORLDS.length < GALAXIES.length * WPG) {
     const i = WORLDS.length, base = WORLDS[i % 50], [adj, col, t] = STYLE[galaxyOf(i) - 2], last = WORLDS[i - 1];
     WORLDS.push({ n: adj + " " + base.n, e: base.e, ground: mixHex(base.ground, col, t), grid: mixHex(base.grid, col, t), edge: mixHex(base.edge, col, t * 0.6),
-      things: base.things, stars: base.stars || adj === "Shadow" || adj === "Cosmic", cost: last.cost.mul(10), mult: last.mult.mul(3) });
+      things: base.things, stars: base.stars || ["Shadow", "Cosmic", "Dark Matter", "Singularity", "Crunch"].includes(adj), cost: last.cost.mul(10), mult: last.mult.mul(3) });
   }
 }
 // every world costs 100 times more than the one before it (City is still 2.5M)
@@ -338,9 +344,10 @@ const EGGS = [
   { cost: 1e24, pow: 4000 }, { cost: 6e26, pow: 10000 }, { cost: 5e29, pow: 25000 }
 ];
 for (const e of EGGS) e.cost = D(e.cost);
-while (EGGS.length < WORLDS.length) { const i = EGGS.length; EGGS.push({ cost: WORLDS[i].cost.mul(1.25), pow: EGGS[i - 1].pow * 2.5 }); }
-// every world's egg costs 100 times more than the egg before it (Park egg is still 1K)
-for (let i = 1; i < EGGS.length; i++) EGGS[i].cost = EGGS[i - 1].cost.mul(100);
+for (const e of EGGS) e.lp = Math.log10(e.pow);
+while (EGGS.length < WORLDS.length) { const i = EGGS.length; EGGS.push({ cost: WORLDS[i].cost.mul(1.25), lp: EGGS[i - 1].lp + Math.log10(2.5) }); }   // egg power stored as a log so it never gets too big
+// every world's egg costs 80 times more than the egg before it (Park egg is still 1K)
+for (let i = 1; i < EGGS.length; i++) EGGS[i].cost = EGGS[i - 1].cost.mul(80);
 const RAR = [
   { n: "Common",    c: "#c3c9d8", p: 58, m: 1.2 },
   { n: "Uncommon",  c: "#5fd27a", p: 26, m: 1.5 },
@@ -1340,7 +1347,7 @@ function renderWorlds() {
   let h = "", lastG = -1;
   WORLDS.forEach((w, i) => {
     if (!showWorld(i)) return;
-    if (galaxyOf(i) !== lastG) { lastG = galaxyOf(i); h += `<div class="galhead">🌌 Galaxy ${lastG + 1}: ${GALAXIES[lastG]}</div>`; }
+    if (galaxyOf(i) !== lastG) { lastG = galaxyOf(i); if (lastG % GPU === 0 || h === "") h += `<div class="galhead unihead">🪐 Universe ${universeOf(i) + 1}: ${UNIVERSES[universeOf(i)]}</div>`; h += `<div class="galhead">🌌 Galaxy ${lastG + 1}: ${GALAXIES[lastG]}</div>`; }
     const have = S.worlds.includes(i), here = S.world === i;
     const btn = here ? `<button class="buy" type="button" disabled>You are here</button>`
       : have ? `<button class="buy go" data-go="${i}" type="button">Go there</button>`
@@ -1380,7 +1387,7 @@ function goWorld(i) {
   renderAll(); renderLobby();
 }
 // pet strength can get bigger than normal numbers, so it is kept as a log (for sorting) and a big number (for showing)
-const petLog = p => Math.log10(RAR[PETS[p.k].r].m) + Math.log10(EGGS[p.w].pow);
+const petLog = p => Math.log10(RAR[PETS[p.k].r].m) + EGGS[p.w].lp;
 function petPower(p) { return Decimal.pow(10, petLog(p)); }
 function eqEmojis() { return S.eq.map(id => { const p = S.pets.find(q => q.id === id); return p ? PETS[p.k].e : ""; }).join(""); }
 function renderEggs() {
@@ -1596,7 +1603,7 @@ function renderLobby() {
   $("colPick").querySelectorAll("canvas").forEach((cnv, i) => { const g = cnv.getContext("2d"); drawChar(g, 64, 80, 44, i, 0, 0.6, false); });
   $("worldPick").innerHTML = WORLDS.map((w, i) => {
     if (!showWorld(i)) return "";
-    if (i % WPG === 0 || i === 0) return `<div class="galhead">🌌 Galaxy ${galaxyOf(i) + 1}: ${GALAXIES[galaxyOf(i)]}</div>` + worldOpt(w, i);
+    if (i % WPG === 0 || i === 0) return (galaxyOf(i) % GPU === 0 ? `<div class="galhead unihead">🪐 Universe ${universeOf(i) + 1}: ${UNIVERSES[universeOf(i)]}</div>` : "") + `<div class="galhead">🌌 Galaxy ${galaxyOf(i) + 1}: ${GALAXIES[galaxyOf(i)]}</div>` + worldOpt(w, i);
     return worldOpt(w, i);
   }).join("");
 }

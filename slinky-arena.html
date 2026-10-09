@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Slinky Arena</title>
+<meta property="og:title" content="Slinky Arena · GH Games">
+<meta property="og:description" content="Steer a glowing snake round a giant 3D arena, gobble pellets to grow and cut off up to 20 computer snakes. Boost, unlock skins and top the arena.">
+<meta property="og:image" content="https://ghgames.au/og/slinky-arena.png">
+<meta property="og:url" content="https://ghgames.au/slinky-arena.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f1a33">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Games">
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="slinky-arena"></script>
+<script src="phatcoin.js" data-game="slinky-arena" data-pill="none"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<link rel="stylesheet" href="arcade3d.css">
+<style>
+.stage [hidden]{display:none!important}
+.board10{position:absolute;right:10px;top:10px;z-index:15;background:rgba(10,8,30,.55);border-radius:12px;padding:6px 10px;font-weight:900;font-size:12px;line-height:1.35;min-width:130px;pointer-events:none}
+.board10 h4{margin:0 0 2px;font-family:var(--display);font-weight:400;font-size:14px;color:var(--gold)}
+.board10 div{display:flex;justify-content:space-between;gap:10px;color:#dfe7ff}
+.board10 div.me{color:#7dffb0}
+.stage canvas.mini{position:absolute;left:10px;bottom:10px;z-index:15;width:104px;height:104px;pointer-events:none;opacity:.92}
+.lenbig{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:15;font-family:var(--display);font-size:clamp(20px,3.6vw,30px);color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.5);pointer-events:none;text-align:center;line-height:1}
+.lenbig small{display:block;font-family:var(--body);font-weight:900;font-size:12px;color:var(--gold)}
+#bBoost{right:16px;bottom:16px;width:84px;height:84px}
+.skins{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:6px}
+.skin{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:6px;font-weight:900;font-size:13px;text-align:center;cursor:pointer;color:var(--ink);font-family:var(--body)}
+.skin.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold) inset}
+.skin.locked{opacity:.75}
+.skin .sw{height:16px;border-radius:8px;margin:2px 0 4px}
+.skin .c{color:var(--gold);font-size:12px}
+@media (max-width:600px){.board10{font-size:10px;min-width:104px}.stage canvas.mini{width:80px;height:80px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="links"><a class="home" href="index.html">← GH Games</a></div>
+  <div class="top">
+    <h1>Slinky Arena<small>3D</small></h1>
+    <div class="hud">
+      <div class="chip"><span>Length</span><b id="hLen">0</b></div>
+      <div class="chip"><span>Best</span><b id="hBest">0</b></div>
+      <div class="chip"><span>Rank</span><b id="hRank">-</b></div>
+      <div class="chip"><span>Pellets</span><b id="hBank">0</b></div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="ingame"><button id="bFs">⛶</button><button id="bMute">🔊</button></div>
+    <div class="toast" id="toast"></div>
+    <div class="board10" id="board" hidden></div>
+    <canvas class="mini" id="mini" width="208" height="208" hidden></canvas>
+    <div class="lenbig" id="lenBig" hidden>10<small>LENGTH</small></div>
+    <div class="tbtn" id="bBoost" hidden>BOOST</div>
+
+    <div class="ov" id="ovTitle">
+      <h2>SLINKY ARENA</h2>
+      <p>Point where you want to go (mouse or finger), or turn with the arrow keys. Gobble the glowing pellets to grow. Hold Space, the mouse button or BOOST to zoom. If your head bumps another snake you pop, so cut them off instead!</p>
+      <div class="seg" id="diffs"><button data-d="0">Calm (12 snakes)</button><button data-d="1">Normal (16)</button><button data-d="2">Wild (20)</button></div>
+      <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bShop">Skins</button></div>
+      <div class="stats" id="tStats"></div>
+    </div>
+
+    <div class="ov" id="ovShop" hidden>
+      <h2>SKINS</h2>
+      <div class="shopbox">
+        <h3>You have <span id="sBank">0</span> pellets</h3>
+        <p class="help">Every pellet you eat goes in the bank, even if you pop. Spend them on new looks.</p>
+        <div class="skins" id="skins"></div>
+      </div>
+      <div class="row"><button class="btn green" id="shopBack">Done</button></div>
+    </div>
+
+    <div class="ov" id="ovOver" hidden>
+      <h2 id="oTitle">Popped!</h2>
+      <p id="oText"></p>
+      <div class="stats" id="oStats"></div>
+      <div class="row"><button class="btn green" id="oAgain">Play again</button><button class="btn alt" id="oMenu">Menu</button></div>
+    </div>
+  </div>
+
+  <p class="help">Mouse: point to steer, hold the button to boost. Keyboard: arrow keys or A and D to turn, Space to boost. iPad: drag your finger where you want to go and hold BOOST. Boosting makes you shrink a little and drop pellets behind you. Your best length goes on the leaderboard, and growing long or topping the arena earns PhatCoin.</p>
+  <div id="lb"></div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="arcade3d.js"></script>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const SAVE="slinkyarena-save";
+const S=A3.save(SAVE,{best:0,bank:0,skin:0,owned:[0],diff:1,games:0,kills:0,firsts:0});
+const stage=$("stage");
+const V=A3.view(stage,{fov:50,far:400,sky:["#221a5c","#5a3f9e"],fog:["#3a2a78",70,190],shadowSize:24});
+if(!V){return;}
+const {scene,camera,renderer}=V;
+const parts=A3.particles(scene);
+V.lights.hemi.intensity=0.85; V.lights.hemi.color.set("#e6e0ff"); V.lights.hemi.groundColor.set("#4a3a7a");
+V.lights.sun.intensity=1.0;
+
+/* ---------- skins ---------- */
+const SKINS=[
+  {n:"Lime",c:["#7dff6a","#4fd84a"],p:0},
+  {n:"Bubblegum",c:["#ff7ac0","#ffd0e8"],p:250},
+  {n:"Sunny",c:["#ffd23f","#ff9a3d"],p:500},
+  {n:"Ocean",c:["#3fc6ff","#2a6bff","#9ff0ff"],p:900},
+  {n:"Candy cane",c:["#ff4d5e","#ffffff"],p:1400},
+  {n:"Rainbow",c:["#ff5d5d","#ff9a3d","#ffd23f","#5fd36a","#4aa8ff","#b085ff"],p:2200},
+  {n:"Bumblebee",c:["#ffd23f","#ffd23f","#2b2b38"],p:3200},
+  {n:"Galaxy",c:["#6a3dff","#b085ff","#2a1a6e","#ff7ae0"],p:4500},
+  {n:"Gold",c:["#ffd86a","#ffb300","#fff1b8"],p:7000}
+];
+const BOTC=[["#ff8a3d","#ffd23f"],["#4aa8ff","#bfe6ff"],["#ff6fa3"],["#b085ff","#e0d0ff"],["#5fd36a","#c8ffb0"],["#ff5d5d","#ffb3b3"],["#3fe0d0"],["#ffd23f","#ff6fa3"],["#9ff06a","#3fa040"],["#ffffff","#7cc8ff"],["#ff9a3d"],["#7a8cff","#ffd23f"]];
+const NAMES=["Noodle","Zigzag","Captain Wiggle","Spaghetto","Sprinkles","Twister","Pickle","Rocket","Biscuit","Jellybean","Doodle","Bubbles","Squiggle","Pretzel","Comet","Marble","Turbo","Glowworm","Waffle","Ziggy","Nugget","Mango","Sir Loop","Dizzy","Pebble","Taffy","Kiwi","Zoomer","Wobble","Lolly"];
+function lin(hex){return new THREE.Color(hex).convertSRGBToLinear();}
+
+/* ---------- arena ---------- */
+const R=58;
+const floorTex=A3.canvasTex(256,256,(g,w,h)=>{
+  g.fillStyle="#2a2068";g.fillRect(0,0,w,h);
+  const rr=(x,y,s,r,f)=>{g.fillStyle=f;g.beginPath();g.moveTo(x+r,y);g.arcTo(x+s,y,x+s,y+s,r);g.arcTo(x+s,y+s,x,y+s,r);g.arcTo(x,y+s,x,y,r);g.arcTo(x,y,x+s,y,r);g.fill();};
+  for(let i=0;i<2;i++)for(let j=0;j<2;j++){rr(i*128+6,j*128+6,116,26,(i+j)&1?"#3a2e8c":"#33287e");}
+  g.fillStyle="rgba(255,255,255,.07)";for(let i=0;i<2;i++)for(let j=0;j<2;j++){g.beginPath();g.arc(i*128+64,j*128+64,18,0,7);g.fill();}
+});
+floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping;
+floorTex.repeat.set(20,20);
+const floor=new THREE.Mesh(new THREE.CircleGeometry(R+1,96),new THREE.MeshStandardMaterial({map:floorTex,roughness:.85}));
+floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+const outside=new THREE.Mesh(new THREE.RingGeometry(R+1,260,64),A3.mat("#1c1648",{rough:1}));
+outside.rotation.x=-Math.PI/2;outside.position.y=-0.6;scene.add(outside);
+const rim=new THREE.Mesh(new THREE.TorusGeometry(R+0.6,0.7,10,140),A3.mat("#ff6fa3",{emissive:"#ff3f8a",glow:0.9,rough:.4}));
+rim.rotation.x=Math.PI/2;rim.position.y=0.4;scene.add(rim);
+{ // bumper posts round the edge
+  const pg=new THREE.CylinderGeometry(0.9,1.1,2.4,12), cm=[A3.mat("#ffd23f",{emissive:"#ffb300",glow:.5}),A3.mat("#3fc6ff",{emissive:"#2a8bff",glow:.5})];
+  const capg=new THREE.SphereGeometry(0.95,14,10);
+  for(let i=0;i<48;i++){const a=i/48*Math.PI*2;const m=new THREE.Mesh(pg,cm[i&1]);m.position.set(Math.cos(a)*(R+2.2),1.2,Math.sin(a)*(R+2.2));m.castShadow=true;scene.add(m);
+    const c=new THREE.Mesh(capg,A3.mat("#ffffff",{emissive:"#ffffff",glow:.25}));c.position.set(m.position.x,2.5,m.position.z);scene.add(c);}
+}
+// soft centre logo ring for orientation
+{const ring=new THREE.Mesh(new THREE.RingGeometry(6,6.6,48),new THREE.MeshBasicMaterial({color:lin("#5b4bc4"),transparent:true,opacity:.6}));ring.rotation.x=-Math.PI/2;ring.position.y=0.02;scene.add(ring);}
+
+/* ---------- pellets ---------- */
+const PMAX=1700;
+const pelGeo=new THREE.IcosahedronGeometry(1,1);
+const pelMesh=new THREE.InstancedMesh(pelGeo,new THREE.MeshBasicMaterial({color:0xffffff}),PMAX);
+pelMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+const tmpC=new THREE.Color(1,1,1);
+for(let i=0;i<PMAX;i++)pelMesh.setColorAt(i,tmpC);
+pelMesh.count=0;pelMesh.frustumCulled=false;scene.add(pelMesh);
+const glowTex=A3.canvasTex(64,64,(g,w,h)=>{const gr=g.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,"rgba(255,255,255,1)");gr.addColorStop(0.25,"rgba(255,255,255,.55)");gr.addColorStop(1,"rgba(255,255,255,0)");g.fillStyle=gr;g.fillRect(0,0,64,64);});
+const gPos=new Float32Array(PMAX*3),gCol=new Float32Array(PMAX*3);
+const gGeo=new THREE.BufferGeometry();
+gGeo.setAttribute("position",new THREE.BufferAttribute(gPos,3).setUsage(THREE.DynamicDrawUsage));
+gGeo.setAttribute("color",new THREE.BufferAttribute(gCol,3).setUsage(THREE.DynamicDrawUsage));
+const glow=new THREE.Points(gGeo,new THREE.PointsMaterial({size:1.5,map:glowTex,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+glow.frustumCulled=false;scene.add(glow);
+const PCOL=["#ff5d5d","#ffd23f","#5fd36a","#4aa8ff","#ff6fa3","#b085ff","#3fe0d0","#ff9a3d","#ffffff"].map(lin);
+const px=new Float32Array(PMAX),pz=new Float32Array(PMAX),pv=new Float32Array(PMAX),pph=new Float32Array(PMAX);const pc=[];
+let np=0;
+function addPellet(x,z,v,col){
+  if(np>=PMAX)return;
+  const d=Math.hypot(x,z);if(d>R-1){x*=(R-1)/d;z*=(R-1)/d;}
+  px[np]=x;pz[np]=z;pv[np]=v;pph[np]=Math.random()*6.28;pc[np]=col||PCOL[(Math.random()*PCOL.length)|0];np++;
+}
+function removePellet(i){np--;px[i]=px[np];pz[i]=pz[np];pv[i]=pv[np];pph[i]=pph[np];pc[i]=pc[np];}
+function randPellet(){const a=Math.random()*6.283,r=Math.sqrt(Math.random())*(R-2);addPellet(Math.cos(a)*r,Math.sin(a)*r,Math.random()<0.85?1:2);}
+const FOOD=760;
+for(let i=0;i<FOOD;i++)randPellet();
+const mtx=new THREE.Matrix4(),q0=new THREE.Quaternion(),v3=new THREE.Vector3(),sc3=new THREE.Vector3();
+function drawPellets(t){
+  for(let i=0;i<np;i++){
+    const v=pv[i],s=0.17+Math.min(0.35,v*0.07),y=0.3+Math.sin(t*3+pph[i])*0.08;
+    v3.set(px[i],y,pz[i]);sc3.set(s,s,s);mtx.compose(v3,q0,sc3);pelMesh.setMatrixAt(i,mtx);pelMesh.setColorAt(i,pc[i]);
+    gPos[i*3]=px[i];gPos[i*3+1]=y;gPos[i*3+2]=pz[i];const c=pc[i];gCol[i*3]=c.r;gCol[i*3+1]=c.g;gCol[i*3+2]=c.b;
+  }
+  pelMesh.count=np;pelMesh.instanceMatrix.needsUpdate=true;if(pelMesh.instanceColor)pelMesh.instanceColor.needsUpdate=true;
+  gGeo.setDrawRange(0,np);gGeo.attributes.position.needsUpdate=true;gGeo.attributes.color.needsUpdate=true;
+}
+
+/* ---------- snakes ---------- */
+const MAXSEG=200,RING=4096,MASK=RING-1,SAMPLE=0.1;
+const SEGMAX=5200;
+const segGeo=new THREE.SphereGeometry(1,12,9);
+const segMesh=new THREE.InstancedMesh(segGeo,new THREE.MeshStandardMaterial({roughness:.32,metalness:.05}),SEGMAX);
+segMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);segMesh.castShadow=true;segMesh.receiveShadow=true;segMesh.frustumCulled=false;
+for(let i=0;i<SEGMAX;i++)segMesh.setColorAt(i,tmpC);
+segMesh.count=0;scene.add(segMesh);
+const eyeW=A3.mat("#ffffff",{rough:.3}),eyeB=A3.mat("#1a1530",{rough:.2});
+const eyeG=new THREE.SphereGeometry(0.36,12,10),pupG=new THREE.SphereGeometry(0.2,10,8);
+function makeHead(col){
+  const g=new THREE.Group();
+  const h=new THREE.Mesh(segGeo,A3.mat(col,{rough:.3}));h.scale.set(1.12,1,1.08);h.castShadow=true;g.add(h);
+  for(const sd of [-1,1]){const e=new THREE.Mesh(eyeG,eyeW);e.position.set(0.55,0.45,sd*0.42);g.add(e);const p=new THREE.Mesh(pupG,eyeB);p.position.set(0.78,0.5,sd*0.45);g.add(p);}
+  scene.add(g);return g;
+}
+let snakes=[];
+let player=null;
+function derive(s){
+  s.r=0.55+0.95*(1-Math.exp(-s.m/700));
+  s.n=Math.max(8,Math.min(MAXSEG,Math.floor(8+s.m*0.3)));
+  s.sp=s.r*0.6;
+}
+function makeSnake(o){
+  const s={p:!!o.p,name:o.name,cols:o.cols.map(lin),hex:o.cols[0],m:o.m,x:o.x,z:o.z,a:o.a,ta:o.a,skill:o.skill||0.5,
+    ring:new Float32Array(RING*2),hi:0,seg:new Float32Array(MAXSEG*2),boost:false,alive:true,dropT:0,think:0,goal:-1,goalT:0,kills:0,aggro:Math.random(),wob:Math.random()*6,respawn:0};
+  derive(s);
+  // lay a straight trail behind the head
+  const N=Math.ceil((s.n*s.sp)/SAMPLE)+4;
+  for(let k=N;k>=0;k--){s.hi=(s.hi+1)&MASK;s.ring[s.hi*2]=s.x-Math.cos(s.a)*k*SAMPLE;s.ring[s.hi*2+1]=s.z-Math.sin(s.a)*k*SAMPLE;}
+  s.head=makeHead(o.cols[0]);
+  s.tag=A3.label(o.p?"You":o.name,{size:0.9,color:o.p?"#7dffb0":"#ffffff",stroke:"rgba(20,10,50,.85)",px:56});
+  s.tag.material.depthTest=false;s.tag.renderOrder=5;s.tag.userData.ar=s.tag.scale.x/s.tag.scale.y;scene.add(s.tag);
+  layout(s);
+  return s;
+}
+function dropSnake(s){scene.remove(s.head);scene.remove(s.tag);s.tag.material.map.dispose();s.tag.material.dispose();}
+function layout(s){
+  const hx=s.ring[s.hi*2],hz=s.ring[s.hi*2+1];
+  const d0=Math.hypot(s.x-hx,s.z-hz);
+  s.seg[0]=s.x;s.seg[1]=s.z;
+  for(let i=1;i<s.n;i++){
+    const dist=i*s.sp;
+    if(dist<=d0){const f=d0>0?dist/d0:0;s.seg[i*2]=s.x+(hx-s.x)*f;s.seg[i*2+1]=s.z+(hz-s.z)*f;continue;}
+    const k=(dist-d0)/SAMPLE,k0=k|0,f=k-k0;
+    if(k0+1>=RING-2){s.seg[i*2]=s.seg[i*2-2];s.seg[i*2+1]=s.seg[i*2-1];continue;}
+    const a=((s.hi-k0)&MASK)*2,b=((s.hi-k0-1)&MASK)*2;
+    s.seg[i*2]=s.ring[a]+(s.ring[b]-s.ring[a])*f;s.seg[i*2+1]=s.ring[a+1]+(s.ring[b+1]-s.ring[a+1])*f;
+  }
+}
+function safeSpot(){
+  for(let tries=0;tries<40;tries++){
+    const a=Math.random()*6.283,r=Math.sqrt(Math.random())*(R-12);const x=Math.cos(a)*r,z=Math.sin(a)*r;
+    let ok=true;
+    for(const s of snakes){if(!s.alive)continue;for(let i=0;i<s.n;i+=3){const dx=s.seg[i*2]-x,dz=s.seg[i*2+1]-z;if(dx*dx+dz*dz<100){ok=false;break;}}if(!ok)break;}
+    if(ok)return {x,z,a:Math.atan2(-z,-x)+A3.rand(-1,1)};
+  }
+  return {x:A3.rand(-20,20),z:A3.rand(-20,20),a:Math.random()*6.28};
+}
+let usedNames=new Set();
+function newBotName(){const free=NAMES.filter(n=>!usedNames.has(n));const n=A3.pick(free.length?free:NAMES);usedNames.add(n);return n;}
+let DIFF=S.diff;
+const SKILL=[[0.15,0.55],[0.3,0.85],[0.5,1]];
+function spawnBot(small){
+  const p=safeSpot();
+  const m=small?A3.rand(10,40):(Math.random()<0.25?A3.rand(120,380):A3.rand(14,110));
+  const s=makeSnake({name:newBotName(),cols:A3.pick(BOTC),m,x:p.x,z:p.z,a:p.a,skill:A3.rand(SKILL[DIFF][0],SKILL[DIFF][1])});
+  snakes.push(s);return s;
+}
+
+/* ---------- spatial hash of body segments ---------- */
+const CELL=3,GN=48,GO=24;
+const cells=[];for(let i=0;i<GN*GN;i++)cells.push([]);
+const usedCells=[];
+function cellIdx(x,z){const ix=Math.floor(x/CELL)+GO,iz=Math.floor(z/CELL)+GO;if(ix<0||iz<0||ix>=GN||iz>=GN)return -1;return ix*GN+iz;}
+function buildHash(){
+  for(const c of usedCells)cells[c].length=0;usedCells.length=0;
+  for(let si=0;si<snakes.length;si++){const s=snakes[si];if(!s.alive)continue;
+    for(let i=0;i<s.n;i++){const c=cellIdx(s.seg[i*2],s.seg[i*2+1]);if(c<0)continue;if(!cells[c].length)usedCells.push(c);cells[c].push(si*1024+i);}}
+}
+// returns snake index of the first other-snake segment within rad of (x,z), or -1
+function hitTest(x,z,rad,self){
+  const ix0=Math.floor((x-rad-1.3)/CELL)+GO,ix1=Math.floor((x+rad+1.3)/CELL)+GO,iz0=Math.floor((z-rad-1.3)/CELL)+GO,iz1=Math.floor((z+rad+1.3)/CELL)+GO;
+  for(let ix=Math.max(0,ix0);ix<=Math.min(GN-1,ix1);ix++)for(let iz=Math.max(0,iz0);iz<=Math.min(GN-1,iz1);iz++){
+    const arr=cells[ix*GN+iz];
+    for(let k=0;k<arr.length;k++){const e=arr[k],si=(e/1024)|0;if(si===self)continue;const s=snakes[si],i=e%1024;
+      const dx=s.seg[i*2]-x,dz=s.seg[i*2+1]-z,rr=rad+s.r;if(dx*dx+dz*dz<rr*rr)return si;}
+  }
+  return -1;
+}
+
+/* ---------- game state ---------- */
+let mode="title",round=null,camYaw=0,titleT=0;
+let ctrl={ptr:false,px:0,py:0,keys:false,boost:false,touchBoost:false,mouseBoost:false,steerId:null};
+function resetArena(){
+  snakes.forEach(dropSnake);snakes=[];usedNames=new Set();np=0;for(let i=0;i<FOOD;i++)randPellet();
+  const count=[12,16,20][DIFF];for(let i=0;i<count;i++)spawnBot(false);
+}
+function startGame(){
+  DIFF=S.diff;resetArena();
+  const p=safeSpot();const sk=SKINS[S.skin]||SKINS[0];
+  player=makeSnake({p:true,name:"You",cols:sk.c,m:10,x:p.x,z:p.z,a:p.a});
+  snakes.push(player);
+  round={t:0,eaten:0,kills:0,topRank:99,firstT:0,gotFirst:false,mile:0,peak:10};
+  mode="play";S.games++;persist();
+  ["board","mini","lenBig"].forEach(id=>$(id).hidden=false);
+  $("bBoost").hidden=!matchMedia("(pointer:coarse)").matches;
+  A3.sfx("jump");A3.toast("Gobble pellets to grow!",1600);hud();
+}
+const MILES=[[100,1],[250,2],[500,3],[1000,4],[2000,5]];
+
+function kill(s,by){
+  if(!s.alive)return;s.alive=false;
+  // burst into pellets along the body
+  const total=s.m*0.85,per=Math.max(1,total/s.n),col=s.cols;
+  for(let i=0;i<s.n;i+=1){if(np>=PMAX-4)break;const v=Math.min(8,per);addPellet(s.seg[i*2]+A3.rand(-.5,.5),s.seg[i*2+1]+A3.rand(-.5,.5),v,col[(i>>1)%col.length]);}
+  const near=player&&Math.hypot(s.x-player.x,s.z-player.z)<35;
+  if(near||s.p){parts.burst(new THREE.Vector3(s.x,0.8,s.z),s.hex,s.p?28:16,6,0.9);}
+  s.head.visible=false;s.tag.visible=false;
+  if(by&&by.p&&!s.p){round.kills++;S.kills++;A3.sfx("boom");A3.toast("You cut off "+s.name+"!",1500);}
+  else if(near&&!s.p)A3.sfx("pop");
+  if(s.p){endGame(by);}
+  else{s.respawn=A3.rand(1.5,4);}
+}
+function endGame(by){
+  mode="dead";A3.sfx("lose");
+  const len=Math.floor(round.peak),newBest=len>S.best;
+  if(newBest){S.best=len;A3.best(S.best);}
+  $("oTitle").textContent=newBest?"New best!":"Popped!";
+  $("oText").textContent=by?("You bumped into "+by.name+". Better luck next time!"):"You bonked the arena wall!";
+  $("oStats").innerHTML="<div>Longest <b>"+A3.fmt(len)+"</b></div><div>Best rank <b>#"+(round.topRank<99?round.topRank:"-")+"</b></div><div>Snakes cut off <b>"+round.kills+"</b></div><div>Pellets banked <b>"+A3.fmt(Math.floor(round.eaten))+"</b></div>";
+  persist();hud();
+  setTimeout(()=>{if(mode==="dead"){["board","mini","lenBig","bBoost"].forEach(id=>$(id).hidden=true);A3.show("ovOver");}},1100);
+}
+
+/* ---------- movement + AI ---------- */
+function angDiff(a,b){let d=b-a;while(d>Math.PI)d-=6.2832;while(d<-Math.PI)d+=6.2832;return d;}
+function steerFree(s,want){
+  // look ahead; if blocked, pick the nearest free direction
+  const look=2.5+s.skill*5+s.r*2.5;
+  const tries=[0,0.45,-0.45,0.9,-0.9,1.4,-1.4,2,-2,2.7,-2.7];
+  for(const off of tries){
+    const a=want+off;let blocked=false;
+    for(const f of [0.5,1]){const x=s.x+Math.cos(a)*look*f,z=s.z+Math.sin(a)*look*f;
+      if(x*x+z*z>(R-2.5-s.r)*(R-2.5-s.r)||hitTest(x,z,s.r+0.6,snakes.indexOf(s))>=0){blocked=true;break;}}
+    if(!blocked)return a;
+  }
+  return want+Math.PI*0.5;
+}
+function think(s,si){
+  s.think-=1;
+  // threat or target?
+  let want=s.a,boost=false;
+  if(s.goalT<=0||s.goal>=np||s.goal<0){
+    // pick a tasty pellet nearby (sample)
+    let best=-1,bs=-1;
+    for(let k=0;k<40&&np;k++){const i=(Math.random()*np)|0;const dx=px[i]-s.x,dz=pz[i]-s.z,d=Math.hypot(dx,dz);if(d>28)continue;const sc=(pv[i]+0.3)/(d+4);if(sc>bs){bs=sc;best=i;}}
+    s.goal=best;s.goalT=A3.rand(0.8,1.8);
+  }
+  if(s.goal>=0&&s.goal<np)want=Math.atan2(pz[s.goal]-s.z,px[s.goal]-s.x);
+  else want=s.a+Math.sin(s.wob)*0.8;
+  // hunting: try to cut off a nearby snake's head
+  if(s.aggro<s.skill*0.9){
+    let tgt=null,td=1e9;
+    for(const o of snakes){if(o===s||!o.alive)continue;const d=Math.hypot(o.x-s.x,o.z-s.z);if(d<14+s.skill*8&&d<td&&o.m<s.m*1.6){td=d;tgt=o;}}
+    if(tgt){const lead=3+s.skill*5+tgt.r*2;const ax=tgt.x+Math.cos(tgt.a)*lead,az=tgt.z+Math.sin(tgt.a)*lead;want=Math.atan2(az-s.z,ax-s.x);
+      if(s.skill>0.55&&td<11&&s.m>30&&Math.abs(angDiff(s.a,want))<0.7)boost=true;}
+  }
+  s.ta=steerFree(s,want);
+  if(Math.abs(angDiff(s.ta,want))>1.2&&s.skill>0.7&&s.m>40)boost=true; // dodge with a burst
+  s.boost=boost&&s.m>14;
+}
+function moveSnake(s,dt,si){
+  const turn=(3.8+ (s.p?0.6:0))/(1+s.r*0.55);
+  const d=angDiff(s.a,s.ta);s.a+=A3.clamp(d,-turn*dt,turn*dt);
+  const boosting=s.boost&&s.m>12;
+  const v=boosting?15:7.4;
+  s.x+=Math.cos(s.a)*v*dt;s.z+=Math.sin(s.a)*v*dt;
+  // trail
+  let lx=s.ring[s.hi*2],lz=s.ring[s.hi*2+1],dd=Math.hypot(s.x-lx,s.z-lz);
+  while(dd>=SAMPLE){const f=SAMPLE/dd;lx+=(s.x-lx)*f;lz+=(s.z-lz)*f;s.hi=(s.hi+1)&MASK;s.ring[s.hi*2]=lx;s.ring[s.hi*2+1]=lz;dd-=SAMPLE;}
+  if(boosting){s.dropT+=dt;while(s.dropT>0.11){s.dropT-=0.11;const loss=Math.max(0.9,s.m*0.007);s.m-=loss;const ti=(s.n-1)*2;addPellet(s.seg[ti]+A3.rand(-.3,.3),s.seg[ti+1]+A3.rand(-.3,.3),loss*0.7,s.cols[0]);}}
+  // eat
+  const er=s.r+1.6,er2=er*er,eat=s.r+0.45;
+  for(let i=np-1;i>=0;i--){const dx=px[i]-s.x,dz=pz[i]-s.z,d2=dx*dx+dz*dz;if(d2>er2)continue;
+    const dl=Math.sqrt(d2);if(dl<eat){s.m+=pv[i];if(s.p){round.eaten+=pv[i];S.bank+=pv[i];eatSfx();}if(s.goal===i)s.goalT=0;removePellet(i);}
+    else{const k=Math.min(1,dt*9);px[i]-=dx*k;pz[i]-=dz*k;}}
+  derive(s);layout(s);
+}
+let lastEat=0;function eatSfx(){const n=performance.now();if(n-lastEat>70){lastEat=n;A3.sfx("tick");}}
+
+/* ---------- drawing snakes ---------- */
+const tc=new THREE.Color();
+function drawSnakes(t){
+  let k=0;
+  for(const s of snakes){if(!s.alive)continue;
+    const glowing=s.boost&&s.m>12,pulse=glowing?0.35+Math.sin(t*20)*0.15:0;
+    const cl=s.cols,cn=cl.length;
+    for(let i=s.n-1;i>=1&&k<SEGMAX;i--){
+      const taper=i>s.n*0.8?1-(i-s.n*0.8)/(s.n*0.2)*0.45:1;
+      const rr=s.r*taper;
+      v3.set(s.seg[i*2],rr*0.92,s.seg[i*2+1]);sc3.set(rr,rr*0.92,rr);mtx.compose(v3,q0,sc3);segMesh.setMatrixAt(k,mtx);
+      tc.copy(cl[Math.floor(i/3)%cn]);if(pulse)tc.lerp(WHITE,pulse);segMesh.setColorAt(k,tc);k++;
+    }
+    const h=s.head;h.visible=true;h.position.set(s.x,s.r*1.0,s.z);h.rotation.y=-s.a;h.scale.setScalar(s.r*1.1);
+    s.tag.visible=true;s.tag.position.set(s.x,s.r*2.4+0.9,s.z);
+    const ts=0.75+s.r*0.5;s.tag.scale.set(ts*s.tag.userData.ar,ts,1);
+  }
+  segMesh.count=k;segMesh.instanceMatrix.needsUpdate=true;if(segMesh.instanceColor)segMesh.instanceColor.needsUpdate=true;
+}
+const WHITE=new THREE.Color(1,1,1);
+
+/* ---------- HUD, board, mini-map ---------- */
+const mini=$("mini"),mg=mini.getContext("2d");
+let boardT=0;
+function rankList(){return snakes.filter(s=>s.alive).sort((a,b)=>b.m-a.m);}
+function hud(){
+  $("hBest").textContent=A3.fmt(S.best);$("hBank").textContent=A3.fmt(Math.floor(S.bank));
+  if(player){$("hLen").textContent=A3.fmt(Math.floor(player.m));$("lenBig").innerHTML=A3.fmt(Math.floor(player.m))+"<small>LENGTH</small>";}
+}
+function drawBoard(){
+  const list=rankList();
+  let html="<h4>Arena top 10</h4>";
+  list.slice(0,10).forEach((s,i)=>{html+='<div class="'+(s.p?"me":"")+'"><span>'+(i+1)+". "+s.name+"</span><span>"+A3.fmt(Math.floor(s.m))+"</span></div>";});
+  if(player&&player.alive){const r=list.indexOf(player)+1;if(r>10)html+='<div class="me"><span>'+r+". You</span><span>"+A3.fmt(Math.floor(player.m))+"</span></div>";
+    $("hRank").textContent="#"+r;round.topRank=Math.min(round.topRank,r);}
+  $("board").innerHTML=html;
+  // mini map
+  const W=mini.width,c=W/2,sc=(W/2-6)/R;
+  mg.clearRect(0,0,W,W);
+  mg.fillStyle="rgba(20,12,60,.75)";mg.beginPath();mg.arc(c,c,W/2-2,0,7);mg.fill();
+  mg.strokeStyle="#ff6fa3";mg.lineWidth=4;mg.stroke();
+  for(const s of snakes){if(!s.alive||s.p)continue;mg.fillStyle=s.hex;const rr=3+Math.min(6,s.m/120);mg.beginPath();mg.arc(c+s.x*sc,c+s.z*sc,rr,0,7);mg.fill();}
+  if(player&&player.alive){mg.fillStyle="#fff";mg.strokeStyle="#111";mg.lineWidth=3;mg.beginPath();mg.arc(c+player.x*sc,c+player.z*sc,7,0,7);mg.fill();mg.stroke();}
+}
+
+/* ---------- input ---------- */
+const cv=renderer.domElement;
+cv.addEventListener("pointermove",e=>{
+  if(e.pointerType==="mouse"||e.pointerId===ctrl.steerId){
+    if(Math.abs(e.clientX-ctrl.px)+Math.abs(e.clientY-ctrl.py)>2)ctrl.keys=false;
+    ctrl.ptr=true;ctrl.px=e.clientX;ctrl.py=e.clientY;
+  }
+});
+cv.addEventListener("pointerdown",e=>{
+  ctrl.ptr=true;ctrl.keys=false;ctrl.px=e.clientX;ctrl.py=e.clientY;
+  if(e.pointerType==="mouse"){ctrl.mouseBoost=true;}else{ctrl.steerId=e.pointerId;}
+});
+window.addEventListener("pointerup",e=>{if(e.pointerType==="mouse")ctrl.mouseBoost=false;if(e.pointerId===ctrl.steerId)ctrl.steerId=null;});
+const bb=$("bBoost");
+bb.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();ctrl.touchBoost=true;bb.classList.add("down");});
+["pointerup","pointercancel","pointerleave"].forEach(ev=>bb.addEventListener(ev,()=>{ctrl.touchBoost=false;bb.classList.remove("down");}));
+window.addEventListener("keydown",e=>{const k=e.key.toLowerCase();if(["arrowleft","arrowright","a","d"].includes(k))ctrl.keys=true;if(k===" "&&mode==="play")e.preventDefault();});
+
+function playerControl(dt){
+  const K=A3.keys;
+  const l=K["arrowleft"]||K["a"],r=K["arrowright"]||K["d"];
+  if(l||r){ctrl.keys=true;player.ta=player.a+(r?1:-1)*1.2;}
+  else if(ctrl.keys){player.ta=player.a;}
+  else if(ctrl.ptr){
+    const rect=cv.getBoundingClientRect();
+    const fp=A3.floorPoint({clientX:ctrl.px,clientY:ctrl.py},camera,cv,player.r);
+    const sxp=ctrl.px-rect.left-rect.width/2,syp=ctrl.py-rect.top-rect.height/2;
+    if(fp&&Math.hypot(sxp,syp)>8)player.ta=Math.atan2(fp.z-player.z,fp.x-player.x);
+  }
+  player.boost=!!(K[" "]||K["w"]||K["arrowup"]||ctrl.mouseBoost||ctrl.touchBoost);
+}
+
+/* ---------- loop ---------- */
+const camPos=new THREE.Vector3(0,60,60),camLook=new THREE.Vector3();
+let wasBoost=false;
+const perf={logic:0,draw:0,n:0};
+A3.loop((dt,t)=>{
+  const _t0=performance.now();
+  if(mode==="play"||mode==="dead"){if(mode==="play")round.t+=dt;}
+  if(mode==="play"&&player.alive)playerControl(dt);
+  buildHash();
+  for(let si=0;si<snakes.length;si++){const s=snakes[si];if(!s.alive)continue;
+    if(!s.p){s.think+=dt*(4+s.skill*6);s.wob+=dt*0.7;s.goalT-=dt;if(s.think>=1)think(s,si);}
+    moveSnake(s,dt,si);}
+  buildHash();
+  for(let si=0;si<snakes.length;si++){const s=snakes[si];if(!s.alive)continue;
+    if(s.x*s.x+s.z*s.z>(R-s.r*0.6)*(R-s.r*0.6)){kill(s,null);continue;}
+    const hit=hitTest(s.x+Math.cos(s.a)*s.r*0.3,s.z+Math.sin(s.a)*s.r*0.3,s.r*0.55,si);
+    if(hit>=0){const by=snakes[hit];kill(s,by);if(by.p&&!s.p){}}
+  }
+  // respawn bots, tidy dead ones
+  for(let i=snakes.length-1;i>=0;i--){const s=snakes[i];if(!s.alive&&!s.p){s.respawn-=dt;if(s.respawn<=0){usedNames.delete(s.name);dropSnake(s);snakes.splice(i,1);spawnBot(true);}}}
+  // keep food topped up
+  let need=FOOD-np;for(let i=0;i<Math.min(need,6);i++)randPellet();
+
+  if(mode==="play"&&player.alive){
+    round.peak=Math.max(round.peak,player.m);
+    if(player.boost&&!wasBoost&&player.m>12)A3.sfx("whoosh");wasBoost=player.boost&&player.m>12;
+    while(round.mile<MILES.length&&player.m>=MILES[round.mile][0]){const [L,c]=MILES[round.mile];round.mile++;A3.sfx("win");A3.toast("Length "+L+"! +PhatCoin",1800);A3.win(c,"reaching length "+L+" in Slinky Arena");}
+    const list=rankList();
+    if(list[0]===player&&player.m>=80){round.firstT+=dt;if(round.firstT>5&&!round.gotFirst){round.gotFirst=true;S.firsts++;A3.sfx("win");A3.toast("You're top of the arena!",2000);A3.win(3,"topping the Slinky Arena");persist();}}
+    else round.firstT=0;
+  }
+  boardT-=dt;if(boardT<=0&&mode!=="title"){boardT=0.4;drawBoard();hud();}
+
+  // camera
+  if(mode==="title"){
+    titleT+=dt*0.08;camLook.set(0,0,0);camPos.set(Math.cos(titleT)*70,52,Math.sin(titleT)*70);
+    camera.position.copy(camPos);camera.lookAt(camLook);V.lights.sun.position.set(20,50,15);V.lights.sun.target.position.set(0,0,0);
+  }else{
+    const s=player,h=13+s.r*9+Math.min(14,s.n*0.05);
+    const tx=s.x+Math.cos(s.a)*3,tz=s.z+Math.sin(s.a)*3;
+    camLook.x+= (tx-camLook.x)*Math.min(1,dt*5);camLook.z+=(tz-camLook.z)*Math.min(1,dt*5);camLook.y=0;
+    camPos.lerp(v3.set(camLook.x,h,camLook.z+h*0.62),Math.min(1,dt*4));
+    camera.position.copy(camPos);camera.lookAt(camLook);
+    V.lights.sun.position.set(camLook.x+10,30,camLook.z+8);V.lights.sun.target.position.copy(camLook);
+  }
+  const _t1=performance.now();
+  drawPellets(t);drawSnakes(t);
+  perf.logic+=_t1-_t0;perf.draw+=performance.now()-_t1;perf.n++;
+  rim.material.emissiveIntensity=0.75+Math.sin(t*2)*0.2;
+  parts.update(dt);
+  V.render();
+});
+
+/* ---------- menus ---------- */
+function persist(){A3.store(SAVE,S);}
+function titleStats(){
+  $("tStats").innerHTML="<div>Best length <b>"+A3.fmt(S.best)+"</b></div><div>Pellets <b>"+A3.fmt(Math.floor(S.bank))+"</b></div><div>Snakes cut off <b>"+A3.fmt(S.kills)+"</b></div><div>Arena wins <b>"+S.firsts+"</b></div>";
+  [...$("diffs").children].forEach(b=>b.classList.toggle("on",+b.dataset.d===S.diff));
+}
+function drawShop(){
+  $("sBank").textContent=A3.fmt(Math.floor(S.bank));
+  $("skins").innerHTML=SKINS.map((k,i)=>{
+    const own=S.owned.includes(i),on=S.skin===i;
+    const grad="linear-gradient(90deg,"+k.c.concat(k.c).map((c,j,a)=>c+" "+(j/a.length*100)+"%,"+c+" "+((j+1)/a.length*100)+"%").join(",")+")";
+    return '<button class="skin'+(on?" on":"")+(own?"":" locked")+'" data-i="'+i+'"><div class="sw" style="background:'+grad+'"></div>'+k.n+'<br><span class="c">'+(on?"Using":own?"Use":k.p+" pellets")+"</span></button>";
+  }).join("");
+}
+$("skins").addEventListener("click",e=>{
+  const b=e.target.closest(".skin");if(!b)return;const i=+b.dataset.i,k=SKINS[i];
+  if(S.owned.includes(i)){S.skin=i;A3.sfx("click");}
+  else if(S.bank>=k.p){S.bank-=k.p;S.owned.push(i);S.skin=i;A3.sfx("coin");A3.toast("Unlocked "+k.n+"!");}
+  else{A3.sfx("hit");A3.toast("You need "+A3.fmt(Math.ceil(k.p-S.bank))+" more pellets");}
+  persist();drawShop();hud();
+});
+$("diffs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;S.diff=+b.dataset.d;A3.sfx("click");persist();titleStats();});
+$("bPlay").onclick=()=>{A3.sfx("click");A3.hide("ovTitle");startGame();};
+$("bShop").onclick=()=>{A3.sfx("click");drawShop();A3.hide("ovTitle");A3.show("ovShop");};
+$("shopBack").onclick=()=>{A3.sfx("click");A3.hide("ovShop");titleStats();A3.show("ovTitle");};
+$("oAgain").onclick=()=>{A3.sfx("click");A3.hide("ovOver");startGame();};
+$("oMenu").onclick=()=>{A3.sfx("click");A3.hide("ovOver");toTitle();};
+function toTitle(){
+  mode="title";player=null;DIFF=S.diff;resetArena();
+  ["board","mini","lenBig","bBoost"].forEach(id=>$(id).hidden=true);
+  titleStats();A3.show("ovTitle");
+}
+A3.fullscreen($("bFs"),stage);
+$("bMute").onclick=()=>{A3.mute(!A3.mute());$("bMute").textContent=A3.mute()?"🔇":"🔊";};$("bMute").textContent=A3.mute()?"🔇":"🔊";
+
+toTitle();
+window.addEventListener("pagehide",persist);
+window.__slinkyTest={perf:()=>[perf.logic/perf.n,perf.draw/perf.n,segMesh.count,np],die:()=>{if(player&&player.alive)kill(player,snakes.find(s=>!s.p&&s.alive));},grow:n=>{if(player)player.m+=n;}};
+if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"slinky-arena",dir:"desc",unit:"long",title:"Slinky Arena: best length"});
+})();
+</script>
+</body>
+</html>

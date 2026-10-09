@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Sky Bounce</title>
+<meta property="og:title" content="Sky Bounce · GH Games">
+<meta property="og:description" content="Bounce up and up through the clouds and into space! Springs, rocket packs, whirly caps and grumpy flying puffs. Buy new bouncers and worlds.">
+<meta property="og:image" content="https://ghgames.au/og/sky-bounce.png">
+<meta property="og:url" content="https://ghgames.au/sky-bounce.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f1a33">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Games">
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="sky-bounce"></script>
+<script src="phatcoin.js" data-game="sky-bounce" data-pill="none"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<link rel="stylesheet" href="arcade3d.css">
+<style>
+.shopgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;width:min(520px,100%)}
+.sitem{background:var(--panel2);border:2px solid var(--line);border-radius:14px;padding:7px 4px;font-weight:900;cursor:pointer;color:var(--ink);font-family:var(--body);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:3px;line-height:1.1}
+.sitem .sw{width:40px;height:40px;border-radius:50%;border:3px solid rgba(255,255,255,.5)}
+.sitem.on{border-color:var(--gold);background:#3a3a1e}
+.sitem small{color:var(--gold);font-size:12px}
+.shead{font-family:var(--display);color:var(--gold);font-size:20px;margin:2px 0 -4px}
+.ov.compact{gap:9px}
+.ov.compact h2{font-size:clamp(30px,7vw,52px)}
+.pwr{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:14;background:rgba(0,0,0,.45);border-radius:12px;padding:4px 12px;font-weight:900;font-size:14px;pointer-events:none}
+.pwr[hidden]{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="links"><a class="home" href="index.html">← GH Games</a></div>
+  <div class="top">
+    <h1>Sky Bounce<small>3D</small></h1>
+    <div class="hud">
+      <div class="chip"><span>Height</span><b id="hScore">0</b></div>
+      <div class="chip"><span>Best</span><b id="hBest">0</b></div>
+      <div class="chip"><span>Coins</span><b id="hCoins">0</b></div>
+    </div>
+  </div>
+
+  <div class="stage tall" id="stage">
+    <div class="ingame"><button id="bHome">☰</button><button id="bFs">⛶</button><button id="bMute">🔊</button></div>
+    <div class="score3d"><span id="big">0</span> m<small id="bigC">● 0</small></div>
+    <div class="pwr" id="pwr" hidden></div>
+    <div class="toast" id="toast"></div>
+
+    <div class="ov compact" id="ovTitle">
+      <h2>SKY BOUNCE</h2>
+      <p>You bounce by yourself! Steer left and right with the arrow keys, A and D, the mouse, or by holding the left or right side of the screen. Go off one side to pop out of the other. Tap a flying puff or press Space to throw a star at it, or land right on its head!</p>
+      <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bShop">Shop</button></div>
+      <div class="stats" id="tStats"></div>
+    </div>
+
+    <div class="ov compact" id="ovShop" hidden>
+      <h2>SHOP</h2>
+      <p id="shopTxt"></p>
+      <div class="shead">Bouncers</div>
+      <div class="shopgrid" id="shopChars"></div>
+      <div class="shead">Worlds</div>
+      <div class="shopgrid" id="shopThemes"></div>
+      <div class="row"><button class="btn green" id="shopPlay">Play</button><button class="btn alt" id="shopBack">Back</button></div>
+    </div>
+
+    <div class="ov" id="ovOver" hidden>
+      <h2 id="oTitle">Whoops!</h2>
+      <p id="oText"></p>
+      <div class="stats" id="oStats"></div>
+      <div class="row"><button class="btn green" id="oAgain">Bounce again</button><button class="btn alt" id="oShop">Shop</button></div>
+    </div>
+  </div>
+
+  <p class="help">Your bouncer jumps on its own. Steer with the arrow keys or A and D, move the mouse, or hold the left or right half of the screen. Plain platforms are safe, ones with arrows slide, cracked ones snap in half, and pale see-through ones vanish after one bounce. Springs and pink trampolines send you flying. Grab a rocket pack or a whirly cap for a free ride up. Tap a flying puff (or press Space, W or Up) to throw a star, or stomp on its head. Collect coins to buy new bouncers and worlds. New best heights earn PhatCoin.</p>
+  <div id="lb"></div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="arcade3d.js"></script>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const SAVE="skybounce-save";
+const S=A3.save(SAVE,{best:0,coins:0,chars:["boing"],char:"boing",themes:["sunny"],theme:"sunny",played:0,puffs:0});
+const stage=$("stage");
+const V=A3.view(stage,{fov:50,sky:null,shadowSize:9,far:200});
+if(!V){return;}
+const {scene,camera,renderer}=V;
+const parts=A3.particles(scene);
+V.lights.hemi.intensity=0.8;V.lights.sun.intensity=1.0;
+const bgCol=new THREE.Color("#7fd3ff");scene.background=bgCol;
+
+const HALFW=5.2;
+const G=-32,JUMP=15,SPRING=24,TRAMP=19.5;
+/* ---------- themes ---------- */
+const THEMES=[
+ {id:"sunny",name:"Sunny Sky",price:0,norm:"#5fd36a",move:"#4aa8ff",brk:"#b07a4a",van:"#ffffff",tramp:"#ff6fa3",sky:["#7fd3ff","#ffb37a","#5b3a8f","#141238","#03030c"],cloud:"#ffffff",hill:"#7ed957"},
+ {id:"candy",name:"Candy Clouds",price:150,norm:"#ff8fc7",move:"#7fe0ff",brk:"#c98b5a",van:"#fff6c2",tramp:"#b085ff",sky:["#ffd1ec","#ffb0d0","#9b6cff","#2a1450","#07020f"],cloud:"#fff0fa",hill:"#ffc1e3"},
+ {id:"jungle",name:"Jungle Vines",price:250,norm:"#3fbf4f",move:"#ffc93c",brk:"#8a5a34",van:"#d6ffd0",tramp:"#ff8a3d",sky:["#9fe8b0","#f7d774","#d8653b","#1c2b4a","#020a08"],cloud:"#eaffea",hill:"#2f9e44"},
+ {id:"ice",name:"Ice Peaks",price:400,norm:"#9fe3ff",move:"#ffffff",brk:"#7aa3c4",van:"#e6f7ff",tramp:"#4aa8ff",sky:["#c9ecff","#a7c8ff","#6f6bd6","#151a44","#000008"],cloud:"#ffffff",hill:"#e8f6ff"}
+];
+const CHARS=[
+ {id:"boing",name:"Boing",price:0,col:"#7fff5f"},
+ {id:"pip",name:"Pip Bunny",price:80,col:"#ffb3cf"},
+ {id:"mochi",name:"Mochi Cat",price:150,col:"#ffd27a"},
+ {id:"zap",name:"Zap Bot",price:250,col:"#9fb2c8"},
+ {id:"blip",name:"Blip Alien",price:350,col:"#b085ff"},
+ {id:"bao",name:"Bao Bear",price:500,col:"#c98b5a"}
+];
+function TH(){return THEMES.find(t=>t.id===S.theme)||THEMES[0];}
+
+/* ---------- character models (face +z, the camera) ---------- */
+const sph=new THREE.SphereGeometry(1,22,16);
+function ball(g,r,c,x,y,z,sx,sy,sz,o){const m=new THREE.Mesh(sph,A3.mat(c,o));m.scale.set(r*(sx||1),r*(sy||1),r*(sz||1));m.position.set(x,y,z);m.castShadow=true;g.add(m);return m;}
+function face(g,y,z,sp){[-1,1].forEach(s=>{ball(g,0.13,"#ffffff",s*sp,y,z,1,1.15,0.6);ball(g,0.075,"#1b1b25",s*sp,y,z+0.07,1,1.2,0.6);ball(g,0.025,"#ffffff",s*sp+0.03,y+0.04,z+0.11);});}
+function buildChar(id){
+  const g=new THREE.Group(),c=(CHARS.find(x=>x.id===id)||CHARS[0]).col;
+  if(id==="boing"){ball(g,0.5,c,0,0.5,0,1,0.95,1);face(g,0.62,0.4,0.17);ball(g,0.06,"#ff7aa6",-0.3,0.45,0.4);ball(g,0.06,"#ff7aa6",0.3,0.45,0.4);ball(g,0.1,"#5fd36a",0,1.05,0);ball(g,0.07,"#ffde59",0.1,1.12,0);}
+  else if(id==="pip"){ball(g,0.5,c,0,0.5,0);face(g,0.6,0.4,0.17);[-1,1].forEach(s=>{const e=ball(g,0.14,c,s*0.2,1.15,0,1,3,0.8);e.rotation.z=-s*0.2;ball(g,0.08,"#ff7aa6",s*0.2,1.15,0.08,1,3.2,0.5).rotation.z=-s*0.2;});ball(g,0.07,"#ff4d88",0,0.47,0.48);}
+  else if(id==="mochi"){ball(g,0.5,c,0,0.5,0);face(g,0.6,0.4,0.18);[-1,1].forEach(s=>{const e=new THREE.Mesh(new THREE.ConeGeometry(0.17,0.3,4),A3.mat(c));e.position.set(s*0.28,0.98,0);e.rotation.z=-s*0.35;g.add(e);ball(g,0.02,"#3a2a1a",s*0.1,0.45,0.48);});ball(g,0.05,"#ff7aa6",0,0.5,0.49);}
+  else if(id==="zap"){const b=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.85,0.8),A3.mat(c,{metal:0.5,rough:0.35}));b.position.y=0.5;b.castShadow=true;g.add(b);const v=new THREE.Mesh(new THREE.BoxGeometry(0.66,0.24,0.05),A3.mat("#4ad7ff",{emissive:"#2ab7ff",glow:0.9}));v.position.set(0,0.6,0.42);g.add(v);ball(g,0.08,"#ff4d6d",0,1.1,0,1,1,1,{emissive:"#ff2244",glow:0.8});const a=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.2),A3.mat("#6d7d90"));a.position.y=1;g.add(a);}
+  else if(id==="blip"){ball(g,0.5,c,0,0.5,0,1,1.05,1);ball(g,0.2,"#ffffff",0,0.65,0.38,1,1,0.5);ball(g,0.11,"#1b1b25",0,0.65,0.47,1,1,0.5);[-1,1].forEach(s=>{const a=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.35),A3.mat("#7a52d6"));a.position.set(s*0.18,1.08,0);a.rotation.z=-s*0.3;g.add(a);ball(g,0.07,"#7fff5f",s*0.24,1.25,0,1,1,1,{emissive:"#3cbf20",glow:0.6});});}
+  else if(id==="bao"){ball(g,0.5,c,0,0.5,0);ball(g,0.2,"#f2d1a8",0,0.45,0.38,1.2,0.9,0.6);ball(g,0.06,"#3a2416",0,0.52,0.5);face(g,0.68,0.38,0.19);[-1,1].forEach(s=>{ball(g,0.15,c,s*0.33,0.92,0);ball(g,0.08,"#f2d1a8",s*0.33,0.92,0.08,1,1,0.5);});}
+  // feet
+  [-1,1].forEach(s=>ball(g,0.13,"#ff8a3d",s*0.2,0.06,0.12,1.2,0.6,1.4));
+  return g;
+}
+
+/* ---------- shared meshes ---------- */
+function rboxGeo(w,h,d,r){return A3.rbox(w,h,d,r,"#fff").geometry;}
+const PW=1.7;
+const platGeo=rboxGeo(PW,0.32,1.1,0.16),trampGeo=rboxGeo(2.4,0.24,1.2,0.12),halfGeo=rboxGeo(PW/2,0.32,1.1,0.12);
+const springGeo=new THREE.CylinderGeometry(0.14,0.14,0.3,10),springTop=new THREE.CylinderGeometry(0.22,0.22,0.06,14);
+const coinGeo=new THREE.CylinderGeometry(0.24,0.24,0.07,18);coinGeo.rotateX(Math.PI/2);
+const coinMat=A3.mat("#ffd23f",{metal:0.4,rough:0.3,emissive:"#7a5200",glow:0.5});
+const starShot=(()=>{const sh=new THREE.Shape();for(let i=0;i<10;i++){const a=Math.PI/2+i*Math.PI/5,r=i%2?0.1:0.24;i?sh.lineTo(Math.cos(a)*r,Math.sin(a)*r):sh.moveTo(Math.cos(a)*r,Math.sin(a)*r);}return new THREE.ExtrudeGeometry(sh,{depth:0.08,bevelEnabled:false});})();
+const shotMat=A3.mat("#ffe14d",{emissive:"#ffb000",glow:0.8});
+
+/* ---------- world ---------- */
+const world=new THREE.Group();scene.add(world);
+let plats=[],coins=[],mons=[],shots=[],items=[],topY=0,player,pModel,vx=0,vy=0,maxY=0,camY=0,alive=false,playing=false,runCoins=0,power=null,powerT=0,kills=0,milestone=0,dead=null,squash=0,lastPlat=null,newBest=false,startT=0;
+
+function makePlat(kind,x,y){
+  const th=TH(),g=new THREE.Group();g.position.set(x,y,0);
+  const p={kind:kind,x:x,y:y,w:kind==="tramp"?2.4:PW,g:g,vx:0,alive:true,t:0};
+  let col={norm:th.norm,move:th.move,brk:th.brk,van:th.van,spring:th.norm,tramp:th.tramp}[kind];
+  const m=new THREE.Mesh(kind==="tramp"?trampGeo:platGeo,A3.mat(col,{rough:0.5}));m.castShadow=true;m.receiveShadow=true;g.add(m);p.mesh=m;
+  if(kind==="brk"){m.visible=false;[-1,1].forEach(s=>{const h=new THREE.Mesh(halfGeo,A3.mat(th.brk,{rough:0.8}));h.position.x=s*PW/4;h.rotation.z=s*0.05;h.castShadow=true;g.add(h);});}
+  if(kind==="move"){p.vx=A3.pick([-1,1])*A3.rand(1.2,2.2+Math.min(2,y/600));[-1,1].forEach(s=>{const a=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.22,3),A3.mat("#ffffff"));a.rotation.z=-s*Math.PI/2;a.position.set(s*0.55,0.2,0.4);g.add(a);});}
+  if(kind==="van"){m.material=A3.mat(th.van,{opacity:0.85,rough:0.9});}
+  if(kind==="tramp"){[-1,1].forEach(s=>{const l=new THREE.Mesh(springGeo,A3.mat("#555"));l.position.set(s*1.0,-0.25,0);g.add(l);});const stripe=new THREE.Mesh(new THREE.BoxGeometry(2.2,0.04,1.0),A3.mat("#ffffff"));stripe.position.y=0.14;g.add(stripe);}
+  if(kind==="spring"){const sx=A3.rand(-0.45,0.45);const sp=new THREE.Group();sp.position.set(sx,0.3,0);const c=new THREE.Mesh(springGeo,A3.mat("#c0c6d0",{metal:0.7,rough:0.3}));sp.add(c);const t=new THREE.Mesh(springTop,A3.mat("#ff4d4d"));t.position.y=0.17;sp.add(t);g.add(sp);p.spring=sp;p.sx=sx;}
+  world.add(g);plats.push(p);return p;
+}
+function makeCoin(x,y){const m=new THREE.Mesh(coinGeo,coinMat);m.position.set(x,y,0);m.castShadow=true;world.add(m);coins.push({m:m,x:x,y:y});}
+function makeItem(kind,p){
+  const g=new THREE.Group();
+  if(kind==="jet"){
+    [-1,1].forEach(s=>{const t=A3.cyl(0.13,0.13,0.55,"#ff4d4d",12);t.position.x=s*0.15;g.add(t);const n=new THREE.Mesh(new THREE.ConeGeometry(0.13,0.2,12),A3.mat("#ffde59"));n.position.set(s*0.15,0.37,0);g.add(n);});
+    const strap=A3.box(0.5,0.1,0.18,"#3a3a55");g.add(strap);
+  }else{
+    const cap=new THREE.Mesh(new THREE.SphereGeometry(0.28,16,10,0,Math.PI*2,0,Math.PI/2),A3.mat("#4aa8ff"));g.add(cap);
+    const st=A3.cyl(0.03,0.03,0.2,"#ffde59",8);st.position.y=0.36;g.add(st);
+    const bl=new THREE.Group();bl.position.y=0.47;[0,1].forEach(i=>{const b=A3.box(0.9,0.03,0.14,i?"#ff4d6d":"#5fd36a");b.rotation.y=i*Math.PI/2;bl.add(b);});g.add(bl);g.userData.blades=bl;
+  }
+  g.position.set(p.x+A3.rand(-0.4,0.4),p.y+0.55,0.1);world.add(g);
+  items.push({kind:kind,g:g,p:p,dx:g.position.x-p.x});
+}
+const monBody=new THREE.SphereGeometry(0.55,18,14);
+function makeMon(x,y){
+  const g=new THREE.Group();g.position.set(x,y,0.1);
+  const col=A3.pick(["#9b6cff","#ff6f6f","#2ec4b6","#ff9f1c"]);
+  const b=new THREE.Mesh(monBody,A3.mat(col,{rough:0.5}));b.scale.set(1.15,0.9,0.9);b.castShadow=true;g.add(b);
+  [-1,1].forEach(s=>{ball(g,0.16,"#ffffff",s*0.22,0.12,0.42);ball(g,0.08,"#1b1b25",s*0.2,0.1,0.55);const brow=A3.box(0.24,0.06,0.06,"#2a1a3a");brow.position.set(s*0.22,0.33,0.5);brow.rotation.z=s*0.35;g.add(brow);});
+  const mouth=A3.box(0.3,0.06,0.06,"#2a1a3a");mouth.position.set(0,-0.2,0.5);g.add(mouth);
+  for(let i=-1;i<=1;i++){const t=new THREE.Mesh(new THREE.ConeGeometry(0.06,0.12,4),A3.mat("#ffffff"));t.position.set(i*0.08,-0.26,0.5);t.rotation.x=Math.PI;g.add(t);}
+  const wings=[];[-1,1].forEach(s=>{const w=new THREE.Mesh(sph,A3.mat("#ffffff",{opacity:0.9}));w.scale.set(0.4,0.22,0.12);w.position.set(s*0.75,0.2,-0.1);g.add(w);wings.push(w);});
+  world.add(g);
+  const m={g:g,x:x,y:y,x0:x,amp:A3.rand(0.8,2.4),ph:Math.random()*6,sp:A3.rand(0.8,1.6),wings:wings,alive:true,dead:0};
+  mons.push(m);return m;
+}
+
+/* ---------- background: parallax layers ---------- */
+const bg=new THREE.Group();scene.add(bg);
+const cloudLayers=[];
+function cloudMesh(col,s){const g=new THREE.Group();[[0,0,1],[0.9,-0.1,0.75],[-0.9,-0.15,0.7],[0.4,0.45,0.7],[-0.35,0.4,0.6]].forEach(a=>{const b=new THREE.Mesh(sph,A3.mat(col,{rough:1}));b.scale.setScalar(a[2]*s);b.position.set(a[0]*s,a[1]*s,0);g.add(b);});return g;}
+function buildBG(){
+  bg.clear();cloudLayers.length=0;
+  const th=TH();
+  [{z:-12,n:7,s:0.9,span:16,f:0.0},{z:-30,n:7,s:1.6,span:30,f:0.0}].forEach((L,li)=>{
+    const arr=[];for(let i=0;i<L.n;i++){const c=cloudMesh(th.cloud,L.s);c.position.set(A3.rand(-L.span,L.span),i*(L.span*1.6/L.n),L.z);c.userData.span=L.span;bg.add(c);arr.push(c);}
+    cloudLayers.push({arr:arr,z:L.z,span:L.span,h:L.span*1.6});
+  });
+  // hills at the bottom
+  for(let i=0;i<9;i++){const h=new THREE.Mesh(sph,A3.mat(th.hill,{rough:1}));h.scale.set(A3.rand(4,8),A3.rand(3,5),3);h.position.set(-24+i*6+A3.rand(-1,1),-8,-26+A3.rand(-3,3));bg.add(h);}
+  const grd=new THREE.Mesh(new THREE.BoxGeometry(80,4,20),A3.mat(th.hill));grd.position.set(0,-6.5,-6);grd.receiveShadow=true;bg.add(grd);
+  // stars
+  const n=500,pos=new Float32Array(n*3);for(let i=0;i<n;i++){pos[i*3]=A3.rand(-70,70);pos[i*3+1]=A3.rand(-50,50);pos[i*3+2]=A3.rand(-80,-50);}
+  const pg=new THREE.BufferGeometry();pg.setAttribute("position",new THREE.BufferAttribute(pos,3));
+  stars=new THREE.Points(pg,new THREE.PointsMaterial({color:0xffffff,size:0.35,transparent:true,opacity:0,depthWrite:false}));bg.add(stars);
+  // planets
+  planets=[];[[1000,"#ff9f6b",4,true,16],[1600,"#7fe0ff",5,false,-18],[2300,"#b085ff",6,true,14],[3100,"#ffde59",7,false,-14],[4000,"#ff6fa3",6,true,16]].forEach(a=>{
+    const g=new THREE.Group();const p=new THREE.Mesh(sph,A3.mat(a[1],{rough:0.8}));p.scale.setScalar(a[2]);g.add(p);
+    if(a[3]){const r=new THREE.Mesh(new THREE.TorusGeometry(a[2]*1.6,0.25,6,40),A3.mat("#ffffff",{opacity:0.7}));r.rotation.x=1.2;g.add(r);}
+    g.position.set(a[4],a[0],-55);g.userData.base=a[0];bg.add(g);planets.push(g);
+  });
+}
+let stars=null,planets=[];
+const SKYH=[0,350,800,1300,1900];
+function skyAt(y,out){
+  const s=TH().sky;let i=0;while(i<SKYH.length-2&&y>SKYH[i+1])i++;
+  const k=A3.clamp((y-SKYH[i])/(SKYH[i+1]-SKYH[i]),0,1);
+  out.set(s[i]).lerp(new THREE.Color(s[i+1]),k);return out;
+}
+
+/* ---------- generation ---------- */
+function diff(){return Math.min(1,topY/1400);}
+function genTo(y){
+  while(topY<y){
+    const d=diff();
+    const gap=A3.rand(1.1+d*1.2,1.9+d*1.1);
+    topY+=gap;
+    const x=A3.rand(-HALFW+1,HALFW-1);
+    let r=Math.random(),kind="norm";
+    if(topY>40){
+      if(r<0.10+d*0.12)kind="move";
+      else if(r<0.17+d*0.15)kind="van";
+      else if(r<0.22+d*0.04)kind="spring";
+      else if(r<0.26)kind="tramp";
+    }else if(topY>15&&r<0.15)kind="move";
+    const p=makePlat(kind,x,topY);
+    // break platforms as decoys between real ones
+    if(topY>25&&Math.random()<0.18+d*0.25){const bx=A3.clamp(x+A3.pick([-1,1])*A3.rand(2,4),-HALFW+1,HALFW-1);makePlat("brk",bx,topY-gap*0.5);}
+    if(Math.random()<0.16)makeCoin(A3.clamp(x+A3.rand(-1.5,1.5),-HALFW+0.5,HALFW-0.5),topY+A3.rand(1,1.8));
+    if(Math.random()<0.04&&topY>30)for(let k=0;k<4;k++)makeCoin(x,topY+1.2+k*0.8);
+    if(kind==="norm"&&topY>60&&Math.random()<0.035)makeItem(Math.random()<0.45?"jet":"cap",p);
+    if(topY>80&&Math.random()<0.05+d*0.06&&!mons.some(m=>Math.abs(m.y-topY)<10)){makeMon(A3.rand(-2.5,2.5),topY+gap*0.5);}
+  }
+}
+function cleanup(){
+  const lim=camY-12;
+  plats=plats.filter(p=>{if(p.y<lim||p.gone>1.5){world.remove(p.g);return false;}return true;});
+  coins=coins.filter(c=>{if(c.y<lim||c.taken){world.remove(c.m);return false;}return true;});
+  mons=mons.filter(m=>{if(m.y<lim||m.dead>1.5){world.remove(m.g);return false;}return true;});
+  items=items.filter(it=>{if(it.p.y<lim||it.taken){world.remove(it.g);return false;}return true;});
+}
+function clearAll(){plats.forEach(p=>world.remove(p.g));coins.forEach(c=>world.remove(c.m));mons.forEach(m=>world.remove(m.g));shots.forEach(s=>scene.remove(s.m));items.forEach(i=>world.remove(i.g));plats=[];coins=[];mons=[];shots=[];items=[];}
+
+/* ---------- player ---------- */
+const jetFx=new THREE.Group(),capFx=new THREE.Group();
+(function(){
+  [-1,1].forEach(s=>{const t=A3.cyl(0.13,0.13,0.55,"#ff4d4d",12);t.position.set(s*0.2,0.5,-0.45);jetFx.add(t);const f=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.6,10),new THREE.MeshBasicMaterial({color:0xffa020,transparent:true,opacity:0.9}));f.rotation.x=Math.PI;f.position.set(s*0.2,0.0,-0.45);f.name="f";jetFx.add(f);});
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(0.3,16,10,0,Math.PI*2,0,Math.PI/2),A3.mat("#4aa8ff"));cap.position.y=0.95;capFx.add(cap);
+  const st=A3.cyl(0.03,0.03,0.2,"#ffde59",8);st.position.y=1.3;capFx.add(st);
+  const bl=new THREE.Group();bl.position.y=1.4;[0,1].forEach(i=>{const b=A3.box(1.1,0.03,0.16,i?"#ff4d6d":"#5fd36a");b.rotation.y=i*Math.PI/2;bl.add(b);});capFx.add(bl);capFx.userData.bl=bl;
+})();
+function makePlayer(){
+  if(player)scene.remove(player);
+  player=new THREE.Group();pModel=buildChar(S.char);player.add(pModel);player.add(jetFx);player.add(capFx);jetFx.visible=capFx.visible=false;
+  scene.add(player);
+}
+function newGame(){
+  A3.hide("ovTitle");A3.hide("ovOver");A3.hide("ovShop");
+  clearAll();parts.clear();buildBG();
+  topY=-3;const start=makePlat("norm",0,-3);
+  genTo(14);
+  makePlayer();player.position.set(0,-2.8,0);
+  vx=0;vy=JUMP;maxY=0;camY=0;alive=true;playing=true;runCoins=0;power=null;powerT=0;kills=0;milestone=0;dead=null;newBest=false;startT=performance.now();
+  S.played++;persist();hud();
+}
+function setPower(k){
+  power=k;powerT=k==="jet"?3.2:2.6;jetFx.visible=k==="jet";capFx.visible=k==="cap";A3.sfx("whoosh");
+  $("pwr").hidden=false;$("pwr").textContent=k==="jet"?"🚀 Rocket pack!":"🧢 Whirly cap!";
+}
+function endPower(){power=null;jetFx.visible=capFx.visible=false;$("pwr").hidden=true;}
+
+/* ---------- input ---------- */
+let pointerX=null,touchDir=0,lastPointerType="mouse";
+const cv=renderer.domElement;
+function worldX(e){const p=A3.floorPoint?null:null;const r=cv.getBoundingClientRect();const nx=((e.clientX-r.left)/r.width)*2-1;return nx*viewHalfW();}
+function worldPt(e){const r=cv.getBoundingClientRect();const nx=((e.clientX-r.left)/r.width)*2-1,ny=-((e.clientY-r.top)/r.height)*2+1;const v=new THREE.Vector3(nx,ny,0.5).unproject(camera);const dir=v.sub(camera.position).normalize();const t=-camera.position.z/dir.z;return camera.position.clone().addScaledVector(dir,t);}
+function viewHalfW(){return HALFW;}
+const touches={};
+cv.addEventListener("pointerdown",e=>{
+  lastPointerType=e.pointerType;
+  if(!playing||!alive)return;
+  const wp=worldPt(e);
+  if(e.pointerType==="mouse"){shoot(wp);return;}
+  // touch: a tap on a puff throws a star, anything else steers
+  const hit=mons.find(m=>m.alive&&Math.hypot(m.x-wp.x,m.y-wp.y)<1.4);
+  if(hit){shoot(new THREE.Vector3(hit.x,hit.y,0));return;}
+  const r=cv.getBoundingClientRect();touches[e.pointerId]=(e.clientX-r.left)<r.width/2?-1:1;updTouch();
+  try{cv.setPointerCapture(e.pointerId);}catch(_){}
+});
+cv.addEventListener("pointermove",e=>{if(e.pointerType==="mouse"){pointerX=worldPt(e).x;lastPointerType="mouse";}});
+cv.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse")pointerX=null;});
+function upd(e){delete touches[e.pointerId];updTouch();}
+["pointerup","pointercancel"].forEach(n=>cv.addEventListener(n,upd));
+function updTouch(){const v=Object.values(touches);touchDir=v.length?v[v.length-1]:0;}
+window.addEventListener("keydown",e=>{
+  const k=(e.key||"").toLowerCase();if(e.target&&e.target.tagName==="INPUT")return;
+  if(k===" "||k==="arrowup"||k==="w"){e.preventDefault();if(playing&&alive&&!e.repeat){const t=mons.filter(m=>m.alive&&m.y>player.position.y-1).sort((a,b)=>a.y-b.y)[0];shoot(t&&Math.abs(t.x-player.position.x)<2.5?new THREE.Vector3(t.x,t.y,0):new THREE.Vector3(player.position.x,player.position.y+10,0));}
+    else if(!playing&&!$("ovTitle").hidden&&k===" "){newGame();}}
+  if(k==="arrowleft"||k==="arrowright"||k==="a"||k==="d")pointerX=null;
+});
+let shotCool=0;
+function shoot(target){
+  if(shotCool>0)return;shotCool=0.18;
+  const from=player.position.clone().add(new THREE.Vector3(0,0.9,0.2));
+  const dir=target.clone().sub(from);dir.z=0;if(dir.y<0.3)dir.y=0.3;dir.normalize();
+  const m=new THREE.Mesh(starShot,shotMat);m.position.copy(from);scene.add(m);
+  shots.push({m:m,v:dir.multiplyScalar(24),life:1.2});A3.sfx("pop");
+  pModel.scale.set(1.15,0.85,1.15);
+}
+
+/* ---------- loop ---------- */
+const tmpC=new THREE.Color();
+A3.loop((dt,t)=>{
+  shotCool=Math.max(0,shotCool-dt);
+  if(playing&&player){
+    const p=player.position;
+    if(alive){
+      // steering
+      let dir=0;if(A3.keys.arrowleft||A3.keys.a)dir-=1;if(A3.keys.arrowright||A3.keys.d)dir+=1;
+      if(!dir)dir=touchDir;
+      if(dir){vx+=(dir*9-vx)*Math.min(1,dt*9);}
+      else if(pointerX!=null&&lastPointerType==="mouse"){let dx=pointerX-p.x;vx=A3.clamp(dx*6,-10,10);}
+      else vx*=Math.pow(0.02,dt);
+      p.x+=vx*dt;
+      if(p.x>HALFW+0.4)p.x-=2*HALFW+0.8;if(p.x<-HALFW-0.4)p.x+=2*HALFW+0.8;
+      pModel.rotation.y+=((A3.clamp(vx*0.08,-0.6,0.6))-pModel.rotation.y)*Math.min(1,dt*10);
+      // vertical
+      if(power){
+        powerT-=dt;vy=power==="jet"?26:17;
+        if(power==="jet"){jetFx.children.forEach(c=>{if(c.name==="f")c.scale.y=1+Math.random()*0.6;});if(Math.random()<0.7)parts.burst(p.clone().add(new THREE.Vector3(A3.pick([-0.2,0.2]),-0.1,-0.45)),A3.pick(["#ffb020","#ff6a20","#ffe14d"]),1,2,0.35);}
+        else capFx.userData.bl.rotation.y+=dt*30;
+        if(powerT<=0){endPower();vy=12;}
+      }else vy+=G*dt;
+      const prevY=p.y;p.y+=vy*dt;
+      // land on platforms when falling
+      if(vy<0&&!power){
+        for(const pl of plats){
+          if(!pl.alive)continue;
+          const top=pl.y+0.16;
+          if(prevY>=top-0.05&&p.y<=top+0.02){
+            let dx=Math.abs(p.x-pl.x);if(dx>HALFW)dx=2*HALFW+0.8-dx;
+            if(dx<pl.w/2+0.3){
+              if(pl.kind==="brk"){if(!pl.broke){pl.broke=true;A3.sfx("hit");pl.g.children.forEach((c,i)=>{if(i>0)c.userData.v=new THREE.Vector3((i===1?-1:1)*1.5,2,0);});}continue;}
+              p.y=top;bounce(pl);break;
+            }
+          }
+        }
+      }
+      // coins, items, monsters
+      for(const c of coins){if(!c.taken&&Math.abs(c.x-p.x)<0.6&&Math.abs(c.y-(p.y+0.5))<0.7){c.taken=true;runCoins++;S.coins++;A3.sfx("coin");parts.burst(c.m.position.clone(),"#ffd23f",8,3,0.4);hud();}}
+      for(const it of items){if(!it.taken&&!power&&Math.abs(it.g.position.x-p.x)<0.7&&Math.abs(it.g.position.y-(p.y+0.5))<0.8){it.taken=true;setPower(it.kind);}}
+      for(const m of mons){
+        if(!m.alive)continue;
+        const dx=m.x-p.x,dy=m.y-(p.y+0.5);
+        if(Math.abs(dx)<0.95&&Math.abs(dy)<0.9){
+          if(power){popMon(m,true);continue;}
+          if(vy<0&&dy<-0.25){popMon(m,true);vy=JUMP*1.1;squash=1;A3.sfx("jump");}
+          else{alive=false;dead={t:0,kind:"bonk"};A3.sfx("hit");vy=4;vx=0;endPower();parts.burst(p.clone().add(new THREE.Vector3(0,0.5,0)),"#ffffff",10,4,0.5);}
+        }
+      }
+      if(p.y>maxY){maxY=p.y;const sc=Math.floor(maxY);
+        if(!newBest&&S.best>20&&sc>S.best){newBest=true;A3.toast("New best height!");A3.sfx("win");}
+        if(sc>=500*(milestone+1)){milestone++;A3.toast(sc+" m! Amazing!");A3.win(Math.min(5,milestone+1),"bouncing "+sc+" m high in Sky Bounce");}
+        hud();
+      }
+      if(p.y<camY-8.2){alive=false;dead={t:0,kind:"fall"};A3.sfx("lose");endPower();}
+      // camera follows up only
+      const target=p.y+1.5;if(target>camY)camY+=(target-camY)*Math.min(1,dt*6);
+      genTo(camY+14);
+    }else{
+      dead.t+=dt;vy+=G*dt;p.y+=vy*dt;pModel.rotation.z+=dt*6;
+      if(dead.t>1.1&&playing)gameOver();
+    }
+    // squash and stretch
+    squash=Math.max(0,squash-dt*4);
+    const st=A3.clamp(vy/40,-0.15,0.2);
+    pModel.scale.x+=((1+squash*0.35-st*0.5)-pModel.scale.x)*Math.min(1,dt*18);
+    pModel.scale.y+=((1-squash*0.35+st)-pModel.scale.y)*Math.min(1,dt*18);
+    pModel.scale.z=pModel.scale.x;
+  }
+  // platforms
+  for(const pl of plats){
+    if(pl.kind==="move"&&pl.alive){pl.x+=pl.vx*dt;if(pl.x>HALFW-0.9){pl.x=HALFW-0.9;pl.vx*=-1;}if(pl.x<-HALFW+0.9){pl.x=-HALFW+0.9;pl.vx*=-1;}pl.g.position.x=pl.x;}
+    if(pl.broke){pl.gone=(pl.gone||0)+dt;pl.alive=false;pl.g.children.forEach((c,i)=>{if(c.userData.v){c.userData.v.y-=20*dt;c.position.addScaledVector(c.userData.v,dt);c.rotation.z+=c.userData.v.x*dt;}});}
+    if(pl.fade!=null){pl.fade+=dt;pl.g.scale.setScalar(Math.max(0.01,1-pl.fade*4));if(pl.fade>0.3)pl.gone=2;}
+    if(pl.boing){pl.boing=Math.max(0,pl.boing-dt*5);pl.g.position.y=pl.y-Math.sin(pl.boing*Math.PI)*0.12;if(pl.spring)pl.spring.scale.y=1+pl.boing*1.2;}
+  }
+  for(const c of coins){c.m.rotation.y=t*3+c.x;}
+  for(const it of items){it.g.position.x=it.p.x+it.dx;it.g.position.y=it.p.y+0.55+Math.sin(t*3)*0.08;it.g.rotation.y=Math.sin(t*2)*0.6;if(it.g.userData.blades)it.g.userData.blades.rotation.y+=dt*10;}
+  for(const m of mons){
+    if(m.alive){m.x=m.x0+Math.sin(t*m.sp+m.ph)*m.amp;m.g.position.x=m.x;m.g.position.y=m.y+Math.sin(t*3+m.ph)*0.15;m.wings.forEach((w,i)=>w.rotation.z=(i?-1:1)*Math.sin(t*16)*0.5);}
+    else{m.dead+=dt;m.g.position.y-=dt*8*m.dead;m.g.rotation.z+=dt*8;m.g.scale.setScalar(Math.max(0.01,1-m.dead));}
+  }
+  for(let i=shots.length-1;i>=0;i--){
+    const s=shots[i];s.life-=dt;s.m.position.addScaledVector(s.v,dt);s.m.rotation.z+=dt*14;
+    let hit=false;for(const m of mons){if(m.alive&&s.m.position.distanceTo(m.g.position)<0.8){popMon(m,false);hit=true;break;}}
+    if(hit||s.life<=0){scene.remove(s.m);shots.splice(i,1);}
+  }
+  cleanup();
+  // camera and background
+  camera.position.set(0,camY+0.6,15.5);camera.lookAt(0,camY,0);
+  V.lights.sun.position.set(4,camY+12,10);V.lights.sun.target.position.set(0,camY,0);
+  skyAt(camY,tmpC);bgCol.copy(tmpC);
+  bg.position.y=camY*0.0;
+  cloudLayers.forEach((L,li)=>{const f=li?0.35:0.6;L.arr.forEach(c=>{
+    let ry=c.userData.ry!=null?c.userData.ry:(c.userData.ry=c.position.y);
+    let y=ry+camY*(1-f);
+    while(y<camY-L.h/2){c.userData.ry+=L.h;ry=c.userData.ry;y=ry+camY*(1-f);c.position.x=A3.rand(-L.span,L.span);}
+    c.position.y=y;c.position.x+=dt*(li?0.2:0.5);if(c.position.x>L.span+6)c.position.x=-L.span-6;
+    c.visible=camY<650+(c.userData.k=c.userData.k!=null?c.userData.k:Math.floor(Math.random()*8))*70;
+  });});
+  if(stars){stars.position.y=camY*0.97;stars.material.opacity=A3.clamp((camY-500)/700,0,1);}
+  planets.forEach(pl=>{pl.rotation.y+=dt*0.1;pl.position.y=camY+(pl.userData.base-camY)*0.08;pl.visible=Math.abs(pl.userData.base-camY)<500;});
+  bg.children.forEach(c=>{if(c.isMesh&&c.geometry===sph&&c.position.y<-7)c.visible=camY<60;});
+  parts.update(dt);
+  V.render();
+});
+function bounce(pl){
+  let v=JUMP;
+  if(pl.kind==="spring"&&Math.abs(player.position.x-(pl.x+pl.sx))<0.5){v=SPRING;A3.sfx("whoosh");pModel.rotation.x=0;flip=1;}
+  else if(pl.kind==="tramp"){v=TRAMP;A3.sfx("whoosh");}
+  else A3.sfx("jump");
+  vy=v;squash=1;pl.boing=1;lastPlat=pl;
+  if(pl.kind==="van"){pl.fade=0;pl.alive=false;parts.burst(new THREE.Vector3(pl.x,pl.y,0),"#ffffff",10,3,0.5);}
+  parts.burst(player.position.clone(),TH().norm,4,2,0.3);
+}
+let flip=0;
+function popMon(m,stomp){
+  m.alive=false;m.dead=0;kills++;S.puffs++;A3.sfx("boom");parts.burst(m.g.position.clone(),"#ffffff",14,5,0.6);parts.burst(m.g.position.clone(),"#ffd23f",6,4,0.5);
+  runCoins+=3;S.coins+=3;hud();
+}
+
+/* ---------- end ---------- */
+function gameOver(){
+  playing=false;
+  const sc=Math.floor(maxY),isBest=sc>S.best;
+  if(isBest){S.best=sc;A3.best(sc);if(sc>=100)A3.win(sc>=1500?5:sc>=800?4:sc>=300?3:2,"a new Sky Bounce best");}
+  persist();
+  $("oTitle").textContent=dead&&dead.kind==="bonk"?"Bonk!":"Whoops!";
+  $("oText").textContent=isBest?"New best height: "+sc+" m!":"You reached "+sc+" m. Your best is "+S.best+" m.";
+  $("oStats").innerHTML="<div>Height <b>"+sc+" m</b></div><div>Coins <b>"+runCoins+"</b></div><div>Puffs popped <b>"+kills+"</b></div>";
+  A3.sfx(isBest?"win":"lose");A3.show("ovOver");hud();
+}
+
+/* ---------- menus ---------- */
+function persist(){A3.store(SAVE,S);}
+function hud(){const sc=Math.floor(maxY);$("hScore").textContent=sc+" m";$("hBest").textContent=S.best+" m";$("hCoins").textContent=A3.fmt(S.coins);$("big").textContent=sc;$("bigC").textContent="● "+A3.fmt(S.coins);}
+function titleStats(){$("tStats").innerHTML="<div>Best <b>"+S.best+" m</b></div><div>Coins <b>"+A3.fmt(S.coins)+"</b></div><div>Puffs popped <b>"+S.puffs+"</b></div>";}
+function drawShop(){
+  $("shopTxt").textContent="You have "+A3.fmt(S.coins)+" coins. Collect coins and pop puffs to earn more.";
+  $("shopChars").innerHTML=CHARS.map(c=>{const own=S.chars.includes(c.id);return '<button class="sitem'+(S.char===c.id?" on":"")+'" data-c="'+c.id+'"><span class="sw" style="background:'+c.col+'"></span>'+c.name+'<small>'+(S.char===c.id?"Using":own?"Use":"● "+c.price)+'</small></button>';}).join("");
+  $("shopThemes").innerHTML=THEMES.map(c=>{const own=S.themes.includes(c.id);return '<button class="sitem'+(S.theme===c.id?" on":"")+'" data-t="'+c.id+'"><span class="sw" style="background:linear-gradient('+c.sky[0]+','+c.norm+')"></span>'+c.name+'<small>'+(S.theme===c.id?"Using":own?"Use":"● "+c.price)+'</small></button>';}).join("");
+}
+function buy(list,owned,id,set){
+  const it=list.find(x=>x.id===id);
+  if(!owned.includes(id)){if(S.coins<it.price){A3.toast("You need "+(it.price-S.coins)+" more coins");A3.sfx("tick");return;}S.coins-=it.price;owned.push(id);A3.sfx("win");A3.toast(it.name+" unlocked!");}else A3.sfx("click");
+  set(id);persist();drawShop();hud();showcase();
+}
+$("shopChars").addEventListener("click",e=>{const b=e.target.closest(".sitem");if(b)buy(CHARS,S.chars,b.dataset.c,id=>S.char=id);});
+$("shopThemes").addEventListener("click",e=>{const b=e.target.closest(".sitem");if(b)buy(THEMES,S.themes,b.dataset.t,id=>S.theme=id);});
+function showcase(){
+  if(playing)return;
+  clearAll();buildBG();topY=-3;makePlat("norm",0,-3);genTo(10);makePlayer();player.position.set(0,-2.8,0);camY=0;maxY=0;
+}
+function openShop(){A3.hide("ovTitle");A3.hide("ovOver");drawShop();A3.show("ovShop");}
+$("bPlay").onclick=()=>{A3.sfx("click");newGame();};
+$("bShop").onclick=()=>{A3.sfx("click");openShop();};
+$("oShop").onclick=()=>{A3.sfx("click");openShop();};
+$("shopPlay").onclick=()=>{A3.sfx("click");newGame();};
+$("shopBack").onclick=()=>{A3.sfx("click");A3.hide("ovShop");titleStats();A3.show("ovTitle");};
+$("oAgain").onclick=()=>{A3.sfx("click");newGame();};
+$("bHome").onclick=()=>{A3.sfx("click");playing=false;alive=false;endPower();A3.hide("ovOver");A3.hide("ovShop");showcase();titleStats();A3.show("ovTitle");hud();};
+A3.fullscreen($("bFs"),stage);
+$("bMute").onclick=()=>{A3.mute(!A3.mute());$("bMute").textContent=A3.mute()?"🔇":"🔊";};$("bMute").textContent=A3.mute()?"🔇":"🔊";
+
+showcase();titleStats();hud();
+// title idle bounce
+A3.loop((dt,t)=>{if(!playing&&player&&!$("ovTitle").hidden){player.position.y=-2.84+Math.abs(Math.sin(t*3))*1.6;pModel.rotation.y=Math.sin(t)*0.4;}});
+window.addEventListener("pagehide",persist);
+if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"sky-bounce",dir:"desc",unit:"m",title:"Sky Bounce: highest bounce"});
+})();
+</script>
+</body>
+</html>

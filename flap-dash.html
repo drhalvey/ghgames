@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Flap Dash</title>
+<meta property="og:title" content="Flap Dash · GH Games">
+<meta property="og:description" content="Tap to flap your chunky little flyer through the gaps. Win medals, grab coins for new flyers and unlock five 3D worlds from sunny hills to outer space.">
+<meta property="og:image" content="https://ghgames.au/og/flap-dash.png">
+<meta property="og:url" content="https://ghgames.au/flap-dash.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f1a33">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Games">
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="flap-dash"></script>
+<script src="phatcoin.js" data-game="flap-dash" data-pill="none"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<link rel="stylesheet" href="arcade3d.css">
+<style>
+.stage [hidden]{display:none!important}
+.bigscore{position:absolute;left:50%;top:7%;transform:translateX(-50%);z-index:15;font-family:var(--display);font-size:clamp(48px,11vw,84px);color:#fff;text-shadow:0 4px 0 #2a2a4a,0 8px 0 rgba(0,0,0,.25);pointer-events:none;line-height:1}
+.coinchip{position:absolute;right:12px;top:12px;z-index:15;background:rgba(0,0,0,.4);color:#ffd23f;font-weight:900;border-radius:12px;padding:6px 10px;font-size:15px;pointer-events:none}
+.tap{position:absolute;left:50%;top:62%;transform:translateX(-50%);z-index:15;font-family:var(--display);font-size:clamp(22px,4.5vw,32px);color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.4);pointer-events:none;animation:bob 1s ease-in-out infinite}
+@keyframes bob{50%{transform:translate(-50%,-8px)}}
+.medal{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:16px;color:#3b2200;box-shadow:inset 0 -8px 0 rgba(0,0,0,.18),0 6px 14px rgba(0,0,0,.35);border:5px solid rgba(255,255,255,.6)}
+.medal.none{background:#3a4670;color:#a9b8dd;border-color:#556}
+.medal.bronze{background:radial-gradient(circle at 35% 30%,#ffd2a8,#c8783a)}
+.medal.silver{background:radial-gradient(circle at 35% 30%,#ffffff,#a9b8cc)}
+.medal.gold{background:radial-gradient(circle at 35% 30%,#fff3a8,#f0b400)}
+.medal.platinum{background:radial-gradient(circle at 35% 30%,#ffffff,#9fe8ff 50%,#b8a8ff)}
+.worlds,.flyers{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:8px;margin-top:6px}
+.wbtn{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:6px;font-weight:900;font-size:13px;text-align:center;cursor:pointer;color:var(--ink);font-family:var(--body)}
+.wbtn.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold) inset}
+.wbtn.locked{opacity:.6}
+.wbtn .sw{height:34px;border-radius:8px;margin-bottom:4px}
+.wbtn .c{color:var(--gold);font-size:11px}
+.ov.compact{gap:9px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="links"><a class="home" href="index.html">← GH Games</a></div>
+  <div class="top">
+    <h1>Flap Dash<small>3D</small></h1>
+    <div class="hud">
+      <div class="chip"><span>Score</span><b id="hScore">0</b></div>
+      <div class="chip"><span>Best</span><b id="hBest">0</b></div>
+      <div class="chip"><span>Coins</span><b id="hCoins">0</b></div>
+    </div>
+  </div>
+
+  <div class="stage tall" id="stage">
+    <div class="ingame"><button id="bFs">⛶</button><button id="bMute">🔊</button></div>
+    <div class="toast" id="toast"></div>
+    <div class="bigscore" id="big" hidden>0</div>
+    <div class="coinchip" id="coinChip" hidden>● 0</div>
+    <div class="tap" id="tapHint" hidden>Tap to flap!</div>
+
+    <div class="ov compact" id="ovTitle">
+      <h2>FLAP DASH</h2>
+      <p>Tap, click or press Space to flap. Fly through the gaps, grab the coins and don't bump anything!</p>
+      <div class="shopbox">
+        <h3>World</h3>
+        <div class="worlds" id="worlds"></div>
+      </div>
+      <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bShop">Flyers</button></div>
+      <div class="stats" id="tStats"></div>
+    </div>
+
+    <div class="ov" id="ovShop" hidden>
+      <h2>FLYERS</h2>
+      <div class="shopbox">
+        <h3>You have <span id="sCoins">0</span> coins</h3>
+        <p class="help">Grab the spinning coins between the pillars to buy new flyers.</p>
+        <div class="flyers" id="flyers"></div>
+      </div>
+      <div class="row"><button class="btn green" id="shopBack">Done</button></div>
+    </div>
+
+    <div class="ov" id="ovOver" hidden>
+      <h2 id="oTitle">Bonk!</h2>
+      <div class="medal none" id="oMedal">No medal</div>
+      <div class="stats" id="oStats"></div>
+      <p id="oText"></p>
+      <div class="row"><button class="btn green" id="oAgain">Play again</button><button class="btn alt" id="oMenu">Menu</button></div>
+    </div>
+  </div>
+
+  <p class="help">Tap the game, click, or press Space or the up arrow to flap. Each gap you fly through scores a point. Medals: bronze at 10, silver at 20, gold at 30 and platinum at 40. A higher best score unlocks new worlds. Coins buy new flyers. Your best score goes on the leaderboard, and gold or platinum medals earn PhatCoin.</p>
+  <div id="lb"></div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="arcade3d.js"></script>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const SAVE="flapdash-save";
+const S=A3.save(SAVE,{best:0,coins:0,flyer:0,owned:[0],world:0,games:0,medals:{b:0,s:0,g:0,p:0}});
+const stage=$("stage");
+const V=A3.view(stage,{fov:50,far:400,sky:["#4fb4ff","#cdeeff"],shadowSize:14});
+if(!V){return;}
+const {scene,camera,renderer}=V;
+const parts=A3.particles(scene);
+function lin(h){return new THREE.Color(h).convertSRGBToLinear();}
+
+/* ---------- worlds ---------- */
+const WORLDS=[
+  {n:"Sunny Day",need:0,sky:["#4fb4ff","#cdeeff"],fog:"#cdeeff",ground:["#6fd34a","#5fc23e"],dirt:"#c8915a",hills:["#7fd85a","#5fbf4a"],far:"#9fd6f0",pipe:["#5fd36a","#3fa84a"],cap:"#7dff6a",cloud:"#ffffff",sun:1.1,hemi:0.9,deco:"city"},
+  {n:"Sunset",need:10,sky:["#ff7a59","#ffd08a"],fog:"#ffc48a",ground:["#d8a04a","#c8903a"],dirt:"#a86a3a",hills:["#c86a5a","#a8504a"],far:"#e89a8a",pipe:["#ff8a3d","#d86a2a"],cap:"#ffd23f",cloud:"#ffd8c8",sun:1.0,hemi:0.85,deco:"palms"},
+  {n:"Starry Night",need:20,sky:["#0a1240","#3a3a8a"],fog:"#2a2a6a",ground:["#2f6a5a","#285a4e"],dirt:"#3a3050",hills:["#2a3a6a","#223060"],far:"#2a2a5a",pipe:["#7a6aff","#5a4ad8"],cap:"#b8a8ff",cloud:"#5a5a9a",sun:0.45,hemi:0.55,deco:"city",stars:true,lights:true,bush:"#2a5a4a",bush2:"#336a55"},
+  {n:"Snowy Peaks",need:30,sky:["#8ac8ff","#f2fbff"],fog:"#e8f6ff",ground:["#ffffff","#eaf4ff"],dirt:"#a8c0d8",hills:["#ffffff","#dbe9f8"],far:"#c8dcf0",pipe:["#7fd8ff","#4ab0e8"],cap:"#2a8fe0",cloud:"#ffffff",sun:1.0,hemi:0.95,deco:"pines",snow:true},
+  {n:"Outer Space",need:40,sky:["#05030f","#2a1050"],fog:"#1a0a3a",ground:["#8a7aa8","#7a6a98"],dirt:"#5a4a78",hills:["#6a4aa8","#4a3a88"],far:"#3a2a6a",pipe:["#ff6fa3","#c84a80"],cap:"#ffd23f",cloud:"#8a6ad8",sun:0.8,hemi:0.6,deco:"planets",stars:true,lowG:true}
+];
+/* ---------- flyers ---------- */
+const FLYERS=[
+  {n:"Puffin",body:"#ffd23f",belly:"#fff3c4",wing:"#ff9a3d",beak:"#ff7a2a",p:0},
+  {n:"Bluebell",body:"#4aa8ff",belly:"#d8f0ff",wing:"#2a78d8",beak:"#ffb02a",p:30},
+  {n:"Rosy",body:"#ff7ac0",belly:"#ffe0f0",wing:"#e04a90",beak:"#ffd23f",p:60},
+  {n:"Minty",body:"#3fe0a0",belly:"#e0fff0",wing:"#20a878",beak:"#ff8a3d",p:100},
+  {n:"Plum",body:"#9b5cff",belly:"#eadcff",wing:"#6a3ad8",beak:"#ffd23f",p:160},
+  {n:"Ember",body:"#ff5d3d",belly:"#ffd8a8",wing:"#ffb02a",beak:"#ffe27a",p:240,hat:"crest"},
+  {n:"Snowball",body:"#ffffff",belly:"#e8f4ff",wing:"#bcd8f0",beak:"#ff8a3d",p:340,hat:"beanie"},
+  {n:"Robo",body:"#a8b4c8",belly:"#e0e6f0",wing:"#6a7a90",beak:"#ffd23f",p:480,hat:"antenna",metal:true},
+  {n:"Royal",body:"#ffc93c",belly:"#fff3c4",wing:"#e8a000",beak:"#ff7a2a",p:700,hat:"crown",metal:true}
+];
+
+/* ---------- scene pieces ---------- */
+const world=new THREE.Group();scene.add(world);
+let W=WORLDS[0];
+const GROUND_Y=-6.2,CEIL=8.6;
+let groundTiles=[],layers=[],decor=[],snowPts=null,starPts=null;
+function clearWorld(){scene.remove(world);world.children.slice().forEach(c=>world.remove(c));scene.add(world);groundTiles=[];layers=[];decor=[];snowPts=null;starPts=null;}
+function hillShape(w,h,col,z,y,seed){
+  const g=new THREE.Group(),R=A3.seeded(seed);
+  for(let i=0;i<5;i++){const r=w*(0.5+R()*0.6);const m=new THREE.Mesh(new THREE.SphereGeometry(r,20,12,0,Math.PI*2,0,Math.PI/2),A3.mat(col,{rough:.95}));m.scale.y=h/r*(0.6+R()*0.6);m.position.set(i*w*1.2+R()*w*0.4,0,0);m.receiveShadow=false;g.add(m);}
+  g.position.set(0,y,z);return g;
+}
+function buildWorld(wi){
+  W=WORLDS[wi];clearWorld();
+  scene.background=A3.skyTexture(W.sky[0],W.sky[1]);
+  scene.fog=new THREE.Fog(W.fog,45,150);
+  V.lights.sun.intensity=W.sun;V.lights.hemi.intensity=W.hemi;
+  // ground: chunky blocks that scroll
+  const gtop=new THREE.BoxGeometry(4,1,8),gdirt=new THREE.BoxGeometry(4,3,8);
+  for(let i=0;i<18;i++){const g=new THREE.Group();
+    const t=new THREE.Mesh(gtop,A3.mat(W.ground[i&1],{rough:.8}));t.position.y=-0.5;t.receiveShadow=true;g.add(t);
+    const d=new THREE.Mesh(gdirt,A3.mat(W.dirt,{rough:.95}));d.position.y=-2.5;g.add(d);
+    g.position.set(-30+i*4,GROUND_Y,0);world.add(g);groundTiles.push(g);}
+  // parallax layers
+  const mk=(items,factor)=>{const L={g:new THREE.Group(),f:factor,span:0};items(L.g);world.add(L.g);layers.push(L);return L;};
+  // far silhouette
+  mk(g=>{const R=A3.seeded(7);for(let i=0;i<24;i++){const h=4+R()*12,w=3+R()*4;
+      let m;
+      if(W.deco==="pines"||W.deco==="planets")m=new THREE.Mesh(new THREE.ConeGeometry(w*1.4,h*1.6,4),A3.mat(W.far,{rough:1}));
+      else m=new THREE.Mesh(new THREE.BoxGeometry(w,h,2),A3.mat(W.far,{rough:1}));
+      m.position.set(-70+i*7,GROUND_Y+h/2*(m.geometry.type==="ConeGeometry"?1.6:1),-60);g.add(m);
+      if(W.lights&&m.geometry.type==="BoxGeometry"){for(let k=0;k<3;k++){const wnd=new THREE.Mesh(new THREE.PlaneGeometry(0.6,0.6),new THREE.MeshBasicMaterial({color:lin("#ffe27a")}));wnd.position.set(m.position.x+(R()-0.5)*w*0.6,GROUND_Y+R()*h*0.9+0.5,-58.9);g.add(wnd);}}}},0.15).span=168;
+  // hills
+  mk(g=>{const h1=hillShape(9,7,W.hills[1],-38,GROUND_Y,3);const h2=hillShape(9,7,W.hills[1],-38,GROUND_Y,5);h2.position.x=60;g.add(h1,h2);},0.3).span=120;
+  mk(g=>{const h1=hillShape(6,4.5,W.hills[0],-22,GROUND_Y,11);const h2=hillShape(6,4.5,W.hills[0],-22,GROUND_Y,13);h2.position.x=40;g.add(h1,h2);},0.55).span=80;
+  // near decor
+  mk(g=>{const R=A3.seeded(21);
+    for(let i=0;i<10;i++){const x=-40+i*9+R()*3,z=-9-R()*5;
+      if(W.deco==="pines"){const t=new THREE.Mesh(new THREE.ConeGeometry(1.6,4.5,7),A3.mat("#3f8f5a",{flat:true}));t.position.set(x,GROUND_Y+2.2,z);t.castShadow=true;g.add(t);const s=new THREE.Mesh(new THREE.ConeGeometry(1.0,1.6,7),A3.mat("#ffffff",{flat:true}));s.position.set(x,GROUND_Y+4,z);g.add(s);}
+      else if(W.deco==="palms"){const tr=A3.cyl(0.25,0.35,4.5,"#a8703a",8);tr.position.set(x,GROUND_Y+2.2,z);tr.rotation.z=0.12;g.add(tr);for(let k=0;k<5;k++){const lf=A3.box(3,0.15,0.8,"#3fae4a");lf.position.set(x+0.4,GROUND_Y+4.5,z);lf.rotation.y=k*1.25;lf.rotation.z=-0.35;lf.geometry.translate(1.4,0,0);g.add(lf);}}
+      else if(W.deco==="planets"){const c=A3.pick(["#ff6fa3","#3fe0d0","#ffd23f"]);const r=A3.ball(0.6+R(),c,{emissive:c,glow:.4});r.position.set(x,GROUND_Y+0.3,z);g.add(r);}
+      else{const b=A3.ball(1+R()*0.6,W.bush||"#4cc95a");b.position.set(x,GROUND_Y+0.6,z);b.scale.y=0.7;g.add(b);const b2=A3.ball(0.7,W.bush2||"#5fd36a");b2.position.set(x+1,GROUND_Y+0.4,z+0.3);g.add(b2);}
+    }},0.85).span=90;
+  // clouds
+  mk(g=>{const R=A3.seeded(31);const cg=new THREE.SphereGeometry(1,14,10);
+    for(let i=0;i<8;i++){const c=new THREE.Group();for(let k=0;k<4;k++){const p=new THREE.Mesh(cg,A3.mat(W.cloud,{rough:1,emissive:W.cloud,glow:.25}));p.position.set(k*1.3-2,Math.sin(k*1.7)*0.5,0);p.scale.setScalar(1.1+R()*0.8);c.add(p);}
+      c.position.set(-40+i*11,6+R()*9,-30-R()*15);g.add(c);}},0.2).span=88;
+  if(W.deco==="planets"){const pl=A3.ball(6,"#ff9a5a",{emissive:"#ff6a3a",glow:.25});pl.position.set(18,14,-90);world.add(pl);const ring=new THREE.Mesh(new THREE.TorusGeometry(9,0.6,8,48),A3.mat("#ffd8a8"));ring.position.copy(pl.position);ring.rotation.x=1.2;world.add(ring);}
+  if(W.stars){const n=300,p=new Float32Array(n*3);for(let i=0;i<n;i++){p[i*3]=A3.rand(-120,120);p[i*3+1]=A3.rand(-5,70);p[i*3+2]=-100;}const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.BufferAttribute(p,3));starPts=new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:0.6,fog:false}));world.add(starPts);}
+  if(W.snow){const n=260,p=new Float32Array(n*3);for(let i=0;i<n;i++){p[i*3]=A3.rand(-25,25);p[i*3+1]=A3.rand(-6,16);p[i*3+2]=A3.rand(-12,6);}const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.BufferAttribute(p,3));snowPts=new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:0.18}));world.add(snowPts);}
+  pipeMats=[A3.mat(W.pipe[0],{rough:.35}),A3.mat(W.pipe[1],{rough:.35}),A3.mat(W.cap,{rough:.3})];
+  pillars.forEach(p=>{p.parts.forEach((m,k)=>m.material=pipeMats[k<2?0:2]);});
+}
+
+/* ---------- pillars + coins ---------- */
+let pipeMats=[];
+const PIPE_R=1.25,GAP=4.3,SPACING=8.2,NPIPES=6;
+const pipeG=new THREE.CylinderGeometry(PIPE_R,PIPE_R,1,24),capG=new THREE.CylinderGeometry(PIPE_R+0.32,PIPE_R+0.32,0.9,24);
+let pillars=[];
+for(let i=0;i<NPIPES;i++){
+  const g=new THREE.Group();
+  const lo=new THREE.Mesh(pipeG),hi=new THREE.Mesh(pipeG),lc=new THREE.Mesh(capG),hc=new THREE.Mesh(capG);
+  [lo,hi,lc,hc].forEach(m=>{m.castShadow=true;m.receiveShadow=true;g.add(m);});
+  scene.add(g);
+  const coin=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.14,24),A3.mat("#ffd23f",{metal:.5,rough:.25,emissive:"#ffb300",glow:.35}));
+  coin.rotation.x=Math.PI/2;coin.castShadow=true;scene.add(coin);
+  pillars.push({g,parts:[lo,hi,lc,hc],x:0,gy:0,passed:false,coin,coinOn:false,move:0,ph:0});
+}
+function layoutPillar(p){
+  const [lo,hi,lc,hc]=p.parts;
+  const bottom=GROUND_Y,top=CEIL+6;
+  const ly=p.gy-GAP/2,uy=p.gy+GAP/2;
+  lo.scale.y=Math.max(0.01,ly-bottom);lo.position.y=(ly+bottom)/2;
+  hi.scale.y=Math.max(0.01,top-uy);hi.position.y=(top+uy)/2;
+  lc.position.y=ly-0.45;hc.position.y=uy+0.45;
+  p.g.position.x=p.x;
+}
+function resetPillar(p,x,idx){
+  p.x=x;p.passed=false;
+  const lim=2.6+(score>20?1:0);
+  const prev=pillars.reduce((a,q)=>q!==p&&q.x>a.x?q:a,{x:-1e9,gy:0});
+  let gy=A3.rand(-1.6-lim*0.4,4.2);if(prev.x>-1e8)gy=A3.clamp(gy,prev.gy-3.6,prev.gy+3.6);
+  p.gy=gy;p.base=gy;
+  p.move=(score>=25&&Math.random()<0.35)?A3.rand(0.6,1.3):0;p.ph=Math.random()*6.28;
+  p.coinOn=Math.random()<0.55;p.coin.visible=p.coinOn;
+  layoutPillar(p);
+}
+
+/* ---------- the flyer ---------- */
+const bird=new THREE.Group();scene.add(bird);
+let birdParts={};
+function buildBird(fi){
+  const F=FLYERS[fi]||FLYERS[0];
+  bird.children.slice().forEach(c=>bird.remove(c));
+  const o=F.metal?{metal:.45,rough:.3}:{rough:.4};
+  const body=A3.ball(0.62,F.body,o);body.scale.set(1.05,0.95,0.95);bird.add(body);
+  const belly=A3.ball(0.45,F.belly);belly.position.set(0.18,-0.17,0);belly.scale.set(1,0.8,1.15);bird.add(belly);
+  const eye=new THREE.Group();const ew=A3.ball(0.2,"#ffffff");const ep=A3.ball(0.1,"#1a1530");ep.position.set(0.1,0,0.08);eye.add(ew,ep);
+  const e1=eye.clone();e1.position.set(0.4,0.22,0.3);const e2=eye.clone();e2.position.set(0.4,0.22,-0.3);bird.add(e1,e2);
+  const beak=new THREE.Mesh(new THREE.ConeGeometry(0.17,0.42,8),A3.mat(F.beak));beak.rotation.z=-Math.PI/2;beak.position.set(0.72,0.0,0);beak.castShadow=true;bird.add(beak);
+  const cheek=A3.ball(0.08,"#ff8aa8");cheek.position.set(0.48,-0.05,0.42);bird.add(cheek);const ch2=cheek.clone();ch2.position.z=-0.42;bird.add(ch2);
+  const wingG=new THREE.SphereGeometry(0.36,12,8);
+  const mkW=sd=>{const piv=new THREE.Group();const w=new THREE.Mesh(wingG,A3.mat(F.wing,o));w.scale.set(1,0.4,0.75);w.position.set(-0.12,0,sd*0.28);w.castShadow=true;piv.add(w);piv.position.set(-0.05,0.05,sd*0.5);bird.add(piv);return piv;};
+  const wl=mkW(1),wr=mkW(-1);
+  const tail=new THREE.Mesh(new THREE.ConeGeometry(0.22,0.4,6),A3.mat(F.wing,o));tail.rotation.z=Math.PI/2+0.4;tail.position.set(-0.68,0.12,0);bird.add(tail);
+  for(const sd of [-1,1]){const ft=A3.box(0.18,0.06,0.12,F.beak);ft.position.set(0.05,-0.6,sd*0.18);bird.add(ft);}
+  if(F.hat==="crown"){const c=A3.cyl(0.26,0.3,0.24,"#ffe27a",8,{metal:.6,rough:.2});c.position.set(0,0.7,0);bird.add(c);for(let k=0;k<5;k++){const s=new THREE.Mesh(new THREE.ConeGeometry(0.07,0.18,4),A3.mat("#ffe27a",{metal:.6,rough:.2}));const a=k/5*6.28;s.position.set(Math.cos(a)*0.24,0.88,Math.sin(a)*0.24);bird.add(s);}}
+  if(F.hat==="beanie"){const b=A3.ball(0.4,"#ff5d5d");b.position.set(-0.05,0.5,0);b.scale.y=0.6;bird.add(b);const pp=A3.ball(0.12,"#ffffff");pp.position.set(-0.05,0.78,0);bird.add(pp);}
+  if(F.hat==="antenna"){const s=A3.cyl(0.03,0.03,0.4,"#6a7a90");s.position.set(0,0.78,0);bird.add(s);const b=A3.ball(0.1,"#ff5d5d",{emissive:"#ff3a3a",glow:.8});b.position.set(0,1.0,0);bird.add(b);}
+  if(F.hat==="crest"){for(let k=0;k<3;k++){const f=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.42,6),A3.mat("#ffb02a"));f.position.set(-0.1-k*0.14,0.7-k*0.05,0);f.rotation.z=0.3+k*0.25;bird.add(f);}}
+  birdParts={wl,wr};
+}
+
+/* ---------- state ---------- */
+let mode="title",score=0,coinsRun=0,vy=0,by=0,rot=0,speed=6.2,deadT=0,flapT=0,camShake=0,scroll=0;
+const BX=-2.2;
+function resetRun(){
+  score=0;coinsRun=0;vy=0;by=1;rot=0;speed=6.2;scroll=0;
+  pillars.forEach((p,i)=>resetPillar(p,9+i*SPACING,i));
+  bird.position.set(BX,by,0);bird.rotation.set(0,0,0);
+  $("big").textContent="0";$("coinChip").textContent="● 0";
+}
+function startRun(){
+  A3.hide("ovTitle");A3.hide("ovOver");buildWorldIf();resetRun();mode="ready";
+  ["big","coinChip","tapHint"].forEach(id=>$(id).hidden=false);
+}
+function gravity(){return W.lowG?24:30;}
+function flap(){
+  if(mode==="ready"){mode="play";S.games++;$("tapHint").hidden=true;}
+  if(mode!=="play")return;
+  vy=W.lowG?8.6:9.6;flapT=0.25;A3.sfx("jump");
+}
+function crash(){
+  if(mode!=="play")return;mode="dead";deadT=0;camShake=0.35;A3.sfx("hit");
+  parts.burst(bird.position.clone(),FLYERS[S.flyer].body,16,5,0.8);
+  vy=Math.max(vy,5);
+}
+function medalOf(s){return s>=40?"platinum":s>=30?"gold":s>=20?"silver":s>=10?"bronze":"none";}
+function finish(){
+  mode="over";A3.sfx("lose");
+  const newBest=score>S.best,old=S.best;
+  if(newBest){S.best=score;A3.best(S.best);}
+  S.coins+=coinsRun;
+  const m=medalOf(score);if(m!=="none")S.medals[m[0]]=(S.medals[m[0]]||0)+1;
+  if(m==="gold")A3.win(2,"a gold medal in Flap Dash");
+  if(m==="platinum")A3.win(4,"a platinum medal in Flap Dash");
+  const newWorld=WORLDS.find(w=>w.need>old&&w.need<=score);
+  $("oTitle").textContent=newBest?"New best!":"Bonk!";
+  const md=$("oMedal");md.className="medal "+m;md.textContent=m==="none"?"No medal":m[0].toUpperCase()+m.slice(1);
+  $("oStats").innerHTML="<div>Score <b>"+score+"</b></div><div>Best <b>"+S.best+"</b></div><div>Coins <b>+"+coinsRun+"</b></div>";
+  $("oText").textContent=newWorld?("New world unlocked: "+newWorld.n+"!"):m==="none"?("Get through 10 gaps for a bronze medal."):(score<40?("Next medal at "+(Math.floor(score/10)+1)*10+"."):"Platinum! Amazing flying!");
+  persist();hud();
+  ["big","coinChip","tapHint"].forEach(id=>$(id).hidden=true);
+  A3.show("ovOver");
+}
+
+/* ---------- input ---------- */
+const cv=renderer.domElement;
+cv.addEventListener("pointerdown",e=>{e.preventDefault();flap();});
+window.addEventListener("keydown",e=>{const k=e.key.toLowerCase();if(k===" "||k==="arrowup"||k==="w"){if(mode==="ready"||mode==="play"){e.preventDefault();if(!e.repeat)flap();}
+  else if(mode==="over"&&k===" "&&!e.repeat){e.preventDefault();startRun();}}});
+
+/* ---------- loop ---------- */
+let builtFor=-1;
+function buildWorldIf(){if(builtFor!==S.world){buildWorld(S.world);builtFor=S.world;}}
+function update(dt,t){
+  const moving=mode==="play"||mode==="ready"||mode==="title";
+  if(moving){scroll+=speed*dt;}
+  // pillars
+  if(mode==="play"){
+    for(const p of pillars){
+      p.x-=speed*dt;
+      if(p.move){p.gy=p.base+Math.sin(t*1.6+p.ph)*p.move;}
+      if(p.x<-16){const maxX=Math.max(...pillars.map(q=>q.x));resetPillar(p,maxX+SPACING);}
+      layoutPillar(p);
+      p.coin.position.set(p.x,p.gy,0);p.coin.rotation.z=t*3;
+      if(!p.passed&&p.x<BX){p.passed=true;score++;$("big").textContent=score;$("hScore").textContent=score;A3.sfx("pop");
+        if(score%10===0){A3.sfx("win");A3.toast(medalOf(score)!=="none"&&score<=40?(medalOf(score)[0].toUpperCase()+medalOf(score).slice(1)+" medal pace!"):"Amazing!",1200);}
+        speed=Math.min(8.4,6.2+score*0.04);}
+      if(p.coinOn&&Math.abs(p.x-BX)<0.8&&Math.abs(p.gy-by)<0.9){p.coinOn=false;p.coin.visible=false;coinsRun++;$("coinChip").textContent="● "+coinsRun;A3.sfx("coin");parts.burst(p.coin.position.clone(),"#ffd23f",8,3,0.5);}
+    }
+  }else if(mode==="title"||mode==="ready"){
+    pillars.forEach(p=>{p.coin.position.set(p.x,p.gy,0);p.coin.rotation.z=t*3;});
+  }
+  // bird physics
+  if(mode==="play"||mode==="dead"){
+    vy-=gravity()*dt;by+=vy*dt;
+    if(mode==="play"){
+      if(by>CEIL){by=CEIL;vy=Math.min(vy,0);}
+      // collisions with pillars (circle vs boxes)
+      const br=0.5;
+      for(const p of pillars){if(Math.abs(p.x-BX)>PIPE_R+0.35+br)continue;
+        const ly=p.gy-GAP/2,uy=p.gy+GAP/2;
+        if(by-br<ly||by+br>uy){
+          // allow corner grace: check horizontal distance from pipe centre
+          const dx=Math.abs(p.x-BX);const capR=PIPE_R+0.32;
+          const inCapY=(by-br<ly&&by-br>ly-0.9)||(by+br>uy&&by+br<uy+0.9);
+          if(dx<(inCapY?capR:PIPE_R)+br*0.75){crash();break;}
+        }}
+      if(by-0.5<GROUND_Y){by=GROUND_Y+0.5;crash();}
+    }else{
+      if(by-0.5<GROUND_Y){by=GROUND_Y+0.5;vy=0;}
+      deadT+=dt;if(deadT>0.9&&mode==="dead")finish();
+    }
+    const target=A3.clamp(vy*0.09,-1.3,0.6);rot+=(target-rot)*Math.min(1,dt*10);
+  }else if(mode==="ready"||mode==="title"){
+    by=1+Math.sin(t*3)*0.35;rot=Math.sin(t*3+1)*0.1;
+  }
+  bird.position.set(BX,by,0);bird.rotation.z=rot;bird.rotation.y=mode==="title"?Math.sin(t*0.8)*0.5:-0.25;
+  // wings
+  flapT-=dt;const fl=(mode==="play"||mode==="ready"||mode==="title")?(flapT>0?Math.sin(t*40)*0.9:Math.sin(t*(mode==="play"?14:9))*0.45):0.6;
+  if(birdParts.wl){birdParts.wl.rotation.x=-fl;birdParts.wr.rotation.x=fl;}
+  // world scroll
+  if(moving){
+    for(const g of groundTiles){g.position.x-=speed*dt;if(g.position.x<-34)g.position.x+=72;}
+    for(const L of layers){L.g.position.x-=speed*dt*L.f;if(L.g.position.x<-L.span/2)L.g.position.x+=L.span/2;}
+  }
+  if(snowPts){const a=snowPts.geometry.attributes.position.array;for(let i=0;i<a.length;i+=3){a[i+1]-=dt*1.6;a[i]-=dt*(moving?speed*0.4:0.3);if(a[i+1]<GROUND_Y)a[i+1]=16;if(a[i]<-25)a[i]+=50;}snowPts.geometry.attributes.position.needsUpdate=true;}
+  parts.update(dt);
+  // camera
+  camShake=Math.max(0,camShake-dt);
+  const sh=camShake*0.8;
+  camera.position.set(1.2+(Math.random()-0.5)*sh,1.6+(Math.random()-0.5)*sh,21);camera.lookAt(1.2,1.0,0);
+  V.lights.sun.position.set(6,20,14);V.lights.sun.target.position.set(0,0,0);
+}
+A3.loop((dt,t)=>{update(dt,t);V.render();});
+
+/* ---------- menus ---------- */
+function persist(){A3.store(SAVE,S);}
+function hud(){$("hBest").textContent=S.best;$("hCoins").textContent=A3.fmt(S.coins);$("hScore").textContent=score;}
+function titleStats(){
+  $("tStats").innerHTML="<div>Best <b>"+S.best+"</b></div><div>Coins <b>"+A3.fmt(S.coins)+"</b></div><div>Medals <b>"+["b","s","g","p"].reduce((a,k)=>a+(S.medals[k]||0),0)+"</b></div>";
+  $("worlds").innerHTML=WORLDS.map((w,i)=>{const u=S.best>=w.need,on=S.world===i;
+    return '<button class="wbtn'+(on?" on":"")+(u?"":" locked")+'" data-i="'+i+'"><div class="sw" style="background:linear-gradient('+w.sky[0]+','+w.sky[1]+' 70%,'+w.ground[0]+' 70%)"></div>'+w.n+'<br><span class="c">'+(on?"Flying here":u?"Pick":"🔒 Best "+w.need)+"</span></button>";}).join("");
+}
+$("worlds").addEventListener("click",e=>{const b=e.target.closest(".wbtn");if(!b)return;const i=+b.dataset.i,w=WORLDS[i];
+  if(S.best>=w.need){S.world=i;A3.sfx("click");persist();buildWorldIf();titleStats();}else{A3.sfx("hit");A3.toast("Score "+w.need+" to unlock "+w.n);}});
+function drawShop(){
+  $("sCoins").textContent=A3.fmt(S.coins);
+  $("flyers").innerHTML=FLYERS.map((f,i)=>{const own=S.owned.includes(i),on=S.flyer===i;
+    return '<button class="wbtn'+(on?" on":"")+(own?"":" locked")+'" data-i="'+i+'"><div class="sw" style="background:radial-gradient(circle at 60% 45%,'+f.belly+' 0 22%,'+f.body+' 23% 60%,transparent 61%),'+f.wing+'33"></div>'+f.n+'<br><span class="c">'+(on?"Flying":own?"Pick":"● "+f.p)+"</span></button>";}).join("");
+}
+$("flyers").addEventListener("click",e=>{const b=e.target.closest(".wbtn");if(!b)return;const i=+b.dataset.i,f=FLYERS[i];
+  if(S.owned.includes(i)){S.flyer=i;A3.sfx("click");}
+  else if(S.coins>=f.p){S.coins-=f.p;S.owned.push(i);S.flyer=i;A3.sfx("coin");A3.toast("New flyer: "+f.n+"!");}
+  else{A3.sfx("hit");A3.toast("You need "+(f.p-S.coins)+" more coins");}
+  persist();buildBird(S.flyer);drawShop();hud();});
+$("bPlay").onclick=()=>{A3.sfx("click");startRun();};
+$("bShop").onclick=()=>{A3.sfx("click");drawShop();A3.hide("ovTitle");A3.show("ovShop");};
+$("shopBack").onclick=()=>{A3.sfx("click");A3.hide("ovShop");titleStats();A3.show("ovTitle");};
+$("oAgain").onclick=()=>{A3.sfx("click");startRun();};
+$("oMenu").onclick=()=>{A3.sfx("click");A3.hide("ovOver");toTitle();};
+function toTitle(){mode="title";buildWorldIf();resetRun();titleStats();hud();A3.show("ovTitle");}
+A3.fullscreen($("bFs"),stage);
+$("bMute").onclick=()=>{A3.mute(!A3.mute());$("bMute").textContent=A3.mute()?"🔇":"🔊";};$("bMute").textContent=A3.mute()?"🔇":"🔊";
+if(S.best<WORLDS[S.world].need)S.world=0;
+buildBird(S.flyer);toTitle();
+window.addEventListener("pagehide",persist);
+window.__flapTest={sim:(sec,auto)=>{let tt=0;for(let k=0;k<sec*60;k++){tt+=1/60;if(auto&&mode==="play"){const p=pillars.filter(q=>q.x>BX-1.6).sort((a,b)=>a.x-b.x)[0];const tg=p?p.gy-0.6:1;if(by<tg&&vy<1)flap();}update(1/60,performance.now()/1000+tt);}return mode+" "+score;},flap,world:i=>{S.world=i;S.best=Math.max(S.best,WORLDS[i].need);buildWorldIf();titleStats();}};
+if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"flap-dash",dir:"desc",unit:"pts",title:"Flap Dash: best score"});
+})();
+</script>
+</body>
+</html>

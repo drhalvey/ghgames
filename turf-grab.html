@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Turf Grab</title>
+<meta property="og:title" content="Turf Grab · GH Games">
+<meta property="og:description" content="Leave your patch, draw a loop and dash home to grab all the land inside. Cut through rival trails, never get caught out, and own half the 3D map to win.">
+<meta property="og:image" content="https://ghgames.au/og/turf-grab.png">
+<meta property="og:url" content="https://ghgames.au/turf-grab.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f1a33">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Games">
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="turf-grab"></script>
+<script src="phatcoin.js" data-game="turf-grab" data-pill="none"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<link rel="stylesheet" href="arcade3d.css">
+<style>
+.stage [hidden]{display:none!important}
+.board10{position:absolute;right:10px;top:10px;z-index:15;background:rgba(10,20,40,.55);border-radius:12px;padding:6px 10px;font-weight:900;font-size:12px;line-height:1.35;min-width:128px;pointer-events:none}
+.board10 h4{margin:0 0 2px;font-family:var(--display);font-weight:400;font-size:14px;color:var(--gold)}
+.board10 div{display:flex;justify-content:space-between;gap:10px;color:#fff;align-items:center}
+.board10 i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.board10 div.me{color:#7dffb0}
+.pctbig{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:15;font-family:var(--display);font-size:clamp(22px,4vw,34px);color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.5);pointer-events:none;text-align:center;line-height:1}
+.pctbig small{display:block;font-family:var(--body);font-weight:900;font-size:12px;color:var(--gold)}
+.goalbar{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);width:min(260px,50%);height:10px;border-radius:6px;background:rgba(0,0,0,.35);z-index:15;pointer-events:none;overflow:hidden}
+.goalbar b{display:block;height:100%;width:0;background:linear-gradient(90deg,#5fd36a,#ffd23f);border-radius:6px;transition:width .3s}
+.skins{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;margin-top:6px}
+.skin{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:6px;font-weight:900;font-size:13px;text-align:center;cursor:pointer;color:var(--ink);font-family:var(--body)}
+.skin.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold) inset}
+.skin.locked{opacity:.6}
+.skin .sw{width:40px;height:40px;border-radius:10px;margin:2px auto 4px;box-shadow:inset 0 -6px 0 rgba(0,0,0,.2)}
+.skin .c{color:var(--gold);font-size:11px}
+@media (max-width:600px){.board10{font-size:10px;min-width:100px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="links"><a class="home" href="index.html">← GH Games</a></div>
+  <div class="top">
+    <h1>Turf Grab<small>3D</small></h1>
+    <div class="hud">
+      <div class="chip"><span>Land</span><b id="hPct">0%</b></div>
+      <div class="chip"><span>Best</span><b id="hBest">0%</b></div>
+      <div class="chip"><span>Rivals left</span><b id="hLeft">-</b></div>
+      <div class="chip"><span>Wins</span><b id="hWins">0</b></div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="ingame"><button id="bFs">⛶</button><button id="bMute">🔊</button></div>
+    <div class="toast" id="toast"></div>
+    <div class="board10" id="board" hidden></div>
+    <div class="goalbar" id="goal" hidden><b id="goalB"></b></div>
+    <div class="pctbig" id="pctBig" hidden>0%<small>OF THE MAP</small></div>
+
+    <div class="ov" id="ovTitle">
+      <h2>TURF GRAB</h2>
+      <p>Swipe or use the arrow keys to steer. Leave your patch to draw a trail, then get back home to grab all the land your loop goes round. If anyone touches your trail while you're out, you're out! Run over a rival's trail to knock them out. Own half the map, or be the last one left, to win.</p>
+      <div class="seg" id="diffs"><button data-d="0">Easy (6 rivals)</button><button data-d="1">Normal (8)</button><button data-d="2">Tough (10)</button></div>
+      <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bShop">Colours</button></div>
+      <div class="stats" id="tStats"></div>
+    </div>
+
+    <div class="ov" id="ovShop" hidden>
+      <h2>COLOURS</h2>
+      <div class="shopbox">
+        <h3>Unlock by playing</h3>
+        <p class="help">New colours unlock as you grab more land in total, beat your best and win games.</p>
+        <div class="skins" id="skins"></div>
+      </div>
+      <div class="row"><button class="btn green" id="shopBack">Done</button></div>
+    </div>
+
+    <div class="ov" id="ovOver" hidden>
+      <h2 id="oTitle">Out!</h2>
+      <p id="oText"></p>
+      <div class="stats" id="oStats"></div>
+      <div class="row"><button class="btn green" id="oAgain">Play again</button><button class="btn alt" id="oMenu">Menu</button></div>
+    </div>
+  </div>
+
+  <p class="help">Keyboard: arrow keys or W A S D. iPad: swipe anywhere on the game in the direction you want to go. You can't turn straight back on yourself. Your best share of the map goes on the leaderboard. Winning a round earns PhatCoin, and grabbing land unlocks new colours.</p>
+  <div id="lb"></div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="arcade3d.js"></script>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const SAVE="turfgrab-save";
+const S=A3.save(SAVE,{best:0,skin:0,diff:1,games:0,wins:0,tiles:0,kos:0});
+const stage=$("stage");
+const V=A3.view(stage,{fov:46,far:400,sky:["#6ec6ff","#e2f5ff"],fog:["#d6f0ff",60,150],shadowSize:22});
+if(!V){return;}
+const {scene,camera,renderer}=V;
+const parts=A3.particles(scene);
+function lin(h){return new THREE.Color(h).convertSRGBToLinear();}
+
+/* ---------- colours ---------- */
+const SKINS=[
+  {n:"Sky blue",c:"#3fa8ff",need:null},
+  {n:"Mint",c:"#3fd6a0",need:["tiles",300]},
+  {n:"Tangerine",c:"#ff8a2a",need:["tiles",1000]},
+  {n:"Bubblegum",c:"#ff6fb0",need:["best",15]},
+  {n:"Grape",c:"#9b5cff",need:["tiles",3000]},
+  {n:"Lemon",c:"#ffd23f",need:["best",30]},
+  {n:"Cherry",c:"#ff3f55",need:["wins",1]},
+  {n:"Midnight",c:"#3a4bd8",need:["wins",3]},
+  {n:"Gold",c:"#ffb800",need:["wins",10]}
+];
+function unlocked(k){if(!k.need)return true;const [t,v]=k.need;return (t==="tiles"?S.tiles:t==="best"?S.best:S.wins)>=v;}
+function needText(k){const [t,v]=k.need;return t==="tiles"?"Grab "+A3.fmt(v)+" tiles":t==="best"?"Best of "+v+"%":"Win "+v+(v===1?" game":" games");}
+const BOTC=["#ff8a2a","#ff6fb0","#9b5cff","#3fd6a0","#ffd23f","#ff3f55","#3a4bd8","#8bd63f","#2fc8d8","#c86a3a","#ff9ad5","#3fa8ff"];
+const NAMES=["Patchy","Squarey","Blocko","Mapper","Corner","Tiler","Zippy","Doodle","Plotter","Kiwi","Waffle","Biscuit","Pickle","Nugget","Sprout","Pebble","Fizz","Rocket"];
+
+/* ---------- grid ---------- */
+const G=56,GG=G*G,OFF=(G-1)/2;
+const owner=new Int8Array(GG).fill(-1),trail=new Int8Array(GG).fill(-1);
+const idx=(x,z)=>z*G+x, inb=(x,z)=>x>=0&&z>=0&&x<G&&z<G;
+const DX=[0,1,0,-1],DZ=[-1,0,1,0]; // 0 up(-z) 1 right 2 down 3 left
+
+// ground + border
+{
+  const out=A3.ground(400,"#7fd65a","#74cc50",100);out.position.y=-0.02;scene.add(out);
+  const base=A3.box(G+1.2,0.5,G+1.2,"#8a6a4a",{rough:.9});base.position.y=-0.25;base.castShadow=false;scene.add(base);
+  const wcol=["#ffffff","#ff6fa3"],wg=new THREE.BoxGeometry(2,0.9,0.9);
+  for(let s=0;s<4;s++)for(let i=0;i<G/2+1;i++){const m=new THREE.Mesh(wg,A3.mat(wcol[i&1],{rough:.5}));m.castShadow=true;m.receiveShadow=true;
+    const t=-G/2+i*2,o=G/2+0.45;
+    if(s<2)m.position.set(t,0.45,s?o:-o);else{m.rotation.y=Math.PI/2;m.position.set(s===2?-o:o,0.45,t);}scene.add(m);}
+  // trees round the outside
+  const trunkG=new THREE.CylinderGeometry(0.25,0.32,1.2,8),leafG=new THREE.IcosahedronGeometry(1.1,0);
+  for(let i=0;i<46;i++){const a=Math.random()*6.28,r=G*0.75+Math.random()*30;const x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x)<G/2+3&&Math.abs(z)<G/2+3)continue;
+    const tr=new THREE.Mesh(trunkG,A3.mat("#8a5a3a"));tr.position.set(x,0.6,z);tr.castShadow=true;scene.add(tr);
+    const lf=new THREE.Mesh(leafG,A3.mat(A3.pick(["#3fae4a","#4cc95a","#2f9a40"]),{flat:true}));lf.position.set(x,1.9,z);lf.scale.setScalar(0.8+Math.random()*0.6);lf.castShadow=true;scene.add(lf);}
+}
+const tileGeo=new THREE.BoxGeometry(0.98,1,0.98);tileGeo.translate(0,0.5,0);
+const tileMesh=new THREE.InstancedMesh(tileGeo,new THREE.MeshStandardMaterial({roughness:.6}),GG);
+tileMesh.receiveShadow=true;tileMesh.castShadow=false;scene.add(tileMesh);
+const NEU=[lin("#eef2fa"),lin("#dde5f2")];
+const mtx=new THREE.Matrix4(),q0=new THREE.Quaternion(),v3=new THREE.Vector3(),sc3=new THREE.Vector3();
+const tileAnim=new Float32Array(GG); // 0..1 rise animation
+const animList=[];
+function setTile(i,h){
+  const x=i%G,z=(i/G)|0,o=owner[i];
+  v3.set(x-OFF,0,z-OFF);sc3.set(1,h,1);mtx.compose(v3,q0,sc3);tileMesh.setMatrixAt(i,mtx);
+  tileMesh.setColorAt(i,o<0?NEU[(x+z)&1]:players[o].tc[(x+z)&1]);
+}
+function refreshTile(i,anim){
+  if(anim&&owner[i]>=0){if(tileAnim[i]<=0)animList.push(i);tileAnim[i]=1;}
+  setTile(i,owner[i]<0?0.12:0.36);dirty=true;
+}
+let dirty=true;
+
+/* trail blocks */
+const TMAX=1600;
+const trailMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(0.62,0.62,0.62),new THREE.MeshStandardMaterial({roughness:.3,emissive:0xffffff,emissiveIntensity:0.08}),TMAX);
+for(let i=0;i<TMAX;i++)trailMesh.setColorAt(i,new THREE.Color(1,1,1));
+trailMesh.castShadow=true;trailMesh.frustumCulled=false;trailMesh.count=0;scene.add(trailMesh);
+
+/* ---------- players ---------- */
+let players=[],me=null;
+const bodyGeo=A3.rbox(0.92,0.92,0.92,0.22,"#fff").geometry;
+const eyeG=new THREE.BoxGeometry(0.18,0.24,0.06),pupG=new THREE.BoxGeometry(0.1,0.14,0.04);
+function makePlayer(isMe,name,col,x,z,skill){
+  const id=players.length;
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(bodyGeo,A3.mat(col,{rough:.35}));body.position.y=0.46;body.castShadow=true;g.add(body);
+  for(const sd of [-1,1]){const e=new THREE.Mesh(eyeG,A3.mat("#ffffff"));e.position.set(sd*0.2,0.62,-0.47);g.add(e);const p=new THREE.Mesh(pupG,A3.mat("#1a1530"));p.position.set(sd*0.2,0.6,-0.5);g.add(p);}
+  scene.add(g);
+  const c=lin(col),hsl={};new THREE.Color(col).getHSL(hsl);
+  const light=new THREE.Color().setHSL(hsl.h,Math.min(1,hsl.s*0.95),Math.min(0.76,hsl.l+0.1)).convertSRGBToLinear();
+  const p={id,me:isMe,name,col,c,tc:[light,light.clone().lerp(c,0.35)],trc:c.clone(),x,z,px:x,pz:z,dir:Math.floor(Math.random()*4),t:0,
+    q:[],trail:[],area:0,alive:true,mesh:g,body,skill:skill||0.5,plan:[],speed:isMe?6.8:A3.rand(5.6,6.8),face:0,kos:0,deathT:0};
+  p.face=-p.dir*Math.PI/2;
+  p.tag=A3.label(isMe?"You":name,{size:0.7,color:isMe?"#1b8a3a":"#1d2a4a",stroke:"rgba(255,255,255,.95)",px:56});
+  p.tag.material.depthTest=false;p.tag.renderOrder=5;scene.add(p.tag);
+  players.push(p);
+  for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,zz=z+dz;if(!inb(xx,zz))continue;const i=idx(xx,zz);const o=owner[i];if(o>=0&&o!==id)players[o].area--;if(o!==id){owner[i]=id;p.area++;}refreshTile(i,true);}
+  return p;
+}
+function clearAll(){
+  players.forEach(p=>{scene.remove(p.mesh);scene.remove(p.tag);});players=[];
+  owner.fill(-1);trail.fill(-1);animList.length=0;tileAnim.fill(0);
+  for(let i=0;i<GG;i++)setTile(i,0.12);dirty=true;
+}
+function spawnSpots(n){
+  const spots=[],m=6;
+  for(let t=0;spots.length<n&&t<4000;t++){const x=m+Math.floor(Math.random()*(G-2*m)),z=m+Math.floor(Math.random()*(G-2*m));
+    if(spots.every(s=>Math.abs(s.x-x)+Math.abs(s.z-z)>14))spots.push({x,z});}
+  while(spots.length<n)spots.push({x:m+Math.floor(Math.random()*(G-2*m)),z:m+Math.floor(Math.random()*(G-2*m))});
+  return spots;
+}
+
+/* ---------- rules ---------- */
+function kill(p,by,why){
+  if(!p.alive)return;p.alive=false;p.deathT=0;
+  for(const i of p.trail)if(trail[i]===p.id)trail[i]=-1;p.trail.length=0;
+  for(let i=0;i<GG;i++)if(owner[i]===p.id){owner[i]=-1;refreshTile(i);}
+  p.area=0;
+  const wp=new THREE.Vector3(p.px-OFF,0.6,p.pz-OFF);
+  parts.burst(wp,p.col,p.me?26:18,6,0.9);
+  p.mesh.visible=false;p.tag.visible=false;
+  if(by&&by.me&&!p.me){by.kos++;S.kos++;A3.sfx("boom");A3.toast("You knocked out "+p.name+"!",1500);}
+  else if(!p.me&&me&&Math.abs(p.px-me.px)+Math.abs(p.pz-me.pz)<18)A3.sfx("pop");
+  if(p.me)endGame(false,by,why);
+}
+function claim(p){
+  for(const i of p.trail){trail[i]=-1;setOwner(i,p);}
+  p.trail.length=0;
+  // flood fill from the edges through everything that isn't p's
+  const seen=new Uint8Array(GG),st=[];
+  for(let k=0;k<G;k++){for(const i of [idx(k,0),idx(k,G-1),idx(0,k),idx(G-1,k)])if(owner[i]!==p.id&&!seen[i]){seen[i]=1;st.push(i);}}
+  while(st.length){const i=st.pop(),x=i%G,z=(i/G)|0;
+    for(let d=0;d<4;d++){const nx=x+DX[d],nz=z+DZ[d];if(!inb(nx,nz))continue;const j=idx(nx,nz);if(seen[j]||owner[j]===p.id)continue;seen[j]=1;st.push(j);}}
+  let got=0;
+  for(let i=0;i<GG;i++)if(!seen[i]&&owner[i]!==p.id){setOwner(i,p);got++;}
+  // anyone left with no land is squashed
+  for(const q of players)if(q!==p&&q.alive&&q.area<=0)kill(q,p,"squashed");
+  if(p.me){A3.sfx(got>20?"win":"coin");if(got>20)parts.burst(new THREE.Vector3(p.px-OFF,1,p.pz-OFF),p.col,20,6,0.8);}
+}
+function setOwner(i,p){const o=owner[i];if(o===p.id)return;if(o>=0)players[o].area--;owner[i]=p.id;p.area++;if(p.me)round.claimed++;refreshTile(i,true);}
+
+/* arrive at the next cell */
+function arrive(p){
+  p.x+=DX[p.dir];p.z+=DZ[p.dir];
+  if(!inb(p.x,p.z)){p.x-=DX[p.dir];p.z-=DZ[p.dir];kill(p,null,"wall");return;}
+  const i=idx(p.x,p.z),tr=trail[i];
+  if(tr>=0){const q=players[tr];if(q===p){kill(p,null,"self");return;}kill(q,p,"cut");}
+  if(owner[i]===p.id){if(p.trail.length)claim(p);}
+  else{trail[i]=p.id;p.trail.push(i);}
+}
+function canGo(p,d){
+  if(p.trail.length||true){if((d+2)%4===p.dir)return false;}
+  return true;
+}
+
+/* ---------- bot brain ---------- */
+const Q=new Int32Array(GG),PREV=new Int32Array(GG),FD=new Int8Array(GG),SEEN=new Uint8Array(GG);
+function bfs(p,goal,maxN){
+  // returns first dir of the shortest safe path to a cell where goal(i) is true
+  SEEN.fill(0);let h=0,t=0;
+  for(let d=0;d<4;d++){if((d+2)%4===p.dir)continue;const nx=p.x+DX[d],nz=p.z+DZ[d];if(!inb(nx,nz))continue;const j=idx(nx,nz);if(trail[j]===p.id)continue;SEEN[j]=1;FD[j]=d;Q[t++]=j;}
+  while(h<t&&h<(maxN||GG)){const i=Q[h++];if(goal(i))return FD[i];const x=i%G,z=(i/G)|0;
+    for(let d=0;d<4;d++){const nx=x+DX[d],nz=z+DZ[d];if(!inb(nx,nz))continue;const j=idx(nx,nz);if(SEEN[j]||trail[j]===p.id)continue;SEEN[j]=1;FD[j]=FD[i];Q[t++]=j;}}
+  return -1;
+}
+function safeDirs(p){const r=[];for(let d=0;d<4;d++){if((d+2)%4===p.dir)continue;const nx=p.x+DX[d],nz=p.z+DZ[d];if(!inb(nx,nz))continue;if(trail[idx(nx,nz)]===p.id)continue;r.push(d);}return r;}
+function nearestEnemy(p){let best=1e9;for(const q of players){if(q===p||!q.alive)continue;
+  for(let k=0;k<p.trail.length;k+=2){const i=p.trail[k],d=Math.abs(i%G-q.x)+Math.abs(((i/G)|0)-q.z);if(d<best)best=d;}
+  const d=Math.abs(p.x-q.x)+Math.abs(p.z-q.z);if(d<best&&p.trail.length)best=d;}
+  return best;}
+function botDecide(p){
+  const home=owner[idx(p.x,p.z)]===p.id;
+  if(home){p.returning=false;}
+  // hunt: a rival's trail close by
+  if(Math.random()<p.skill*0.9){
+    let tgt=-1;
+    for(const q of players){if(q===p||!q.alive||!q.trail.length)continue;for(const i of q.trail){const d=Math.abs(i%G-p.x)+Math.abs(((i/G)|0)-p.z);if(d<5+p.skill*5){tgt=q.id;break;}}if(tgt>=0)break;}
+    if(tgt>=0&&p.trail.length<12){const d=bfs(p,i=>trail[i]===tgt,500);if(d>=0){p.plan.length=0;return d;}}
+  }
+  if(!home){
+    const danger=nearestEnemy(p);
+    const risk=p.trail.length;
+    if(p.returning||danger<risk*0.45+2+(1-p.skill)*-1||risk>8+p.skill*26||(!p.plan.length)){
+      p.returning=true;p.plan.length=0;
+      const d=bfs(p,i=>owner[i]===p.id);if(d>=0)return d;
+    }
+  }
+  if(!p.plan.length&&home){
+    // plan a loop outward
+    const d0=Math.floor(Math.random()*4),side=Math.random()<0.5?1:3,a=2+Math.floor(Math.random()*(3+p.skill*7)),b=2+Math.floor(Math.random()*(3+p.skill*8));
+    // walk a little first to reach the edge of home
+    for(let k=0;k<a+4;k++)p.plan.push(d0);
+    for(let k=0;k<b;k++)p.plan.push((d0+side)%4);
+    for(let k=0;k<a+4;k++)p.plan.push((d0+2)%4);
+  }
+  while(p.plan.length){
+    const d=p.plan[0];
+    if((d+2)%4===p.dir){p.plan.length=0;break;}
+    const nx=p.x+DX[d],nz=p.z+DZ[d];
+    if(!inb(nx,nz)||trail[idx(nx,nz)]===p.id){p.plan.length=0;break;}
+    p.plan.shift();return d;
+  }
+  if(!home){const d=bfs(p,i=>owner[i]===p.id);if(d>=0)return d;}
+  const sd=safeDirs(p);return sd.length?(sd.includes(p.dir)&&Math.random()<0.7?p.dir:A3.pick(sd)):p.dir;
+}
+
+/* ---------- game state ---------- */
+let mode="title",round=null,titleT=0;
+function setupRound(withMe){
+  clearAll();
+  const n=[6,8,10][S.diff];
+  const spots=spawnSpots(n+1);
+  const myCol=(SKINS[S.skin]||SKINS[0]).c;
+  const pal=BOTC.filter(c=>c!==myCol);
+  const used=new Set();
+  if(withMe){me=makePlayer(true,"You",myCol,spots[0].x,spots[0].z,1);}else me=null;
+  const sk=[[0.15,0.5],[0.3,0.8],[0.5,1]][S.diff];
+  for(let i=0;i<n;i++){let nm;do{nm=A3.pick(NAMES);}while(used.has(nm));used.add(nm);makePlayer(false,nm,pal[i%pal.length],spots[i+1].x,spots[i+1].z,A3.rand(sk[0],sk[1]));}
+}
+function startGame(){
+  setupRound(true);
+  round={t:0,claimed:0,peak:0,ended:false};
+  mode="play";S.games++;persist();
+  ["board","goal","pctBig"].forEach(id=>$(id).hidden=false);
+  A3.sfx("jump");A3.toast("Go out, loop round, come home!",1800);hud();
+}
+function pct(p){return p.area/GG*100;}
+function endGame(won,by,why){
+  if(round.ended)return;round.ended=true;mode="over";
+  const peak=Math.max(round.peak,me.alive?pct(me):0);
+  const pk=Math.round(peak*10)/10;
+  const newBest=pk>S.best&&round.claimed>0;
+  if(newBest){S.best=pk;A3.best(Math.round(pk));}
+  S.tiles+=round.claimed;
+  const before=SKINS.filter(unlocked).length;
+  if(won){S.wins++;A3.sfx("win");A3.win([3,4,5][S.diff],"winning a round of Turf Grab");}
+  else{A3.sfx("lose");if(newBest&&pk>=25)A3.win(1,"a new Turf Grab best");}
+  const after=SKINS.filter(unlocked).length;
+  $("oTitle").textContent=won?"You win!":newBest?"New best!":"Out!";
+  $("oText").textContent=won?(why==="last"?"You're the last one standing!":"You own half the map!"):
+    why==="self"?"Oops, you ran into your own trail.":why==="wall"?"You bumped into the fence.":why==="squashed"?"Your land got swallowed up!":by?(by.name+" ran over your trail!"):"You were caught out!";
+  if(after>before)$("oText").textContent+=" New colour unlocked!";
+  $("oStats").innerHTML="<div>Biggest share <b>"+pk.toFixed(1)+"%</b></div><div>Tiles grabbed <b>"+A3.fmt(round.claimed)+"</b></div><div>Knockouts <b>"+me.kos+"</b></div><div>Time <b>"+Math.floor(round.t/60)+":"+String(Math.floor(round.t%60)).padStart(2,"0")+"</b></div>";
+  persist();hud();
+  setTimeout(()=>{["board","goal","pctBig"].forEach(id=>$(id).hidden=true);A3.show("ovOver");},won?600:1100);
+}
+
+/* ---------- input ---------- */
+function queue(d){if(!me||!me.alive||mode!=="play")return;const last=me.q.length?me.q[me.q.length-1]:me.dir;if(d===last||(d+2)%4===last)return;if(me.q.length<2)me.q.push(d);}
+window.addEventListener("keydown",e=>{const k=e.key.toLowerCase();const m={arrowup:0,w:0,arrowright:1,d:1,arrowdown:2,s:2,arrowleft:3,a:3}[k];if(m!==undefined){e.preventDefault();queue(m);}});
+// swipe that fires as soon as the finger has moved far enough (feels snappier than waiting for lift)
+{const cv=renderer.domElement;let sx=0,sy=0,on=false;
+  cv.addEventListener("pointerdown",e=>{on=true;sx=e.clientX;sy=e.clientY;});
+  cv.addEventListener("pointermove",e=>{if(!on)return;const dx=e.clientX-sx,dy=e.clientY-sy;if(Math.max(Math.abs(dx),Math.abs(dy))<22)return;
+    queue(Math.abs(dx)>Math.abs(dy)?(dx>0?1:3):(dy>0?2:0));sx=e.clientX;sy=e.clientY;});
+  window.addEventListener("pointerup",()=>{on=false;});}
+
+/* ---------- HUD ---------- */
+let boardT=0;
+function hud(){
+  $("hBest").textContent=S.best.toFixed(1).replace(/\.0$/,"")+"%";$("hWins").textContent=S.wins;
+  if(me){const v=pct(me);$("hPct").textContent=v.toFixed(1)+"%";$("pctBig").innerHTML=v.toFixed(1)+"%<small>OF THE MAP</small>";$("goalB").style.width=Math.min(100,v/50*100)+"%";
+    $("hLeft").textContent=players.filter(p=>!p.me&&p.alive).length;}
+}
+function drawBoard(){
+  const list=players.filter(p=>p.alive).sort((a,b)=>b.area-a.area);
+  let html="<h4>Biggest land</h4>";
+  list.slice(0,8).forEach((p,i)=>{html+='<div class="'+(p.me?"me":"")+'"><span><i style="background:'+p.col+'"></i>'+(i+1)+". "+p.name+"</span><span>"+pct(p).toFixed(1)+"%</span></div>";});
+  if(me&&me.alive){const r=list.indexOf(me)+1;if(r>8)html+='<div class="me"><span><i style="background:'+me.col+'"></i>'+r+". You</span><span>"+pct(me).toFixed(1)+"%</span></div>";}
+  $("board").innerHTML=html;
+}
+
+/* ---------- loop ---------- */
+const camPos=new THREE.Vector3(0,40,40),camLook=new THREE.Vector3();
+let simT=0;
+function update(dt){
+  simT+=dt;const t=simT;
+  // move everyone
+  for(const p of players){
+    if(!p.alive||(p.me&&mode!=="play"))continue;
+    p.t+=dt*p.speed;
+    let guard=0;
+    while(p.t>=1&&p.alive&&guard++<3){
+      p.t-=1;arrive(p);if(!p.alive)break;
+      // choose the next direction
+      if(p.me){while(p.q.length){const d=p.q.shift();if((d+2)%4!==p.dir){p.dir=d;break;}}}
+      else p.dir=botDecide(p);
+    }
+  }
+  // heads meeting on the same cell outside home
+  for(let a=0;a<players.length;a++)for(let b=a+1;b<players.length;b++){const p=players[a],q=players[b];if(!p.alive||!q.alive)continue;
+    if(p.x===q.x&&p.z===q.z&&p.t<0.5&&q.t<0.5){const pi=owner[idx(p.x,p.z)];if(pi===p.id&&!p.trail.length)kill(q,p,"cut");else if(pi===q.id&&!q.trail.length)kill(p,q,"cut");else if(p.area<q.area)kill(p,q,"cut");else kill(q,p,"cut");}}
+  if(mode==="play"&&me.alive){
+    round.t+=dt;const v=pct(me);round.peak=Math.max(round.peak,v);
+    if(v>=50)endGame(true,null,"half");
+    else if(!players.some(p=>!p.me&&p.alive))endGame(true,null,"last");
+  }
+  if(mode==="title"){
+    // demo: keep bots coming back
+    for(const p of players)if(!p.alive){p.deathT+=dt;}
+    if(players.filter(p=>p.alive).length<3)setupRound(false);
+  }
+  // visuals
+  for(const p of players){if(!p.alive)continue;
+    const k=Math.min(1,p.t);p.px=p.x+DX[p.dir]*k;p.pz=p.z+DZ[p.dir]*k;
+    const want=-p.dir*Math.PI/2;let d=want-p.face;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;p.face+=d*Math.min(1,dt*14);
+    const hop=Math.abs(Math.sin(k*Math.PI));
+    p.mesh.position.set(p.px-OFF,(owner[idx(p.x,p.z)]>=0?0.36:0.12)+hop*0.12,p.pz-OFF);p.mesh.rotation.y=p.face;
+    p.body.scale.set(1+hop*0.06,1-hop*0.08,1+hop*0.06);
+    p.tag.position.set(p.px-OFF,1.75+hop*0.12,p.pz-OFF);p.tag.visible=true;
+  }
+  // tile rise animation
+  for(let k=animList.length-1;k>=0;k--){const i=animList[k];tileAnim[i]-=dt*4;
+    if(tileAnim[i]<=0||owner[i]<0){tileAnim[i]=0;animList.splice(k,1);setTile(i,owner[i]<0?0.12:0.36);}
+    else{const a=tileAnim[i];setTile(i,0.36+Math.sin(a*Math.PI)*0.35);}dirty=true;}
+  if(dirty){dirty=false;tileMesh.instanceMatrix.needsUpdate=true;if(tileMesh.instanceColor)tileMesh.instanceColor.needsUpdate=true;}
+  // trails
+  let n=0;
+  for(const p of players){if(!p.alive)continue;for(let k=0;k<p.trail.length&&n<TMAX;k++){const i=p.trail[k];const x=i%G,z=(i/G)|0;
+    const bob=Math.sin(t*6+k*0.6)*0.06;v3.set(x-OFF,0.45+bob,z-OFF);sc3.set(1,1,1);mtx.compose(v3,q0,sc3);trailMesh.setMatrixAt(n,mtx);trailMesh.setColorAt(n,p.trc);n++;}}
+  trailMesh.count=n;trailMesh.instanceMatrix.needsUpdate=true;if(trailMesh.instanceColor)trailMesh.instanceColor.needsUpdate=true;
+  // camera
+  if(mode==="title"){titleT+=dt*0.1;camLook.set(0,0,0);camera.position.set(Math.cos(titleT)*52,44,Math.sin(titleT)*52);camera.lookAt(camLook);
+    V.lights.sun.position.set(20,40,15);V.lights.sun.target.position.set(0,0,0);}
+  else{const f=me;const tx=f.px-OFF,tz=f.pz-OFF;camLook.x+=(tx-camLook.x)*Math.min(1,dt*6);camLook.z+=(tz-camLook.z)*Math.min(1,dt*6);
+    const h=17+Math.min(10,Math.sqrt(me.area)*0.25);camPos.lerp(v3.set(camLook.x,h,camLook.z+h*0.72),Math.min(1,dt*5));camera.position.copy(camPos);camera.lookAt(camLook);
+    V.lights.sun.position.set(camLook.x+10,26,camLook.z+8);V.lights.sun.target.position.copy(camLook);}
+  parts.update(dt);
+  boardT-=dt;if(boardT<=0&&mode!=="title"){boardT=0.3;drawBoard();hud();}
+}
+A3.loop(dt=>{update(dt);V.render();});
+
+/* ---------- menus ---------- */
+function persist(){A3.store(SAVE,S);}
+function titleStats(){
+  $("tStats").innerHTML="<div>Best share <b>"+S.best.toFixed(1).replace(/\.0$/,"")+"%</b></div><div>Wins <b>"+S.wins+"</b></div><div>Tiles grabbed <b>"+A3.fmt(S.tiles)+"</b></div><div>Knockouts <b>"+A3.fmt(S.kos)+"</b></div>";
+  [...$("diffs").children].forEach(b=>b.classList.toggle("on",+b.dataset.d===S.diff));
+}
+function drawShop(){
+  $("skins").innerHTML=SKINS.map((k,i)=>{const u=unlocked(k),on=S.skin===i;
+    return '<button class="skin'+(on?" on":"")+(u?"":" locked")+'" data-i="'+i+'"><div class="sw" style="background:'+k.c+'"></div>'+k.n+'<br><span class="c">'+(on?"Using":u?"Use":"🔒 "+needText(k))+"</span></button>";}).join("");
+}
+$("skins").addEventListener("click",e=>{const b=e.target.closest(".skin");if(!b)return;const i=+b.dataset.i,k=SKINS[i];
+  if(unlocked(k)){S.skin=i;A3.sfx("click");persist();drawShop();}else{A3.sfx("hit");A3.toast(needText(k)+" to unlock");}});
+$("diffs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;S.diff=+b.dataset.d;A3.sfx("click");persist();titleStats();});
+$("bPlay").onclick=()=>{A3.sfx("click");A3.hide("ovTitle");startGame();};
+$("bShop").onclick=()=>{A3.sfx("click");drawShop();A3.hide("ovTitle");A3.show("ovShop");};
+$("shopBack").onclick=()=>{A3.sfx("click");A3.hide("ovShop");titleStats();A3.show("ovTitle");};
+$("oAgain").onclick=()=>{A3.sfx("click");A3.hide("ovOver");startGame();};
+$("oMenu").onclick=()=>{A3.sfx("click");A3.hide("ovOver");toTitle();};
+function toTitle(){mode="title";setupRound(false);["board","goal","pctBig"].forEach(id=>$(id).hidden=true);titleStats();hud();A3.show("ovTitle");}
+A3.fullscreen($("bFs"),stage);
+$("bMute").onclick=()=>{A3.mute(!A3.mute());$("bMute").textContent=A3.mute()?"🔇":"🔊";};$("bMute").textContent=A3.mute()?"🔇":"🔊";
+toTitle();
+window.addEventListener("pagehide",persist);
+window.__turfTest={sim:sec=>{for(let k=0;k<sec*30;k++)update(1/30);return mode;},grab:()=>{if(!me)return;for(let z=0;z<G;z++)for(let x=0;x<G/2+2;x++){const i=idx(x,z);if(owner[i]!==me.id)setOwner(i,me);}},die:()=>{if(me&&me.alive)kill(me,players.find(p=>!p.me&&p.alive),"cut");},state:()=>players.map(p=>p.name+":"+p.area+(p.alive?"":"x")).join(" ")};
+if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"turf-grab",dir:"desc",unit:"%",title:"Turf Grab: biggest share of the map"});
+})();
+</script>
+</body>
+</html>

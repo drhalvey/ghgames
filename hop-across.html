@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Hop Across</title>
+<meta property="og:title" content="Hop Across · GH Games">
+<meta property="og:description" content="Hop over busy roads, ride logs across rivers and dodge speedy trains in a blocky 3D world. Collect coins to unlock 8 cute critters.">
+<meta property="og:image" content="https://ghgames.au/og/hop-across.png">
+<meta property="og:url" content="https://ghgames.au/hop-across.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f1a33">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Games">
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="hop-across"></script>
+<script src="phatcoin.js" data-game="hop-across" data-pill="none"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<link rel="stylesheet" href="arcade3d.css">
+<style>
+.critters{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;width:min(620px,100%)}
+.crit{background:var(--panel2);border:2px solid var(--line);border-radius:14px;padding:8px;font-weight:900;cursor:pointer;color:var(--ink);font-family:var(--body);font-size:14px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.crit .sw{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px}
+.crit.on{border-color:var(--gold);background:#3a3a1e}
+.crit.locked{opacity:.8}
+.crit small{color:var(--gold);font-size:12px}
+.score3d .cn{font-size:.55em;color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="links"><a class="home" href="index.html">← GH Games</a></div>
+  <div class="top">
+    <h1>Hop Across<small>3D</small></h1>
+    <div class="hud">
+      <div class="chip"><span>Score</span><b id="hScore">0</b></div>
+      <div class="chip"><span>Best</span><b id="hBest">0</b></div>
+      <div class="chip"><span>Coins</span><b id="hCoins">0</b></div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="ingame"><button id="bHome">☰</button><button id="bFs">⛶</button><button id="bMute">🔊</button></div>
+    <div class="score3d" id="big">0<small id="bigC">● 0</small></div>
+    <div class="toast" id="toast"></div>
+
+    <div class="ov" id="ovTitle">
+      <h2>HOP ACROSS</h2>
+      <p>Tap to hop forward. Swipe, or use the arrow keys or W A S D, to hop any way. Dodge the cars, ride the logs, watch for the train lights, and do not dawdle: the world keeps moving!</p>
+      <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bShop">Critters</button></div>
+      <div class="stats" id="tStats"></div>
+    </div>
+
+    <div class="ov" id="ovShop" hidden>
+      <h2>CRITTERS</h2>
+      <p id="shopTxt">Spend the coins you pick up on new critters.</p>
+      <div class="critters" id="crits"></div>
+      <div class="row"><button class="btn green" id="shopPlay">Play</button><button class="btn alt" id="shopBack">Back</button></div>
+    </div>
+
+    <div class="ov" id="ovOver" hidden>
+      <h2 id="oTitle">Squashed!</h2>
+      <p id="oText"></p>
+      <div class="stats" id="oStats"></div>
+      <div class="row"><button class="btn green" id="oAgain">Hop again</button><button class="btn alt" id="oShop">Critters</button></div>
+    </div>
+  </div>
+
+  <p class="help">Tap the game (or press Space or Up) to hop forward. Swipe left, right or down to hop sideways or back. Cars and trucks squash you, water is a splash, and the flashing red lights mean a train is coming. Logs and lily pads carry you over rivers. Your score is how far you get. Pick up coins to unlock new critters. New best scores and big milestones earn PhatCoin.</p>
+  <div id="lb"></div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="arcade3d.js"></script>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const SAVE="hopacross-save";
+const S=A3.save(SAVE,{best:0,coins:0,own:["duck"],pick:"duck",played:0,totalRows:0});
+const stage=$("stage");
+const V=A3.view(stage,{fov:34,sky:["#7fd3ff","#cfeeff"],shadowSize:16});
+if(!V){return;}
+const {scene,camera,renderer}=V;
+scene.background=new THREE.Color("#8fd8ff");
+scene.fog=new THREE.Fog("#8fd8ff",26,46);
+V.lights.hemi.intensity=0.55;V.lights.sun.intensity=1.05;
+const parts=A3.particles(scene);
+
+/* ---------- geometry helpers ---------- */
+const GC={};
+function geo(w,h,d){const k=w+","+h+","+d;return GC[k]||(GC[k]=new THREE.BoxGeometry(w,h,d));}
+function bx(p,w,h,d,c,x,y,z,o){const m=new THREE.Mesh(geo(w,h,d),A3.mat(c,Object.assign({flat:true},o||{})));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;p.add(m);return m;}
+
+/* ---------- critters (all face -z) ---------- */
+const CRITS=[
+ {id:"duck",name:"Puddle Duck",price:0,col:"#ffe14d",emo:"🐤"},
+ {id:"frog",name:"Hoppy Frog",price:40,col:"#5fd36a",emo:"🐸"},
+ {id:"penguin",name:"Pebble Penguin",price:60,col:"#2b2f45",emo:"🐧"},
+ {id:"pig",name:"Muddy Piglet",price:80,col:"#ff9fc0",emo:"🐷"},
+ {id:"panda",name:"Bamboo Panda",price:120,col:"#f4f4f4",emo:"🐼"},
+ {id:"fox",name:"Zippy Fox",price:150,col:"#ff8a3d",emo:"🦊"},
+ {id:"robot",name:"Bolt Bot",price:200,col:"#9fb2c8",emo:"🤖"},
+ {id:"dino",name:"Spike Dino",price:300,col:"#7fd04b",emo:"🦖"}
+];
+function eyes(g,y,z,sp,white){
+  [-1,1].forEach(s=>{if(white)bx(g,0.13,0.13,0.04,"#ffffff",s*sp,y,z);bx(g,0.08,0.09,0.05,"#1b1b25",s*sp,y,z-0.01);});
+}
+function buildCrit(id){
+  const g=new THREE.Group();
+  if(id==="duck"){
+    bx(g,0.56,0.46,0.6,"#ffe14d",0,0.33,0.04);bx(g,0.44,0.36,0.4,"#ffe14d",0,0.72,-0.06);
+    bx(g,0.26,0.1,0.18,"#ff8a1f",0,0.66,-0.32);bx(g,0.06,0.16,0.06,"#ff4d6d",0,0.97,-0.06);
+    bx(g,0.18,0.14,0.14,"#ffd21f",0,0.42,0.38);[-1,1].forEach(s=>{bx(g,0.12,0.28,0.32,"#ffd21f",s*0.33,0.36,0.06);bx(g,0.14,0.08,0.2,"#ff8a1f",s*0.14,0.04,-0.04);});
+    eyes(g,0.78,-0.27,0.13,false);
+  }else if(id==="frog"){
+    bx(g,0.66,0.36,0.62,"#5fd36a",0,0.24,0);bx(g,0.56,0.12,0.5,"#c9f29b",0,0.1,-0.06);
+    [-1,1].forEach(s=>{bx(g,0.2,0.2,0.2,"#5fd36a",s*0.2,0.5,-0.18);bx(g,0.14,0.14,0.06,"#ffffff",s*0.2,0.52,-0.29);bx(g,0.07,0.08,0.04,"#1b1b25",s*0.2,0.52,-0.32);bx(g,0.18,0.12,0.36,"#4cbf58",s*0.36,0.08,0.12);});
+    bx(g,0.3,0.04,0.04,"#e2557a",0,0.2,-0.32);
+  }else if(id==="penguin"){
+    bx(g,0.54,0.7,0.5,"#2b2f45",0,0.4,0.02);bx(g,0.4,0.52,0.06,"#ffffff",0,0.36,-0.23);
+    bx(g,0.18,0.08,0.16,"#ffb02e",0,0.6,-0.3);eyes(g,0.68,-0.24,0.11,true);
+    [-1,1].forEach(s=>{bx(g,0.08,0.4,0.28,"#232638",s*0.31,0.4,0.04);bx(g,0.16,0.06,0.22,"#ffb02e",s*0.13,0.03,-0.06);});
+  }else if(id==="pig"){
+    bx(g,0.62,0.5,0.66,"#ff9fc0",0,0.35,0.02);bx(g,0.26,0.18,0.08,"#ff7aa6",0,0.36,-0.33);
+    [-1,1].forEach(s=>{bx(g,0.05,0.07,0.03,"#c2456f",s*0.06,0.36,-0.38);bx(g,0.14,0.14,0.08,"#ff7aa6",s*0.2,0.66,-0.18);bx(g,0.14,0.14,0.14,"#ff8fb5",s*0.2,0.06,-0.18);bx(g,0.14,0.14,0.14,"#ff8fb5",s*0.2,0.06,0.22);});
+    eyes(g,0.52,-0.31,0.15,false);bx(g,0.06,0.12,0.06,"#ff7aa6",0,0.5,0.38);
+  }else if(id==="panda"){
+    bx(g,0.6,0.5,0.6,"#f4f4f4",0,0.32,0.03);bx(g,0.62,0.18,0.62,"#26262e",0,0.2,0.03);
+    bx(g,0.48,0.38,0.4,"#f4f4f4",0,0.72,-0.06);
+    [-1,1].forEach(s=>{bx(g,0.14,0.14,0.1,"#26262e",s*0.18,0.95,-0.04);bx(g,0.14,0.14,0.04,"#26262e",s*0.11,0.74,-0.27);bx(g,0.05,0.06,0.03,"#ffffff",s*0.11,0.75,-0.29);bx(g,0.16,0.14,0.16,"#26262e",s*0.18,0.06,-0.16);});
+    bx(g,0.1,0.06,0.04,"#26262e",0,0.64,-0.27);
+  }else if(id==="fox"){
+    bx(g,0.5,0.44,0.62,"#ff8a3d",0,0.3,0.04);bx(g,0.46,0.38,0.38,"#ff8a3d",0,0.68,-0.12);
+    bx(g,0.28,0.18,0.18,"#fff3e6",0,0.6,-0.36);bx(g,0.08,0.07,0.05,"#1b1b25",0,0.66,-0.46);bx(g,0.34,0.3,0.06,"#fff3e6",0,0.3,-0.25);
+    [-1,1].forEach(s=>{bx(g,0.12,0.18,0.08,"#ff8a3d",s*0.15,0.95,-0.1);bx(g,0.06,0.08,0.09,"#3a2416",s*0.15,1.04,-0.1);bx(g,0.12,0.14,0.14,"#3a2416",s*0.15,0.06,-0.14);});
+    eyes(g,0.74,-0.31,0.12,false);bx(g,0.2,0.2,0.4,"#ff8a3d",0,0.4,0.5);bx(g,0.2,0.2,0.14,"#ffffff",0,0.4,0.75);
+  }else if(id==="robot"){
+    const m={metal:0.5,rough:0.35};
+    bx(g,0.58,0.46,0.5,"#9fb2c8",0,0.34,0.02,m);bx(g,0.46,0.34,0.4,"#c4d2e2",0,0.75,-0.02,m);
+    bx(g,0.36,0.12,0.04,"#4ad7ff",0,0.78,-0.23,{emissive:"#2ab7ff",glow:0.9});bx(g,0.04,0.2,0.04,"#6d7d90",0,1.0,0);
+    const ant=new THREE.Mesh(new THREE.SphereGeometry(0.07,10,8),A3.mat("#ff4d6d",{emissive:"#ff2244",glow:0.8}));ant.position.set(0,1.12,0);g.add(ant);
+    bx(g,0.22,0.16,0.04,"#ffc93c",0,0.38,-0.25,{emissive:"#aa7700",glow:0.4});
+    [-1,1].forEach(s=>{bx(g,0.1,0.32,0.14,"#6d7d90",s*0.35,0.36,0,m);bx(g,0.18,0.12,0.22,"#4d5b6c",s*0.15,0.06,0);});
+  }else if(id==="dino"){
+    bx(g,0.52,0.5,0.66,"#7fd04b",0,0.34,0.06);bx(g,0.44,0.36,0.5,"#7fd04b",0,0.74,-0.14);bx(g,0.36,0.14,0.3,"#bff09a",0,0.6,-0.24);
+    for(let i=0;i<4;i++)bx(g,0.08,0.14,0.12,"#ffc93c",0,0.95-i*0.1,0.0+i*0.16);
+    eyes(g,0.84,-0.4,0.13,true);bx(g,0.26,0.22,0.34,"#7fd04b",0,0.26,0.5);
+    [-1,1].forEach(s=>{bx(g,0.08,0.08,0.14,"#5fb53a",s*0.28,0.42,-0.24);bx(g,0.16,0.16,0.2,"#5fb53a",s*0.15,0.08,0.02);});
+    bx(g,0.3,0.04,0.04,"#ffffff",0,0.54,-0.4);
+  }
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  return g;
+}
+
+/* ---------- world state ---------- */
+const MINX=-4,MAXX=4;
+let rows={},lowRow=0,highRow=0,safeCol=0;
+let player,pModel,shadowBlob,alive=false,playing=false,score=0,runCoins=0,startRow=0;
+let hop=null,queued=null,ride=null,dieAnim=null,camZ=0,camX=0,creep=0,moved=false,milestone=0,newBest=false;
+const world=new THREE.Group();scene.add(world);
+const under=new THREE.Mesh(new THREE.PlaneGeometry(80,80),A3.mat("#4f9a35"));under.rotation.x=-Math.PI/2;under.position.y=-0.25;under.receiveShadow=true;scene.add(under);
+const coinGeo=new THREE.CylinderGeometry(0.22,0.22,0.07,18);coinGeo.rotateX(Math.PI/2);
+const coinMat=A3.mat("#ffd23f",{metal:0.4,rough:0.3,emissive:"#7a5200",glow:0.5});
+
+const GRASS=["#7ed957","#74cf4e"],GRASS_OUT=["#5fa83f","#58a039"];
+const CARCOLS=["#ff5d5d","#4aa8ff","#ffc93c","#b085ff","#ff8a3d","#2ec4b6","#ff6fa3","#f4f4f4"];
+
+function rowType(r){
+  if(r<4)return "grass";
+  return null;
+}
+let planQueue=[];
+function planNext(r){
+  if(r<5)return {t:"grass"};
+  if(!planQueue.length){
+    const d=Math.min(1,r/160);
+    const roll=Math.random();
+    let t,n;
+    if(roll<0.36){t="road";n=1+Math.floor(Math.random()*(2+d*3));}
+    else if(roll<0.62){t="river";n=1+Math.floor(Math.random()*(1.6+d*2));}
+    else if(roll<0.74&&r>12){t="rail";n=1+(Math.random()<0.25+d*0.3?1:0);}
+    else {t="grass";n=1+Math.floor(Math.random()*2);}
+    for(let i=0;i<n;i++)planQueue.push(t);
+    planQueue.push("grass");
+    if(Math.random()<0.5)planQueue.push("grass");
+  }
+  return {t:planQueue.shift()};
+}
+
+function makeTree(g,x,z,big){
+  const h=big?2:1;
+  bx(g,0.32,0.4,0.32,"#8a5a34",x,0.3,z);
+  bx(g,0.8,0.55*h,0.8,big?"#3fa34d":"#4cb85a",x,0.5+0.3*h,z);
+  bx(g,0.56,0.35,0.56,"#5fcf6a",x,0.85+0.55*h,z);
+}
+function makeRock(g,x,z){bx(g,0.62,0.4,0.6,"#a3a7b3",x,0.28,z);bx(g,0.4,0.2,0.36,"#c4c8d2",x+0.05,0.52,z-0.04);}
+
+function addRow(r){
+  const plan=planNext(r);
+  const z=-r,g=new THREE.Group();g.position.z=z;world.add(g);
+  const row={r:r,t:plan.t,g:g,trees:{},coins:{},cars:[],logs:[],train:null};
+  const alt=((r%2)+2)%2;
+  // the safe column wanders so there is always a way through
+  const prevSafe=safeCol;
+  safeCol=A3.clamp(safeCol+(Math.random()<0.5?-1:1)*(Math.random()<0.6?1:0),-3,3);
+  if(plan.t==="grass"){
+    bx(g,9,0.4,1,GRASS[alt],0,0,0);[-1,1].forEach(s=>bx(g,9,0.4,1,GRASS_OUT[alt],s*9,0,0));
+    // edge trees (outside the play area)
+    for(let x=-12;x<=12;x++){if(x>=MINX&&x<=MAXX)continue;if(Math.random()<0.55)makeTree(g,x,0,Math.random()<0.3);}
+    if(r>2||r<0){
+      const dens=r<0?0.6:0.12+Math.min(0.14,r/600);
+      for(let x=MINX;x<=MAXX;x++){
+        if(x===safeCol||x===prevSafe||(r<=3&&Math.abs(x)<=1))continue;
+        if(Math.random()<dens){row.trees[x]=1;if(Math.random()<0.75)makeTree(g,x,0,Math.random()<0.25);else makeRock(g,x,0);}
+      }
+    }
+    if(r>3&&Math.random()<0.18){const cx=safeCol;if(!row.trees[cx])addCoin(row,cx);}
+    // flowers
+    for(let i=0;i<3;i++){const fx=MINX+Math.floor(Math.random()*9);if(!row.trees[fx])bx(g,0.1,0.1,0.1,A3.pick(["#ff6fa3","#ffffff","#ffc93c"]),fx+A3.rand(-0.3,0.3),0.24,A3.rand(-0.3,0.3)).castShadow=false;}
+  }else if(plan.t==="road"){
+    bx(g,27,0.36,1,"#4a4f5c",0,-0.02,0);
+    const prev=rows[r-1];
+    if(prev&&prev.t==="road")for(let x=-12;x<=12;x+=2)bx(g,0.8,0.04,0.08,"#f5f5f5",x+0.5,0.17,0.5).castShadow=false;
+    else bx(g,27,0.05,0.08,"#c9ccd6",0,0.17,0.46).castShadow=false;
+    const dir=Math.random()<0.5?1:-1;
+    const lvl=Math.min(1,r/220);
+    const truck=Math.random()<0.3;
+    const sp=(truck?1.6:2.2)+Math.random()*(1.4+lvl*2.6)+lvl*1.5;
+    const n=truck?2:2+Math.floor(Math.random()*2);
+    const span=28,off=Math.random()*span;
+    for(let i=0;i<n;i++){
+      const c=makeVehicle(truck,dir);
+      c.x=-14+((off+i*span/n+A3.rand(-1,1))%span);c.g.position.x=c.x;g.add(c.g);row.cars.push(c);
+    }
+    row.dir=dir;row.speed=sp;
+    if(Math.random()<0.12)addCoin(row,MINX+Math.floor(Math.random()*9));
+  }else if(plan.t==="river"){
+    const wm=bx(g,27,0.3,1,"#3fa9f5",0,-0.12,0,{rough:0.2,emissive:"#0a3a6b",glow:0.35});wm.castShadow=false;
+    const prev=rows[r-1];
+    const pads=prev&&prev.t==="river"&&!prev.pads&&Math.random()<0.4;
+    if(pads){
+      row.pads=true;
+      for(let x=MINX;x<=MAXX;x++){
+        if(x===safeCol||Math.random()<0.38){
+          const p=new THREE.Group();p.position.x=x;g.add(p);
+          const pad=new THREE.Mesh(new THREE.CylinderGeometry(0.42,0.42,0.08,14),A3.mat("#3cb44b",{flat:true}));pad.position.y=0.05;pad.receiveShadow=true;pad.castShadow=true;p.add(pad);
+          if(Math.random()<0.35)bx(p,0.12,0.12,0.12,"#ff9fc0",0.12,0.14,0.1);
+          row.logs.push({x:x,len:0.9,speed:0,g:p,pad:true});
+        }
+      }
+    }else{
+      const dir=(prev&&prev.t==="river"&&prev.dir)?-prev.dir:(Math.random()<0.5?1:-1);
+      const lvl=Math.min(1,r/240);
+      const sp=1.1+Math.random()*(0.9+lvl*1.3);
+      const len=Math.max(2,4-Math.floor(Math.random()*(1.5+lvl*1.5)));
+      const n=Math.max(3,Math.round(9/len)-(lvl>0.5?1:0));
+      const span=28,off=Math.random()*span;
+      for(let i=0;i<n;i++){
+        const lg=new THREE.Group();g.add(lg);
+        bx(lg,len,0.3,0.7,"#9a6338",0,0.05,0);bx(lg,len-0.2,0.06,0.5,"#b97c48",0,0.22,0);
+        [-1,1].forEach(s=>bx(lg,0.06,0.26,0.56,"#d9a26a",s*len/2,0.05,0));
+        bakeRow(lg);
+        const l={x:-14+((off+i*span/n)%span),len:len,speed:sp*dir,g:lg,bob:Math.random()*6};lg.position.x=l.x;row.logs.push(l);
+      }
+      row.dir=dir;
+    }
+  }else if(plan.t==="rail"){
+    bx(g,27,0.38,1,"#8b8478",0,-0.01,0);
+    for(let x=-13;x<=13;x+=0.8)bx(g,0.22,0.06,0.9,"#6b4a33",x,0.2,0).castShadow=false;
+    [-1,1].forEach(s=>bx(g,27,0.07,0.07,"#d7dce3",0,0.25,s*0.3,{metal:0.6,rough:0.3}));
+    // warning post
+    const post=new THREE.Group();post.position.set(MAXX+0.7,0,-0.42);g.add(post);
+    bx(post,0.1,1.3,0.1,"#e8e8e8",0,0.8,0);bx(post,0.5,0.24,0.12,"#2b2b2b",0,1.35,0);
+    const lampOff=A3.mat("#5a1a1a"),lampOn=A3.mat("#ff3030",{emissive:"#ff1010",glow:1.2});
+    const lamps=[-1,1].map(s=>bx(post,0.14,0.14,0.06,"#5a1a1a",s*0.13,1.35,0.07));
+    bx(post,0.5,0.08,0.06,"#ffffff",0,1.02,0.02);
+    const dir=Math.random()<0.5?1:-1;
+    row.train={state:"wait",timer:A3.rand(1.5,5),dir:dir,x:0,g:null,lamps:lamps,lampOn:lampOn,lampOff:lampOff,speed:24+Math.min(14,r/14)};
+    const tg=new THREE.Group();tg.visible=false;g.add(tg);
+    const tc=A3.pick(["#e63946","#4aa8ff","#ffc93c","#2ec4b6"]);
+    for(let i=0;i<5;i++){
+      const cx=-i*3.1*dir;
+      bx(tg,3,1.2,0.86,i===0?tc:"#dfe4ea",cx,0.95,0);bx(tg,2.9,0.18,0.9,tc,cx,1.62,0);
+      bx(tg,2.4,0.34,0.88,"#1d2a3f",cx,1.15,0);bx(tg,3,0.22,0.88,"#2b2b2b",cx,0.36,0);
+    }
+    bx(tg,0.3,0.5,0.6,"#2b2b2b",1.55*dir,0.8,0);bx(tg,0.08,0.2,0.3,"#fff7c2",1.62*dir,0.95,0,{emissive:"#fff1a0",glow:1});
+    bakeRow(tg);bakeRow(post,lamps);
+    row.train.g=tg;
+  }
+  bakeRow(g);
+  rows[r]=row;
+}
+/* merge the static boxes of a row into one mesh per material (keeps draw calls low on iPad) */
+const bakedMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.6,flatShading:true});
+function bakeRow(g,keep){
+  const list=[];
+  g.updateMatrixWorld(true);
+  const inv=new THREE.Matrix4().copy(g.matrixWorld).invert();
+  for(const c of g.children){
+    if(!c.isMesh||c.material===coinMat||c.material.transparent||!c.geometry.isBufferGeometry||(keep&&keep.indexOf(c)>=0))continue;
+    list.push(c);
+  }
+  if(list.length<2)return;
+  let n=0;const geos=list.map(m=>{const ge=(m.geometry.index?m.geometry.toNonIndexed():m.geometry.clone());ge.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,m.matrixWorld));n+=ge.attributes.position.count;return ge;});
+  const pos=new Float32Array(n*3),nor=new Float32Array(n*3),col=new Float32Array(n*3);let o=0;
+  geos.forEach((ge,k)=>{
+    const mt=list[k].material,cc=mt.color.clone();
+    if(mt.emissive&&mt.emissiveIntensity)cc.add(mt.emissive.clone().multiplyScalar(mt.emissiveIntensity*0.6));
+    const cnt=ge.attributes.position.count;
+    pos.set(ge.attributes.position.array,o*3);nor.set(ge.attributes.normal.array,o*3);
+    for(let v=0;v<cnt;v++){col[(o+v)*3]=cc.r;col[(o+v)*3+1]=cc.g;col[(o+v)*3+2]=cc.b;}
+    o+=cnt;ge.dispose();
+  });
+  const bg=new THREE.BufferGeometry();bg.setAttribute("position",new THREE.BufferAttribute(pos,3));bg.setAttribute("normal",new THREE.BufferAttribute(nor,3));bg.setAttribute("color",new THREE.BufferAttribute(col,3));
+  const m=new THREE.Mesh(bg,bakedMat);m.castShadow=true;m.receiveShadow=true;g.add(m);
+  list.forEach(c=>g.remove(c));
+}
+function makeVehicle(truck,dir){
+  const g=new THREE.Group(),c=A3.pick(CARCOLS);
+  if(truck){
+    bx(g,2.3,0.8,0.78,"#f4f4f4",-0.35*dir,0.62,0);bx(g,0.75,0.66,0.76,c,1.05*dir,0.56,0);bx(g,0.3,0.28,0.7,"#1d2a3f",1.25*dir,0.72,0);
+    [-0.9,0.1,1.05].forEach(x=>[-1,1].forEach(s=>bx(g,0.32,0.32,0.12,"#222",x*dir,0.2,s*0.38)));
+    bx(g,2.3,0.08,0.8,c,-0.35*dir,1.03,0);
+  }else{
+    bx(g,1.3,0.42,0.76,c,0,0.42,0);bx(g,0.74,0.32,0.68,"#ffffff",-0.1*dir,0.78,0);bx(g,0.76,0.26,0.7,"#1d2a3f",-0.1*dir,0.78,0);
+    [-0.42,0.42].forEach(x=>[-1,1].forEach(s=>bx(g,0.28,0.28,0.1,"#222",x,0.2,s*0.36)));
+    bx(g,0.06,0.1,0.18,"#fff7c2",0.66*dir,0.46,0.22,{emissive:"#fff1a0",glow:0.8});bx(g,0.06,0.1,0.18,"#fff7c2",0.66*dir,0.46,-0.22,{emissive:"#fff1a0",glow:0.8});
+  }
+  bakeRow(g);
+  return {g:g,x:0,half:truck?1.55:0.68};
+}
+function addCoin(row,x){const m=new THREE.Mesh(coinGeo,coinMat);m.position.set(x,0.55,0);m.castShadow=true;row.g.add(m);row.coins[x]=m;}
+function removeRow(r){const row=rows[r];if(!row)return;world.remove(row.g);row.g.children.forEach(c=>{if(c.isMesh&&c.geometry&&!Object.values(GC).includes(c.geometry)&&c.geometry!==coinGeo)c.geometry.dispose();});delete rows[r];}
+
+function clearWorld(){Object.keys(rows).forEach(r=>removeRow(+r));rows={};planQueue=[];}
+function ensureRows(){
+  const pr=Math.round(-player.position.z);
+  while(highRow<pr+20){highRow++;addRow(highRow);}
+  const lowNeed=Math.round(-camZ)-9;
+  while(lowRow<lowNeed){removeRow(lowRow);lowRow++;}
+}
+
+/* ---------- player ---------- */
+function makePlayer(){
+  if(player)scene.remove(player);
+  player=new THREE.Group();player.scale.setScalar(1.15);pModel=buildCrit(S.pick);player.add(pModel);
+  shadowBlob=new THREE.Mesh(new THREE.CircleGeometry(0.34,16),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.22,depthWrite:false}));
+  shadowBlob.rotation.x=-Math.PI/2;shadowBlob.position.y=0.21;scene.add(shadowBlob);
+  scene.add(player);
+}
+function newGame(){
+  A3.hide("ovTitle");A3.hide("ovOver");A3.hide("ovShop");
+  clearWorld();parts.clear();
+  if(shadowBlob)scene.remove(shadowBlob);
+  lowRow=-8;highRow=-9;safeCol=0;
+  for(let r=-8;r<=0;r++){highRow=r;addRow(r);}
+  makePlayer();
+  player.position.set(0,0.2,0);pModel.rotation.set(0,0,0);pModel.scale.set(1,1,1);pModel.position.set(0,0,0);
+  ensureRows();
+  alive=true;playing=true;score=0;runCoins=0;hop=null;queued=null;ride=null;dieAnim=null;camZ=0;camX=0;creep=0;moved=false;milestone=0;newBest=false;
+  S.played++;persist();hud();
+}
+function rowAt(z){return rows[Math.round(-z)];}
+
+function tryHop(dir){
+  if(!alive||!playing)return;
+  if(hop){queued=dir;return;}
+  const d={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}[dir];
+  if(!d)return;
+  const x0=player.position.x,z0=player.position.z;
+  const tz=Math.round(z0)+d[1];
+  const tr=rows[Math.round(-tz)];
+  let tx=x0+d[0];
+  if(!tr||tr.t!=="river")tx=Math.round(tx);
+  if(tx<MINX-0.01||tx>MAXX+0.01){bump(dir);return;}
+  if(tr&&tr.t==="grass"&&tr.trees[Math.round(tx)]){bump(dir);return;}
+  if(Math.round(-tz)<lowRow+2){bump(dir);return;}
+  pModel.rotation.y={up:0,down:Math.PI,left:Math.PI/2,right:-Math.PI/2}[dir];
+  hop={x0:x0,z0:z0,x1:tx,z1:tz,t:0,dur:0.13};
+  ride=null;moved=true;
+  A3.sfx("tick");
+}
+function bump(dir){pModel.rotation.y={up:0,down:Math.PI,left:Math.PI/2,right:-Math.PI/2}[dir];pModel.scale.set(1.15,0.8,1.15);}
+
+function land(){
+  const r=Math.round(-player.position.z),row=rows[r];
+  player.position.y=0.2;pModel.scale.set(1.25,0.75,1.25);
+  if(!row)return;
+  if(row.t==="river"){
+    const x=player.position.x;let best=null;
+    for(const l of row.logs){const over=Math.abs(x-l.x);if(over<=l.len/2+0.18&&(!best||over<Math.abs(x-best.x)))best=l;}
+    if(best){
+      ride=best;
+      if(best.pad){player.position.x=best.x;}
+      else player.position.x=A3.clamp(x,best.x-best.len/2+0.3,best.x+best.len/2-0.3);
+      best.dip=0.12;A3.sfx("pop");
+    }else{die("splash");return;}
+  }else{
+    player.position.x=Math.round(player.position.x);
+  }
+  const cx=Math.round(player.position.x);
+  if(row.coins[cx]){collectCoin(row,cx);}
+  if(r>score){
+    score=r;
+    if(!newBest&&score>S.best&&S.best>0){newBest=true;A3.toast("New best!");A3.sfx("win");}
+    if(score>=50&&Math.floor(score/50)>milestone){milestone=Math.floor(score/50);A3.toast(score+" hops! Amazing!");A3.win(Math.min(5,milestone),"reaching row "+score+" in Hop Across");}
+    hud();
+  }
+}
+function collectCoin(row,cx){
+  const m=row.coins[cx];delete row.coins[cx];
+  const p=new THREE.Vector3();m.getWorldPosition(p);row.g.remove(m);
+  parts.burst(p,"#ffd23f",10,3,0.5);A3.sfx("coin");runCoins++;S.coins++;persist();hud();
+}
+
+/* ---------- death ---------- */
+const cloud=new THREE.Group();
+[[0,0,0,0.8],[0.7,0.1,0.1,0.6],[-0.7,0.05,0.1,0.65],[0.2,0.45,0,0.6],[-0.3,0.4,0.2,0.5]].forEach(a=>{const b=new THREE.Mesh(new THREE.SphereGeometry(a[3],14,10),A3.mat("#ffffff",{rough:0.9}));b.position.set(a[0],a[1],a[2]);cloud.add(b);});
+[-1,1].forEach(s=>{const e=bx(cloud,0.12,0.18,0.05,"#3a3a55",s*0.25,0.15,0.78);});
+bx(cloud,0.3,0.06,0.05,"#3a3a55",0,-0.12,0.79);
+cloud.visible=false;scene.add(cloud);
+
+function die(kind,extra){
+  if(!alive)return;
+  alive=false;hop=null;queued=null;ride=null;
+  dieAnim={kind:kind,t:0,extra:extra||0};
+  const p=player.position.clone();
+  if(kind==="squash"){A3.sfx("hit");pModel.scale.set(1.5,0.12,1.5);player.position.y=0.21;parts.burst(p.clone().setY(0.4),"#ffffff",10,3,0.5);}
+  else if(kind==="splash"){A3.sfx("whoosh");parts.burst(p.clone().setY(0.2),"#bfe6ff",18,4,0.7);parts.burst(p.clone().setY(0.2),"#3fa9f5",10,3,0.6);}
+  else if(kind==="train"){A3.sfx("boom");parts.burst(p.clone().setY(0.6),"#ffffff",14,6,0.6);}
+  else if(kind==="slow"){A3.sfx("whoosh");cloud.visible=true;cloud.position.set(p.x+2,4,p.z+8);}
+  else if(kind==="swept"){A3.sfx("whoosh");parts.burst(p.clone().setY(0.2),"#bfe6ff",14,4,0.6);}
+  setTimeout(gameOver,kind==="slow"?1500:1100);
+}
+function gameOver(){
+  playing=false;
+  const titles={squash:"Squashed!",splash:"Splash!",train:"Choo choo!",slow:"Too slow!",swept:"Washed away!"};
+  $("oTitle").textContent=titles[dieAnim?dieAnim.kind:"squash"];
+  const isBest=score>S.best;
+  if(isBest){S.best=score;A3.best(S.best);if(score>=15)A3.win(score>=100?4:score>=40?3:2,"a new Hop Across best");}
+  S.totalRows+=score;persist();
+  A3.sfx(isBest?"win":"lose");
+  $("oText").textContent=isBest?"A new best score! You hopped "+score+" rows.":"You hopped "+score+" rows. Best is "+S.best+".";
+  $("oStats").innerHTML="<div>Score <b>"+score+"</b></div><div>Coins this run <b>"+runCoins+"</b></div><div>Coins <b>"+S.coins+"</b></div>";
+  hud();A3.show("ovOver");
+}
+
+/* ---------- loop ---------- */
+const tgt=new THREE.Vector3();
+A3.loop((dt,t)=>{
+  // moving things
+  for(const k in rows){
+    const row=rows[k];
+    if(row.t==="road"){for(const c of row.cars){c.x+=row.speed*row.dir*dt;if(c.x>15)c.x-=30;if(c.x<-15)c.x+=30;c.g.position.x=c.x;}}
+    else if(row.t==="river"){for(const l of row.logs){
+      if(l.speed){l.x+=l.speed*dt;const lim=14+l.len/2;if(l.x>lim)l.x-=lim*2;if(l.x<-lim)l.x+=lim*2;l.g.position.x=l.x;}
+      l.dip=Math.max(0,(l.dip||0)-dt*0.6);l.g.position.y=Math.sin(t*2+(l.bob||l.x))*0.03-(l.dip||0);
+    }}
+    else if(row.t==="rail"){
+      const tr=row.train;tr.timer-=dt;
+      if(tr.state==="wait"&&tr.timer<=0){tr.state="warn";tr.timer=1.3;if(Math.abs(row.r+player.position.z)<9&&playing)A3.sfx("tick");}
+      else if(tr.state==="warn"){
+        const on=Math.floor(tr.timer*6)%2===0;tr.lamps[0].material=on?tr.lampOn:tr.lampOff;tr.lamps[1].material=on?tr.lampOff:tr.lampOn;
+        if(tr.timer<=0){tr.state="go";tr.x=-20*tr.dir;tr.g.visible=true;if(Math.abs(row.r+player.position.z)<10&&playing)A3.sfx("whoosh");}
+      }else if(tr.state==="go"){
+        tr.x+=tr.speed*tr.dir*dt;tr.g.position.x=tr.x;
+        const on=Math.floor(t*6)%2===0;tr.lamps[0].material=on?tr.lampOn:tr.lampOff;tr.lamps[1].material=on?tr.lampOff:tr.lampOn;
+        if(Math.abs(tr.x)>36){tr.state="wait";tr.g.visible=false;tr.timer=A3.rand(3,7);tr.lamps.forEach(l=>l.material=tr.lampOff);}
+      }
+    }
+    for(const cx in row.coins){row.coins[cx].rotation.y=t*3;row.coins[cx].position.y=0.55+Math.sin(t*4+(+cx))*0.06;}
+  }
+
+  if(playing&&alive){
+    if(hop){
+      hop.t+=dt;const k=Math.min(1,hop.t/hop.dur);
+      player.position.x=A3.lerp(hop.x0,hop.x1,k);player.position.z=A3.lerp(hop.z0,hop.z1,k);
+      player.position.y=0.2+Math.sin(k*Math.PI)*0.45;
+      if(k>=1){hop=null;land();if(alive&&queued){const q=queued;queued=null;tryHop(q);}}
+    }else if(ride){
+      player.position.x+=ride.speed*dt;
+      if(player.position.x<MINX-0.9||player.position.x>MAXX+0.9)die("swept");
+    }
+    // collisions with cars and trains
+    if(alive){
+      const row=rowAt(player.position.z),px=player.position.x;
+      if(row&&row.t==="road"&&player.position.y<0.5){for(const c of row.cars){if(Math.abs(c.x-px)<c.half+0.28){die("squash");break;}}}
+      if(row&&row.t==="rail"&&row.train.state==="go"){const tr=row.train;const front=tr.x+1.6*tr.dir,back=tr.x-(4*3.1+1.5)*tr.dir;if(px>Math.min(front,back)-0.3&&px<Math.max(front,back)+0.3)die("train",tr.dir);}
+    }
+    // camera creep
+    if(moved){creep=0.32+Math.min(0.9,score/180);camZ-=creep*dt;}
+    const pz=player.position.z;
+    if(pz<camZ)camZ+=(pz-camZ)*Math.min(1,dt*3);
+    if(alive&&pz>camZ+3.6)die("slow");
+    ensureRows();
+  }
+  // squash bounce back
+  if(alive){pModel.scale.x+=(1-pModel.scale.x)*Math.min(1,dt*14);pModel.scale.y+=(1-pModel.scale.y)*Math.min(1,dt*14);pModel.scale.z=pModel.scale.x;}
+  // death animations
+  if(dieAnim){
+    dieAnim.t+=dt;const d=dieAnim;
+    if(d.kind==="splash"||d.kind==="swept"){player.position.y=Math.max(-1,player.position.y-dt*2.5);if(d.kind==="swept"&&ride)player.position.x+=ride.speed*dt;}
+    else if(d.kind==="train"){player.position.x+=d.extra*dt*18;player.position.y+=dt*(4-d.t*8);pModel.rotation.z+=dt*14;pModel.rotation.x+=dt*9;}
+    else if(d.kind==="slow"){
+      const k=Math.min(1,d.t/0.6);
+      if(d.t<0.6){cloud.position.lerp(tgt.set(player.position.x,1.3,player.position.z),k*0.25);}
+      else{cloud.position.y+=dt*5;cloud.position.z+=dt*3;player.position.copy(cloud.position).add(new THREE.Vector3(0,-0.9,0));pModel.rotation.y+=dt*8;}
+    }
+  }
+  if(shadowBlob){shadowBlob.position.x=player.position.x;shadowBlob.position.z=player.position.z;shadowBlob.visible=player.position.y>-0.2&&(!dieAnim||dieAnim.kind==="squash");const s=1-Math.min(0.5,(player.position.y-0.2));shadowBlob.scale.setScalar(s);}
+
+  // camera
+  const fx=A3.clamp(player?player.position.x:0,-2.5,2.5);
+  camX+=(fx-camX)*Math.min(1,dt*2.5);
+  const cz=playing?Math.min(camZ,(player?player.position.z:0)):camZ;
+  camera.position.set(camX+3.4,12.5,cz+8.6);
+  camera.lookAt(camX+0.2,0,cz-2.4);
+  under.position.z=cz-10;V.lights.sun.position.set(camX+6,16,cz+6);V.lights.sun.target.position.set(camX,0,cz-3);
+  if(!playing&&!dieAnim&&pModel){pModel.rotation.y=Math.sin(t*1.2)*0.6;player.position.y=0.2+Math.abs(Math.sin(t*3))*0.25;}
+  parts.update(dt);
+  V.render();
+});
+
+/* ---------- input ---------- */
+const KEYMAP={arrowup:"up",w:"up"," ":"up",arrowdown:"down",s:"down",arrowleft:"left",a:"left",arrowright:"right",d:"right"};
+window.addEventListener("keydown",e=>{
+  const k=e.key.toLowerCase();if(!KEYMAP[k])return;
+  if(e.target&&e.target.tagName==="INPUT")return;
+  e.preventDefault();if(e.repeat)return;
+  if(!playing&&!$("ovTitle").hidden&&(k===" "||k==="arrowup")){A3.sfx("click");newGame();return;}
+  tryHop(KEYMAP[k]);
+});
+A3.swipe(renderer.domElement,d=>{tryHop(d==="tap"?"up":d);});
+
+/* ---------- menus ---------- */
+function persist(){A3.store(SAVE,S);}
+function hud(){
+  $("hScore").textContent=score;$("hBest").textContent=S.best;$("hCoins").textContent=A3.fmt(S.coins);
+  $("big").firstChild.nodeValue=score;$("bigC").textContent="● "+A3.fmt(S.coins);
+}
+function titleStats(){$("tStats").innerHTML="<div>Best <b>"+S.best+"</b></div><div>Coins <b>"+A3.fmt(S.coins)+"</b></div><div>Critters <b>"+S.own.length+"/"+CRITS.length+"</b></div>";}
+function drawShop(){
+  $("shopTxt").textContent="You have "+A3.fmt(S.coins)+" coins. Tap a critter to pick it or buy it.";
+  $("crits").innerHTML=CRITS.map(c=>{
+    const own=S.own.indexOf(c.id)>=0;
+    return '<button class="crit'+(S.pick===c.id?" on":"")+(own?"":" locked")+'" data-id="'+c.id+'"><span class="sw" style="background:'+c.col+'">'+c.emo+'</span>'+c.name+'<small>'+(S.pick===c.id?"Playing":own?"Pick":"● "+c.price)+'</small></button>';
+  }).join("");
+}
+$("crits").addEventListener("click",e=>{
+  const b=e.target.closest(".crit");if(!b)return;const c=CRITS.find(x=>x.id===b.dataset.id);
+  if(S.own.indexOf(c.id)<0){
+    if(S.coins<c.price){A3.sfx("tick");A3.toast("You need "+(c.price-S.coins)+" more coins");return;}
+    S.coins-=c.price;S.own.push(c.id);A3.sfx("win");A3.toast(c.name+" unlocked!");
+  }else A3.sfx("click");
+  S.pick=c.id;persist();drawShop();hud();showcase();
+});
+function showcase(){
+  if(playing)return;
+  if(player){player.remove(pModel);pModel=buildCrit(S.pick);player.add(pModel);}
+}
+function openShop(){A3.hide("ovTitle");A3.hide("ovOver");drawShop();A3.show("ovShop");}
+$("bPlay").onclick=()=>{A3.sfx("click");newGame();};
+$("bShop").onclick=()=>{A3.sfx("click");openShop();};
+$("oShop").onclick=()=>{A3.sfx("click");openShop();};
+$("shopPlay").onclick=()=>{A3.sfx("click");newGame();};
+$("shopBack").onclick=()=>{A3.sfx("click");A3.hide("ovShop");titleStats();A3.show("ovTitle");};
+$("oAgain").onclick=()=>{A3.sfx("click");newGame();};
+$("bHome").onclick=()=>{A3.sfx("click");if(playing&&alive){playing=false;}A3.hide("ovOver");A3.hide("ovShop");titleStats();A3.show("ovTitle");};
+A3.fullscreen($("bFs"),stage);
+$("bMute").onclick=()=>{A3.mute(!A3.mute());$("bMute").textContent=A3.mute()?"🔇":"🔊";};$("bMute").textContent=A3.mute()?"🔇":"🔊";
+
+/* ---------- start: a little scene behind the title ---------- */
+(function idle(){
+  lowRow=-8;highRow=-9;
+  for(let r=-8;r<=0;r++){highRow=r;addRow(r);}
+  makePlayer();player.position.set(0,0.2,0);
+  while(highRow<22){highRow++;addRow(highRow);}
+})();
+titleStats();hud();
+if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"hop-across",dir:"desc",unit:"rows",title:"Hop Across: furthest hop"});
+})();
+</script>
+</body>
+</html>

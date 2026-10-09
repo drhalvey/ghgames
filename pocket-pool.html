@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Pocket Pool</title>
+<meta property="og:title" content="Pocket Pool · GH Games">
+<meta property="og:description" content="3D 8-ball pool with real ball physics. Aim with the guide line, add spin, and beat the computer on 3 levels or a friend on one device. Win coins for new cues and cloths.">
+<meta property="og:image" content="https://ghgames.au/og/pocket-pool.png">
+<meta property="og:url" content="https://ghgames.au/pocket-pool.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f1a33">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Games">
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="pocket-pool"></script>
+<script src="phatcoin.js" data-game="pocket-pool" data-pill="none"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<link rel="stylesheet" href="arcade3d.css">
+<style>
+.btn[hidden]{display:none}
+.toast{top:56px}
+.ingame{right:10px;flex-wrap:wrap}
+.players{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:14;display:flex;gap:8px;pointer-events:none}
+.pl{background:rgba(10,16,36,.72);border:2px solid transparent;border-radius:12px;padding:4px 10px;font-weight:900;font-size:13px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.pl.on{border-color:var(--gold);box-shadow:0 0 12px rgba(255,201,60,.5)}
+.pl .bs{display:flex;gap:2px}
+.pl i{display:inline-block;width:13px;height:13px;border-radius:50%;border:1px solid rgba(255,255,255,.5)}
+.pl i.gone{opacity:.18}
+.pl i.st{background-image:linear-gradient(#fff 0 28%,transparent 28% 72%,#fff 72%) !important}
+@media (max-width:980px){.players{top:54px}.toast{top:96px}.power{top:100px}}
+.power{position:absolute;right:12px;top:58px;bottom:58px;width:56px;z-index:15;border-radius:28px;background:rgba(0,0,0,.42);border:2px solid rgba(255,255,255,.35);touch-action:none;overflow:hidden}
+.power .fill{position:absolute;left:0;right:0;top:0;height:0;background:linear-gradient(#5fd36a,#ffd23f 55%,#ff5d5d)}
+.power .lab{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-weight:900;font-size:11px;color:#fff;pointer-events:none;line-height:1.1}
+.power .knob{position:absolute;left:6px;right:6px;height:30px;top:4px;border-radius:15px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.4);pointer-events:none}
+.spin{position:absolute;left:12px;bottom:12px;z-index:15;width:74px;height:74px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#d9dde6 70%,#aab0bd);border:3px solid rgba(255,255,255,.6);touch-action:none;cursor:pointer}
+.spin .dot{position:absolute;width:16px;height:16px;border-radius:50%;background:#e63946;border:2px solid #fff;transform:translate(-50%,-50%);left:50%;top:50%;pointer-events:none}
+.spin .lab{position:absolute;top:-18px;left:0;right:0;text-align:center;font-size:11px;font-weight:900;color:#fff;text-shadow:0 1px 2px #000}
+.msg{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:14;background:rgba(10,16,36,.78);border:2px solid var(--line);border-radius:14px;padding:6px 14px;font-weight:900;font-size:clamp(13px,2vw,16px);pointer-events:none;white-space:nowrap;max-width:70%;overflow:hidden;text-overflow:ellipsis}
+.msg[hidden],.power[hidden],.spin[hidden],.players[hidden]{display:none}
+.item button{font-family:var(--body);font-weight:900;border:none;border-radius:10px;padding:5px 12px;cursor:pointer;background:var(--gold);color:#3b2200}
+.item button.on{background:var(--green);color:#0d3312}
+.item button:disabled{background:#56607d;color:#c8d0ea;cursor:default}
+.sw{display:inline-block;width:26px;height:16px;border-radius:5px;vertical-align:middle;margin-right:8px;border:2px solid rgba(255,255,255,.5)}
+.cuesw{display:inline-block;width:42px;height:8px;border-radius:4px;vertical-align:middle;margin-right:8px}
+.coins{color:var(--gold);font-weight:900}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="links"><a class="home" href="index.html">← GH Games</a></div>
+  <div class="top">
+    <h1>Pocket Pool<small>3D</small></h1>
+    <div class="hud">
+      <div class="chip"><span>Mode</span><b id="hMode">Computer</b></div>
+      <div class="chip"><span>Coins</span><b id="hCoins">0</b></div>
+      <div class="chip"><span>Hard wins</span><b id="hHard">0</b></div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="ingame"><button id="bView">👁 View</button><button id="bNew">Menu</button><button id="bFs">⛶</button><button id="bMute">🔊</button></div>
+    <div class="players" id="players" hidden><div class="pl" id="p0"></div><div class="pl" id="p1"></div></div>
+    <div class="toast" id="toast"></div>
+    <div class="msg" id="msg" hidden></div>
+    <div class="power" id="power" hidden><div class="fill" id="pFill"></div><div class="knob" id="pKnob"></div><div class="lab">PULL<br>DOWN</div></div>
+    <div class="spin" id="spin" hidden><div class="lab">SPIN</div><div class="dot" id="spinDot"></div></div>
+
+    <div class="ov" id="ovTitle">
+      <h2>POCKET POOL</h2>
+      <p>Pot all your balls (spots or stripes), then sink the black 8 to win. Drag to aim, then pull the power bar down and let go to shoot.</p>
+      <div class="seg" id="sMode"><button data-v="cpu" class="on">vs Computer</button><button data-v="2p">2 players</button></div>
+      <div class="seg" id="sLevel"><button data-v="1">Easy</button><button data-v="2" class="on">Medium</button><button data-v="3">Hard</button></div>
+      <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bCont" hidden>Continue</button><button class="btn pink small" id="bShop">Cue and cloth shop</button></div>
+      <div class="stats" id="tStats"></div>
+    </div>
+
+    <div class="ov" id="ovShop" hidden>
+      <h2>SHOP</h2>
+      <p>You have <span class="coins" id="shopCoins">0</span> coins. Win games to earn more.</p>
+      <div class="shopbox"><h3>Cues</h3><div id="lCues"></div></div>
+      <div class="shopbox"><h3>Cloths</h3><div id="lCloths"></div></div>
+      <button class="btn green" id="bShopBack">Done</button>
+    </div>
+
+    <div class="ov" id="ovOver" hidden>
+      <h2 id="oTitle">You win!</h2>
+      <p id="oText"></p>
+      <div class="stats" id="oStats"></div>
+      <div class="row"><button class="btn green" id="oAgain">Play again</button><button class="btn pink" id="oMenu">Menu</button></div>
+    </div>
+  </div>
+
+  <p class="help">Drag on the table to aim (or tap a ball to aim straight at it). Pull the power bar on the right down and let go to shoot, or drag backwards from the white ball like pulling a cue. The guide line shows what your white ball will hit first. Tap the spin ball for top spin, back spin or side. Arrow keys aim and Space shoots on a keyboard. Fouls (potting the white, hitting the wrong ball first, or nothing touching a cushion) give your opponent ball in hand: drag the white ball to place it. Win games for coins to buy new cues and cloths.</p>
+  <div id="lb"></div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="arcade3d.js"></script>
+<script>
+/*PHYS-START*/
+const R=0.25,HL=10,HW=5,CM=0.8,SM=0.58;
+const SEGS=[],POCKETS=[];
+(function(){
+  const seg=(ax,az,bx,bz)=>{const dx=bx-ax,dz=bz-az,l2=dx*dx+dz*dz;SEGS.push({ax,az,bx,bz,dx,dz,l2});};
+  for(const sz of [-1,1]){const z=sz*HW;
+    seg(-HL+CM,z,-SM,z);seg(SM,z,HL-CM,z);
+    seg(-HL+CM,z,-HL+CM-0.36,z+sz*0.46);seg(HL-CM,z,HL-CM+0.36,z+sz*0.46);
+    seg(-SM,z,-SM+0.1,z+sz*0.5);seg(SM,z,SM-0.1,z+sz*0.5);
+  }
+  for(const sx of [-1,1]){const x=sx*HL;
+    seg(x,-HW+CM,x,HW-CM);
+    seg(x,-HW+CM,x+sx*0.46,-HW+CM-0.36);seg(x,HW-CM,x+sx*0.46,HW-CM+0.36);
+  }
+  for(const sx of [-1,1])for(const sz of [-1,1])POCKETS.push({x:sx*(HL+0.2),z:sz*(HW+0.2),r:0.52,ax:sx*(HL-0.32),az:sz*(HW-0.32),corner:true});
+  for(const sz of [-1,1])POCKETS.push({x:0,z:sz*(HW+0.42),r:0.5,ax:0,az:sz*(HW-0.05),corner:false});
+})();
+const FA=1.0,FB=0.16,E_BALL=0.95,E_RAIL=0.76,MAXV=30,SUB=1/500;
+/* balls: array of {n,x,z,vx,vz,on} ; ev collects events */
+function physStep(B,dt,ev){
+  const n=B.length;
+  for(let i=0;i<n;i++){const b=B[i];if(!b.on)continue;
+    const s=Math.hypot(b.vx,b.vz);if(s===0)continue;
+    const ns=Math.max(0,s-(FA+FB*s)*dt);
+    if(ns<0.02){b.vx=b.vz=0;}else{const k=ns/s;b.vx*=k;b.vz*=k;}
+    b.x+=b.vx*dt;b.z+=b.vz*dt;
+  }
+  // ball-ball
+  for(let i=0;i<n;i++){const a=B[i];if(!a.on)continue;
+    for(let j=i+1;j<n;j++){const b=B[j];if(!b.on)continue;
+      const dx=b.x-a.x,dz=b.z-a.z,d2=dx*dx+dz*dz;if(d2>=4*R*R||d2===0)continue;
+      const d=Math.sqrt(d2),nx=dx/d,nz=dz/d,rel=(a.vx-b.vx)*nx+(a.vz-b.vz)*nz;
+      const ov=(2*R-d)/2;a.x-=nx*ov;a.z-=nz*ov;b.x+=nx*ov;b.z+=nz*ov;
+      if(rel<=0)continue;
+      const imp=rel*(1+E_BALL)/2;
+      const cueA=a.n===0,cueB=b.n===0;
+      let pre=null;if(ev&&(cueA||cueB)&&ev.first<0){const c=cueA?a:b;pre={vx:c.vx,vz:c.vz};}
+      a.vx-=imp*nx;a.vz-=imp*nz;b.vx+=imp*nx;b.vz+=imp*nz;
+      if(ev){
+        if(cueA||cueB){if(ev.first<0){ev.first=cueA?b.n:a.n;
+          // follow / draw from top spin
+          if(ev.spinY&&pre){const c=cueA?a:b,s=Math.hypot(pre.vx,pre.vz);if(s>0){c.vx+=pre.vx/s*ev.spinY*0.6*rel*0.9;c.vz+=pre.vz/s*ev.spinY*0.6*rel*0.9;}}}}
+        ev.hits.push(rel);
+      }
+    }
+  }
+  // cushions
+  for(let i=0;i<n;i++){const b=B[i];if(!b.on)continue;
+    if(Math.abs(b.x)<HL-R-0.01&&Math.abs(b.z)<HW-R-0.01)continue;
+    for(let k=0;k<SEGS.length;k++){const s=SEGS[k];
+      let t=((b.x-s.ax)*s.dx+(b.z-s.az)*s.dz)/s.l2;t=t<0?0:t>1?1:t;
+      const cx=s.ax+s.dx*t,cz=s.az+s.dz*t,dx=b.x-cx,dz=b.z-cz,d2=dx*dx+dz*dz;
+      if(d2>=R*R||d2===0)continue;
+      const d=Math.sqrt(d2),nx=dx/d,nz=dz/d;b.x=cx+nx*R;b.z=cz+nz*R;
+      const vn=b.vx*nx+b.vz*nz;if(vn>=0)continue;
+      const tx=-nz,tz=nx;let vt=b.vx*tx+b.vz*tz;vt*=0.96;
+      if(b.n===0&&ev&&ev.spinX){const sp=Math.hypot(b.vx,b.vz)||1,rx=-b.vz/sp,rz=b.vx/sp;vt+=ev.spinX*Math.abs(vn)*0.35*((rx*tx+rz*tz)>0?1:-1);ev.spinX*=0.5;}
+      const nvn=-vn*E_RAIL;b.vx=nx*nvn+tx*vt;b.vz=nz*nvn+tz*vt;
+      if(ev){if(ev.first>=0)ev.rail=true;ev.cush.push(-vn);}
+    }
+    // pockets
+    for(let k=0;k<POCKETS.length;k++){const p=POCKETS[k];const dx=b.x-p.x,dz=b.z-p.z;
+      if(dx*dx+dz*dz<p.r*p.r){b.on=false;b.pk=k;if(ev)ev.potted.push(b.n);break;}}
+    if(b.on&&(Math.abs(b.x)>HL+0.45||Math.abs(b.z)>HW+0.45)){ // fell through a jaw gap: nearest pocket
+      let bk=0,bd=1e9;POCKETS.forEach((p,k)=>{const d=Math.hypot(b.x-p.x,b.z-p.z);if(d<bd){bd=d;bk=k;}});b.on=false;b.pk=bk;if(ev)ev.potted.push(b.n);}
+  }
+}
+function moving(B){for(const b of B)if(b.on&&(b.vx||b.vz))return true;return false;}
+function newEv(spinX,spinY){return{first:-1,rail:false,potted:[],hits:[],cush:[],spinX:spinX||0,spinY:spinY||0};}
+function simulate(B0,ang,speed,spinX,spinY,maxT){
+  const B=B0.map(b=>({n:b.n,x:b.x,z:b.z,vx:0,vz:0,on:b.on}));
+  const cue=B.find(b=>b.n===0);cue.vx=Math.cos(ang)*speed;cue.vz=Math.sin(ang)*speed;
+  const ev=newEv(spinX,spinY);let t=0;const dt=1/240;
+  while(t<(maxT||12)&&moving(B)){physStep(B,dt,ev);t+=dt;}
+  ev.hits=null;ev.cush=null;ev.balls=B;return ev;
+}
+/*PHYS-END*/
+
+</script>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const SAVE="pocketpool-save";
+const S=A3.save(SAVE,{mode:"cpu",level:2,coins:0,hardWins:0,wins:{1:0,2:0,3:0},losses:0,played:0,pots:0,cue:0,cloth:0,ownCue:[0],ownCloth:[0],game:null});
+const CUES=[
+  {n:"Classic Maple",a:"#e9c58f",b:"#5a3214",c:0},{n:"Ocean Blue",a:"#9fd8ff",b:"#1f4fd8",c:60},{n:"Candy Stripe",a:"#ffffff",b:"#ff4f8b",c:120,stripe:1},
+  {n:"Gold Star",a:"#ffe27a",b:"#b8860b",c:200},{n:"Lava",a:"#ffb347",b:"#c2212d",c:300,stripe:1},{n:"Galaxy",a:"#c7a6ff",b:"#2b145e",c:450,stripe:1},{n:"Rainbow",a:"#ff6fa3",b:"#4aa8ff",c:700,rainbow:1}];
+const CLOTHS=[
+  {n:"Tournament Green",c:"#1b8a4c",cost:0},{n:"Pro Blue",c:"#1f6fc0",cost:80},{n:"Royal Red",c:"#b0283a",cost:150},
+  {n:"Purple Haze",c:"#6b3fb0",cost:220},{n:"Ocean Teal",c:"#138f8a",cost:300},{n:"Pink Party",c:"#e0559a",cost:400},{n:"Midnight",c:"#26304a",cost:550}];
+const BCOL={1:"#f2c200",2:"#1d4fd6",3:"#e0262a",4:"#6a2fb0",5:"#ff7a00",6:"#0f8a3c",7:"#8a1d22",8:"#111216"};
+const colOf=n=>n===0?"#fbf8ef":BCOL[n>8?n-8:n];
+const LVLN={1:"Easy",2:"Medium",3:"Hard"};
+
+const stage=$("stage");
+const V=A3.view(stage,{fov:40,sky:["#1d2850","#0b1022"],shadowSize:13});
+if(!V)return;
+const {scene,camera,renderer}=V;
+const parts=A3.particles(scene);
+V.lights.sun.position.set(-4,20,6);V.lights.sun.intensity=0.7;V.lights.hemi.intensity=0.55;
+V.lights.sun.shadow.mapSize.set(2048,2048);
+const lamp=[];for(const x of [-5.5,0,5.5]){const l=new THREE.PointLight(0xfff1d6,0.45,22,2);l.position.set(x,7,0);scene.add(l);lamp.push(l);}
+
+/* ---------- table ---------- */
+const tableG=new THREE.Group();scene.add(tableG);
+let clothMat=null,cushMat=null;
+function shade(hex,amt){let n=parseInt(hex.slice(1),16),r=A3.clamp((n>>16)+amt,0,255),g=A3.clamp(((n>>8)&255)+amt,0,255),b=A3.clamp((n&255)+amt,0,255);return "#"+((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1);}
+function clothTex(c){
+  return A3.canvasTex(1024,512,(g,w,h)=>{g.fillStyle=c;g.fillRect(0,0,w,h);const r=A3.seeded(9);
+    for(let k=0;k<26000;k++){g.fillStyle=r()<0.5?"rgba(255,255,255,.035)":"rgba(0,0,0,.05)";g.fillRect(r()*w,r()*h,2,2);}
+    const rg=g.createRadialGradient(w/2,h/2,60,w/2,h/2,w*0.6);rg.addColorStop(0,"rgba(255,255,255,.10)");rg.addColorStop(1,"rgba(0,0,0,.18)");g.fillStyle=rg;g.fillRect(0,0,w,h);
+    // head string and spots (cloth spans x -10.5..10.5)
+    const X=x=>(x+HL+0.5)/(2*HL+1)*w,Z=z=>(z+HW+0.5)/(2*HW+1)*h;
+    g.strokeStyle="rgba(255,255,255,.22)";g.lineWidth=2;g.beginPath();g.moveTo(X(-HL/2),Z(-HW));g.lineTo(X(-HL/2),Z(HW));g.stroke();
+    g.fillStyle="rgba(255,255,255,.4)";for(const x of [-HL/2,HL/2]){g.beginPath();g.arc(X(x),Z(0),4,0,7);g.fill();}
+  });
+}
+function buildTable(){
+  while(tableG.children.length)tableG.remove(tableG.children[0]);
+  const cc=(CLOTHS[S.cloth]||CLOTHS[0]).c;
+  clothMat=new THREE.MeshStandardMaterial({map:clothTex(cc),roughness:.95});
+  cushMat=A3.mat(shade(cc,-14),{rough:.85});
+  const cloth=new THREE.Mesh(new THREE.PlaneGeometry(2*HL+1,2*HW+1),clothMat);cloth.rotation.x=-Math.PI/2;cloth.receiveShadow=true;tableG.add(cloth);
+  // cushions follow the physics segments
+  for(const s of SEGS){const len=Math.sqrt(s.l2),mx=(s.ax+s.bx)/2,mz=(s.az+s.bz)/2;
+    let nx=-s.dz/len,nz=s.dx/len;if(nx*mx+nz*mz<0){nx=-nx;nz=-nz;}
+    const box=new THREE.Mesh(new THREE.BoxGeometry(len+0.02,0.3,0.32),cushMat);box.castShadow=true;box.receiveShadow=true;
+    box.position.set(mx+nx*0.16,0.15,mz+nz*0.16);box.rotation.y=-Math.atan2(s.dz,s.dx);tableG.add(box);}
+  // wooden rails
+  const wood=A3.mat("#6b3a1c",{rough:.45}),woodD=A3.mat("#4a2610",{rough:.5});
+  const W=2*HL+2.6,D=2*HW+2.6;
+  const addB=(w,h,d,x,y,z,m)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.set(x,y,z);b.castShadow=true;b.receiveShadow=true;tableG.add(b);return b;};
+  for(const sz of [-1,1])addB(W,0.42,1.05,0,0.12,sz*(HW+0.82),wood);
+  for(const sx of [-1,1])addB(1.05,0.42,D-0.02,sx*(HL+0.82),0.12,0,wood);
+  addB(W,1.4,D,0,-0.82,0,woodD);
+  for(const sx of [-1,1])for(const sz of [-1,1]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.35,4,12),woodD);leg.position.set(sx*(HL-0.5),-3.2,sz*(HW-0.5));tableG.add(leg);}
+  // diamonds
+  const dm=A3.mat("#f2e6c8",{rough:.3});const dg=new THREE.CircleGeometry(0.09,4);dg.rotateX(-Math.PI/2);
+  for(let i=1;i<8;i++){if(i===4)continue;for(const sz of [-1,1]){const d=new THREE.Mesh(dg,dm);d.position.set(-HL+i*HL/4,0.335,sz*(HW+0.82));tableG.add(d);}}
+  for(let i=1;i<4;i++)for(const sx of [-1,1]){const d=new THREE.Mesh(dg,dm);d.position.set(sx*(HL+0.82),0.335,-HW+i*HW/2);tableG.add(d);}
+  // pockets: dark holes cut into rails and cloth, with a leather lip
+  const hole=new THREE.MeshBasicMaterial({color:0x050507});const lip=A3.mat("#1c1c22",{rough:.4,metal:.2});
+  for(const p of POCKETS){
+    const hg=new THREE.CircleGeometry(p.r+0.02,28);hg.rotateX(-Math.PI/2);
+    for(const y of [0.004,0.338]){const h=new THREE.Mesh(hg,hole);h.position.set(p.x,y,p.z);tableG.add(h);}
+    const t=new THREE.Mesh(new THREE.TorusGeometry(p.r+0.05,0.06,8,28),lip);t.rotation.x=Math.PI/2;t.position.set(p.x,0.34,p.z);t.scale.z=0.5;tableG.add(t);}
+  const tray=A3.rbox(2*HL-0.4,0.25,0.75,0.2,"#4a2610",{rough:.5});tray.position.set(-0.2,0.2,HW+1.7);tableG.add(tray);
+  const floor=A3.ground(120,"#3a2a4a","#33253f",60);floor.position.y=-5.2;tableG.add(floor);
+}
+
+/* ---------- balls ---------- */
+const ballGeo=new THREE.SphereGeometry(R,32,20);
+function ballTex(n){
+  return A3.canvasTex(512,256,(g,w,h)=>{
+    const c=colOf(n),stripe=n>8;
+    g.fillStyle=stripe||n===0?"#fbf8ef":c;g.fillRect(0,0,w,h);
+    if(stripe){g.fillStyle=c;g.fillRect(0,h*0.28,w,h*0.44);}
+    if(n===0){g.fillStyle="#e63946";for(const u of [0.25,0.75]){g.beginPath();g.arc(u*w,h/2,9,0,7);g.fill();}return;}
+    for(const u of [0.25,0.75]){g.fillStyle="#fbf8ef";g.beginPath();g.arc(u*w,h/2,40,0,7);g.fill();
+      g.fillStyle="#15151a";g.font="900 "+(n>9?44:50)+"px Nunito, Arial Black, Arial";g.textAlign="center";g.textBaseline="middle";g.fillText(String(n),u*w,h/2+3);}
+  });
+}
+const balls=[];const meshes=[];
+for(let n=0;n<16;n++){
+  const m=new THREE.Mesh(ballGeo,new THREE.MeshStandardMaterial({map:ballTex(n),roughness:.18,metalness:0}));
+  m.castShadow=true;m.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);
+  scene.add(m);meshes.push(m);balls.push({n:n,x:0,z:0,vx:0,vz:0,on:true});
+}
+const ballShadowTex=A3.canvasTex(64,64,(g,w)=>{const rg=g.createRadialGradient(32,32,2,32,32,30);rg.addColorStop(0,"rgba(0,0,0,.5)");rg.addColorStop(1,"rgba(0,0,0,0)");g.fillStyle=rg;g.fillRect(0,0,64,64);});
+
+/* ---------- cue stick ---------- */
+const cueG=new THREE.Group(),cuePivot=new THREE.Group();scene.add(cueG);cueG.add(cuePivot);
+let cueMeshes=[];
+function buildCue(){
+  cueMeshes.forEach(m=>cuePivot.remove(m));cueMeshes=[];
+  const C=CUES[S.cue]||CUES[0];
+  const L=7.5;
+  const mk=(rt,rb,len,col,x)=>{const g=new THREE.CylinderGeometry(rt,rb,len,16);g.rotateZ(Math.PI/2);const m=new THREE.Mesh(g,col.isMaterial?col:A3.mat(col,{rough:.35}));m.position.x=x;m.castShadow=true;cuePivot.add(m);cueMeshes.push(m);return m;};
+  // geometry along x, tip at x=0, butt toward -x (cylinder after rotateZ: +y becomes -x, so rt is at -x)
+  mk(0.05,0.05,0.08,"#3d7bd9",-0.04);
+  mk(0.055,0.058,0.12,"#f4f1ea",-0.14);
+  let shaftMat;
+  if(C.rainbow){shaftMat=new THREE.MeshStandardMaterial({roughness:.35,map:A3.canvasTex(256,8,(g,w,h)=>{const cs=["#ff5d5d","#ff9f43","#ffd23f","#5fd36a","#4aa8ff","#9b6bff"];cs.forEach((c,i)=>{g.fillStyle=c;g.fillRect(i*w/6,0,w/6+1,h);});})});}
+  else if(C.stripe){shaftMat=new THREE.MeshStandardMaterial({roughness:.35,map:A3.canvasTex(256,32,(g,w,h)=>{g.fillStyle=C.a;g.fillRect(0,0,w,h);g.fillStyle=C.b;for(let i=0;i<w;i+=32){g.beginPath();g.moveTo(i,0);g.lineTo(i+16,0);g.lineTo(i+32,h);g.lineTo(i+16,h);g.fill();}})});}
+  else shaftMat=A3.mat(C.a,{rough:.35});
+  mk(0.12,0.06,L*0.6,shaftMat,-0.2-L*0.3);
+  mk(0.17,0.12,L*0.35,C.b,-0.2-L*0.6-L*0.175);
+  mk(0.175,0.175,0.12,"#222",-0.2-L*0.95-0.06);
+  cuePivot.rotation.z=-0.09;
+}
+
+/* ---------- aim guide ---------- */
+const guideMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.75,depthWrite:false});
+const guide=new THREE.Mesh(new THREE.PlaneGeometry(1,0.05),guideMat);guide.rotation.x=-Math.PI/2;scene.add(guide);
+const guide2=new THREE.Mesh(new THREE.PlaneGeometry(1,0.05),new THREE.MeshBasicMaterial({color:0xffe14d,transparent:true,opacity:.85,depthWrite:false}));guide2.rotation.x=-Math.PI/2;scene.add(guide2);
+const guide3=new THREE.Mesh(new THREE.PlaneGeometry(1,0.035),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.35,depthWrite:false}));guide3.rotation.x=-Math.PI/2;scene.add(guide3);
+const ghost=new THREE.Mesh(new THREE.RingGeometry(R*0.88,R,32),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.8,depthWrite:false,side:THREE.DoubleSide}));ghost.rotation.x=-Math.PI/2;scene.add(ghost);
+const badRing=new THREE.Mesh(new THREE.RingGeometry(R*1.15,R*1.45,32),new THREE.MeshBasicMaterial({color:0xff4040,transparent:true,opacity:.8,depthWrite:false}));badRing.rotation.x=-Math.PI/2;scene.add(badRing);
+const handRing=new THREE.Mesh(new THREE.RingGeometry(R*1.3,R*1.7,32),new THREE.MeshBasicMaterial({color:0x5fd36a,transparent:true,opacity:.8,depthWrite:false}));handRing.rotation.x=-Math.PI/2;scene.add(handRing);
+function lineSeg(m,x1,z1,x2,z2,y){const dx=x2-x1,dz=z2-z1,l=Math.hypot(dx,dz);m.visible=l>0.01;m.scale.x=Math.max(0.001,l);m.position.set((x1+x2)/2,y||0.012,(z1+z2)/2);m.rotation.z=-Math.atan2(-dz,dx);m.rotation.set(-Math.PI/2,0,Math.atan2(-dz,dx));}
+function castAim(cx,cz,ang){
+  const dx=Math.cos(ang),dz=Math.sin(ang);let best=1e9,hit=null;
+  for(const b of balls){if(!b.on||b.n===0)continue;const ox=b.x-cx,oz=b.z-cz,t=ox*dx+oz*dz;if(t<=0)continue;
+    const perp2=ox*ox+oz*oz-t*t,r2=4*R*R;if(perp2>r2)continue;const tt=t-Math.sqrt(r2-perp2);if(tt<best){best=tt;hit=b;}}
+  // cushions (inner box)
+  let tw=1e9;const lx=HL-R,lz=HW-R;
+  if(dx>0)tw=Math.min(tw,(lx-cx)/dx);if(dx<0)tw=Math.min(tw,(-lx-cx)/dx);if(dz>0)tw=Math.min(tw,(lz-cz)/dz);if(dz<0)tw=Math.min(tw,(-lz-cz)/dz);
+  if(tw<best)return{t:tw,ball:null};
+  return{t:best,ball:hit};
+}
+
+/* ---------- game state ---------- */
+let G=null; // {turn,groups:[g0,g1] ("s"|"t"|null), bih, brk, mode, lvl, over}
+let phase="idle"; // idle | aim | shoot | roll | ai
+let ang=0,power=0,spinX=0,spinY=0,ev=null,acc=0,shotT=0,camMode="aim",cueAnim=0,aiTimer=0,aiPlan=null;
+let sinking=[];
+function rack(){
+  balls.forEach(b=>{b.vx=b.vz=0;b.on=true;});
+  const sol=[1,2,3,4,5,6,7],str=[9,10,11,12,13,14,15];
+  const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+  shuffle(sol);shuffle(str);
+  const slots=new Array(15).fill(0);slots[4]=8;
+  const sFirst=Math.random()<0.5;slots[10]=sFirst?sol.pop():str.pop();slots[14]=sFirst?str.pop():sol.pop();
+  const rest=shuffle(sol.concat(str));for(let k=0;k<15;k++)if(!slots[k])slots[k]=rest.pop();
+  let k=0;const apex=HL/2;
+  for(let r=0;r<5;r++)for(let i=0;i<=r;i++){const b=balls[slots[k++]];b.x=apex+r*R*2*0.8661+0.002;b.z=(i-r/2)*(R*2+0.004)+(Math.random()-0.5)*0.002;}
+  const cue=balls[0];cue.x=-HL/2-0.6;cue.z=A3.rand(-0.4,0.4);
+  meshes.forEach((m,i)=>{m.visible=true;m.scale.setScalar(1);});
+  sinking=[];
+}
+function newGame(){
+  G={turn:0,groups:[null,null],bih:true,brk:true,mode:S.mode,lvl:S.level,over:false,shots:0,fouls:[0,0],pots:[0,0]};
+  rack();S.played++;phase="idle";ang=0;power=0;setSpin(0,0);
+  A3.show("players");camMode="aim";startTurn(true);persist();hud();
+}
+function isCpu(p){return G.mode==="cpu"&&p===1;}
+function pname(p){return G.mode==="cpu"?(p?"Computer":"You"):"Player "+(p+1);}
+function remaining(p){const g=G.groups[p];if(!g)return 7;let n=0;for(const b of balls)if(b.on&&b.n!==8&&b.n!==0&&(g==="s"?b.n<8:b.n>8))n++;return n;}
+function legalTargets(p){
+  const g=G.groups[p];
+  if(!g)return balls.filter(b=>b.on&&b.n!==0&&b.n!==8);
+  const own=balls.filter(b=>b.on&&b.n!==0&&b.n!==8&&(g==="s"?b.n<8:b.n>8));
+  return own.length?own:balls.filter(b=>b.on&&b.n===8);
+}
+function startTurn(first){
+  phase=isCpu(G.turn)?"ai":"aim";
+  const cue=balls[0];
+  if(!first){ // aim at the nearest legal ball to start
+    const t=legalTargets(G.turn);if(t.length){let bt=t[0],bd=1e9;for(const b of t){const d=Math.hypot(b.x-cue.x,b.z-cue.z);if(d<bd){bd=d;bt=b;}}ang=Math.atan2(bt.z-cue.z,bt.x-cue.x);}}
+  else ang=Math.atan2(balls[1].z*0-cue.z,HL/2-cue.x);
+  power=0;setPower(0);setSpin(0,0);
+  const human=!isCpu(G.turn);
+  $("power").hidden=!human;$("spin").hidden=!human;
+  let m;
+  if(G.bih)m=human?(G.brk?"Drag the white ball to place it, then break!":"Ball in hand! Drag the white ball anywhere"):"";
+  else m=human?(G.mode==="2p"?pname(G.turn)+": your shot":"Your shot"):"";
+  if(!human)m="Computer is lining up a shot…";
+  msg(m);
+  if(!human){aiTimer=0;aiPlan=null;}
+  camMode="aim";hud();
+}
+function msg(t){const e=$("msg");e.hidden=!t;e.textContent=t||"";}
+function shoot(p){
+  if(phase!=="aim"&&phase!=="ai")return;
+  p=A3.clamp(p,0.03,1);
+  const speed=2+p*26;
+  cueAnim={t:0,speed:speed,pull:p};phase="shoot";
+  $("power").hidden=true;$("spin").hidden=true;msg("");
+}
+function strike(speed){
+  const cue=balls[0];cue.vx=Math.cos(ang)*speed;cue.vz=Math.sin(ang)*speed;
+  ev=newEv(spinX,spinY);ev.remainBefore=[remaining(0),remaining(1)];ev.wasBih=G.bih;ev.wasBrk=G.brk;
+  G.bih=false;phase="roll";shotT=0;camMode="over";G.shots++;
+  A3.sfx(speed>18?"hit":"click");
+}
+/* ---------- rules ---------- */
+function groupOf(n){return n>8?"t":"s";}
+function endShot(){
+  const p=G.turn,o=1-p,pot=ev.potted,brk=ev.wasBrk;
+  const ownBefore=G.groups[p];
+  const clearedBefore=ownBefore&&remainingBefore(p)===0;
+  let foul=false,why="";
+  const cueIn=pot.indexOf(0)>=0,eightIn=pot.indexOf(8)>=0;
+  if(cueIn){foul=true;why="The white went in!";}
+  else if(ev.first<0){foul=true;why="The white didn't hit anything.";}
+  else if(!brk){
+    if(ownBefore){const want=clearedBefore?"8":ownBefore;const got=ev.first===8?"8":groupOf(ev.first);
+      if(got!==want){foul=true;why=want==="8"?"You had to hit the 8 first.":"You hit the wrong ball first.";}}
+    else if(ev.first===8){foul=true;why="You can't hit the 8 first yet.";}
+    if(!foul&&!pot.length&&!ev.rail){foul=true;why="A ball had to touch a cushion.";}
+  }
+  // 8 ball
+  if(eightIn){
+    if(brk){respot8();A3.toast("The 8 went in on the break, so it goes back on its spot",2200);}
+    else if(clearedBefore&&!foul){return gameOver(p,"potted the 8 ball");}
+    else return gameOver(o,clearedBefore?"potted the 8 with a foul":"potted the 8 too early");
+  }
+  // group assignment
+  const real=pot.filter(n=>n!==0&&n!==8);
+  if(!G.groups[p]&&!brk&&!foul&&real.length){const g=groupOf(real[0]);G.groups[p]=g;G.groups[o]=g==="s"?"t":"s";
+    A3.toast(pname(p)+(G.mode==="cpu"&&p===0?" are ":" is ")+(g==="s"?"SPOTS (1 to 7)":"STRIPES (9 to 15)"),2400);}
+  real.forEach(n=>{if(G.groups[p]&&groupOf(n)===G.groups[p])G.pots[p]++;});
+  if(p===0||G.mode==="2p")S.pots+=real.length;
+  const potOwn=real.some(n=>!G.groups[p]||groupOf(n)===G.groups[p]);
+  if(cueIn){const c=balls[0];c.on=true;c.vx=c.vz=0;c.x=-HL/2-0.6;c.z=0;placeFree(c);meshes[0].visible=true;meshes[0].scale.setScalar(1);}
+  G.brk=false;
+  if(foul){G.fouls[p]++;A3.toast("Foul! "+why+" "+pname(o)+(o===0&&G.mode==="cpu"?" get":" gets")+" ball in hand.",2600);A3.sfx("lose");G.turn=o;G.bih=true;}
+  else if(potOwn){A3.sfx("coin");}
+  else{G.turn=o;}
+  persist();startTurn();
+}
+function remainingBefore(p){return ev.remainBefore[p];}
+function respot8(){const b=balls[8];b.on=true;b.vx=b.vz=0;b.x=HL/2;b.z=0;placeFree(b);meshes[8].visible=true;meshes[8].scale.setScalar(1);}
+function placeFree(b){for(let k=0;k<200;k++){if(!balls.some(o=>o!==b&&o.on&&Math.hypot(o.x-b.x,o.z-b.z)<2*R+0.01))return;b.x-=0.1;if(b.x<-HL+R){b.x=HL/2;b.z+=0.6;}}}
+function gameOver(winner,how){
+  G.over=true;phase="over";S.game=null;
+  const human=G.mode==="2p"||winner===0;
+  let coins=0;
+  if(G.mode==="cpu"){
+    if(winner===0){coins=[0,15,30,60][G.lvl];S.wins[G.lvl]=(S.wins[G.lvl]||0)+1;
+      if(G.lvl===3){S.hardWins++;A3.best(S.hardWins);}
+      A3.win(G.lvl===3?4:G.lvl,"winning Pocket Pool on "+LVLN[G.lvl]);}
+    else{S.losses++;coins=3;}
+  }else coins=8;
+  S.coins+=coins;A3.store(SAVE,S);
+  $("oTitle").textContent=G.mode==="cpu"?(winner===0?"You win!":"Computer wins"):pname(winner)+" wins!";
+  $("oText").textContent=pname(winner)+" "+how+". +"+coins+" coins.";
+  $("oStats").innerHTML="<div>Shots <b>"+G.shots+"</b></div><div>Fouls <b>"+G.fouls[0]+(G.mode==="2p"?" / "+G.fouls[1]:"")+"</b></div><div>Coins <b>"+S.coins+"</b></div>"+(G.mode==="cpu"?"<div>Hard wins <b>"+S.hardWins+"</b></div>":"");
+  A3.sfx(human?"win":"lose");
+  if(human)for(let i=0;i<6;i++)setTimeout(()=>{parts.burst(new THREE.Vector3(A3.rand(-6,6),1.5,A3.rand(-3,3)),A3.pick(["#ffd23f","#ff6fa3","#4aa8ff","#5fd36a"]),16,6,1.1);A3.sfx("pop");},i*170);
+  $("power").hidden=$("spin").hidden=true;msg("");
+  hud();setTimeout(()=>A3.show("ovOver"),900);
+}
+
+/* ---------- computer player ---------- */
+function clearPath(x1,z1,x2,z2,skip,rad){
+  const dx=x2-x1,dz=z2-z1,l2=dx*dx+dz*dz;if(l2<1e-6)return true;
+  for(const b of balls){if(!b.on||skip.indexOf(b.n)>=0)continue;let t=((b.x-x1)*dx+(b.z-z1)*dz)/l2;t=A3.clamp(t,0,1);const px=x1+dx*t-b.x,pz=z1+dz*t-b.z;if(px*px+pz*pz<rad*rad)return false;}
+  return true;
+}
+function aiCandidates(){
+  const cue=balls[0],out=[];
+  const T=legalTargets(G.turn);
+  for(const b of T)for(const p of POCKETS){
+    const tx=p.ax-b.x,tz=p.az-b.z,td=Math.hypot(tx,tz);const ux=tx/td,uz=tz/td;
+    const gx=b.x-ux*2*R,gz=b.z-uz*2*R;
+    const cx=gx-cue.x,cz=gz-cue.z,cd=Math.hypot(cx,cz);if(cd<0.05)continue;
+    const cut=Math.acos(A3.clamp((cx*ux+cz*uz)/cd,-1,1));if(cut>1.25)continue;
+    // pocket entry angle: side pockets need a straight-on approach
+    if(!p.corner&&Math.abs(uz)<0.5)continue;
+    if(!clearPath(cue.x,cue.z,gx,gz,[0,b.n],2*R-0.01))continue;
+    if(!clearPath(b.x,b.z,p.ax,p.az,[0,b.n],2*R-0.02))continue;
+    const score=Math.cos(cut)*Math.cos(cut)/(0.6+cd*0.15+td*0.3);
+    out.push({ang:Math.atan2(cz,cx),score:score,dist:cd+td/Math.max(0.2,Math.cos(cut)),b:b.n});
+  }
+  out.sort((a,b)=>b.score-a.score);return out;
+}
+function aiThink(){
+  const lvl=G.lvl,cue=balls[0];
+  if(G.bih)aiPlace();
+  if(G.brk){return{ang:Math.atan2(A3.rand(-0.05,0.05)-cue.z,HL/2-cue.x),p:A3.rand(0.88,1),sx:0,sy:0};}
+  const cands=aiCandidates().slice(0,lvl===3?10:lvl===2?6:4);
+  let best=null;
+  const myBalls=b=>{const g=G.groups[G.turn];return !g||b===8&&remaining(G.turn)===0||(b!==8&&groupOf(b)===g);};
+  for(const c of cands){
+    for(const p of (lvl===3?[0.28,0.4,0.55,0.72]:[0.35,0.55])){
+      const r=simulate(balls,c.ang,2+p*26,0,0,10);
+      const potted=r.potted;if(potted.indexOf(0)>=0)continue;
+      if(potted.indexOf(8)>=0&&remaining(G.turn)>0)continue;
+      if(r.first!==c.b)continue;
+      if(!potted.some(myBalls))continue;
+      let sc=c.score*2+1;
+      if(lvl===3){ // positional play: how many easy shots after?
+        const save=balls.map(b=>[b.x,b.z,b.on]);r.balls.forEach((b,i)=>{balls[i].x=b.x;balls[i].z=b.z;balls[i].on=b.on;});
+        const next=aiCandidates();sc+=next.length?next[0].score*1.5+Math.min(3,next.length)*0.1:0;
+        save.forEach((s,i)=>{balls[i].x=s[0];balls[i].z=s[1];balls[i].on=s[2];});}
+      if(!best||sc>best.sc)best={ang:c.ang,p:p,sc:sc};
+    }
+  }
+  if(best){
+    const noise=[0,0.045,0.016,0.003][lvl]*(Math.random()*2-1);
+    if(lvl===1&&Math.random()<0.25)best.p=A3.clamp(best.p+A3.rand(-0.15,0.3),0.15,1);
+    return{ang:best.ang+noise,p:best.p,sx:0,sy:0};
+  }
+  // no pot found: try a few angles at legal balls that at least avoid a foul
+  const T=legalTargets(G.turn);let safe=null;
+  for(let k=0;k<(lvl===3?40:16);k++){
+    const b=A3.pick(T);if(!b)break;const a=Math.atan2(b.z-cue.z,b.x-cue.x)+A3.rand(-0.12,0.12);const p=A3.rand(0.3,0.6);
+    const r=simulate(balls,a,2+p*26,0,0,10);if(r.potted.indexOf(0)>=0||r.potted.indexOf(8)>=0)continue;
+    const fine=r.first>=0&&T.some(t=>t.n===r.first)&&(r.rail||r.potted.length);
+    if(fine){const sc=r.potted.filter(myBalls).length*5+Math.random();if(!safe||sc>safe.sc)safe={ang:a,p:p,sc:sc};}
+  }
+  if(safe)return{ang:safe.ang,p:safe.p,sx:0,sy:0};
+  const b=T[0];return{ang:b?Math.atan2(b.z-cue.z,b.x-cue.x):0,p:0.45,sx:0,sy:0};
+}
+function aiPlace(){
+  const c=balls[0];let best=null;
+  for(let k=0;k<(G.lvl===3?60:20);k++){
+    const x=G.brk?A3.rand(-HL+1,-HL/2-0.3):A3.rand(-HL+0.8,HL-0.8),z=A3.rand(-HW+0.8,HW-0.8);
+    if(balls.some(o=>o.on&&o.n!==0&&Math.hypot(o.x-x,o.z-z)<2*R+0.05))continue;
+    c.x=x;c.z=z;const cs=G.brk?1:aiCandidates();const sc=G.brk?Math.random():(cs.length?cs[0].score:0);
+    if(!best||sc>best.sc)best={x:x,z:z,sc:sc};
+  }
+  if(best){c.x=best.x;c.z=best.z;}
+}
+
+/* ---------- input ---------- */
+const cv=renderer.domElement;
+let ptr=null;
+function humanAim(){return G&&!G.over&&phase==="aim"&&!isCpu(G.turn);}
+function legalSpot(x,z){
+  if(Math.abs(x)>HL-R-0.02||Math.abs(z)>HW-R-0.02)return false;
+  if(G.brk&&x>-HL/2)return false;
+  return !balls.some(o=>o.on&&o.n!==0&&Math.hypot(o.x-x,o.z-z)<2*R+0.01);
+}
+cv.addEventListener("pointerdown",e=>{
+  if(!humanAim())return;
+  try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  const p=A3.floorPoint(e,camera,cv,R);if(!p)return;
+  const cue=balls[0],dc=Math.hypot(p.x-cue.x,p.z-cue.z);
+  if(G.bih&&dc<0.9){ptr={mode:"place",x:e.clientX,y:e.clientY};return;}
+  if(dc<0.75&&!G.bih||(dc<0.6)){ptr={mode:"pull",x:e.clientX,y:e.clientY,px:p.x,pz:p.z};return;}
+  // tap on a ball aims at it; otherwise drag aims
+  ptr={mode:"aim",x:e.clientX,y:e.clientY,a0:ang,moved:false,p0:p};
+  if(camMode==="over")aimAtPoint(p);
+});
+function aimAtPoint(p){const c=balls[0];ang=Math.atan2(p.z-c.z,p.x-c.x);}
+cv.addEventListener("pointermove",e=>{
+  if(!ptr)return;
+  const dx=e.clientX-ptr.x,dy=e.clientY-ptr.y;
+  if(Math.hypot(dx,dy)>6)ptr.moved=true;
+  const p=A3.floorPoint(e,camera,cv,R);
+  if(ptr.mode==="place"){if(p&&legalSpot(p.x,p.z)){balls[0].x=p.x;balls[0].z=p.z;}return;}
+  if(ptr.mode==="pull"){if(!p)return;const pull=-((p.x-ptr.px)*Math.cos(ang)+(p.z-ptr.pz)*Math.sin(ang));setPower(A3.clamp(pull/4,0,1));return;}
+  if(ptr.mode==="aim"&&ptr.moved){
+    if(camMode==="over"){if(p)aimAtPoint(p);}
+    else{const fine=e.pointerType==="mouse"&&!e.shiftKey?0.0045:0.004;ang=ptr.a0-dx*fine*(Math.abs(dy)>Math.abs(dx)*2?0.25:1);}
+  }
+});
+function endPtr(e){
+  if(!ptr)return;const P=ptr;ptr=null;
+  if(P.mode==="pull"){if(power>0.04)shoot(power);else setPower(0);return;}
+  if(P.mode==="aim"&&!P.moved){ // tap: aim at a tapped ball or point
+    const rc=A3.ray(e,camera,cv);const hits=rc.intersectObjects(meshes.filter((m,i)=>i>0&&balls[i].on));
+    if(hits.length){const b=balls[meshes.indexOf(hits[0].object)];const c=balls[0];ang=Math.atan2(b.z-c.z,b.x-c.x);A3.sfx("tick");}
+    else if(P.p0)aimAtPoint(P.p0);
+  }
+}
+cv.addEventListener("pointerup",endPtr);cv.addEventListener("pointercancel",endPtr);
+// power bar
+const pw=$("power");let pwOn=null;
+function setPower(p){power=p;$("pFill").style.height=(p*100)+"%";$("pKnob").style.top="calc("+(p*100)+"% - "+(p*30-4)+"px)";}
+pw.addEventListener("pointerdown",e=>{if(!humanAim())return;e.stopPropagation();try{pw.setPointerCapture(e.pointerId);}catch(_){}pwOn={y:e.clientY,p0:power};});
+pw.addEventListener("pointermove",e=>{if(!pwOn)return;const r=pw.getBoundingClientRect();setPower(A3.clamp((e.clientY-r.top)/r.height,0,1));});
+pw.addEventListener("pointerup",()=>{if(!pwOn)return;pwOn=null;if(power>0.04)shoot(power);else setPower(0);});
+pw.addEventListener("pointercancel",()=>{pwOn=null;setPower(0);});
+// spin
+const sp=$("spin");let spOn=false;
+function setSpin(x,y){const l=Math.hypot(x,y);if(l>1){x/=l;y/=l;}spinX=x;spinY=y;$("spinDot").style.left=(50+x*36)+"%";$("spinDot").style.top=(50-y*36)+"%";}
+function spinFrom(e){const r=sp.getBoundingClientRect();setSpin(((e.clientX-r.left)/r.width-0.5)*2.4,-((e.clientY-r.top)/r.height-0.5)*2.4);}
+sp.addEventListener("pointerdown",e=>{if(!humanAim())return;spOn=true;try{sp.setPointerCapture(e.pointerId);}catch(_){}spinFrom(e);});
+sp.addEventListener("pointermove",e=>{if(spOn)spinFrom(e);});
+sp.addEventListener("pointerup",()=>{spOn=false;if(Math.hypot(spinX,spinY)<0.18)setSpin(0,0);});
+// keys
+let keyPow=0;
+window.addEventListener("keydown",e=>{
+  const k=e.key.toLowerCase();
+  if(!humanAim())return;
+  if(k===" "){e.preventDefault();if(!keyPow){keyPow=1;}}
+  if(k==="v"){toggleView();}
+});
+window.addEventListener("keyup",e=>{if(e.key===" "&&keyPow){keyPow=0;if(humanAim()&&power>0.04)shoot(power);}});
+function toggleView(){camMode=camMode==="aim"?"over":"aim";A3.sfx("whoosh");}
+$("bView").onclick=()=>{if(G&&phase==="aim")toggleView();else camMode=camMode==="aim"?"over":"aim";};
+
+/* ---------- camera ---------- */
+const camPos=new THREE.Vector3(0,22,8),camLook=new THREE.Vector3(),tmp=new THREE.Vector3(),tmp2=new THREE.Vector3();
+let overD=20;
+function fitOver(){
+  const box=[[-HL-1.4,-HW-1.4],[HL+1.4,-HW-1.4],[-HL-1.4,HW+1.4],[HL+1.4,HW+1.4]];
+  const save=camera.position.clone(),q=camera.quaternion.clone();
+  let lo=5,hi=80;
+  for(let it=0;it<22;it++){const d=(lo+hi)/2;camera.position.set(0,d*0.92,d*0.4);camera.lookAt(0,0,0.3);camera.updateMatrixWorld();
+    let ok=true;for(const b of box){const v=new THREE.Vector3(b[0],0.3,b[1]).project(camera);if(Math.abs(v.x)>0.9||Math.abs(v.y)>0.8)ok=false;}
+    if(ok)hi=d;else lo=d;}
+  overD=hi;camera.position.copy(save);camera.quaternion.copy(q);
+}
+new ResizeObserver(()=>{fitOver();}).observe(stage);fitOver();
+function camTarget(){
+  const c=balls[0];
+  if(camMode==="aim"&&G&&(phase==="aim"||phase==="shoot"||phase==="ai")&&!G.bih){
+    const dx=Math.cos(ang),dz=Math.sin(ang);
+    tmp.set(c.x-dx*8,7.2,c.z-dz*8);tmp2.set(c.x+dx*3,0,c.z+dz*3);
+  }else{
+    tmp.set(0,overD*0.92,overD*0.4);tmp2.set(0,0,0.3);
+    if(phase==="roll"){tmp.x+=c.x*0.15;tmp2.x+=c.x*0.12;tmp2.z+=c.z*0.08;}
+  }
+}
+
+/* ---------- loop ---------- */
+const STEP=1/240,qTmp=new THREE.Quaternion(),axis=new THREE.Vector3();
+let hitSnd=0;
+const paused=()=>!$("ovTitle").hidden||!$("ovShop").hidden;
+A3.loop((dt,t)=>{
+  if(G&&!G.over&&!paused()){
+    if(phase==="roll"){
+      acc+=dt;let n=0;
+      while(acc>=STEP&&n<14){
+        physStep(balls,STEP,ev);acc-=STEP;n++;
+        for(const b of balls){if(!b.on||!(b.vx||b.vz))continue;const s=Math.hypot(b.vx,b.vz);axis.set(b.vz/s,0,-b.vx/s);qTmp.setFromAxisAngle(axis,s*STEP/R);meshes[b.n].quaternion.premultiply(qTmp);}
+      }
+      if(n>=14)acc=0;
+      shotT+=dt;
+      // sounds
+      if(ev.hits.length){const m=Math.max(...ev.hits);if(hitSnd<=0){A3.sfx(m>6?"hit":"tick");hitSnd=0.05;}ev.hits.length=0;}
+      if(ev.cush.length){ev.cush.length=0;}
+      ev.potSeen=ev.potSeen||0;
+      while(ev.potted.length>ev.potSeen){const pn=ev.potted[ev.potSeen++];const b=balls[pn];const P=POCKETS[b.pk];sinking.push({n:pn,t:0,x:b.x,z:b.z,px:P.x,pz:P.z});A3.sfx("pop");parts.burst(new THREE.Vector3(P.x,0.4,P.z),colOf(pn),10,3,0.6);}
+      if((!moving(balls)&&sinking.length===0)||shotT>25){balls.forEach(b=>{b.vx=b.vz=0;});endShot();}
+    }else if(phase==="shoot"){
+      const a=cueAnim;a.t+=dt;if(a.t>0.12){strike(a.speed);}
+    }else if(phase==="ai"){
+      aiTimer+=dt;
+      if(!aiPlan&&aiTimer>0.5){aiPlan=aiThink();aiPlan.t=0;ang=ang;aiPlan.from=ang;}
+      if(aiPlan){aiPlan.t+=dt;let d=aiPlan.ang-aiPlan.from;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
+        const k=A3.ease(Math.min(1,aiPlan.t/0.9));ang=aiPlan.from+d*k;
+        if(aiPlan.t>0.9){power=Math.min(aiPlan.p,(aiPlan.t-0.9)/0.6*aiPlan.p);}
+        if(aiPlan.t>1.6){ang=aiPlan.ang;spinX=aiPlan.sx;spinY=aiPlan.sy;phase="aim";shoot(aiPlan.p);}}
+    }
+    if(keyPow&&humanAim())setPower(Math.min(1,power+dt*0.7));
+    if(humanAim()&&!ptr){const ka=(A3.keys.arrowleft||A3.keys.a?1:0)-(A3.keys.arrowright||A3.keys.d?1:0);ang+=ka*dt*(A3.keys.shift?0.15:0.8);
+      const kp=(A3.keys.arrowdown||A3.keys.s?1:0)-(A3.keys.arrowup||A3.keys.w?1:0);if(kp)setPower(A3.clamp(power+kp*dt*0.8,0,1));}
+  }
+  hitSnd-=dt;
+  // sinking balls drop into pockets, then roll into the tray
+  for(let i=sinking.length-1;i>=0;i--){const s=sinking[i];s.t+=dt;const m=meshes[s.n];const k=Math.min(1,s.t/0.3);
+    m.position.set(A3.lerp(s.x,s.px,k),R-k*0.6,A3.lerp(s.z,s.pz,k));m.scale.setScalar(1-k*0.3);
+    if(k>=1){sinking.splice(i,1);m.visible=false;}}
+  // ball meshes
+  for(const b of balls){const m=meshes[b.n];if(b.on){m.visible=true;m.scale.setScalar(1);m.position.set(b.x,R,b.z);}}
+  updateTray();
+  // guide + cue
+  const showAim=G&&!G.over&&(phase==="aim"||phase==="ai"||phase==="shoot");
+  const c=balls[0];
+  cueG.visible=showAim&&c.on;
+  if(cueG.visible){
+    let pull=0.15+power*1.6;
+    if(phase==="shoot"){const k=Math.min(1,cueAnim.t/0.12);pull=(0.15+cueAnim.pull*1.6)*(1-k);}
+    cueG.position.set(c.x,R+0.02,c.z);cueG.rotation.y=-ang;cuePivot.position.set(-R-pull,0,0);
+    cueG.position.y=R+0.02+spinY*0.12;cuePivot.position.z=-spinX*0.12*0;
+  }
+  const showGuide=showAim&&phase!=="shoot"&&c.on;
+  guide.visible=guide2.visible=guide3.visible=ghost.visible=badRing.visible=showGuide;
+  if(showGuide){
+    const hit=castAim(c.x,c.z,ang),dx=Math.cos(ang),dz=Math.sin(ang),hx=c.x+dx*hit.t,hz=c.z+dz*hit.t;
+    lineSeg(guide,c.x+dx*R,c.z+dz*R,hx-dx*R*0.9,hz-dz*R*0.9,0.014);
+    ghost.position.set(hx,0.016,hz);
+    if(hit.ball){const b=hit.ball,nx=(b.x-hx)/(2*R),nz=(b.z-hz)/(2*R),dot=Math.max(0,dx*nx+dz*nz);
+      const len=0.6+dot*3.2*(G.lvl===1||G.mode==="2p"?1.2:1);
+      lineSeg(guide2,b.x,b.z,b.x+nx*len,b.z+nz*len,0.015);
+      // cue ball deflection along the tangent
+      let tx=dx-nx*dot,tz=dz-nz*dot;const tl=Math.hypot(tx,tz);if(tl>0.05){tx/=tl;tz/=tl;lineSeg(guide3,hx,hz,hx+tx*(1-dot)*2.2,hz+tz*(1-dot)*2.2,0.013);}else guide3.visible=false;
+      const ok=legalTargets(G.turn).indexOf(b)>=0;badRing.visible=!ok&&!isCpu(G.turn);badRing.position.set(b.x,0.017,b.z);
+    }else{guide2.visible=guide3.visible=false;badRing.visible=false;}
+  }
+  handRing.visible=!!(G&&G.bih&&humanAim());
+  if(handRing.visible){handRing.position.set(c.x,0.018,c.z);handRing.scale.setScalar(1+Math.sin(t*6)*0.08);}
+  // camera
+  camTarget();
+  const kk=1-Math.exp(-dt*(phase==="roll"?2.2:4));camPos.lerp(tmp,kk);camLook.lerp(tmp2,kk);
+  camera.position.copy(camPos);camera.lookAt(camLook);
+  parts.update(dt);
+  V.render();
+});
+const trayPos=[];
+function updateTray(){
+  // potted balls sit in a rail along the near side
+  let k=0;
+  for(const b of balls){if(b.on||b.n===0||sinking.some(s=>s.n===b.n))continue;const m=meshes[b.n];m.visible=true;m.scale.setScalar(0.9);
+    m.position.set(-HL+0.6+k*0.56,0.32+R*0.9,HW+1.7);k++;}
+}
+
+/* ---------- HUD, menus, saves ---------- */
+function ballChips(p){
+  const g=G.groups[p];if(!g)return '<span style="opacity:.7">open table</span>';
+  const ns=g==="s"?[1,2,3,4,5,6,7]:[9,10,11,12,13,14,15];
+  return '<span class="bs">'+ns.map(n=>'<i class="'+(g==="t"?"st ":"")+(balls[n].on?"":"gone")+'" style="background-color:'+colOf(n)+'"></i>').join("")+'<i class="'+(balls[8].on?"":"gone")+'" style="background:#111"></i></span>';
+}
+function hud(){
+  $("hMode").textContent=S.mode==="2p"?"2 players":"vs "+LVLN[S.level];
+  $("hCoins").textContent=S.coins;$("hHard").textContent=S.hardWins;
+  if(!G)return;
+  for(const p of [0,1]){const e=$("p"+p);e.classList.toggle("on",G.turn===p&&!G.over);e.innerHTML=pname(p)+" "+ballChips(p);}
+}
+function persist(){
+  if(G&&!G.over&&phase!=="roll")S.game={b:balls.map(b=>[+b.x.toFixed(3),+b.z.toFixed(3),b.on?1:0]),turn:G.turn,groups:G.groups,bih:G.bih,brk:G.brk,mode:G.mode,lvl:G.lvl,shots:G.shots,fouls:G.fouls,pots:G.pots};
+  A3.store(SAVE,S);
+}
+function loadGame(g){
+  G={turn:g.turn,groups:g.groups,bih:g.bih,brk:g.brk,mode:g.mode,lvl:g.lvl,over:false,shots:g.shots||0,fouls:g.fouls||[0,0],pots:g.pots||[0,0]};
+  g.b.forEach((a,i)=>{const b=balls[i];b.x=a[0];b.z=a[1];b.on=!!a[2];b.vx=b.vz=0;meshes[i].visible=b.on;});
+  sinking=[];A3.show("players");startTurn(false);hud();
+}
+function seg(id,val,fn){const el=$(id);[...el.children].forEach(b=>b.classList.toggle("on",b.dataset.v==String(val)));
+  el.onclick=e=>{const b=e.target.closest("button");if(!b)return;A3.sfx("click");[...el.children].forEach(x=>x.classList.toggle("on",x===b));fn(b.dataset.v);};}
+function titleMenu(){
+  seg("sMode",S.mode,v=>{S.mode=v;$("sLevel").style.display=v==="2p"?"none":"";hud();});
+  seg("sLevel",S.level,v=>{S.level=+v;hud();});
+  $("sLevel").style.display=S.mode==="2p"?"none":"";
+  $("tStats").innerHTML="<div>Wins <b>"+(S.wins[1]+S.wins[2]+S.wins[3])+"</b></div><div>Hard wins <b>"+S.hardWins+"</b></div><div>Balls potted <b>"+S.pots+"</b></div><div>Coins <b>"+S.coins+"</b></div>";
+  $("bCont").hidden=!S.game;hud();
+}
+function shopMenu(){
+  $("shopCoins").textContent=S.coins;
+  const row=(list,owned,cur,kind,sw,cost)=>list.map((x,i)=>{const own=owned.indexOf(i)>=0,c=cost(x);
+    return '<div class="item"><span>'+sw(x)+x.n+'</span>'+(own?'<button data-k="'+kind+'" data-i="'+i+'" class="'+(i===cur?"on":"")+'">'+(i===cur?"Using":"Use")+'</button>':'<button data-k="'+kind+'" data-i="'+i+'" data-buy="'+c+'"'+(S.coins<c?" disabled":"")+'>🪙 '+c+'</button>')+'</div>';}).join("");
+  $("lCues").innerHTML=row(CUES,S.ownCue,S.cue,"cue",x=>'<i class="cuesw" style="background:linear-gradient(90deg,'+x.b+' 0 40%,'+x.a+' 40%)"></i>',x=>x.c);
+  $("lCloths").innerHTML=row(CLOTHS,S.ownCloth,S.cloth,"cloth",x=>'<i class="sw" style="background:'+x.c+'"></i>',x=>x.cost);
+}
+$("ovShop").addEventListener("click",e=>{const b=e.target.closest("button[data-k]");if(!b||b.disabled)return;const i=+b.dataset.i,k=b.dataset.k;
+  if(b.dataset.buy){const c=+b.dataset.buy;if(S.coins<c)return;S.coins-=c;(k==="cue"?S.ownCue:S.ownCloth).push(i);A3.sfx("coin");A3.toast("Bought "+(k==="cue"?CUES[i].n+" cue":CLOTHS[i].n+" cloth")+"!",1600);}
+  else A3.sfx("pop");
+  if(k==="cue"){S.cue=i;buildCue();}else{S.cloth=i;buildTable();}
+  A3.store(SAVE,S);shopMenu();hud();});
+$("bShop").onclick=()=>{A3.sfx("click");shopMenu();A3.hide("ovTitle");A3.show("ovShop");};
+$("bShopBack").onclick=()=>{A3.sfx("click");A3.hide("ovShop");titleMenu();A3.show("ovTitle");};
+$("bPlay").onclick=()=>{A3.sfx("click");A3.hide("ovTitle");newGame();};
+$("bCont").onclick=()=>{A3.sfx("click");A3.hide("ovTitle");
+  if(G&&!G.over&&G.mode===S.game.mode){A3.show("players");if(phase==="idle")startTurn(false);}else loadGame(S.game);};
+$("bNew").onclick=()=>{A3.sfx("click");if(G&&!G.over&&phase!=="roll")persist();A3.hide("ovOver");titleMenu();A3.show("ovTitle");if(G&&phase!=="roll"){phase="idle";}$("power").hidden=$("spin").hidden=true;msg("");};
+$("oAgain").onclick=()=>{A3.hide("ovOver");newGame();};
+$("oMenu").onclick=()=>{A3.hide("ovOver");titleMenu();A3.show("ovTitle");};
+A3.fullscreen($("bFs"),stage);
+$("bMute").onclick=()=>{A3.mute(!A3.mute());$("bMute").textContent=A3.mute()?"🔇":"🔊";};$("bMute").textContent=A3.mute()?"🔇":"🔊";
+window.addEventListener("pagehide",()=>persist());
+
+/* ---------- start ---------- */
+// remember how many balls each player had left before every shot (for the 8 ball rule)
+if(S.ownCue.indexOf(S.cue)<0)S.cue=0;if(S.ownCloth.indexOf(S.cloth)<0)S.cloth=0;
+buildTable();buildCue();rack();camMode="over";
+titleMenu();hud();
+if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"pocket-pool",dir:"desc",unit:"wins",title:"Pocket Pool: most wins vs the Hard computer"});
+})();
+</script>
+</body>
+</html>

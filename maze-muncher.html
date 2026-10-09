@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Maze Muncher</title>
+<meta property="og:title" content="Maze Muncher · GH Games">
+<meta property="og:description" content="Chomp every dot in glowing 3D mazes while four cheeky monsters give chase. Grab a power berry and turn the tables! 5 mazes, bonus treats and new looks to buy.">
+<meta property="og:image" content="https://ghgames.au/og/maze-muncher.png">
+<meta property="og:url" content="https://ghgames.au/maze-muncher.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f1a33">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Games">
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="maze-muncher"></script>
+<script src="phatcoin.js" data-game="maze-muncher" data-pill="none"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<link rel="stylesheet" href="arcade3d.css">
+<style>
+.mons{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:620px}
+.mon{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.08);border-radius:12px;padding:5px 10px;font-weight:900;font-size:13px;text-align:left;line-height:1.15}
+.mon i{width:18px;height:18px;border-radius:50% 50% 30% 30%;display:inline-block;flex:none}
+.mon small{display:block;color:var(--muted);font-size:11px}
+.skins{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;width:min(480px,100%)}
+.skin{background:var(--panel2);border:2px solid var(--line);border-radius:14px;padding:7px 4px;font-weight:900;cursor:pointer;color:var(--ink);font-family:var(--body);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.skin .sw{width:38px;height:38px;border-radius:50%;border:3px solid rgba(255,255,255,.5)}
+.skin.on{border-color:var(--gold);background:#3a3a1e}
+.skin small{color:var(--gold);font-size:12px}
+.ov.compact{gap:9px}
+.ov.compact h2{font-size:clamp(30px,7vw,54px)}
+.lives{position:absolute;left:12px;bottom:10px;z-index:14;font-size:22px;pointer-events:none;letter-spacing:2px}
+.dpad{position:absolute;right:12px;bottom:12px;z-index:15;width:150px;height:150px;display:none}
+.dpad button{position:absolute;width:50px;height:50px;border-radius:14px;border:2px solid rgba(255,255,255,.5);background:rgba(255,255,255,.16);color:#fff;font-size:20px;font-weight:900;touch-action:none}
+.dpad .u{left:50px;top:0}.dpad .d{left:50px;bottom:0}.dpad .l{left:0;top:50px}.dpad .r{right:0;top:50px}
+@media (pointer:coarse){.dpad.show{display:block}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="links"><a class="home" href="index.html">← GH Games</a></div>
+  <div class="top">
+    <h1>Maze Muncher<small>3D</small></h1>
+    <div class="hud">
+      <div class="chip"><span>Score</span><b id="hScore">0</b></div>
+      <div class="chip"><span>Best</span><b id="hBest">0</b></div>
+      <div class="chip"><span>Level</span><b id="hLevel">1</b></div>
+      <div class="chip"><span>Coins</span><b id="hCoins">0</b></div>
+    </div>
+  </div>
+
+  <div class="stage square" id="stage">
+    <div class="ingame"><button id="bPause">❚❚</button><button id="bFs">⛶</button><button id="bMute">🔊</button></div>
+    <div class="score3d"><span id="big">0</span><small id="bigL">Level 1</small></div>
+    <div class="lives" id="lives"></div>
+    <div class="dpad" id="dpad"><button class="u" data-d="up">▲</button><button class="l" data-d="left">◀</button><button class="r" data-d="right">▶</button><button class="d" data-d="down">▼</button></div>
+    <div class="toast" id="toast"></div>
+
+    <div class="ov compact" id="ovTitle">
+      <h2>MAZE MUNCHER</h2>
+      <p>Swipe, or use the arrow keys or W A S D, to steer Chompo round the maze. Eat every dot to clear the level. Grab a big power berry and the monsters turn blue: chomp them for big points!</p>
+      <div class="mons">
+        <div class="mon"><i style="background:#ff4d6d"></i><div>Rumble<small>chases you</small></div></div>
+        <div class="mon"><i style="background:#ff8fe0"></i><div>Twinkle<small>cuts you off</small></div></div>
+        <div class="mon"><i style="background:#39e1ff"></i><div>Zigzag<small>sneaks round</small></div></div>
+        <div class="mon"><i style="background:#ffa63d"></i><div>Dozy<small>wanders about</small></div></div>
+      </div>
+      <div class="seg" id="diffs"><button data-d="0">Gentle</button><button data-d="1" class="on">Normal</button><button data-d="2">Speedy</button></div>
+      <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bSkins">Looks</button></div>
+      <div class="stats" id="tStats"></div>
+    </div>
+
+    <div class="ov compact" id="ovSkins" hidden>
+      <h2>LOOKS</h2>
+      <p id="skinTxt"></p>
+      <div class="skins" id="skins"></div>
+      <div class="row"><button class="btn green" id="skinsBack">Done</button></div>
+    </div>
+
+    <div class="ov" id="ovPause" hidden>
+      <h2>PAUSED</h2>
+      <div class="row"><button class="btn green" id="pResume">Resume</button><button class="btn pink" id="pQuit">Quit</button></div>
+    </div>
+
+    <div class="ov" id="ovOver" hidden>
+      <h2 id="oTitle">Game over</h2>
+      <p id="oText"></p>
+      <div class="stats" id="oStats"></div>
+      <div class="row"><button class="btn green" id="oAgain">Play again</button><button class="btn alt" id="oMenu">Menu</button></div>
+    </div>
+  </div>
+
+  <p class="help">Swipe on the maze, use the arrow keys or W A S D, or the on-screen pad on a tablet. You can press a direction early and Chompo will turn at the next gap. The side tunnels take you to the other side. Power berries make the monsters blue and slow for a few seconds: eat them one after another for 200, 400, 800 and 1600 points. Bonus treats appear twice a level. Every level is a new maze and a bit faster. Coins you earn buy new looks for Chompo. Clearing levels earns PhatCoin.</p>
+  <div id="lb"></div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="arcade3d.js"></script>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const SAVE="mazemuncher-save";
+const S=A3.save(SAVE,{best:0,coins:0,skins:["sunny"],skin:"sunny",diff:1,played:0,maxLevel:0,eaten:0});
+const stage=$("stage");
+const V=A3.view(stage,{fov:42,sky:["#0a0f2a","#03040c"],shadowSize:18,far:200});
+if(!V){return;}
+const {scene,camera,renderer}=V;
+const parts=A3.particles(scene);
+V.lights.hemi.intensity=0.55;V.lights.sun.intensity=0.8;
+
+/* ---------- mazes (original layouts, 19 wide, 21 tall) ----------
+   # wall, . dot, o power berry, ' ' empty, - monster door, G monster home, P start, T tunnel row edge */
+const MAZES=[
+{name:"Starter Gardens",wall:"#3d7bff",glow:"#7fb0ff",floor:"#0b1640",m:[
+"###################",
+"#o.......#.......o#",
+"#.##.###.#.###.##.#",
+"#.................#",
+"#.##.#.#####.#.##.#",
+"#....#...#...#....#",
+"####.###.#.###.####",
+"   #.#.......#.#   ",
+"####.#.##-##.#.####",
+"T......#GGG#......T",
+"####.#.#####.#.####",
+"   #.#.......#.#   ",
+"####.#.#####.#.####",
+"#........#........#",
+"#.##.###.#.###.##.#",
+"#o.#.....P.....#.o#",
+"##.#.#.#####.#.#.##",
+"#....#...#...#....#",
+"#.######.#.######.#",
+"#.................#",
+"###################"]},
+{name:"Candy Loops",wall:"#ff4fa3",glow:"#ffa6d6",floor:"#2a0b2e",m:[
+"###################",
+"#........#........#",
+"#.##.###.#.###.##.#",
+"#o##.#...#...#.##o#",
+"#....#.#####.#....#",
+"###.##.......##.###",
+"  #....##.##....#  ",
+"###.##.......##.###",
+"T...#..##-##..#...T",
+"###.#..#GGG#..#.###",
+"  #.#..#####..#.#  ",
+"###.##.......##.###",
+"#.......#.#.......#",
+"#.##.##.#.#.##.##.#",
+"#o.#.....P.....#.o#",
+"##.#.#.#####.#.#.##",
+"#....#...#...#....#",
+"#.######.#.######.#",
+"#.................#",
+"#.................#",
+"###################"]},
+{name:"Jungle Ruins",wall:"#2ec46b",glow:"#9bffbf",floor:"#06210f",m:[
+"###################",
+"#o...#.......#...o#",
+"#.##.#.#####.#.##.#",
+"#.##...........##.#",
+"#....##.#.#.##....#",
+"####.#..#.#..#.####",
+"   #.#.##.##.#.#   ",
+"####.#.......#.####",
+"T......##-##......T",
+"####.#.#GGG#.#.####",
+"   #.#.#####.#.#   ",
+"####.#.......#.####",
+"#.......#.#.......#",
+"#.##.##.#.#.##.##.#",
+"#o.#.#...P...#.#.o#",
+"##.#.#.#####.#.#.##",
+"#....#.......#....#",
+"#.##.####.####.##.#",
+"#.##...........##.#",
+"#.................#",
+"###################"]},
+{name:"Frosty Fort",wall:"#7fe0ff",glow:"#e0f8ff",floor:"#0b2238",m:[
+"###################",
+"#.......o.o.......#",
+"#.###.#.###.#.###.#",
+"#.#...#.....#...#.#",
+"#.#.###.#.#.###.#.#",
+"#.......#.#.......#",
+"#####.###.###.#####",
+"    #.........#    ",
+"#####.###-###.#####",
+"T.....##GGG##.....T",
+"#####.#######.#####",
+"    #.........#    ",
+"#####.#.#.#.#.#####",
+"#o......#.#......o#",
+"#.##.##.#.#.##.##.#",
+"#..#.....P.....#..#",
+"##.#.#.#####.#.#.##",
+"#....#.......#....#",
+"#.####.#.#.#.####.#",
+"#......#...#......#",
+"###################"]},
+{name:"Lava Labyrinth",wall:"#ff7a2e",glow:"#ffd08a",floor:"#2a0b06",m:[
+"###################",
+"#o...............o#",
+"#.#.###.###.###.#.#",
+"#.#.#.........#.#.#",
+"#...#.#.###.#.#...#",
+"###.#.#.....#.#.###",
+"  #...###.###...#  ",
+"###.#.........#.###",
+"T...#.###-###.#...T",
+"###...#GGGGG#...###",
+"  #.#.#######.#.#  ",
+"###.#.........#.###",
+"#.....###.###.....#",
+"#.###.........###.#",
+"#o..#.#.#P#.#.#..o#",
+"###.#.#.#.#.#.#.###",
+"#.....#.....#.....#",
+"#.###.###.###.###.#",
+"#.#.............#.#",
+"#.................#",
+"###################"]}
+];
+// make sure every maze is symmetric-ish and connected: validated at load (see check below)
+
+const DIRS={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]},OPP={up:"down",down:"up",left:"right",right:"left"},DLIST=["up","left","down","right"];
+const MON=[
+ {name:"Rumble",col:"#ff4d6d",corner:[17,-2]},
+ {name:"Twinkle",col:"#ff8fe0",corner:[1,-2]},
+ {name:"Zigzag",col:"#39e1ff",corner:[18,21]},
+ {name:"Dozy",col:"#ffa63d",corner:[0,21]}
+];
+const SKINS=[
+ {id:"sunny",name:"Sunny",price:0,col:"#ffd23f"},
+ {id:"lime",name:"Lime",price:60,col:"#a6ff4d"},
+ {id:"berry",name:"Berry",price:120,col:"#ff6fa3"},
+ {id:"ocean",name:"Ocean",price:200,col:"#39b8ff"},
+ {id:"grape",name:"Grape",price:300,col:"#a76bff"},
+ {id:"gold",name:"Golden",price:500,col:"#ffcf3c",metal:true}
+];
+const TREATS=[{n:"Cherry Pop",c:"#ff3b5c",p:100},{n:"Melon Slice",c:"#5fd36a",p:300},{n:"Star Cookie",c:"#ffcf6b",p:500},{n:"Blue Jelly",c:"#4aa8ff",p:700},{n:"Rainbow Cake",c:"#ff8fe0",p:1000}];
+
+/* ---------- state ---------- */
+let MZ,grid,W,H,dotsLeft,totalDots,level=1,score=0,lives=3,playing=false,paused=false,phase="idle",phaseT=0,frightT=0,chain=0,modeIdx=0,modeT=0,treat=null,treatsSpawned=0,coinsRun=0,extraGiven=false;
+let hero,mons=[],dotMeshes={},berryMeshes=[];
+const mazeGroup=new THREE.Group();scene.add(mazeGroup);
+const DIFF=[{spd:0.85,fr:1.25},{spd:1,fr:1},{spd:1.15,fr:0.8}];
+
+/* ---------- geometry ---------- */
+const dotGeo=new THREE.SphereGeometry(0.12,10,8),berryGeo=new THREE.SphereGeometry(0.3,16,12);
+let dotIM=null,dotIdx={};
+function cell(x,y){if(y<0||y>=H)return "#";x=((x%W)+W)%W;return grid[y][x];}
+function walkable(x,y,isMon,useDoor){const c=cell(x,y);if(c==="#")return false;if(c==="-")return !!useDoor;if(c==="G")return !!isMon;return true;}
+function toWorld(x,y){return [x-(W-1)/2,y-(H-1)/2];}
+
+function buildMaze(i){
+  mazeGroup.clear();dotMeshes={};berryMeshes=[];
+  MZ=MAZES[i%MAZES.length];
+  grid=MZ.m.map(r=>r.split(""));H=grid.length;W=grid[0].length;
+  scene.background=A3.skyTexture(MZ.floor,"#020208");
+  // floor
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(W+2,H+2),A3.mat(MZ.floor,{rough:0.9}));fl.rotation.x=-Math.PI/2;fl.receiveShadow=true;mazeGroup.add(fl);
+  const big=new THREE.Mesh(new THREE.PlaneGeometry(200,200),A3.mat("#050712"));big.rotation.x=-Math.PI/2;big.position.y=-0.02;mazeGroup.add(big);
+  // walls: one merged-ish set of instanced rounded blocks plus glowing tops
+  const walls=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]==="#")walls.push([x,y]);
+  const wg=A3.rbox(0.92,0.7,0.92,0.22,"#fff").geometry;
+  const wm=new THREE.MeshStandardMaterial({color:new THREE.Color(MZ.wall).convertSRGBToLinear(),roughness:0.35,metalness:0.1,emissive:new THREE.Color(MZ.wall).convertSRGBToLinear(),emissiveIntensity:0.25});
+  const im=new THREE.InstancedMesh(wg,wm,walls.length);const mtx=new THREE.Matrix4();
+  walls.forEach((w,k)=>{const p=toWorld(w[0],w[1]);mtx.makeTranslation(p[0],0.35,p[1]);im.setMatrixAt(k,mtx);});im.castShadow=true;im.receiveShadow=true;mazeGroup.add(im);
+  // connector bars between neighbouring walls for a smooth look
+  const bars=[];for(const w of walls){const [x,y]=w;if(x+1<W&&grid[y][x+1]==="#")bars.push([x+0.5,y,0]);if(y+1<H&&grid[y+1][x]==="#")bars.push([x,y+0.5,1]);}
+  const bg=new THREE.BoxGeometry(0.5,0.62,0.5);const bm=new THREE.InstancedMesh(bg,wm,bars.length);
+  bars.forEach((b,k)=>{const p=toWorld(b[0],b[1]);mtx.makeTranslation(p[0],0.31,p[1]);bm.setMatrixAt(k,mtx);});bm.castShadow=true;mazeGroup.add(bm);
+  const topMat=new THREE.MeshBasicMaterial({color:MZ.glow});
+  const tg=new THREE.BoxGeometry(0.4,0.03,0.4);const tm=new THREE.InstancedMesh(tg,topMat,walls.length+bars.length);
+  walls.concat(bars).forEach((w,k)=>{const p=toWorld(w[0],w[1]);mtx.makeTranslation(p[0],0.8,p[1]);if(w.length===3){mtx.makeScale(w[2]?0.6:2.4,1,w[2]?2.4:0.6);mtx.setPosition(p[0],0.8,p[1]);}tm.setMatrixAt(k,mtx);});mazeGroup.add(tm);
+  // door
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]==="-"){const p=toWorld(x,y);const d=A3.box(0.9,0.12,0.2,"#ff9fd6",{emissive:"#ff6fc0",glow:0.6});d.position.set(p[0],0.4,p[1]);mazeGroup.add(d);}
+  // dots (instanced) and berries
+  const dots=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===".")dots.push([x,y]);
+  dotIM=new THREE.InstancedMesh(dotGeo,new THREE.MeshBasicMaterial({color:"#fff4c8"}),dots.length);dotIdx={};
+  dots.forEach((d,k)=>{const p=toWorld(d[0],d[1]);mtx.makeTranslation(p[0],0.3,p[1]);dotIM.setMatrixAt(k,mtx);dotIdx[d[0]+","+d[1]]=k;});mazeGroup.add(dotIM);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]==="o"){const p=toWorld(x,y);const b=new THREE.Mesh(berryGeo,A3.mat("#ff5d8f",{emissive:"#ff2d6f",glow:0.7}));b.position.set(p[0],0.35,p[1]);const leaf=A3.box(0.18,0.04,0.1,"#5fd36a");leaf.position.y=0.3;b.add(leaf);mazeGroup.add(b);berryMeshes.push({m:b,x:x,y:y});}
+  totalDots=dots.length+berryMeshes.length;dotsLeft=totalDots;
+  // tunnel arches
+  for(let y=0;y<H;y++)if(grid[y][0]==="T"){[0,W-1].forEach(x=>{const p=toWorld(x,y);const a=new THREE.Mesh(new THREE.TorusGeometry(0.5,0.08,8,20,Math.PI),new THREE.MeshBasicMaterial({color:MZ.glow}));a.position.set(p[0]+(x?0.45:-0.45),0,p[1]);a.rotation.y=Math.PI/2;mazeGroup.add(a);});}
+  V.lights.sun.position.set(4,22,10);
+}
+function eatAt(x,y){
+  const c=grid[y][x];
+  if(c==="."){grid[y][x]=" ";const k=dotIdx[x+","+y];const m=new THREE.Matrix4();m.makeScale(0,0,0);dotIM.setMatrixAt(k,m);dotIM.instanceMatrix.needsUpdate=true;dotsLeft--;addScore(10);munchSound();return 1;}
+  if(c==="o"){grid[y][x]=" ";const b=berryMeshes.find(b=>b.x===x&&b.y===y);if(b){mazeGroup.remove(b.m);parts.burst(b.m.position.clone(),"#ff5d8f",12,4,0.5);}dotsLeft--;addScore(50);frighten();return 2;}
+  return 0;
+}
+let munchAlt=0;
+function munchSound(){munchAlt^=1;if(!A3.mute())A3.sfx(munchAlt?"tick":"click");}
+
+/* ---------- hero ---------- */
+function buildHero(){
+  const sk=SKINS.find(s=>s.id===S.skin)||SKINS[0];
+  const g=new THREE.Group();
+  const mat=A3.mat(sk.col,sk.metal?{metal:0.6,rough:0.25}:{rough:0.4});
+  const top=new THREE.Mesh(new THREE.SphereGeometry(0.42,24,16,0,Math.PI*2,0,Math.PI/2),mat);
+  const bot=new THREE.Mesh(new THREE.SphereGeometry(0.42,24,16,0,Math.PI*2,Math.PI/2,Math.PI/2),mat);
+  const capT=new THREE.Mesh(new THREE.CircleGeometry(0.42,24),A3.mat("#8a1f3a"));capT.rotation.x=Math.PI/2;
+  const capB=new THREE.Mesh(new THREE.CircleGeometry(0.42,24),A3.mat("#8a1f3a"));capB.rotation.x=-Math.PI/2;
+  const jawT=new THREE.Group(),jawB=new THREE.Group();jawT.add(top,capT);jawB.add(bot,capB);
+  const tongue=new THREE.Mesh(new THREE.SphereGeometry(0.2,12,8),A3.mat("#ff6f8f"));tongue.scale.set(1,0.3,1);tongue.position.set(0,-0.03,0.12);jawB.add(tongue);
+  [-1,1].forEach(s=>{const e=new THREE.Mesh(new THREE.SphereGeometry(0.1,12,8),A3.mat("#ffffff"));e.position.set(s*0.18,0.26,0.24);jawT.add(e);const p=new THREE.Mesh(new THREE.SphereGeometry(0.055,10,8),A3.mat("#1b1b25"));p.position.set(s*0.18,0.28,0.32);jawT.add(p);});
+  const tuft=new THREE.Mesh(new THREE.ConeGeometry(0.08,0.2,8),mat);tuft.position.set(0,0.46,-0.05);tuft.rotation.x=-0.4;jawT.add(tuft);
+  [-1,1].forEach(s=>{const f=new THREE.Mesh(new THREE.SphereGeometry(0.12,10,8),A3.mat("#ff8a3d"));f.scale.set(1,0.5,1.4);f.position.set(s*0.18,-0.4,-0.02);g.add(f);});
+  [top,bot].forEach(m=>{m.castShadow=true;});
+  const body=new THREE.Group();body.add(jawT,jawB);g.add(body);
+  g.userData={jawT:jawT,jawB:jawB,body:body};
+  return g;
+}
+
+/* ---------- monsters ---------- */
+const eyeGeo=new THREE.SphereGeometry(0.12,12,8),pupGeo=new THREE.SphereGeometry(0.06,10,8);
+function buildMon(def){
+  const g=new THREE.Group();
+  const mat=new THREE.MeshStandardMaterial({color:new THREE.Color(def.col).convertSRGBToLinear(),roughness:0.45,emissive:new THREE.Color(def.col).convertSRGBToLinear(),emissiveIntensity:0.15});
+  const body=new THREE.Group();g.add(body);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.4,20,14,0,Math.PI*2,0,Math.PI/2),mat);head.position.y=0.2;head.castShadow=true;body.add(head);
+  const skirt=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.44,0.36,20,1,true),mat);skirt.position.y=0.02;skirt.castShadow=true;body.add(skirt);
+  const feet=[];for(let i=0;i<4;i++){const f=new THREE.Mesh(new THREE.SphereGeometry(0.12,10,8),mat);const a=i/4*Math.PI*2+Math.PI/4;f.position.set(Math.cos(a)*0.3,-0.16,Math.sin(a)*0.3);body.add(f);feet.push(f);}
+  // horns or ears (each one different)
+  if(def.name==="Rumble"){[-1,1].forEach(s=>{const h=new THREE.Mesh(new THREE.ConeGeometry(0.08,0.24,8),A3.mat("#ffe6a0"));h.position.set(s*0.22,0.58,0);h.rotation.z=-s*0.4;body.add(h);});}
+  if(def.name==="Twinkle"){const st=new THREE.Mesh(new THREE.OctahedronGeometry(0.12),A3.mat("#fff59a",{emissive:"#ffe14d",glow:0.8}));st.position.y=0.72;body.add(st);const a=A3.cyl(0.02,0.02,0.18,"#fff",6);a.position.y=0.6;body.add(a);}
+  if(def.name==="Zigzag"){for(let i=-1;i<=1;i++){const sp=new THREE.Mesh(new THREE.ConeGeometry(0.06,0.18,6),A3.mat("#ffffff"));sp.position.set(i*0.14,0.6-Math.abs(i)*0.05,-0.05);body.add(sp);}}
+  if(def.name==="Dozy"){const cap=new THREE.Mesh(new THREE.ConeGeometry(0.22,0.4,12),A3.mat("#7fe0ff"));cap.position.set(0.05,0.68,0);cap.rotation.z=-0.5;body.add(cap);const pom=new THREE.Mesh(new THREE.SphereGeometry(0.07,8,6),A3.mat("#ffffff"));pom.position.set(0.24,0.82,0);body.add(pom);}
+  const eyes=new THREE.Group();eyes.position.set(0,0.32,0.28);g.add(eyes);
+  const pupils=[];
+  [-1,1].forEach(s=>{const e=new THREE.Mesh(eyeGeo,A3.mat("#ffffff"));e.position.x=s*0.15;e.scale.set(1,1.25,0.8);eyes.add(e);const p=new THREE.Mesh(pupGeo,A3.mat("#1b2a6b"));p.position.set(s*0.15,0,0.08);eyes.add(p);pupils.push(p);});
+  const blueMat=new THREE.MeshStandardMaterial({color:new THREE.Color("#3a4dff").convertSRGBToLinear(),roughness:0.45,emissive:new THREE.Color("#2233cc").convertSRGBToLinear(),emissiveIntensity:0.4});
+  const whiteMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.45,emissive:0xffffff,emissiveIntensity:0.3});
+  const face=new THREE.Group();face.position.set(0,0.22,0.36);g.add(face);face.visible=false;
+  for(let i=0;i<4;i++){const z=A3.box(0.08,0.04,0.02,"#ffe0f0");z.position.set(-0.13+i*0.09,-0.05+(i%2)*0.05,0);face.add(z);}
+  g.userData={body:body,eyes:eyes,pupils:pupils,feet:feet,mat:mat,blueMat:blueMat,whiteMat:whiteMat,face:face,parts:[head,skirt].concat(feet)};
+  return g;
+}
+
+/* ---------- actors and movement ---------- */
+function findChar(ch){const out=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===ch)out.push([x,y]);return out;}
+function makeActor(x,y,dir){return {x:x,y:y,tx:x,ty:y,dir:dir,next:null,prog:0};}
+function heroSpeed(){return (5.6+Math.min(2.2,(level-1)*0.32))*DIFF[S.diff].spd;}
+function monSpeed(m){
+  const base=(5.0+Math.min(2.4,(level-1)*0.36))*DIFF[S.diff].spd;
+  if(m.state==="eyes")return 13;
+  if(m.state==="fright")return base*0.55;
+  if(m.state==="home"||m.state==="leaving")return base*0.6;
+  if(grid[m.a.y]&&(m.a.x<=1||m.a.x>=W-2)&&cell(0,m.a.y)==="T")return base*0.55;
+  if(m.name==="Rumble"&&dotsLeft<totalDots*0.25)return base*1.08;
+  return base;
+}
+function canGo(a,d,isMon,door){const v=DIRS[d];return walkable(a.x+v[0],a.y+v[1],isMon,door);}
+// move an actor one step along; returns true when it reaches a cell centre
+function stepActor(a,spd,dt,chooseDir){
+  let dist=spd*dt;
+  let guard=0;
+  while(dist>0&&guard++<4){
+    if(a.prog===0){
+      // at a cell centre: choose direction
+      const d=chooseDir(a);
+      if(!d){return;}
+      a.dir=d;const v=DIRS[d];a.tx=a.x+v[0];a.ty=a.y+v[1];
+    }
+    const need=1-a.prog;
+    if(dist>=need){
+      a.prog=0;dist-=need;a.x=a.tx;a.y=a.ty;
+      if(a.x<0)a.x=W-1;if(a.x>=W)a.x=0;a.tx=a.x;a.ty=a.y;
+      if(a.onCell)a.onCell(a);
+    }else{a.prog+=dist;dist=0;}
+  }
+}
+function actorPos(a){
+  const v=DIRS[a.dir]||[0,0];
+  let x=a.x+v[0]*a.prog,y=a.y+v[1]*a.prog;
+  return toWorld(x,y);
+}
+
+let H0,Hdir;
+function heroChoose(a){
+  if(a.next&&canGo(a,a.next,false,false)){const d=a.next;a.next=null;return d;}
+  if(a.dir&&canGo(a,a.dir,false,false))return a.dir;
+  return null;
+}
+function heroInput(d){
+  if(!playing||paused)return;
+  const a=H0;if(!a)return;
+  if(a.prog>0&&d===OPP[a.dir]){reverseActor(a);a.next=null;return;}
+  a.next=d;
+}
+
+/* monster AI */
+const MODES=[[7,"scatter"],[20,"chase"],[7,"scatter"],[20,"chase"],[5,"scatter"],[20,"chase"],[5,"scatter"],[1e9,"chase"]];
+function curMode(){return MODES[Math.min(modeIdx,MODES.length-1)][1];}
+function targetFor(m){
+  const h=H0;
+  if(m.state==="eyes")return m.home;
+  if(m.state==="leaving")return m.door;
+  if(curMode()==="scatter")return m.corner;
+  const hv=DIRS[h.dir]||[0,0];
+  if(m.name==="Rumble")return [h.x,h.y];
+  if(m.name==="Twinkle")return [h.x+hv[0]*4,h.y+hv[1]*4];
+  if(m.name==="Zigzag"){const r=mons[0].a;const px=h.x+hv[0]*2,py=h.y+hv[1]*2;return [px*2-r.x,py*2-r.y];}
+  if(m.name==="Dozy"){const d=Math.hypot(h.x-m.a.x,h.y-m.a.y);return d>8?[h.x,h.y]:m.corner;}
+  return [h.x,h.y];
+}
+function monChoose(m){
+  return function(a){
+    const isMon=true,door=m.state==="eyes"||m.state==="leaving";
+    const opts=DLIST.filter(d=>d!==OPP[a.dir]&&canGo(a,d,isMon,door)&&!(m.state!=="eyes"&&m.state!=="leaving"&&cell(a.x+DIRS[d][0],a.y+DIRS[d][1])==="G"&&cell(a.x,a.y)!=="G"&&cell(a.x,a.y)!=="-"));
+    let list=opts.length?opts:DLIST.filter(d=>canGo(a,d,isMon,door));
+    if(!list.length)return null;
+    if(m.state==="fright"){return A3.pick(list);}
+    const t=targetFor(m);let best=null,bd=1e9;
+    for(const d of list){const nx=a.x+DIRS[d][0],ny=a.y+DIRS[d][1];const dd=(nx-t[0])*(nx-t[0])+(ny-t[1])*(ny-t[1]);if(dd<bd){bd=dd;best=d;}}
+    return best;
+  };
+}
+
+/* ---------- game flow ---------- */
+let heroMesh=null;
+function setupLevel(fresh){
+  buildMaze(level-1);
+  const p=findChar("P")[0];
+  grid[p[1]][p[0]]=" ";
+  H0=makeActor(p[0],p[1],"left");H0.next="left";
+  H0.onCell=a=>{const r=eatAt(a.x,a.y);if(treat&&treat.x===a.x&&treat.y===a.y)eatTreat();if(!dotsLeft)levelClear();};
+  if(heroMesh)scene.remove(heroMesh);heroMesh=buildHero();scene.add(heroMesh);
+  mons.forEach(m=>scene.remove(m.mesh));mons=[];
+  const homes=findChar("G"),door=findChar("-")[0];
+  MON.forEach((d,i)=>{
+    const h=homes[Math.max(0,i-1)%homes.length];
+    const start=i===0?[door[0],door[1]-1]:h;
+    const m={name:d.name,col:d.col,corner:d.corner,home:[homes[Math.floor(homes.length/2)][0],homes[0][1]],door:[door[0],door[1]-1],state:i===0?"out":"home",release:[0,2.5,6,10][i]/(1+Math.min(1,(level-1)*0.2)),mesh:buildMon(d)};
+    m.a=makeActor(start[0],start[1],"left");m.a.onCell=a=>monCell(m);
+    scene.add(m.mesh);mons.push(m);
+  });
+  modeIdx=0;modeT=0;frightT=0;chain=0;treat&&mazeGroup.remove(treat.m);treat=null;treatsSpawned=0;
+  phase="ready";phaseT=1.8;if(fresh!=="quiet")A3.toast(level===1&&fresh?"Ready? Go!":"Level "+level+": "+MZ.name,1600);
+  updateActors(0);hud();
+}
+let startCell=null;
+function respawn(){
+  H0.x=startCell[0];H0.y=startCell[1];H0.tx=H0.x;H0.ty=H0.y;H0.prog=0;H0.dir="left";H0.next="left";
+  const homes=findChar("G"),door=findChar("-")[0];
+  mons.forEach((m,i)=>{const h=homes[Math.max(0,i-1)%homes.length];const s=i===0?[door[0],door[1]-1]:h;Object.assign(m.a,{x:s[0],y:s[1],tx:s[0],ty:s[1],prog:0,dir:"left"});m.state=i===0?"out":"home";m.release=[0,2,4.5,7][i];setMonLook(m);});
+  frightT=0;phase="ready";phaseT=1.6;updateActors(0);
+}
+function newGame(){
+  A3.hide("ovTitle");A3.hide("ovOver");A3.hide("ovSkins");A3.hide("ovPause");
+  level=1;score=0;lives=3;coinsRun=0;extraGiven=false;playing=true;paused=false;
+  setupLevel(true);startCell=[H0.x,H0.y];
+  S.played++;persist();hud();
+}
+function nextLevel(){level++;setupLevel(false);startCell=[H0.x,H0.y];}
+function addScore(n){
+  score+=n;
+  if(!extraGiven&&score>=10000){extraGiven=true;lives++;A3.toast("Extra life!");A3.sfx("win");}
+  hud();
+}
+function frighten(){
+  const dur=Math.max(2,(7-level*0.6))*DIFF[S.diff].fr;
+  frightT=dur;chain=0;A3.sfx("whoosh");
+  mons.forEach(m=>{if(m.state==="out"){m.state="fright";reverseActor(m.a);setMonLook(m);}});
+}
+function reverseActor(a){if(a.prog>0){const nx=a.tx,ny=a.ty;a.tx=a.x;a.ty=a.y;a.x=nx;a.y=ny;a.prog=1-a.prog;}a.dir=OPP[a.dir]||a.dir;}
+function monCell(m){
+  if(m.state==="eyes"&&m.a.x===m.home[0]&&m.a.y===m.home[1]){m.state="leaving";setMonLook(m);}
+  else if(m.state==="leaving"&&m.a.x===m.door[0]&&m.a.y===m.door[1]){m.state="out";setMonLook(m);}
+}
+function setMonLook(m){
+  const u=m.mesh.userData,st=m.state;
+  u.body.visible=st!=="eyes";
+  const mat=st==="fright"?u.blueMat:u.mat;u.parts.forEach(p=>p.material=mat);
+  u.face.visible=st==="fright";u.eyes.visible=st!=="fright";
+  u.body.children.forEach(c=>{if(u.parts.indexOf(c)<0)c.visible=st!=="fright";});
+}
+function eatTreat(){
+  const tr=TREATS[Math.min(level-1,TREATS.length-1)];addScore(tr.p);coinsRun+=3;S.coins+=3;A3.sfx("coin");
+  floatText("+"+tr.p,treat.m.position,"#ffe14d");parts.burst(treat.m.position.clone(),tr.c,14,4,0.6);
+  mazeGroup.remove(treat.m);treat=null;persist();
+}
+function spawnTreat(){
+  const tr=TREATS[Math.min(level-1,TREATS.length-1)];
+  const g=new THREE.Group();
+  const b=new THREE.Mesh(new THREE.SphereGeometry(0.28,16,12),A3.mat(tr.c,{emissive:tr.c,glow:0.3}));g.add(b);
+  if(tr.n==="Cherry Pop"){const b2=b.clone();b2.position.set(0.22,-0.05,0.05);g.add(b2);const st=A3.cyl(0.02,0.02,0.4,"#5fd36a",6);st.position.set(0.1,0.3,0);st.rotation.z=0.4;g.add(st);}
+  else if(tr.n==="Melon Slice"){b.scale.set(1.2,0.6,0.5);const r=new THREE.Mesh(new THREE.SphereGeometry(0.3,16,12),A3.mat("#2d8a3a"));r.scale.set(1.25,0.62,0.45);r.position.z=-0.03;g.add(r);}
+  else if(tr.n==="Star Cookie"){b.visible=false;const s=new THREE.Mesh(new THREE.OctahedronGeometry(0.34),A3.mat(tr.c));s.scale.set(1,1,0.4);g.add(s);}
+  else if(tr.n==="Blue Jelly"){b.scale.set(1,1.2,1);b.material=A3.mat(tr.c,{opacity:0.8,emissive:tr.c,glow:0.3});}
+  else{b.scale.set(1.1,0.7,1.1);const top=new THREE.Mesh(new THREE.SphereGeometry(0.1,10,8),A3.mat("#ff3b5c"));top.position.y=0.25;g.add(top);}
+  const p=toWorld(startCell[0],startCell[1]-2>0&&walkable(startCell[0],startCell[1]-2,false)?startCell[1]-2:startCell[1]);
+  const cy=walkable(startCell[0],startCell[1]-2,false)?startCell[1]-2:startCell[1];
+  g.position.set(p[0],0.45,p[1]);mazeGroup.add(g);
+  treat={m:g,x:startCell[0],y:cy,t:10};
+  A3.toast(tr.n+"!",1200);
+}
+const floaters=[];
+function floatText(txt,pos,col){const l=A3.label(txt,{size:0.7,color:col,stroke:"#000",depthTest:false});l.position.copy(pos).add(new THREE.Vector3(0,0.8,0));scene.add(l);floaters.push({l:l,t:1});}
+function levelClear(){
+  phase="clear";phaseT=2.2;A3.sfx("win");
+  for(let i=0;i<3;i++)setTimeout(()=>parts.burst(new THREE.Vector3(A3.rand(-6,6),1,A3.rand(-6,6)),A3.pick([MZ.wall,"#ffe14d","#ff8fe0","#39e1ff"]),20,6,1),i*250);
+  const c=10+level*5;coinsRun+=c;S.coins+=c;
+  if(level>S.maxLevel)S.maxLevel=level;
+  A3.win(Math.min(5,1+Math.floor(level/2)),"clearing level "+level+" in Maze Muncher");
+  A3.toast("Level clear! +"+c+" coins",1800);
+  persist();
+}
+function loseLife(){
+  phase="dying";phaseT=1.6;A3.sfx("lose");lives--;hud();
+}
+function gameOver(){
+  playing=false;phase="idle";
+  const isBest=score>S.best;
+  if(isBest){S.best=score;A3.best(S.best);if(score>=3000)A3.win(score>=20000?4:score>=10000?3:2,"a new Maze Muncher best");}
+  persist();
+  $("oTitle").textContent=isBest?"New best!":"Game over";
+  $("oText").textContent=isBest?"Brilliant munching! A new best score.":"Your best is "+A3.fmt(S.best)+". Have another go!";
+  $("oStats").innerHTML="<div>Score <b>"+A3.fmt(score)+"</b></div><div>Level <b>"+level+"</b></div><div>Coins earned <b>"+coinsRun+"</b></div>";
+  A3.show("ovOver");hud();
+}
+
+/* ---------- update ---------- */
+function updateActors(t){
+  const hp=actorPos(H0);heroMesh.position.set(hp[0],0.45,hp[1]);
+  const ang={up:Math.PI,down:0,left:-Math.PI/2,right:Math.PI/2}[H0.dir]||0;
+  let cur=heroMesh.userData.body.rotation.y,diff=ang-cur;while(diff>Math.PI)diff-=Math.PI*2;while(diff<-Math.PI)diff+=Math.PI*2;
+  heroMesh.userData.body.rotation.y=cur+diff*0.35;
+  mons.forEach(m=>{const p=actorPos(m.a);m.mesh.position.set(p[0],0.42,p[1]);
+    const a={up:Math.PI,down:0,left:-Math.PI/2,right:Math.PI/2}[m.a.dir]||0;m.mesh.userData.body.rotation.y=a;
+    const u=m.mesh.userData,v=DIRS[m.a.dir]||[0,0];u.pupils.forEach((pp,i)=>{pp.position.x=(i?0.15:-0.15)+v[0]*0.05;pp.position.y=-v[1]*0.05;});
+    u.eyes.position.set(v[0]*0.1,m.state==="eyes"?0.1:0.32,0.28*(m.a.dir==="up"?-1:1)*0+0.28+v[1]*0.05);
+  });
+}
+let lastT=0,simT=0,noRender=false;
+function frame(dt,t){
+  lastT=t;
+  if(playing&&!paused&&H0){
+    if(phase==="ready"){phaseT-=dt;if(phaseT<=0)phase="play";}
+    else if(phase==="play"){
+      // modes
+      if(frightT>0){frightT-=dt;if(frightT<=0){mons.forEach(m=>{if(m.state==="fright"){m.state="out";setMonLook(m);}});}}
+      else{modeT+=dt;if(modeT>MODES[Math.min(modeIdx,MODES.length-1)][0]){modeT=0;modeIdx++;mons.forEach(m=>{if(m.state==="out")reverseActor(m.a);});}}
+      // hero
+      const hs=heroSpeed();
+      stepActor(H0,hs,dt,heroChoose);
+      if(phase!=="play"){}else{
+      // monsters
+      mons.forEach(m=>{
+        if(m.state==="home"){m.release-=dt;m.mesh.position.y=0.42+Math.abs(Math.sin(t*5+m.name.length))*0.12;if(m.release<=0){m.state="leaving";}return;}
+        stepActor(m.a,monSpeed(m),dt,monChoose(m));
+      });
+      // treats
+      const eaten=totalDots-dotsLeft;
+      if(!treat&&((treatsSpawned===0&&eaten>totalDots*0.3)||(treatsSpawned===1&&eaten>totalDots*0.7))){treatsSpawned++;spawnTreat();}
+      if(treat){treat.t-=dt;treat.m.rotation.y+=dt*2;treat.m.position.y=0.45+Math.sin(t*4)*0.08;if(treat.t<=0){mazeGroup.remove(treat.m);treat=null;}}
+      // collisions
+      const hp=actorPos(H0);
+      for(const m of mons){
+        if(m.state==="home"||m.state==="eyes"||m.state==="leaving")continue;
+        const mp=actorPos(m.a);
+        let dx=Math.abs(hp[0]-mp[0]);if(dx>W/2)dx=W-dx;
+        if(dx<0.6&&Math.abs(hp[1]-mp[1])<0.6){
+          if(m.state==="fright"){
+            chain++;const pts=200*Math.pow(2,chain-1);addScore(pts);S.eaten++;m.state="eyes";setMonLook(m);
+            const mp3=new THREE.Vector3(mp[0],0.4,mp[1]);A3.sfx("pop");floatText(String(pts),mp3,"#7fe0ff");parts.burst(mp3,"#3a4dff",12,4,0.5);
+            if(chain===4){coinsRun+=10;S.coins+=10;A3.toast("All four! +10 coins");}
+          }else{loseLife();break;}
+        }
+      }
+      }
+    }
+    else if(phase==="dying"){
+      phaseT-=dt;
+      const k=1-phaseT/1.6;heroMesh.userData.body.rotation.y+=dt*14;heroMesh.scale.setScalar(Math.max(0.01,1-k*1.1));
+      if(phaseT<=0){heroMesh.scale.setScalar(1);if(lives<=0)gameOver();else respawn();}
+    }
+    else if(phase==="clear"){
+      phaseT-=dt;
+      const flash=Math.floor(phaseT*6)%2===0;mazeGroup.children.forEach(c=>{if(c.isInstancedMesh&&c.material.emissiveIntensity!=null)c.material.emissiveIntensity=flash?0.9:0.25;});
+      if(phaseT<=0)nextLevel();
+    }
+    if(H0)updateActors(t);
+  }
+  // animate
+  if(heroMesh){
+    const open=(phase==="play"&&H0&&(H0.prog>0||canGo(H0,H0.dir,false,false)))?Math.abs(Math.sin(t*14))*0.55:0.15;
+    heroMesh.userData.jawT.rotation.x=-open;heroMesh.userData.jawB.rotation.x=open*0.6;
+    if(!playing){heroMesh.userData.body.rotation.y=Math.sin(t)*0.5;heroMesh.position.y=0.45+Math.abs(Math.sin(t*3))*0.2;}
+  }
+  mons.forEach((m,i)=>{
+    const u=m.mesh.userData;
+    u.body.rotation.z=Math.sin(t*10+i)*0.08;
+    u.feet.forEach((f,k)=>f.position.y=-0.16+Math.abs(Math.sin(t*12+k*1.6))*0.06);
+    if(m.state==="fright"&&frightT<2){const w=Math.floor(t*6)%2===0;u.parts.forEach(p=>p.material=w?u.whiteMat:u.blueMat);}
+  });
+  berryMeshes.forEach((b,i)=>{const s=1+Math.sin(t*6+i)*0.18;b.m.scale.setScalar(s);});
+  for(let i=floaters.length-1;i>=0;i--){const f=floaters[i];f.t-=dt;f.l.position.y+=dt*1.2;f.l.material.opacity=Math.min(1,f.t*2);if(f.t<=0){scene.remove(f.l);floaters.splice(i,1);}}
+  // camera: tilted top-down following loosely
+  if(H0&&heroMesh){
+    const hp=heroMesh.position;const asp=Math.min(1,camera.aspect);
+    camTarget.x+=(hp.x*0.3-camTarget.x)*Math.min(1,dt*2.5);camTarget.z+=(hp.z*0.3-camTarget.z)*Math.min(1,dt*2.5);
+    const dist=26/Math.pow(asp,0.85);
+    camera.position.set(camTarget.x,dist,camTarget.z+dist*0.42);camera.lookAt(camTarget.x,0,camTarget.z+0.6);
+  }
+  parts.update(dt);
+  if(!noRender)V.render();
+}
+A3.loop((dt,t)=>{simT=t;frame(dt,t);});
+const camTarget=new THREE.Vector3();
+
+/* ---------- input ---------- */
+const KM={arrowup:"up",w:"up",arrowdown:"down",s:"down",arrowleft:"left",a:"left",arrowright:"right",d:"right"};
+window.addEventListener("keydown",e=>{
+  const k=(e.key||"").toLowerCase();if(e.target&&e.target.tagName==="INPUT")return;
+  if(KM[k]){e.preventDefault();heroInput(KM[k]);}
+  if((k==="p"||k==="escape")&&playing)togglePause();
+  if(k===" "&&!playing&&!$("ovTitle").hidden){e.preventDefault();newGame();}
+});
+A3.swipe(renderer.domElement,d=>{if(d!=="tap")heroInput(d);});
+// live swipe: change direction as soon as the finger has moved enough
+(function(){let sx=0,sy=0,on=false;const cv=renderer.domElement;
+  cv.addEventListener("pointerdown",e=>{on=true;sx=e.clientX;sy=e.clientY;});
+  cv.addEventListener("pointermove",e=>{if(!on||e.pointerType==="mouse")return;const dx=e.clientX-sx,dy=e.clientY-sy;if(Math.max(Math.abs(dx),Math.abs(dy))>26){heroInput(Math.abs(dx)>Math.abs(dy)?(dx>0?"right":"left"):(dy>0?"down":"up"));sx=e.clientX;sy=e.clientY;}});
+  ["pointerup","pointercancel"].forEach(n=>cv.addEventListener(n,()=>on=false));
+})();
+$("dpad").addEventListener("pointerdown",e=>{const b=e.target.closest("button");if(b){e.preventDefault();heroInput(b.dataset.d);}});
+if(window.matchMedia&&matchMedia("(pointer:coarse)").matches)$("dpad").classList.add("show");
+
+function togglePause(){if(!playing)return;paused=!paused;paused?A3.show("ovPause"):A3.hide("ovPause");}
+
+/* ---------- menus ---------- */
+function persist(){A3.store(SAVE,S);}
+function hud(){
+  $("hScore").textContent=A3.fmt(score);$("hBest").textContent=A3.fmt(Math.max(S.best,score));$("hLevel").textContent=level;$("hCoins").textContent=A3.fmt(S.coins);
+  $("big").textContent=A3.fmt(score);$("bigL").textContent="Level "+level;
+  $("lives").textContent="●".repeat(Math.max(0,lives));$("lives").style.color=(SKINS.find(s=>s.id===S.skin)||SKINS[0]).col;
+}
+function titleStats(){$("tStats").innerHTML="<div>Best <b>"+A3.fmt(S.best)+"</b></div><div>Top level <b>"+S.maxLevel+"</b></div><div>Coins <b>"+A3.fmt(S.coins)+"</b></div><div>Monsters munched <b>"+S.eaten+"</b></div>";}
+function drawSkins(){
+  $("skinTxt").textContent="You have "+A3.fmt(S.coins)+" coins. Clear levels and eat treats to earn more.";
+  $("skins").innerHTML=SKINS.map(s=>{const own=S.skins.includes(s.id);return '<button class="skin'+(S.skin===s.id?" on":"")+'" data-s="'+s.id+'"><span class="sw" style="background:'+s.col+'"></span>'+s.name+'<small>'+(S.skin===s.id?"Using":own?"Use":"● "+s.price)+'</small></button>';}).join("");
+}
+$("skins").addEventListener("click",e=>{const b=e.target.closest(".skin");if(!b)return;const s=SKINS.find(x=>x.id===b.dataset.s);
+  if(!S.skins.includes(s.id)){if(S.coins<s.price){A3.toast("You need "+(s.price-S.coins)+" more coins");A3.sfx("tick");return;}S.coins-=s.price;S.skins.push(s.id);A3.sfx("win");A3.toast(s.name+" Chompo unlocked!");}else A3.sfx("click");
+  S.skin=s.id;persist();drawSkins();hud();if(heroMesh){const p=heroMesh.position.clone();scene.remove(heroMesh);heroMesh=buildHero();heroMesh.position.copy(p);scene.add(heroMesh);}});
+$("diffs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;S.diff=+b.dataset.d;persist();[...$("diffs").children].forEach(x=>x.classList.toggle("on",x===b));A3.sfx("click");});
+$("bPlay").onclick=()=>{A3.sfx("click");newGame();};
+$("bSkins").onclick=()=>{A3.sfx("click");A3.hide("ovTitle");drawSkins();A3.show("ovSkins");};
+$("skinsBack").onclick=()=>{A3.sfx("click");A3.hide("ovSkins");titleStats();A3.show("ovTitle");};
+$("oAgain").onclick=()=>{A3.sfx("click");newGame();};
+$("oMenu").onclick=()=>{A3.sfx("click");A3.hide("ovOver");titleStats();A3.show("ovTitle");};
+$("bPause").onclick=()=>{A3.sfx("click");togglePause();};
+$("pResume").onclick=()=>togglePause();
+$("pQuit").onclick=()=>{paused=false;A3.hide("ovPause");if(score>S.best){S.best=score;A3.best(S.best);persist();}playing=false;phase="idle";titleStats();A3.show("ovTitle");hud();};
+A3.fullscreen($("bFs"),stage);
+$("bMute").onclick=()=>{A3.mute(!A3.mute());$("bMute").textContent=A3.mute()?"🔇":"🔊";};$("bMute").textContent=A3.mute()?"🔇":"🔊";
+
+/* ---------- start: show the first maze behind the title ---------- */
+[...$("diffs").children].forEach(x=>x.classList.toggle("on",+x.dataset.d===S.diff));
+level=1;setupLevel("quiet");startCell=[H0.x,H0.y];phase="idle";
+titleStats();hud();
+window.addEventListener("pagehide",persist);
+if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"maze-muncher",dir:"desc",unit:"pts",title:"Maze Muncher: best score"});
+})();
+</script>
+</body>
+</html>

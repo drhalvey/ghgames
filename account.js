@@ -39,7 +39,7 @@
     "poo-simulator": { title: "Poo Simulator", keys: ["poosim-save"] },
     "monster-mayhem": { title: "Monster Mayhem", keys: ["monstermayhem-save"] },
     "rail-dash": { title: "Rail Dash", keys: ["raildash-save"] },
-    "cube-merge": { title: "Cube Merge", keys: ["cubemerge-save"] },
+    "cube-merge": { title: "Cube Merge", keys: ["cubemerge-idle-save", "cubemerge-save"] },
     "slinky-arena": { title: "Slinky Arena", keys: ["slinkyarena-save"] },
     "blob-feast": { title: "Blob Feast", keys: ["blobfeast-save"] },
     "block-drop": { title: "Block Drop", keys: ["blockdrop-save"] },

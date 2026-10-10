@@ -224,7 +224,7 @@ h1 small{font-family:var(--body);font-weight:900;font-size:16px;background:var(-
     <ul class="help">
       <li><b>Move</b>: WASD or arrow keys, or drag the left side of the screen on an iPad. Tap or click the ground to walk there. <b>Turn the camera</b>: drag with the mouse, or drag the right side of the screen. Mouse wheel or 🔍 zooms. The camera pulls back as you grow.</li>
       <li><b>Attack</b>: get close to another monster and you bite automatically. Tap a monster to chase it.</li>
-      <li><b>Eat zombies</b> by running into them. Every zombie makes you bigger, tougher and gives coins. Big green <b>Brutes</b> fight back, so bite them a few times first.</li>
+      <li><b>Eat zombies</b> by running into them. Every zombie makes you bigger, tougher and gives coins. Big green <b>Brutes</b>, purple <b>Giants</b> and the huge <b>Zombie Kings</b> fight back, so bite them a few times first. Catch a shiny <b>Golden</b> zombie for loads of coins!</li>
       <li><b>SMASH</b> (Space) hits everything around you hard. <b>DASH</b> (Shift) lunges you forward to catch or escape.</li>
       <li><b>Levels</b>: be the last monster standing. After a while the <b>purple storm</b> closes in, so you have to fight. Every 10th level is a <b>Boss</b>. 10 worlds, 100 levels. More health left at the end means more stars.</li>
       <li><b>Public Arena</b>: everyone who is playing is in the same arena. Real players have a 🟢 by their name. Knock them out for big coins. If nobody is on, computer monsters fight you instead.</li>
@@ -278,6 +278,8 @@ const WORLDS = [
   { n: "Outer Space", e: "🚀", g1: "#141533", g2: "#1a1c40", deco: "space", boss: "Alien Overlord", bossSkin: 9, bc: "#7dff8a" },
 ];
 const N_LEVELS = WORLDS.length * 10;
+const MAP_K = Math.sqrt(250);   // 250 times the area of the old map
+const N_OPP = 500;              // computer monsters in every level and in the arena
 // monsters: drawn from these settings
 const SKINS = [
   { n: "Blobby", c: "#6ad14b", c2: "#3f9a2a", eyes: 2, price: 0 },
@@ -291,7 +293,10 @@ const SKINS = [
   { n: "Demon", c: "#b0123a", c2: "#5e0a1f", eyes: 3, horns: 1, wings: 1, price: 1.2e11 },
   { n: "Shadow King", c: "#1d1630", c2: "#0b0814", eyes: 2, horns: 1, crown: 1, glow: 1, price: 2.5e12 },
 ];
-const skinBonus = i => 1 + 0.06 * i;
+// George: skins are OP. Each skin is 3x stronger than the one before, a bit faster and earns more coins
+const skinBonus = i => Math.pow(3, i);
+const skinSpd = i => 1 + 0.06 * i;
+const skinCoin = i => 1 + 0.5 * i;
 const UPS = {
   hp:     { n: "Thick Skin", e: "❤️", d: "+8% health each level", base: 25, g: 1.2, max: 250 },
   bite:   { n: "Sharp Teeth", e: "🦷", d: "+8% bite damage each level", base: 25, g: 1.2, max: 250 },
@@ -308,6 +313,13 @@ const ZTYPES = {
   runner: { xp: 2, coin: 2, r: 10, spd: 62, col: "#9ad46a", hp: 0 },
   fatty:  { xp: 5, coin: 4, r: 17, spd: 24, col: "#6aa84f", hp: 0 },
   brute:  { xp: 14, coin: 12, r: 22, spd: 40, col: "#3f8a3a", hp: 1 },
+  crawler:{ xp: 1, coin: 1, r: 8, spd: 20, col: "#a3b86a" },
+  sprinter:{ xp: 3, coin: 3, r: 9, spd: 100, col: "#c6e05a" },
+  ghost:  { xp: 6, coin: 7, r: 12, spd: 55, col: "#dfe9f2" },
+  toxic:  { xp: 8, coin: 8, r: 14, spd: 42, col: "#7cff3a" },
+  golden: { xp: 12, coin: 80, r: 12, spd: 85, col: "#ffd23a" },
+  giant:  { xp: 40, coin: 35, r: 32, spd: 22, col: "#2f6b30", hp: 4, bite: 2 },
+  king:   { xp: 150, coin: 140, r: 44, spd: 26, col: "#8a2be2", hp: 15, bite: 5 },
 };
 const BOT_NAMES = ["Gnasher","Grumbo","Slobber","Fang","Mr Munch","Chompy","Bonecrush","Snarl","Goober","Wobble","Fuzzbutt","Gobbler","Toothy","Rumble","Snacky","Burpzilla","Clawdia","Big Steve","Nibbles","Grizzle","Mungus","Squelch","Krunch","Bogey"];
 
@@ -348,11 +360,16 @@ const BITE_CD = 0.55;
 function playerMults() {
   const sb = skinBonus(S.skin);
   return {
-    hp: Math.pow(1.08, S.up.hp) * sb, dmg: Math.pow(1.08, S.up.bite) * sb, spd: 1 + 0.03 * S.up.spd,
-    xp: 1 + 0.05 * S.up.hunger, coin: 1 + 0.05 * S.up.coin, start: 10 + 2 * S.up.start,
+    hp: Math.pow(1.08, S.up.hp) * sb, dmg: Math.pow(1.08, S.up.bite) * sb, spd: (1 + 0.03 * S.up.spd) * skinSpd(S.skin),
+    xp: 1 + 0.05 * S.up.hunger, coin: (1 + 0.05 * S.up.coin) * skinCoin(S.skin), start: 10 + 2 * S.up.start,
     regen: 0.002 * S.up.regen, smash: Math.pow(1.1, S.up.smash), smashCd: Math.max(3, 8 - 0.05 * S.up.smash),
   };
 }
+// George: the player buckasnuncle starts every match at size 1 million,
+// also anyone signed in to the account iamtheglobaglab
+const BIG_START = ["buckasnuncle", "iamtheglobaglab"];
+function acctUser() { try { return localStorage.getItem("ghacct_user") || ""; } catch (e) { return ""; } }
+const myStart = pm => BIG_START.includes((NAME || "").trim().toLowerCase()) || BIG_START.includes(acctUser().trim().toLowerCase()) ? 1e6 : pm.start;
 const powerOf = () => Math.pow(1.08, S.up.hp + S.up.bite) * skinBonus(S.skin) ** 2;
 const lvlWorld = L => Math.floor((L - 1) / 10);
 const isBoss = L => L % 10 === 0;
@@ -531,6 +548,31 @@ function makeMonsterView(skinI, boss) {
   if (sk.glow) { const g = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW_TEX, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); g.scale.set(5.2, 5.2, 1); g.position.y = 1.3; root.add(g); v.glow = g; }
   return v;
 }
+const NFULL = COARSE ? 8 : 16, LODCAP = 600;
+let lodBody = null, lodFace = null, lodLeg = null;
+function renderLod(list, t, dt) {
+  if (!lodBody) {
+    lodBody = inst(G_BODY, new THREE.MeshStandardMaterial({ color: 0xffffff, map: STUD, roughness: .8 }), LODCAP, true); colInst(lodBody, LODCAP);
+    lodFace = inst(G_FACE, faceMat(0), LODCAP, false);
+    lodLeg = inst(G_LEG, new THREE.MeshStandardMaterial({ color: 0xffffff, map: STUD, roughness: .8 }), LODCAP * 2, true); colInst(lodLeg, LODCAP * 2);
+  }
+  let n = 0;
+  for (const M of list) {
+    if (n >= LODCAP) break;
+    const sk = SKINS[M.skin] || SKINS[0], r3 = radius(M.m) * SC, fx = M.face[0] || 0, fy = M.face[1] || 1;
+    M.lyaw = lerpAng(M.lyaw == null ? Math.atan2(fx, fy) : M.lyaw, Math.atan2(fx, fy), 1 - Math.exp(-dt * 10));
+    const ph = t * 11 + M.ph, mv = M.moving ? 1 : 0, bob = Math.abs(Math.sin(ph)) * 0.08 * mv;
+    compose(M.x * SC, 0, M.y * SC, 0, M.lyaw, 0, r3, r3, r3, _zr);
+    compose(0, 1.275 + bob, 0, 0, 0, 0, 1, 1, 1); setI(lodBody, n);
+    compose(0, 1.5 + bob, 0.856, 0, 0, 0, 1, 1, 1); setI(lodFace, n);
+    for (const s of [-1, 1]) { compose(s * 0.5, 0.52, 0, Math.sin(ph) * 0.7 * mv * s, 0, 0, 1, 1, 1); setI(lodLeg, n * 2 + (s > 0 ? 1 : 0)); }
+    lodBody.setColorAt(n, M.flash > 0 ? col("#ffffff") : col(sk.c)); lodLeg.setColorAt(n * 2, col(sk.c2)); lodLeg.setColorAt(n * 2 + 1, col(sk.c2));
+    n++;
+  }
+  lodBody.count = lodFace.count = n; lodLeg.count = n * 2;
+  for (const m of [lodBody, lodFace, lodLeg]) m.instanceMatrix.needsUpdate = true;
+  lodBody.instanceColor.needsUpdate = true; lodLeg.instanceColor.needsUpdate = true;
+}
 function disposeView(v) { scene.remove(v.root); v.side.dispose(); if (v.glow) v.glow.material.dispose(); }
 function animMonster(v, M, t, dt) {
   const r3 = radius(M.m) * SC;
@@ -558,7 +600,7 @@ function animMonster(v, M, t, dt) {
 }
 
 // ---------------- zombies (InstancedMesh crowds) ----------------
-const ZCAP = 240;
+const ZCAP = 400;
 function inst(geo, mat, n, shadow) { const m = new THREE.InstancedMesh(geo, mat, n); m.frustumCulled = false; m.count = 0; if (shadow) m.castShadow = true; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(m); return m; }
 function colInst(m, n) { m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * 3).fill(1), 3); m.instanceColor.setUsage(THREE.DynamicDrawUsage); }
 const zLegs = inst((() => { const g = new THREE.BoxGeometry(0.32, 0.7, 0.36); g.translate(0, -0.35, 0); return g; })(), mPlain(0x4b3a6a), ZCAP * 2, true);
@@ -567,8 +609,10 @@ const zArms = inst((() => { const g = new THREE.BoxGeometry(0.24, 0.24, 0.85); g
 const zHead = inst(boxGeo(0.72, 0.72, 0.72, 0.36), new THREE.MeshStandardMaterial({ color: 0xffffff, map: STUD, roughness: .85 }), ZCAP, true); colInst(zHead, ZCAP);
 const zEyes = inst(new THREE.BoxGeometry(0.15, 0.15, 0.05), new THREE.MeshBasicMaterial({ color: 0xffef5a }), ZCAP * 2, false);
 const zMouth = inst(new THREE.BoxGeometry(0.38, 0.07, 0.05), new THREE.MeshBasicMaterial({ color: 0x2a3a1a }), ZCAP, false);
-const ZSHIRT = { walker: col("#8a7a5a"), runner: col("#3a6ab3"), fatty: col("#b38b3a"), brute: col("#6b2f2f") };
-const zPrev = new Float32Array(400), zYaw = new Float32Array(400);
+const ZSHIRT = { walker: col("#8a7a5a"), runner: col("#3a6ab3"), fatty: col("#b38b3a"), brute: col("#6b2f2f"), crawler: col("#5a4a3a"), sprinter: col("#e04a4a"),
+  ghost: col("#b9c6ff"), toxic: col("#3a3a3a"), golden: col("#fff2a8"), giant: col("#4a2f6b"), king: col("#ffd23a") };
+const tank = z => !!ZTYPES[z.type].hp;
+const zPrev = new Float32Array(9000), zYaw = new Float32Array(4500);
 const _zr = new THREE.Matrix4();
 function setI(meshI, i) { _m2.multiplyMatrices(_zr, _m); meshI.setMatrixAt(i, _m2); }
 function renderZombies(list, t) {
@@ -582,7 +626,7 @@ function renderZombies(list, t) {
       if (dx * dx + dy * dy > 0.0004 && dx * dx + dy * dy < 400) zYaw[z.k] = lerpAng(zYaw[z.k], Math.atan2(dx, dy), 0.2);
       zPrev[k] = z.x; zPrev[k + 1] = z.y; yaw = zYaw[z.k];
     } else yaw = Math.atan2(Math.cos(z.a), Math.sin(z.a));
-    const wob = Math.sin(t * 7 + z.ph), fat = z.type === "fatty";
+    const wob = Math.sin(t * 7 + z.ph), fat = z.type === "fatty" || z.type === "giant" || z.type === "king";
     compose(z.x * SC, 0, z.y * SC, 0, yaw, wob * 0.07, s, s, s, _zr);
     compose(-0.22, 0.7, 0, wob * 0.6, 0, 0, 1, 1, 1); setI(zLegs, n * 2);
     compose(0.22, 0.7, 0, -wob * 0.6, 0, 0, 1, 1, 1); setI(zLegs, n * 2 + 1);
@@ -719,7 +763,7 @@ function ensureWorld(st) {
   groundMesh = new THREE.Mesh(new THREE.PlaneGeometry(Wu, Hu), new THREE.MeshStandardMaterial({ map: gt, roughness: .92 }));
   groundMesh.rotation.x = -Math.PI / 2; groundMesh.position.set(Wu / 2, 0, Hu / 2); groundMesh.receiveShadow = true; worldG.add(groundMesh);
   const oc = new THREE.Color(W.g1).multiplyScalar(0.55);
-  outerMesh = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), new THREE.MeshStandardMaterial({ color: oc, roughness: 1 }));
+  outerMesh = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(5000, Wu + 5000), Math.max(5000, Hu + 5000)), new THREE.MeshStandardMaterial({ color: oc, roughness: 1 }));
   outerMesh.rotation.x = -Math.PI / 2; outerMesh.position.set(Wu / 2, -0.05, Hu / 2); worldG.add(outerMesh);
   // pink and dark striped wall around the edge (the Classic dashed line)
   const wallH = 2.4, th = 1;
@@ -731,30 +775,52 @@ function ensureWorld(st) {
   // city road lines
   if (W.deco === "city") {
     const lm = mPlain(0xffffff, { transparent: true, opacity: .25 });
-    for (let x = 400; x < st.W; x += 800) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, Hu), lm); m.position.set(x * SC, 0.02, Hu / 2); worldG.add(m); edgeMeshes.push(m); }
-    for (let y = 400; y < st.H; y += 800) { const m = new THREE.Mesh(new THREE.BoxGeometry(Wu, 0.02, 0.3), lm); m.position.set(Wu / 2, 0.021, y * SC); worldG.add(m); edgeMeshes.push(m); }
+    const nx = Math.floor((st.W - 400) / 800) + 1, ny = Math.floor((st.H - 400) / 800) + 1;
+    const mx = new THREE.InstancedMesh(new THREE.BoxGeometry(0.3, 0.02, Hu), lm, nx); mx.frustumCulled = false;
+    for (let i = 0; i < nx; i++) { compose((400 + i * 800) * SC, 0.02, Hu / 2, 0, 0, 0, 1, 1, 1); mx.setMatrixAt(i, _m); }
+    const my = new THREE.InstancedMesh(new THREE.BoxGeometry(Wu, 0.02, 0.3), lm, ny); my.frustumCulled = false;
+    for (let i = 0; i < ny; i++) { compose(Wu / 2, 0.021, (400 + i * 800) * SC, 0, 0, 0, 1, 1, 1); my.setMatrixAt(i, _m); }
+    worldG.add(mx); worldG.add(my); edgeMeshes.push(mx, my);
   }
-  // props as instanced parts
+  // props: one instanced mesh per part type, refilled with only the props near you (keeps iPads fast on the huge map)
   const groups = {};
+  propSet = { groups: [], grid: new Map(), cx: 1e12, cy: 1e12 };
   for (const p of st.props) {
     const parts = propSpec(W.deco, p.v), S = 26 * p.s * SC;
     compose(p.x * SC, 0, p.y * SC, 0, p.rot, 0, S, S, S, _zr);
+    p.parts = [];
     parts.forEach((q, i) => {
-      const k = p.v + ":" + i; (groups[k] || (groups[k] = { q, list: [] })).list.push(p);
+      const k = p.v + ":" + i, gq = groups[k] || (groups[k] = { q, mats: [], cols: q[1] === "car" ? [] : null });
       compose(q[2], q[3], q[4], 0, 0, 0, q[5], q[6], q[7]); _m2.multiplyMatrices(_zr, _m);
-      groups[k].mats = groups[k].mats || []; groups[k].mats.push(_m2.clone());
-      if (q[1] === "car") (groups[k].cols = groups[k].cols || []).push(CAR_COLS[Math.floor(p.rot) % 4]);
+      p.parts.push(gq, gq.mats.length); gq.mats.push(_m2.clone());
+      if (gq.cols) gq.cols.push(col(CAR_COLS[Math.floor(p.rot) % 4]));
     });
+    const ck = Math.floor(p.x / PCELL) * 4096 + Math.floor(p.y / PCELL); let c = propSet.grid.get(ck); if (!c) propSet.grid.set(ck, c = []); c.push(p);
   }
   for (const k in groups) {
     const gq = groups[k], q = gq.q, o = q[8], n = gq.mats.length;
     const m = new THREE.InstancedMesh(PG[q[0]], propMat(q[0], q[1], o), n);
-    m.frustumCulled = false;
+    m.frustumCulled = false; m.count = 0;
     if (q[0] !== "f" && !(o && o.o)) { m.castShadow = true; m.receiveShadow = true; } else m.receiveShadow = true;
-    gq.mats.forEach((mt, i) => m.setMatrixAt(i, mt));
-    if (gq.cols) { colInst(m, n); gq.cols.forEach((c, i) => m.setColorAt(i, col(c))); }
-    worldG.add(m); worldInst.push(m);
+    if (gq.cols) colInst(m, n);
+    gq.m = m; worldG.add(m); worldInst.push(m); propSet.groups.push(gq);
   }
+}
+const PCELL = 2000;
+let propSet = null;
+function refreshProps(x, y, R) {
+  if (!propSet || Math.hypot(x - propSet.cx, y - propSet.cy) < 700) return;
+  propSet.cx = x; propSet.cy = y;
+  const RR = R + 1600, x0 = Math.floor((x - RR) / PCELL), x1 = Math.floor((x + RR) / PCELL), y0 = Math.floor((y - RR) / PCELL), y1 = Math.floor((y + RR) / PCELL);
+  for (const g of propSet.groups) g.m.count = 0;
+  for (let i = x0; i <= x1; i++) for (let j = y0; j <= y1; j++) {
+    const c = propSet.grid.get(i * 4096 + j); if (!c) continue;
+    for (const p of c) {
+      if (Math.hypot(p.x - x, p.y - y) > RR) continue;
+      for (let k = 0; k < p.parts.length; k += 2) { const gq = p.parts[k], idx = p.parts[k + 1], m = gq.m, n = m.count++; m.setMatrixAt(n, gq.mats[idx]); if (gq.cols) m.setColorAt(n, gq.cols[idx]); }
+    }
+  }
+  for (const g of propSet.groups) { g.m.instanceMatrix.needsUpdate = true; if (g.cols) g.m.instanceColor.needsUpdate = true; }
 }
 // purple storm: glowing wall + tinted ground outside the safe circle
 const STORM_TEX = (() => { const [c, g] = cnv(128, 256); const gr = g.createLinearGradient(0, 256, 0, 0); gr.addColorStop(0, "rgba(200,120,255,.85)"); gr.addColorStop(.5, "rgba(150,60,230,.35)"); gr.addColorStop(1, "rgba(120,40,200,0)"); g.fillStyle = gr; g.fillRect(0, 0, 128, 256);
@@ -816,6 +882,7 @@ function renderTags(st) {
   const seen = new Set();
   for (const M of st.mons.values()) {
     if (!M.alive || st.mode === "show") continue;
+    if (st.VR && !M.me && Math.hypot(M.x - st.fcx, M.y - st.fcy) > st.VR) continue;
     const r3 = radius(M.m) * SC, p = proj(M.x * SC, r3 * 2.45 + 0.5, M.y * SC);
     if (!p) continue;
     seen.add(M.id);
@@ -835,7 +902,7 @@ function renderTags(st) {
     if (tx.y0 == null) {
       tx.y0 = tx.y; tx.yb = tx.y; tx.h = 30;
       let bm = null, bd = 1e9;
-      for (const M of st.mons.values()) { const r = radius(M.m), d = Math.hypot(M.x - tx.x, M.y - r - tx.y); if (d < r * 0.6 + 30 && d < bd) { bd = d; bm = M; } }
+      for (const M of (st.mg ? gridNear(st.mg, tx.x, tx.y, 400) : st.mons.values())) { const r = radius(M.m), d = Math.hypot(M.x - tx.x, M.y - r - tx.y); if (d < r * 0.6 + 30 && d < bd) { bd = d; bm = M; } }
       if (bm) { const r = radius(bm.m); tx.y0 = tx.y + r; tx.h = r * 2.3; }
     }
     const p = proj(tx.x * SC, (tx.h + (tx.yb - tx.y) * 1.2) * SC + 0.6, tx.y0 * SC);
@@ -850,8 +917,8 @@ function renderTags(st) {
   // brute health bars
   let b = 0;
   if (st.mode === "level") for (const z of st.zombies) {
-    if (z.type !== "brute" || z.hp >= z.maxHp || b >= 12) continue;
-    const p = proj(z.x * SC, ZTYPES.brute.r * SC * 2.6 + 0.3, z.y * SC); if (!p) continue;
+    if (!tank(z) || z.hp >= z.maxHp || b >= 12) continue;
+    const p = proj(z.x * SC, ZTYPES[z.type].r * SC * 2.6 + 0.3, z.y * SC); if (!p) continue;
     let el = zbarPool[b]; if (!el) { el = document.createElement("div"); el.className = "zbar"; el.innerHTML = "<u></u>"; tagsEl.appendChild(el); zbarPool[b] = el; }
     el.style.display = ""; el.firstChild.style.width = Math.round(clamp(z.hp / z.maxHp, 0, 1) * 100) + "%";
     el.style.transform = `translate(${p[0].toFixed(1)}px,${p[1].toFixed(1)}px) translate(-50%,-50%)`; b++;
@@ -881,7 +948,7 @@ function renderHUD3D(st) {
   c.fillStyle = "rgba(0,0,0,.5)"; c.fillRect(0, 0, mm, mm);
   c.strokeStyle = "rgba(255,79,143,.8)"; c.lineWidth = 2; c.strokeRect(1, 1, mm - 2, mm - 2);
   if (st.ring) { c.strokeStyle = "rgba(200,120,255,.95)"; c.lineWidth = 3; c.beginPath(); c.arc(st.ring.cx * sc, st.ring.cy * sc, st.ring.r * sc, 0, 6.28); c.stroke(); }
-  for (const M of st.mons.values()) if (M.alive) { c.fillStyle = M.me ? "#c6ff6a" : M.boss ? "#ff3d6b" : M.remote && !M.bot ? "#4aa8ff" : "#ff8a3d"; c.beginPath(); c.arc(M.x * sc, M.y * sc, M.me ? 7 : 5, 0, 6.28); c.fill(); }
+  for (const M of st.mons.values()) if (M.alive) { c.fillStyle = M.me ? "#c6ff6a" : M.boss ? "#ff3d6b" : M.remote && !M.bot ? "#4aa8ff" : "#ff8a3d"; c.beginPath(); c.arc(M.x * sc, M.y * sc, M.me ? 7 : (st.mons.size > 60 ? 2 : 5), 0, 6.28); c.fill(); }
   if (me && me.alive) { const x = me.x * sc, y = me.y * sc, fx = Math.sin(cam.yaw), fy = Math.cos(cam.yaw); c.strokeStyle = "rgba(255,255,255,.85)"; c.lineWidth = 3; c.beginPath(); c.moveTo(x, y); c.lineTo(x + fx * 22, y + fy * 22); c.stroke(); }
   // knocked out in the arena
   const ko = st.mode === "arena" && me && !me.alive;
@@ -898,15 +965,29 @@ function render3D(st, dt) {
   ensureWorld(st);
   const t = st.t;
   const seen = new Set();
+  const VR = viewR(), fcx = cam.init ? cam.t.x / SC : (st.me ? st.me.x : 0), fcy = cam.init ? cam.t.z / SC : (st.me ? st.me.y : 0);
+  st.fcx = fcx; st.fcy = fcy; st.VR = VR;
+  // only the nearest monsters get the full 3D model; further ones are simple shapes (much faster on iPads)
+  const near = [];
+  for (const M of st.mons.values()) { if (!M.alive) continue; const far = Math.hypot(M.x - fcx, M.y - fcy) - radius(M.m); if (far < VR || M.me) near.push([far, M]); }
+  near.sort((a, b) => a[0] - b[0]);
+  const full = new Set(), lod = [];
+  for (const [f, M] of near) { if (M.me || M.boss || full.size < NFULL) full.add(M); else lod.push(M); }
+  renderLod(lod, t, dt);
   for (const M of st.mons.values()) {
     let v = views.get(M.id);
     if (v && (v.skin !== M.skin || v.boss !== !!M.boss)) { disposeView(v); views.delete(M.id); v = null; }
-    if (!M.alive) { if (v) v.root.visible = false; continue; }
+    if (!full.has(M)) { if (v) { if (!M.alive || Math.hypot(M.x - fcx, M.y - fcy) > VR * 1.4) { disposeView(v); views.delete(M.id); } else v.root.visible = false; } continue; }
+    if (v) v.root.visible = true;
     if (!v) { v = makeMonsterView(M.skin, M.boss); v.yaw = Math.atan2(M.face[0] || 0, M.face[1] || 1); scene.add(v.root); views.set(M.id, v); }
     seen.add(M.id); animMonster(v, M, t, dt);
   }
   for (const [id, v] of views) if (!st.mons.has(id)) { disposeView(v); views.delete(id); }
-  renderZombies(st.mode === "arena" ? (st.zCache || []) : st.zombies, t);
+  { const zl = st.mode === "arena" ? (st.zCache || []) : st.zombies, vis = [], VR2 = (VR + 100) * (VR + 100);
+    for (const z of zl) { if (z.dead) continue; const dx = z.x - fcx, dy = z.y - fcy; if (dx * dx + dy * dy < VR2) vis.push(z); }
+    if (vis.length > ZCAP) vis.sort((a, b) => Math.hypot(a.x - fcx, a.y - fcy) - Math.hypot(b.x - fcx, b.y - fcy));
+    renderZombies(vis, t); }
+  refreshProps(fcx, fcy, VR);
   renderFx(st, dt);
   renderStorm(st);
   for (const m of lavaMats) m.emissiveIntensity = 0.65 + Math.sin(t * 2) * 0.25;
@@ -993,27 +1074,31 @@ function grow(M, add) {
 function startLevel(L) {
   const wi = lvlWorld(L), W = WORLDS[wi], boss = isBoss(L);
   const k = (L - 1) % 10;
-  const nBots = boss ? 2 + Math.floor(wi / 3) : Math.min(9, 2 + Math.floor(k / 2) + Math.floor(wi / 2));
-  const size = 1700 + nBots * 140 + wi * 60;
+  // George: the map is 250 times bigger (in area) with 500 monsters to beat
+  const nB0 = boss ? 2 + Math.floor(wi / 3) : Math.min(9, 2 + Math.floor(k / 2) + Math.floor(wi / 2));
+  const nBots = N_OPP;
+  const size = Math.round((1700 + nB0 * 140 + wi * 60) * MAP_K);
   G = baseMatch("level", size, size, wi);
   G.L = L; G.boss = boss;
-  G.zCount = 30 + nBots * 6 + wi * 2;
-  G.ring = { r: Math.hypot(size, size) / 2 + 50, cx: size / 2, cy: size / 2, minR: Math.max(260, size * 0.16), start: boss ? 75 : 50, dur: 70 };
+  G.zCount = Math.round((30 + nB0 * 6 + wi * 2) * 60);
+  const r0 = Math.hypot(size, size) / 2 + 50, minR = Math.max(400, size * 0.03);
+  G.ring = { r: r0, cx: size / 2, cy: size / 2, minR, start: boss ? 150 : 120, dur: Math.round((r0 - minR) / 95) };
   const pm = playerMults();
-  G.me = newMonster({ id: MYID, name: NAME, bot: false, x: size / 2, y: size / 2, m: pm.start, skin: S.skin, hpM: pm.hp, dmgM: pm.dmg, spdM: pm.spd, xpM: pm.xp, regen: pm.regen, smashM: pm.smash, smashMax: pm.smashCd, me: true });
+  G.me = newMonster({ id: MYID, name: NAME, bot: false, x: size / 2, y: size / 2, m: myStart(pm), skin: S.skin, hpM: pm.hp, dmgM: pm.dmg, spdM: pm.spd, xpM: pm.xp, regen: pm.regen, smashM: pm.smash, smashMax: pm.smashCd, me: true });
   G.mons.set(G.me.id, G.me);
   const bp = botPow(L);
   const used = new Set();
   for (let i = 0; i < nBots; i++) {
-    const a = i / nBots * Math.PI * 2 + rand(-0.2, 0.2), d = size * 0.36;
+    let bx = 0, by = 0; for (let t = 0; t < 20; t++) { bx = rand(200, size - 200); by = rand(200, size - 200); if (Math.hypot(bx - size / 2, by - size / 2) > 1800) break; }
     let nm = pick(BOT_NAMES); while (used.has(nm) && used.size < BOT_NAMES.length) nm = pick(BOT_NAMES); used.add(nm);
+    if (used.size >= BOT_NAMES.length) nm = pick(BOT_NAMES) + " " + (2 + Math.floor(i / BOT_NAMES.length));
     const sk = Math.min(SKINS.length - 1, Math.floor(Math.random() * (2 + wi)));
-    G.mons.set("b" + i, newMonster({ id: "b" + i, name: nm, x: size / 2 + Math.cos(a) * d, y: size / 2 + Math.sin(a) * d, m: 10 + L * 1.3 * rand(0.7, 1.2),
+    G.mons.set("b" + i, newMonster({ id: "b" + i, name: nm, x: bx, y: by, m: 10 + L * 1.3 * rand(0.7, 1.2),
       skin: sk, hpM: bp * rand(0.85, 1.1), dmgM: bp * rand(0.85, 1.1), spdM: rand(0.85, 1.05) + wi * 0.01, xpM: 1 + L * 0.04, regen: 0.002 * Math.min(40, L * 0.4), aggr: rand(0.7, 1.4), smashMax: 9, smashM: 1 + L * 0.02 }));
   }
   if (boss) {
     const bm = 10 + L * 1.3;
-    G.mons.set("boss", newMonster({ id: "boss", name: "👑 " + W.boss, boss: true, x: size / 2, y: size * 0.12, m: bm * 3.5, skin: W.bossSkin,
+    G.mons.set("boss", newMonster({ id: "boss", name: "👑 " + W.boss, boss: true, x: size / 2, y: size / 2 - 2500, m: bm * 3.5, skin: W.bossSkin,
       hpM: bp * 1.5, dmgM: bp * 0.55, spdM: 0.82, xpM: 1 + L * 0.04, regen: 0.002 * Math.min(40, L * 0.4), aggr: 1.6, smashMax: 6, smashM: 1.4 }));
   }
   for (let i = 0; i < G.zCount; i++) spawnZombie(true);
@@ -1022,10 +1107,10 @@ function startLevel(L) {
   setMsg(boss ? `⚠️ BOSS LEVEL! Beat ${W.boss} and every other monster!` : `Level ${L}: ${W.n}. Eat zombies to grow, then be the last monster standing!`, boss ? "bad" : "");
 }
 function startArena() {
-  const size = 3200;
+  const size = Math.round(3200 * MAP_K);
   // the arena's world changes every hour (the same for everyone)
   G = baseMatch("arena", size, size, Math.floor(Date.now() / 3600000) % WORLDS.length);
-  G.zSlots = 90;
+  G.zSlots = 4000; G.azb = [];
   G.eaten = new Map();
   G.streak = 0; G.respawn = 0;
   spawnMe();
@@ -1037,7 +1122,7 @@ function spawnMe() {
   const pm = playerMults(), size = G.W;
   let x = size / 2, y = size / 2;
   for (let k = 0; k < 20; k++) { x = rand(200, size - 200); y = rand(200, size - 200); if (![...G.mons.values()].some(o => o.alive && Math.hypot(o.x - x, o.y - y) < 700)) break; }
-  G.me = newMonster({ id: MYID, name: NAME, bot: false, x, y, m: pm.start, skin: S.skin, hpM: pm.hp, dmgM: pm.dmg, spdM: pm.spd, xpM: pm.xp, regen: pm.regen, smashM: pm.smash, smashMax: pm.smashCd, me: true, shield: 3 });
+  G.me = newMonster({ id: MYID, name: NAME, bot: false, x, y, m: myStart(pm), skin: S.skin, hpM: pm.hp, dmgM: pm.dmg, spdM: pm.spd, xpM: pm.xp, regen: pm.regen, smashM: pm.smash, smashMax: pm.smashCd, me: true, shield: 3 });
   G.mons.set(MYID, G.me);
   G.streak = 0;
 }
@@ -1049,21 +1134,33 @@ function spawnZombie(initial) {
   const wi = G.world, L = G.L || 1;
   let type = "walker"; const r = Math.random();
   const bruteChance = G.mode === "level" ? Math.min(0.14, 0.02 + L * 0.0015) : 0;
-  if (r < bruteChance) type = "brute"; else if (r < 0.12 + bruteChance) type = "fatty"; else if (r < 0.38) type = "runner";
+  if (r < 0.004 + L * 0.00004) type = "king";
+  else if (r < 0.02 + L * 0.0002) type = "giant";
+  else if (r < 0.02 + bruteChance) type = "brute";
+  else if (r < 0.035 + bruteChance) type = "golden";
+  else if (r < 0.09 + bruteChance) type = "toxic";
+  else if (r < 0.15 + bruteChance) type = "ghost";
+  else if (r < 0.24 + bruteChance) type = "fatty";
+  else if (r < 0.33 + bruteChance) type = "sprinter";
+  else if (r < 0.45 + bruteChance) type = "crawler";
+  else if (r < 0.62) type = "runner";
   let x, y, tries = 0;
   do { x = rand(40, G.W - 40); y = rand(40, G.H - 40); tries++; } while (!initial && tries < 10 && [...G.mons.values()].some(M => M.alive && Math.hypot(M.x - x, M.y - y) < 300));
   if (G.ring && Math.hypot(x - G.ring.cx, y - G.ring.cy) > G.ring.r * 0.9) { const a = Math.random() * 6.28, d = Math.random() * G.ring.r * 0.85; x = G.ring.cx + Math.cos(a) * d; y = G.ring.cy + Math.sin(a) * d; }
-  const T = ZTYPES[type], hpZ = type === "brute" ? 90 * botPow(L) : 1;
+  const T = ZTYPES[type], hpZ = T.hp ? 90 * T.hp * botPow(L) : 1;
   G.zombies.push({ type, x, y, a: Math.random() * 6.28, ph: Math.random() * 6, hp: hpZ, maxHp: hpZ, hitT: 0, turn: rand(1, 3) });
 }
 
 // ---------------- public arena zombies (the same on every device) ----------------
 function arenaZombie(k, t) {
-  const g = G.eaten.get(k) || 0, R = rng(hash("mmz" + k + ":" + g));
-  const r = R(), type = r < 0.1 ? "fatty" : r < 0.36 ? "runner" : "walker";
-  const bx = 120 + R() * (G.W - 240), by = 120 + R() * (G.H - 240);
-  const s = ZTYPES[type].spd / 40;
-  const p1 = R() * 6.28, p2 = R() * 6.28, p3 = R() * 6.28, p4 = R() * 6.28;
+  const g = G.eaten.get(k) || 0;
+  let b = G.azb[k];
+  if (!b || b.g !== g) {   // worked out once per zombie (the same on every device), then cached
+    const R = rng(hash("mmz" + k + ":" + g)), r = R();
+    const type = r < 0.012 ? "golden" : r < 0.06 ? "toxic" : r < 0.12 ? "ghost" : r < 0.22 ? "fatty" : r < 0.32 ? "sprinter" : r < 0.44 ? "crawler" : r < 0.62 ? "runner" : "walker";
+    b = G.azb[k] = { g, type, bx: 120 + R() * (G.W - 240), by: 120 + R() * (G.H - 240), p1: R() * 6.28, p2: R() * 6.28, p3: R() * 6.28, p4: R() * 6.28 };
+  }
+  const type = b.type, bx = b.bx, by = b.by, s = ZTYPES[type].spd / 40, p1 = b.p1, p2 = b.p2, p3 = b.p3, p4 = b.p4;
   const x = clamp(bx + 110 * Math.sin(t * 0.21 * s + p1) + 70 * Math.sin(t * 0.47 * s + p2), 30, G.W - 30);
   const y = clamp(by + 110 * Math.sin(t * 0.19 * s + p3) + 70 * Math.sin(t * 0.53 * s + p4), 30, G.H - 30);
   return { k, g, type, x, y, ph: p1, hp: 1, maxHp: 1 };
@@ -1097,6 +1194,20 @@ function leaveGame() {
 
 // ---------------- combat ----------------
 function enemiesOf(M) { const out = []; for (const o of G.mons.values()) if (o !== M && o.alive) out.push(o); return out; }
+// the map is huge, so monsters and zombies are sorted into a grid and only nearby ones are checked
+const GC = 600, GMAX = 320;
+function gridOf(list) { const g = new Map(); for (const o of list) { if (o.alive === false || o.dead) continue; const k = Math.floor(o.x / GC) * 4096 + Math.floor(o.y / GC); let c = g.get(k); if (!c) g.set(k, c = []); c.push(o); } return g; }
+function gridNear(g, x, y, R, out) {
+  out = out || []; if (!g) return out;
+  const x0 = Math.floor((x - R) / GC), x1 = Math.floor((x + R) / GC), y0 = Math.floor((y - R) / GC), y1 = Math.floor((y + R) / GC);
+  for (let i = x0; i <= x1; i++) for (let j = y0; j <= y1; j++) { const c = g.get(i * 4096 + j); if (c) for (const o of c) out.push(o); }
+  return out;
+}
+function enemiesNear(M, R) { const out = []; for (const o of gridNear(G.mg, M.x, M.y, R + GMAX)) if (o !== M && o.alive) out.push(o); return out; }
+function zombiesNear(x, y, R) { return gridNear(G.zg, x, y, R + 50).filter(z => !z.dead); }
+function buildGrids() { G.mg = gridOf(G.mons.values()); G.zg = gridOf(G.mode === "arena" ? (G.zCache || []) : G.zombies); }
+const viewR = () => (scene.fog.far + 20) / SC;
+function nearCam(x, y, k) { return !G || !G.cam || Math.hypot(x - G.cam.x, y - G.cam.y) < viewR() * (k || 1.1); }
 function doBite(M, T) {
   const d = biteDmg(M) * rand(0.9, 1.1);
   M.biteT = BITE_CD; M.atk = 1;
@@ -1112,8 +1223,8 @@ function hurt(T, d, by) {
     return;
   }
   T.hp -= d; T.flash = 0.12; T.lastHit = by.id; T.lastHitName = by.name; T.lastHitT = G.t;
-  popText(T.x, T.y - radius(T.m), "-" + fmt(d), T.me ? "#ff7a7a" : "#fff");
-  hitFx(T, by);
+  if (nearCam(T.x, T.y)) { popText(T.x, T.y - radius(T.m), "-" + fmt(d), T.me ? "#ff7a7a" : "#fff"); hitFx(T, by); }
+  else if (by && by.alive) { const a = Math.atan2(T.y - by.y, T.x - by.x); T.vx += Math.cos(a) * 160; T.vy += Math.sin(a) * 160; }
   if (T.me) G.shake = Math.min(14, G.shake + 5);
   if (T.hp <= 0) killMonster(T, by);
 }
@@ -1125,11 +1236,11 @@ function hitFx(T, by) {
 function killMonster(T, by) {
   if (!T.alive) return;
   T.alive = false; T.hp = 0;
-  const r = radius(T.m), sk = SKINS[T.skin];
-  for (let i = 0; i < 40; i++) G.fx.push({ x: T.x, y: T.y, vx: rand(-1, 1) * 380, vy: rand(-1, 1) * 380, life: rand(0.5, 1.1), c: i % 3 ? sk.c : sk.c2, s: rand(4, 10) * Math.max(1, r / 40) });
-  G.shake = Math.min(18, G.shake + 8);
+  const r = radius(T.m), sk = SKINS[T.skin], seen = nearCam(T.x, T.y) || T.me || (by && by.me);
+  if (seen) for (let i = 0; i < 40; i++) G.fx.push({ x: T.x, y: T.y, vx: rand(-1, 1) * 380, vy: rand(-1, 1) * 380, life: rand(0.5, 1.1), c: i % 3 ? sk.c : sk.c2, s: rand(4, 10) * Math.max(1, r / 40) });
+  if (seen) G.shake = Math.min(18, G.shake + 8);
   const killer = by && by.name ? by.name : "the storm";
-  addFeed(`${killer} 💀 ${T.name}`);
+  if (seen) addFeed(`${killer} 💀 ${T.name}`);
   if (by && by.alive && by.m) grow(by, T.m * 0.35);
   if (G.mode === "arena") { arenaKO(T, by); return; }
   if (by && by.me) { const c = Math.round(levelReward(G.L) * 0.15 * playerMults().coin); addCoins(c); popText(by.x, by.y - r - 30, `KO! +${fmt(c)} 🪙`, "#ffd23a", true); }
@@ -1142,21 +1253,24 @@ function smash(M) {
   const r = radius(M.m), R = r * 3 + 60;
   G.fx.push({ ring: true, x: M.x, y: M.y, r: r, R, life: 0.45, max: 0.45 });
   for (let i = 0; i < 24; i++) { const a = i / 24 * 6.28; G.fx.push({ x: M.x + Math.cos(a) * r, y: M.y + Math.sin(a) * r, vx: Math.cos(a) * 320, vy: Math.sin(a) * 320, life: 0.5, c: "#d9c7a0", s: rand(4, 9) }); }
-  if (M.me || dist(M, G.me) < 700) G.shake = Math.min(16, G.shake + (M.me ? 9 : 5));
+  if (M.me || (G.me && dist(M, G.me) < 700)) G.shake = Math.min(16, G.shake + (M.me ? 9 : 5));
   const d = biteDmg(M) * 2.6 * M.smashM;
-  for (const o of enemiesOf(M)) if (dist(M, o) < R + radius(o.m)) { hurt(o, d, M); const a = Math.atan2(o.y - M.y, o.x - M.x); o.vx += Math.cos(a) * 520; o.vy += Math.sin(a) * 520; }
-  if (G.mode === "level") for (const z of G.zombies) if (z.type === "brute" && Math.hypot(z.x - M.x, z.y - M.y) < R + 20) hurtZombie(z, d, M);
+  for (const o of enemiesNear(M, R)) if (dist(M, o) < R + radius(o.m)) { hurt(o, d, M); const a = Math.atan2(o.y - M.y, o.x - M.x); o.vx += Math.cos(a) * 520; o.vy += Math.sin(a) * 520; }
+  if (G.mode === "level") for (const z of zombiesNear(M.x, M.y, R + 50)) if (tank(z) && !z.dead && Math.hypot(z.x - M.x, z.y - M.y) < R + 20 + ZTYPES[z.type].r) hurtZombie(z, d, M);
 }
 function dash(M) { if (M.dashCd > 0 || !M.alive) return; M.dashCd = 3.5; M.dashT = 0.32; for (let i = 0; i < 10; i++) G.fx.push({ x: M.x, y: M.y, vx: -M.face[0] * rand(80, 240) + rand(-60, 60), vy: -M.face[1] * rand(80, 240) + rand(-60, 60), life: 0.4, c: "#bfe9ff", s: rand(3, 7) }); }
 function hurtZombie(z, d, by) {
-  z.hp -= d; z.hitT = 0.12; popText(z.x, z.y - 30, "-" + fmt(d), "#fff");
+  if (z.dead) return;
+  z.hp -= d; z.hitT = 0.12; if (nearCam(z.x, z.y)) popText(z.x, z.y - 30, "-" + fmt(d), "#fff");
   if (z.hp <= 0) eatZombie(by, z);
 }
 function eatZombie(M, z) {
+  if (z.dead) return;
   const T = ZTYPES[z.type];
+  if (G.mode !== "arena") z.dead = true;
   grow(M, T.xp * M.xpM * (G.mode === "level" ? 1 + (G.L - 1) * 0.04 : 1.5));
   M.hp = Math.min(maxHp(M), M.hp + maxHp(M) * 0.04);
-  for (let i = 0; i < 10; i++) G.fx.push({ x: z.x, y: z.y, vx: rand(-1, 1) * 150, vy: rand(-1, 1) * 150, life: 0.5, c: i % 2 ? "#7fbf5a" : "#b33a3a", s: rand(2, 5) });
+  if (nearCam(z.x, z.y)) for (let i = 0; i < 10; i++) G.fx.push({ x: z.x, y: z.y, vx: rand(-1, 1) * 150, vy: rand(-1, 1) * 150, life: 0.5, c: i % 2 ? T.col : "#b33a3a", s: rand(2, 5) });
   if (M.me) {
     const c = Math.max(1, Math.round(T.coin * (G.mode === "level" ? Math.pow(1.15, G.L - 1) : 4 * Math.pow(1.12, Math.min(S.beaten, 100))) * playerMults().coin));
     addCoins(c); G.eatenN++; S.eaten++;
@@ -1166,7 +1280,7 @@ function eatZombie(M, z) {
   if (G.mode === "arena") {
     const ng = z.g + 1; G.eaten.set(z.k, ng); bcast("z", { k: z.k, g: ng });
   } else {
-    G.zombies.splice(G.zombies.indexOf(z), 1);
+    const zi = G.zombies.indexOf(z); if (zi >= 0) G.zombies.splice(zi, 1);
     setTimeout(() => { if (G && G.mode === "level" && !G.over) spawnZombie(false); }, 1500);
   }
 }
@@ -1176,12 +1290,12 @@ function addCoins(c) { S.coins += c; G.coinsGot += c; }
 function botThink(B, dt) {
   B.think -= dt;
   if (B.think > 0) return;
-  B.think = rand(0.2, 0.4);
+  B.think = nearCam(B.x, B.y, 1.5) ? rand(0.2, 0.4) : rand(0.5, 1);
   const myScore = B.hp * biteDmg(B) * B.aggr;
   let best = null, bd = 1e9, threat = null, td = 1e9;
-  for (const o of enemiesOf(B)) {
+  const range = 340 + radius(B.m) * 2 + (G.ring && G.t > G.ring.start ? 400 : 0);
+  for (const o of enemiesNear(B, range)) {
     const d = dist(B, o), their = o.hp * biteDmg(o);
-    const range = 340 + radius(B.m) * 2 + (G.ring && G.t > G.ring.start ? 400 : 0);
     if (d < range && myScore > their * 0.75 && d < bd) { bd = d; best = o; }
     if (d < 260 + radius(o.m) && myScore < their * 0.5 && d < td) { td = d; threat = o; }
   }
@@ -1197,6 +1311,8 @@ function botThink(B, dt) {
     return;
   }
   B.fleeing = false;
+  // only a few left on this huge map: go and hunt them down
+  if (!best && !calm && (G.aliveN || 99) <= 12) { let nd = 1e12; for (const o of G.mons.values()) if (o !== B && o.alive) { const d = dist(B, o); if (d < nd) { nd = d; best = o; } } }
   if (best) {
     B.target = best;
     const d = dist(B, best);
@@ -1207,9 +1323,11 @@ function botThink(B, dt) {
   B.target = null;
   const zs = G.mode === "arena" ? G.zCache : G.zombies;
   let zb = null, zd = 1e9;
-  for (const z of zs) { if (z.type === "brute" && B.m < 30) continue; const d = Math.hypot(z.x - B.x, z.y - B.y); if (d < zd) { zd = d; zb = z; } }
+  for (const z of zombiesNear(B.x, B.y, 900)) { if (tank(z) && B.m < 30 * ZTYPES[z.type].hp) continue; const d = Math.hypot(z.x - B.x, z.y - B.y); if (d < zd) { zd = d; zb = z; } }
   if (zb && zd < 900) { B.tx = zb.x; B.ty = zb.y; B.zt = zb; }
-  else { B.tx = rand(G.W * 0.2, G.W * 0.8); B.ty = rand(G.H * 0.2, G.H * 0.8); }
+  else if (B.tx != null && Math.hypot(B.tx - B.x, B.ty - B.y) > 200 && Math.random() < 0.9) { /* keep wandering where it was going */ }
+  else if (G.ring && G.t > G.ring.start - 10) { const a = Math.random() * 6.28, d = Math.random() * G.ring.r * 0.6; B.tx = clamp(G.ring.cx + Math.cos(a) * d, 50, G.W - 50); B.ty = clamp(G.ring.cy + Math.sin(a) * d, 50, G.H - 50); }
+  else { const a = Math.random() * 6.28, d = rand(600, 2500); B.tx = clamp(B.x + Math.cos(a) * d, 50, G.W - 50); B.ty = clamp(B.y + Math.sin(a) * d, 50, G.H - 50); }
 }
 
 // ---------------- the update ----------------
@@ -1259,30 +1377,30 @@ function stepMonster(M, dt) {
   // bite whoever is touching
   if (M.biteT <= 0) {
     let tgt = null, td = 1e9;
-    for (const o of enemiesOf(M)) {
+    for (const o of enemiesNear(M, r + 20)) {
       if (o.shield > 0) continue;
       const d = dist(M, o) - radius(o.m) - r;
       if (d < 14 && (o === M.target ? -1 : d) < td) { td = o === M.target ? -1 : d; tgt = o; }
     }
     if (tgt) doBite(M, tgt);
     else if (G.mode === "level") {
-      for (const z of G.zombies) if (z.type === "brute" && Math.hypot(z.x - M.x, z.y - M.y) < r + ZTYPES.brute.r + 10) { M.biteT = BITE_CD; M.atk = 1; hurtZombie(z, biteDmg(M), M); break; }
+      for (const z of zombiesNear(M.x, M.y, r + 60)) if (tank(z) && Math.hypot(z.x - M.x, z.y - M.y) < r + ZTYPES[z.type].r + 10) { M.biteT = BITE_CD; M.atk = 1; hurtZombie(z, biteDmg(M), M); break; }
     }
   }
   // eat small zombies by touching
   if (G.mode === "level") {
-    for (let i = G.zombies.length - 1; i >= 0; i--) { const z = G.zombies[i]; if (z.type !== "brute" && Math.hypot(z.x - M.x, z.y - M.y) < r + ZTYPES[z.type].r * 0.6) eatZombie(M, z); }
+    for (const z of zombiesNear(M.x, M.y, r + 40)) if (!tank(z) && Math.hypot(z.x - M.x, z.y - M.y) < r + ZTYPES[z.type].r * 0.6) eatZombie(M, z);
   } else if (owns(M)) {
-    for (const z of G.zCache) if (Math.hypot(z.x - M.x, z.y - M.y) < r + ZTYPES[z.type].r * 0.6 && (G.eaten.get(z.k) || 0) === z.g) eatZombie(M, z);
+    for (const z of gridNear(G.zg, M.x, M.y, r + 60)) if (Math.hypot(z.x - M.x, z.y - M.y) < r + ZTYPES[z.type].r * 0.6 && (G.eaten.get(z.k) || 0) === z.g) eatZombie(M, z);
   }
 }
 function stepZombies(dt) {
   for (const z of G.zombies) {
     const T = ZTYPES[z.type];
     let near = null, nd = 1e9;
-    for (const M of G.mons.values()) if (M.alive) { const d = Math.hypot(M.x - z.x, M.y - z.y); if (d < nd) { nd = d; near = M; } }
+    for (const M of gridNear(G.mg, z.x, z.y, 300 + GMAX)) if (M.alive) { const d = Math.hypot(M.x - z.x, M.y - z.y); if (d < nd) { nd = d; near = M; } }
     z.turn -= dt;
-    if (z.type === "brute" && near && nd < 260) z.a = Math.atan2(near.y - z.y, near.x - z.x);
+    if (tank(z) && near && nd < 260 + T.r) z.a = Math.atan2(near.y - z.y, near.x - z.x);
     else if (near && nd < 170 + radius(near.m)) z.a = Math.atan2(z.y - near.y, z.x - near.x) + Math.sin(G.t * 3 + z.ph) * 0.4;
     else if (z.turn < 0) { z.turn = rand(1, 3); z.a += rand(-1.5, 1.5); }
     const sp = T.spd * (near && nd < 200 ? 1.6 : 1);
@@ -1291,15 +1409,17 @@ function stepZombies(dt) {
     if (z.y < 20 || z.y > G.H - 20) { z.a = -z.a; z.y = clamp(z.y, 20, G.H - 20); }
     if (G.ring && Math.hypot(z.x - G.ring.cx, z.y - G.ring.cy) > G.ring.r) z.a = Math.atan2(G.ring.cy - z.y, G.ring.cx - z.x);
     z.hitT -= dt;
-    if (z.type === "brute" && near && nd < radius(near.m) + T.r + 6) {
+    if (tank(z) && near && nd < radius(near.m) + T.r + 6) {
       z.atkT = (z.atkT || 0) - dt;
-      if (z.atkT <= 0) { z.atkT = 1.1; hurt(near, 6 * botPow(G.L), { id: "brute", name: "a Brute zombie", x: z.x, y: z.y, alive: false }); }
+      if (z.atkT <= 0) { z.atkT = 1.1; hurt(near, 6 * (T.bite || 1) * botPow(G.L), { id: "brute", name: z.type === "king" ? "a Zombie King" : z.type === "giant" ? "a Giant zombie" : "a Brute zombie", x: z.x, y: z.y, alive: false }); }
     }
   }
 }
 function update(dt) {
   G.t += dt;
-  if (G.mode === "arena") G.zCache = arenaZombies().filter(z => true);
+  if (G.mode === "arena") G.zCache = arenaZombies();
+  buildGrids();
+  { let n = 0; for (const o of G.mons.values()) if (o.alive) n++; G.aliveN = n; }
   if (G.ring && G.t > G.ring.start) {
     const f = clamp((G.t - G.ring.start) / G.ring.dur, 0, 1);
     G.ring.r = lerp(G.ring.r0 || (G.ring.r0 = G.ring.r), G.ring.minR, f);
@@ -1308,20 +1428,23 @@ function update(dt) {
     if (M.remote) { stepRemote(M, dt); continue; }
     if (M.bot && M.alive) botThink(M, dt);
     if (M.bot && M.alive && M.target && dist(M, M.target) < radius(M.m) * 3 + 50) {
-      const near = enemiesOf(M).filter(o => dist(M, o) < radius(M.m) * 3 + 60 + radius(o.m)).length;
+      const near = enemiesNear(M, radius(M.m) * 3 + 60).filter(o => dist(M, o) < radius(M.m) * 3 + 60 + radius(o.m)).length;
       if ((near >= 2 || Math.random() < 0.02) && M.smashCd <= 0) smash(M);
     }
     stepMonster(M, dt);
   }
   // push overlapping monsters apart a little
   const arr = [...G.mons.values()].filter(m => m.alive);
-  for (let i = 0; i < arr.length; i++) for (let j = i + 1; j < arr.length; j++) {
-    const a = arr[i], b = arr[j], d = dist(a, b), min = (radius(a.m) + radius(b.m)) * 0.85;
+  arr.forEach((m, i) => { m.gi = i; });
+  for (let i = 0; i < arr.length; i++) for (const b of gridNear(G.mg, arr[i].x, arr[i].y, radius(arr[i].m) + GMAX)) {
+    const a = arr[i]; if (!b.alive || b.gi == null || b.gi <= i || arr[b.gi] !== b) continue;
+    const d = dist(a, b), min = (radius(a.m) + radius(b.m)) * 0.85;
     if (d < min && d > 0.01) { const p = (min - d) / 2, nx = (b.x - a.x) / d, ny = (b.y - a.y) / d; if (!a.remote) { a.x -= nx * p; a.y -= ny * p; } if (!b.remote) { b.x += nx * p; b.y += ny * p; } }
   }
   if (G.mode === "level") stepZombies(dt);
   else arenaTick(dt);
-  // effects
+  // effects (only the ones you can see)
+  if (G.fx.length > 300) G.fx = G.fx.filter(f => nearCam(f.x, f.y, 1.2)).slice(-1200);
   for (let i = G.fx.length - 1; i >= 0; i--) { const f = G.fx[i]; f.life -= dt; if (f.life <= 0) { G.fx.splice(i, 1); continue; } if (!f.ring) { f.x += f.vx * dt; f.y += f.vy * dt; f.vx *= 0.92; f.vy *= 0.92; } }
   for (let i = G.txt.length - 1; i >= 0; i--) { const t = G.txt[i]; t.life -= dt; t.y -= 40 * dt; if (t.life <= 0) G.txt.splice(i, 1); }
   for (let i = G.feed.length - 1; i >= 0; i--) { G.feed[i].life -= dt; if (G.feed[i].life <= 0) G.feed.splice(i, 1); }
@@ -1565,11 +1688,11 @@ function becomeHost() {
   isHost = true; hostId = MYID;
   for (const M of G.mons.values()) if (M.bot) { M.remote = false; if (M.tx2 != null) { M.x = M.tx2; M.y = M.ty2; } M.think = 0; }
 }
-function wantBots() { const humans = Math.max(1, peers.length || 1); return clamp(7 - humans, 3, 5); }
+function wantBots() { const humans = Math.max(1, peers.length || 1); return clamp(N_OPP + 1 - humans, N_OPP - 50, N_OPP); }
 function arenaBotPower() {
   // computer monsters match the strongest real player here, a bit either side
-  let p = powerOf();
-  return Math.sqrt(p);
+  // they match your upgrades but only part of your skin, so OP skins stay OP
+  return Math.sqrt(Math.pow(1.08, S.up.hp + S.up.bite) * skinBonus(S.skin));
 }
 function fillBots() {
   if (!isHost) return;
@@ -1579,7 +1702,7 @@ function fillBots() {
   while (bots.length < want) {
     const id = "ab" + Math.random().toString(36).slice(2, 7), bp = arenaBotPower() * rand(0.75, 1.2);
     let a = 0, d = 0, x = 0, y = 0;
-    for (let k = 0; k < 12; k++) { a = Math.random() * 6.28; d = rand(300, G.W * 0.45); x = G.W / 2 + Math.cos(a) * d; y = G.H / 2 + Math.sin(a) * d; if (!G.me || Math.hypot(x - G.me.x, y - G.me.y) > 800) break; }
+    for (let k = 0; k < 12; k++) { x = rand(200, G.W - 200); y = rand(200, G.H - 200); if (!G.me || Math.hypot(x - G.me.x, y - G.me.y) > 1500) break; }
     const b = newMonster({ id, born: G.t, x, y, name: pick(BOT_NAMES), m: playerMults().start * rand(0.6, 1.4) + rand(0, 40),
       skin: Math.floor(Math.random() * Math.min(SKINS.length, 3 + S.skins.length)), hpM: bp, dmgM: bp, spdM: rand(0.85, 1.05), xpM: 1.2, aggr: rand(0.8, 1.3), smashMax: 9, smashM: 1, shield: 2 });
     G.mons.set(id, b); bots.push(b);
@@ -1589,7 +1712,7 @@ function updateOnlineMsg() {
   const n = peers.length || 1;
   $("onlineLbl").textContent = online ? (n > 1 ? `🟢 ${n} players in the arena` : "🟢 Online, waiting for players") : "⚪ Offline (computer monsters)";
 }
-let netT = 0, botCheckT = 0;
+let netT = 0, botCheckT = 0, botSend = 0;
 function arenaTick(dt) {
   // respawn
   if (!G.me.alive) {
@@ -1606,7 +1729,7 @@ function arenaTick(dt) {
   netT = 0.12;
   const me = G.me;
   const u = { i: MYID, n: NAME, ck: Date.now(), me: [Math.round(me.x), Math.round(me.y), +me.m.toFixed(1), Math.round(me.hp), Math.round(maxHp(me)), me.skin, +me.face[0].toFixed(2), +me.face[1].toFixed(2), me.alive ? 1 : 0, +me.dmgM.toPrecision(4), me.atk > 0.5 ? 1 : 0, me.shield > 0 ? 1 : 0] };
-  if (isHost) u.b = [...G.mons.values()].filter(m => m.bot).map(b => [b.id, b.name, Math.round(b.x), Math.round(b.y), +b.m.toFixed(1), Math.round(b.hp), Math.round(maxHp(b)), b.skin, +b.face[0].toFixed(2), +b.face[1].toFixed(2), b.alive ? 1 : 0, +b.dmgM.toPrecision(4), b.atk > 0.5 ? 1 : 0]);
+  if (isHost) { const all = [...G.mons.values()].filter(m => m.bot), B = 100, st0 = (botSend * B) % Math.max(1, all.length); botSend++; u.b = all.slice(st0, st0 + B).concat(st0 + B > all.length ? all.slice(0, Math.min(st0, st0 + B - all.length)) : []).map(b => [b.id, b.name, Math.round(b.x), Math.round(b.y), +b.m.toFixed(1), Math.round(b.hp), Math.round(maxHp(b)), b.skin, +b.face[0].toFixed(2), +b.face[1].toFixed(2), b.alive ? 1 : 0, +b.dmgM.toPrecision(4), b.atk > 0.5 ? 1 : 0]); }
   bcast("u", u);
 }
 function remoteMon(id, name, bot) {
@@ -1628,7 +1751,7 @@ function stepRemote(M, dt) {
   const k = 1 - Math.pow(0.0001, dt);
   const dx = M.tx2 - M.x, dy = M.ty2 - M.y;
   M.moving = Math.hypot(dx, dy) > 2;
-  if (Math.hypot(dx, dy) > 600) { M.x = M.tx2; M.y = M.ty2; } else { M.x += dx * k; M.y += dy * k; }
+  if (Math.hypot(dx, dy) > 900) { M.x = M.tx2; M.y = M.ty2; } else { M.x += dx * k; M.y += dy * k; }
   M.atk = Math.max(0, M.atk - dt * 4); M.flash -= dt;
 }
 function onU(p) {
@@ -1646,7 +1769,7 @@ function onU(p) {
       const B = remoteMon(id, String(a[1]).slice(0, 16), true);
       B.name = safeName(a[1]); applyRemote(B, ...a.slice(2, 13));
     }
-    for (const [id, B] of G.mons) if (B.bot && !ids.has(id)) G.mons.delete(id);
+    // bots arrive a batch at a time now; ones that stop coming are removed by the quiet check
   }
 }
 function onHit(p) {
@@ -1769,7 +1892,7 @@ function renderShop() {
     const b = document.createElement("button"); b.type = "button"; b.className = "skin" + (i === S.skin ? " sel" : "") + (own ? "" : " locked");
     b.appendChild(skinCanvas(i, 70));
     b.appendChild(document.createTextNode(sk.n));
-    const s = document.createElement("small"); s.style.color = own ? "#a6f04a" : "#ffc93c"; s.textContent = own ? `+${Math.round((skinBonus(i) - 1) * 100)}% power` : "🪙 " + fmt(sk.price);
+    const s = document.createElement("small"); s.style.color = own ? "#a6f04a" : "#ffc93c"; s.textContent = own ? `${fmt(skinBonus(i))}x power` : "🪙 " + fmt(sk.price) + ` · ${fmt(skinBonus(i))}x`;
     b.appendChild(s);
     b.onclick = () => {
       if (own) { S.skin = i; save(); renderAll(); renderLobby(); setMsg(`You are now ${sk.n}!`, "good"); return; }

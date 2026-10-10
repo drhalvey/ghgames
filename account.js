@@ -48,7 +48,6 @@
     "patience": { title: "Patience", keys: ["patience-save"] },
     "knights-table": { title: "Knight's Table", keys: ["knightstable-save"] },
     "hop-across": { title: "Hop Across", keys: ["hopacross-save"] },
-    "beat-cube": { title: "Beat Cube", keys: ["beatcube-save"] },
     "sky-bounce": { title: "Sky Bounce", keys: ["skybounce-save"] },
     "fruit-slash": { title: "Fruit Slash", keys: ["fruitslash-save"] },
     "turf-grab": { title: "Turf Grab", keys: ["turfgrab-save"] },

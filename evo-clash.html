@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Evo Clash</title>
 <meta property="og:title" content="Evo Clash · GH Games">
-<meta property="og:description" content="Swing, bonk and evolve! Knock out rivals to climb through 100 evolutions from Cave Kid to Galaxy Emperor. Grab power-ups, rebirth for big XP multis and battle real players in the Public Arena.">
+<meta property="og:description" content="Swing, bonk and evolve! Knock out rivals to climb through 1000 evolutions from Cave Kid to Infinity Emperor. Grab power-ups, rebirth for big XP multis and battle real players in the Public Arena.">
 <meta property="og:image" content="https://ghgames.au/og/evo-clash.png">
 <meta property="og:url" content="https://ghgames.au/evo-clash.html">
 <meta name="twitter:card" content="summary_large_image">
@@ -81,7 +81,7 @@
 
     <div class="ov" id="ovTitle">
       <h2>EVO CLASH</h2>
-      <p>Swing your weapon to bonk other fighters. One good hit knocks them out! Gobble the glowing orbs and knock out rivals to get XP. Every level you evolve into something new: 100 evolutions, from Cave Kid to Galaxy Emperor. Bigger means longer reach, but slower feet.</p>
+      <p>Swing your weapon to bonk other fighters. One good hit knocks them out! Gobble the glowing orbs and knock out rivals to get XP. Every level you evolve into something new: 1000 evolutions, from Cave Kid to Infinity Emperor, and each one needs twice as much XP as the last. Bigger means longer reach, but slower feet.</p>
       <div class="seg" id="modes"><button data-m="solo">Solo vs computer</button><button data-m="public">🌍 Public Arena</button></div>
       <div class="seg" id="diffs"><button data-d="0">Calm</button><button data-d="1">Normal</button><button data-d="2">Wild</button></div>
       <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bEvos">Evolutions</button><button class="btn pink" id="bReb">Rebirth</button></div>
@@ -148,7 +148,7 @@ function myName(){let n="";try{n=localStorage.getItem("ghgames_nick")||"";}catch
 const MYID=(()=>{try{let v=sessionStorage.getItem("ec_id");if(!v){v="p"+Math.random().toString(36).slice(2,9);sessionStorage.setItem("ec_id",v);}return v;}catch(e){return "p"+Math.random().toString(36).slice(2,9);}})();
 const BOT_NAMES=["Bonko","Grug","Mega Mo","Zappy","Biff","Clonk","Dizzy","Thud","Captain Bop","Wham","Pip","Rocky","Sir Swish","Tornado","Kiwi","Noodle","Bash Bro","Turbo","Waffle","Gizmo","Biscuit","Zorp","Sparky","Mango","Pebble","Dodge","Smashy","Ziggy","Nugget","Blip","Wobble","Sprout","Boomer","Jelly","Taco","Pickle","Rumble","Zoom","Clank","Fizz"];
 
-/* ---------- 100 evolutions in 10 ages ---------- */
+/* ---------- 1000 evolutions in 100 ages ---------- */
 const AGES=[
  {n:"Stone Age",w:"club",tunic:["#a0703c","#8d5f2f","#b9824a"],legs:"#6b4423",trim:"#4a2e14",cape:"#d8c8a8",col:"#b9824a",
   forms:["Cave Kid","Twig Swinger","Rock Basher","Bone Club","Flint Fighter","Cave Chief","Mammoth Hunter","Sabre Tooth","Fire Keeper","Stone King"]},
@@ -171,16 +171,34 @@ const AGES=[
  {n:"Galaxy Age",w:"star",tunic:["#2a1a5a","#1a1040","#3a1a7a"],legs:"#120a30",trim:"#ff7ae0",cape:"#3a1a8a",col:"#ff7ae0",space:true,
   forms:["Star Kid","Comet Rider","Space Ranger","Nova","Star Warden","Galaxy Guard","Cosmic Titan","Black Hole","Supernova","Galaxy Emperor"]}
 ];
-const MAXL=100;
+const MAXL=1000;
+/* George (10/10/2026): 900 more evolutions, so 1000 in all. Ages 11-100 are made from a theme word,
+   the ten rank names below and a colour per age; weapons and hats cycle through the first ten ages' styles. */
+const THEMES=["Lava","Ice","Jungle","Desert","Ocean","Thunder","Shadow","Crystal","Candy","Toxic",
+ "Cloud","Volcano","Frost","Storm","Ghost","Swamp","Canyon","Mountain","Glacier","Tornado",
+ "Bubble","Jelly","Slime","Mushroom","Forest","Coral","Sand","Bone","Zombie","Vampire",
+ "Werewolf","Dino","Shark","Tiger","Wolf","Eagle","Bear","Cobra","Scorpion","Gorilla",
+ "Clockwork","Steam","Gear","Pixel","Neon","Cyber","Turbo","Rocket","Laser","Plasma",
+ "Atomic","Meteor","Comet","Lunar","Solar","Nebula","Quasar","Aurora","Eclipse","Prism",
+ "Emerald","Ruby","Sapphire","Golden","Diamond","Rune","Spirit","Dream","Nightmare","Mirage",
+ "Kraken","Phoenix","Dragon","Titan","Mythic","Legend","Rainbow","Lightning","Blizzard","Magma",
+ "Tsunami","Earthquake","Chaos","Void","Cosmic","Ultra","Hyper","Quantum","Omega","Infinity"];
+const RANKS=["Kid","Scout","Fighter","Warrior","Guard","Knight","Champion","Lord","King","Emperor"];
+function hsl(h,s,l){return "#"+new THREE.Color().setHSL(((h%360)+360)%360/360,s,l).getHexString();}
+THEMES.forEach((t,i)=>{const h=i*47+20;
+  AGES.push({n:t+" Age",w:AGES[i%10].w,tunic:[hsl(h,.6,.45),hsl(h+20,.55,.38),hsl(h-20,.65,.5)],legs:hsl(h,.4,.2),trim:hsl(h+180,.75,.62),cape:hsl(h+30,.6,.32),col:hsl(h,.85,.6),
+    forms:RANKS.map(r=>t+" "+r)});});
+if(new Set(THEMES).size!==90||AGES.length!==100)console.error("Evo Clash: ages list is wrong");
 const ageOf=L=>Math.floor((L-1)/10), formOf=L=>(L-1)%10;
 const formName=L=>AGES[ageOf(L)].forms[formOf(L)];
 const NEED=[0],CUM=[0,0];
-for(let L=1;L<=MAXL;L++){NEED[L]=Math.round(12*Math.pow(1.28,L-1));CUM[L+1]=CUM[L]+NEED[L];}
+// every evolution costs 2x the one before (George, 10/10/2026); Evo 1000 needs about 1.6e302 XP, still inside JavaScript's number range
+for(let L=1;L<=MAXL;L++){NEED[L]=12*Math.pow(2,L-1);CUM[L+1]=CUM[L]+NEED[L];}
 const need=L=>NEED[Math.min(MAXL,Math.max(1,L))];
 const mult=()=>1+S.reb;
-const startEvo=()=>1+Math.min(S.reb*2,40);
+const startEvo=()=>1+Math.min(S.reb*2,500);
 const rebNeed=()=>Math.min(MAXL,20+10*S.reb);
-const wlen=L=>1.0+formOf(L)*0.06+ageOf(L)*0.035;
+const wlen=L=>1.0+formOf(L)*0.06+Math.min(9,ageOf(L))*0.035;
 
 /* ---------- power-ups ---------- */
 const PU=[
@@ -240,7 +258,7 @@ function tip(g,len,r,color,x0,o){const m=part(GK,color,r,len,r,x0+len/2,0,0,o);m
 const GLOWC=["#ff5d5d","#ffd23f","#5fd36a","#3fe0ff","#4aa8ff","#b085ff","#ff7ae0","#ffffff","#ff8a3d","#ffd23f"];
 function buildWeapon(L){
   const g=new THREE.Group(),age=ageOf(L),f=formOf(L),len=wlen(L);
-  const metal=f<4?"#9aa1ad":f<7?"#dfe4ee":"#ffcf3f";
+  const metal=age>=10&&f>=4?AGES[age].col:f<4?"#9aa1ad":f<7?"#dfe4ee":"#ffcf3f";
   const gl=f>=7?{emissive:metal,glow:0.35}:{};
   switch(AGES[age].w){
     case "club":{
@@ -315,7 +333,7 @@ function buildModel(c){
   const w=buildWeapon(L);w.position.set(0.5,0,0);pivot.add(w);body.add(pivot);
   // hats
   if(f>=2||age>0){
-    switch(age){
+    switch(age%10){
       case 0:body.add(part(GB,"#5a3a1a",0.7,0.1,0.7,0,2.06,0));if(f>=6)body.add(part(GK,"#e8e2d0",0.06,0.4,0.06,-0.1,2.3,0.25));break;
       case 1:body.add(part(GB,"#cd7f32",0.72,0.3,0.72,0,2.12,0));body.add(part(GB,"#c0392b",0.62,0.26,0.08,-0.02,2.38,0));break;
       case 2:body.add(part(GB,"#8f96a3",0.72,0.32,0.72,0,2.12,0,{metal:.5,rough:.4}));body.add(part(GB,"#8f96a3",0.06,0.24,0.08,0.36,1.94,0));break;
@@ -330,12 +348,12 @@ function buildModel(c){
       case 9:{const h=part(GT,"#ffd23f",0.42,0.42,0.42,0,2.45,0,{emissive:"#ffd23f",glow:1.3});h.rotation.x=Math.PI/2;body.add(h);}break;
     }
   }
-  if(age===3){body.add(part(GB,A.cape,0.08,0.7,0.56,0.16,1.1,-0.72));body.add(part(GB,"#ffcf3f",0.1,0.12,0.58,0.17,1.12,-0.72));body.add(part(GB,"#ffcf3f",0.1,0.58,0.12,0.17,1.12,-0.72));}
+  if(age%10===3){body.add(part(GB,A.cape,0.08,0.7,0.56,0.16,1.1,-0.72));body.add(part(GB,"#ffcf3f",0.1,0.12,0.58,0.17,1.12,-0.72));body.add(part(GB,"#ffcf3f",0.1,0.58,0.12,0.17,1.12,-0.72));}
   if(f>=4)body.add(part(GB,A.cape,0.06,1.0,0.76,-0.3,1.15,0));
   if(f>=6){body.add(part(GB,A.trim,0.42,0.18,0.3,0,1.56,-0.48),part(GB,A.trim,0.42,0.18,0.3,0,1.56,0.48));}
   let aura=null;
   if(f>=8){aura=part(GT,A.col,0.9,0.9,0.9,0,0.08,0,{emissive:A.col,glow:1.2});aura.rotation.x=Math.PI/2;aura.castShadow=false;body.add(aura);}
-  if(f===9&&age>0){body.add(part(GC,"#ffcf3f",0.36,0.16,0.36,0,age===7?3.2:age===3||age===8?2.36:2.5,0,{metal:.7,rough:.3}));}
+  if(f===9&&age>0){const st=age%10;body.add(part(GC,"#ffcf3f",0.36,0.16,0.36,0,st===7?3.2:st===3||st===8?2.36:2.5,0,{metal:.7,rough:.3}));}
   const bubble=new THREE.Mesh(GS,bubbleMat);bubble.scale.setScalar(1.6);bubble.position.y=1.2;bubble.visible=false;body.add(bubble);
   scene.add(root);
   c.root=root;c.body=body;c.pivot=pivot;c.legL=legL;c.legR=legR;c.aura=aura;c.bubble=bubble;c.builtL=L;
@@ -353,7 +371,8 @@ function dropModel(c){if(c.root)scene.remove(c.root);if(c.tag){scene.remove(c.ta
 let chars=[];const byId=new Map();
 let me=null;
 function derive(c){
-  c.s=(1+(c.L-1)*0.045)*((c.fx.giant||0)>0?1.45:1);
+  // growth slows after Evo 100 so the giants still fit on the island (about 8x at Evo 1000)
+  c.s=(c.L<=100?1+(c.L-1)*0.045:5.455+2.6*(1-Math.exp(-(c.L-100)/300)))*((c.fx.giant||0)>0?1.45:1);
   c.rad=0.5*c.s;c.reach=c.s*(0.62+wlen(c.L)*1.12);
   c.spd=8.5/(1+(c.s-1)*0.2)*((c.fx.speed||0)>0?1.6:1);
 }
@@ -387,7 +406,7 @@ function spawnBot(){
 }
 function addXP(c,amt){
   if(!(amt>0))return;
-  c.tot=Math.min(1e300,c.tot+amt);c.xp+=amt;let up=false;
+  c.tot=Math.min(1.7e308,c.tot+amt);c.xp+=amt;let up=false;
   while(c.L<MAXL&&c.xp>=need(c.L)){c.xp-=need(c.L);c.L++;up=true;}
   if(c.L>=MAXL)c.xp=Math.min(c.xp,need(MAXL));
   if(up)evolve(c);
@@ -622,7 +641,7 @@ function animate(c,dt,t){
   else{c.pivot.rotation.y+=(-0.45-c.pivot.rotation.y)*Math.min(1,dt*10);c.pivot.rotation.z+=(0.8+Math.sin(t*3+c.phase)*0.05-c.pivot.rotation.z)*Math.min(1,dt*10);}
   if(c.aura){c.aura.rotation.z+=dt*2;}
   const prot=c.spawnT>0;c.bubble.visible=c.shield||(prot&&Math.sin(t*20)>-0.3);
-  c.tag.position.set(c.x,c.ds*3.0+0.6+(ageOf(c.L)===7?0.6*c.ds:0),c.z);
+  c.tag.position.set(c.x,c.ds*3.0+0.6+(ageOf(c.L)%10===7?0.6*c.ds:0),c.z);
   const ts=0.7+c.ds*0.22;c.tag.scale.set(ts*c.tag.userData.ar,ts,1);
 }
 
@@ -810,7 +829,7 @@ function applyRemote(c,a){
   const was=c.alive;c.alive=!!alive;
   if(!was&&c.alive){c.x=c.tx;c.z=c.tz;}
   if(sw&&c.swingT<0&&c.alive){c.swingT=0;if(me&&Math.hypot(c.x-me.x,c.z-me.z)<25)A3.sfx("whoosh");}
-  c.shield=!!sh;c.spawnT=0;c.fx.giant=gi?1:0;c.tot=Math.min(1e300,+tot||0);
+  c.shield=!!sh;c.spawnT=0;c.fx.giant=gi?1:0;c.tot=Math.min(1.7e308,+tot||0);
   derive(c);c.seen=performance.now();
 }
 function remoteChar(id,name,bot,a){
@@ -838,7 +857,7 @@ function onKO(p){
   if(!p)return;const t=byId.get(String(p.i));
   if(t&&t.remote&&t.alive){t.alive=false;t.swingT=-1;dropOrbs(t);if(me&&Math.hypot(t.x-me.x,t.z-me.z)<45){parts.burst(new THREE.Vector3(t.x,1.2*t.s,t.z),AGES[ageOf(t.L)].col,20,7,1);A3.sfx("pop");}}
   const k=byId.get(String(p.b));
-  if(k&&!k.remote)reward(k,Math.min(1e300,Math.max(0,+p.x||0)),t||{name:safeName(p.n)});
+  if(k&&!k.remote)reward(k,Math.min(1.7e308,Math.max(0,+p.x||0)),t||{name:safeName(p.n)});
 }
 document.addEventListener("visibilitychange",()=>{if(GMODE!=="public")return;if(document.hidden){disconnect();updateOnlineMsg();}else if(!online&&mode!=="title"){joinT=Date.now();connect();}});
 
@@ -865,7 +884,7 @@ function drawEvos(){
 function drawReb(){
   $("rTitle").textContent="Rebirths: "+S.reb;
   $("rMul1").textContent="x"+mult();$("rMul2").textContent="x"+(mult()+1);
-  $("rStart").textContent="Evo "+startEvo()+" → Evo "+(1+Math.min((S.reb+1)*2,40));
+  $("rStart").textContent="Evo "+startEvo()+" → Evo "+(1+Math.min((S.reb+1)*2,500));
   $("rNeed").textContent="Evo "+rebNeed()+" in one life";
   $("rText").textContent=S.rebReady?"You're ready! Rebirth to get more XP from every orb and knockout, and start higher up. Your best evolution and knockouts are kept.":"Reach Evo "+rebNeed()+" ("+formName(rebNeed())+") in one life to unlock your next rebirth.";
   $("rGo").disabled=!S.rebReady;

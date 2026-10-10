@@ -163,6 +163,7 @@ body.side .orders2{grid-template-columns:1fr 1fr}
 body.side .orders2 .drill{grid-column:1/3}
 body.side .batbar{grid-template-columns:repeat(4,1fr)}
 body.side .bc.all small{display:none}
+.bb.hist{background:linear-gradient(135deg,#7a1420,#b07a1c);box-shadow:0 4px 0 #3e0a10}
 .bb.watch{background:#2d6a8f;box-shadow:0 4px 0 #173a52}
 </style>
 </head>
@@ -243,6 +244,7 @@ body.side .bc.all small{display:none}
 
   <div class="panel">
     <h2>What really happened</h2>
+    <button class="bb hist" id="panelHist" style="width:100%;margin:4px 0 10px">🎬 Watch the real battle<small>the game plays the 1759 battle by itself, with the story told on screen</small></button>
     <ul>
       <li>On the night of 12 September 1759, General James Wolfe's British army climbed the steep cliffs at the Anse-au-Foulon and formed up on the Plains of Abraham, just outside the walls of Quebec.</li>
       <li>Wolfe stretched his line across the plain only <b>two ranks deep</b> instead of the usual three. While they waited, his men <b>lay down</b> to shelter from Canadian militia and First Nations warriors firing from the bushes and cornfields.</li>
@@ -273,6 +275,7 @@ body.side .bc.all small{display:none}
       <button class="bb shop" id="startUp">Upgrades<small id="startCoins">0 shillings</small></button>
       <button class="bb again big" id="goBtn">To battle!</button>
     </div>
+    <button class="bb hist close" id="startHist">🎬 Watch the real battle<small>see how it actually happened in 1759, with the story told on screen</small></button>
     <button class="bb watch close" id="startReplay" hidden>Watch your last battle<small id="startReplayHint">replay</small></button>
   </div>
 </div>
@@ -298,6 +301,7 @@ body.side .bc.all small{display:none}
       <button class="bb shop" id="endUp">Upgrades</button>
       <button class="bb again big" id="endAgain">Fight again</button>
     </div>
+    <button class="bb hist close" id="endHist">🎬 Watch the real battle<small>how it actually happened in 1759</small></button>
     <button class="bb watch close" id="endReplay">Watch replay<small>see the whole battle again, up to 8x speed</small></button>
     <a class="bb big" href="seven-years-war.html" style="display:block;text-align:center;text-decoration:none;margin-top:8px;background:linear-gradient(135deg,#2d4f9e,#7a1420);box-shadow:0 4px 0 #2a0c10">Fight the whole war &rarr;<small style="font-family:var(--body)">Seven Years' War: campaign map, sieges, forest ambushes and sea battles</small></a>
   </div>
@@ -783,7 +787,7 @@ function newBattle(o) {
   const dbl = o.dbl != null ? o.dbl : S.dbl;
   const perRank = 18 + 2 * UP.reinf;
   G = {
-    seed, diff, dbl0: dbl, up0: Object.assign({}, UP), n: 0, queue: [], log: [],
+    seed, diff, dbl0: dbl, up0: Object.assign({}, UP), n: 0, queue: [], log: [], hist: o.hist ? { s: 0, t: 0 } : null, cap: null,
     phase: "intro", introT: 5, t: 0, waitT: 16, D,
     bats: BATDEFS.map((def, idx) => ({ def, idx, x: def.x, d: 0, figs: makeBatFigs(perRank), n0: perRank * 2, form: "line", formT: 0, bayo: false, disc: 100, state: "stand", st: 0, loaded: true, reloading: false, reload: 0, dbl, smokeT: 0, fireAt: -1, ordered: false, flee: 0, advT: 0, advFrom: 0, advDist: 0, advDur: 1, chCol: null, chT: 0, chFrom: 0, chTo: 0, chDur: 1, dirty: false })),
     cols: COLDEFS.map(c => makeCol(c, D)),
@@ -1272,6 +1276,43 @@ function tick() {
   step(DT);
 }
 
+// ---------- the real battle, 13 September 1759 ----------
+// Plays itself in the order the sources describe. Same engine as the game, but the British are given the orders
+// Wolfe's officers gave, and the French break when they did in 1759.
+function caption(text) { G.cap = { text, t: G.t }; msg(text, ""); }
+function stepHistory() {
+  const h = G.hist, all = allIdx();
+  liveBats().forEach(b => { b.disc = Math.max(b.disc, 75); }); // Wolfe's regulars held their nerve
+  if (G.phase === "intro") { if (h.s === 0) { h.s = 1; caption("Before dawn, Wolfe's army climbed the cliffs at the Anse-au-Foulon and formed up on the Plains of Abraham, outside Quebec."); } return; }
+  const r = minRange();
+  if (h.s === 1 && G.phase === "wait") { h.s = 2; h.t = G.t; orderLie(all); caption("About 3,300 redcoats stand only two ranks deep. Canadian militia and First Nations warriors fire from the bushes and cornfields, so Wolfe orders his men to lie down."); }
+  else if (h.s === 2 && G.t - h.t > 8) { h.s = 3; caption("Every British musket is loaded with two balls, for a deadlier first shot at close range."); }
+  else if (h.s === 3 && G.phase === "battle") { h.s = 4; caption("About 10 am. Montcalm, on his dark horse, sends about 3,500 men forward in columns."); }
+  else if (h.s === 4 && r < 330) { h.s = 5; orderLie(all); caption("The redcoats stand up. The order is: hold your fire."); }
+  else if (h.s === 5 && G.firstFrench) { h.s = 6; caption("The French fire first, raggedly and from too far away. Militia drop down to reload and the columns lose their order."); }
+  else if (h.s === 6 && r <= 56) { h.s = 7; orderReady(all); caption("Make ready! Present!"); }
+  else if (h.s === 7 && r <= 42) { h.s = 8; h.t = G.t; orderFire(all); caption("About 40 yards. FIRE! The volley goes off almost as one great crash. An officer, John Knox, called it 'as remarkable a close and heavy discharge as I ever saw'."); }
+  else if (h.s === 8 && G.t - h.t > 2.6) {
+    h.s = 9; h.t = G.t;
+    const ok = liveBats().filter(canAdvBat);
+    orderAdvance(ok.map(b => b.idx));
+    ok.forEach(b => { b.advDist = 8; });
+    caption("The French are stunned. The British step forward a few paces, out of their own smoke, and reload.");
+  }
+  if (h.s >= 8 && h.s <= 10) activeCols().forEach(c => { if (c.state === "advance" || c.state === "halt") { c.state = "halt"; c.halt = 1; } }); // dazed, they stand and take it
+  if (h.s === 9 && G.t - h.t > 3.2) { h.s = 10; h.t = G.t; liveBats().forEach(b => { b.reloading = false; b.loaded = true; b.reload = 0; }); orderReady(all); caption("Reloaded. Make ready..."); }
+  else if (h.s === 10 && G.t - h.t > 1.1) { h.s = 11; h.t = G.t; orderFire(all); caption("A second general volley. It shatters the French columns."); }
+  else if (h.s === 11 && G.t - h.t > 1.8) {
+    h.s = 12;
+    activeCols().forEach(c => routCol(c, false));
+    const hl = G.bats[3];
+    if (hl.state !== "broken") { hl.state = "charge"; hl.chCol = null; hl.chT = 0; hl.chFrom = hl.d; hl.chTo = hl.d + 70; hl.chDur = 3; pipes(0.1); }
+    huzzah(0.8, 0.2);
+    caption("The French run for Quebec. Brigadier Murray sends the 78th Fraser's Highlanders after them with broadswords: the last successful Highland charge.");
+  }
+  else if (h.s === 12 && G.wolfe.hit) { h.s = 13; caption("General Wolfe is shot in the chest. Told the enemy are running, he says 'Now, God be praised, I will die in peace.' Montcalm is wounded in the retreat and dies the next morning. Quebec surrenders five days later."); }
+}
+
 // ---------- step ----------
 function paused() { return !$("startOv").hidden || !$("upOv").hidden || !$("endOv").hidden; }
 function step(dt) {
@@ -1281,6 +1322,7 @@ function step(dt) {
   G.drillPh += dt / (0.85 - 0.04 * UP.drill);
   stepFx(dt);
   if (G.n === 1) { fife(0.3); ambience(true); }
+  if (G.hist) stepHistory();
   if (G.phase === "intro") {
     G.introT -= dt;
     if (G.introT <= 0) { G.phase = "wait"; msg("French sharpshooters are firing from the bushes and their cannon are booming. Order LIE DOWN and wait for the attack.", ""); }
@@ -1325,7 +1367,7 @@ function step(dt) {
   // end of battle
   if (!G.result && G.phase === "battle") {
     if (!activeCols().length && !G.reserveQ.length) {
-      G.result = "win"; G.endT = 6.2;
+      G.result = "win"; G.endT = G.hist ? 14 : 6.2;
       banner("VICTORY!", "#ffd166", 90);
       msg("Huzzah! The French army is running back to Quebec. The Plains of Abraham are yours!", "good");
       say("Three cheers, lads!", { cut: false });
@@ -1792,6 +1834,22 @@ function drawBat(bat) {
 function selBats() { if (!G) return []; return SEL ? G.bats.filter(b => SEL.has(b.idx) && b.state !== "broken") : liveBats(); }
 function selRefD() { const b = selBats(); return b.length ? b.reduce((a, x) => a + x.d, 0) / b.length : lineD(); }
 function fmtTime(t) { t = Math.max(0, Math.floor(t)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); }
+function wrapText(text, maxW) {
+  const words = text.split(" "), lines = []; let line = "";
+  for (const w of words) { const t = line ? line + " " + w : w; if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; }
+  if (line) lines.push(line); return lines;
+}
+function drawCaption(cap) {
+  const a = clamp((G.t - cap.t) / 0.5, 0, 1);
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.font = "800 19px Nunito, sans-serif";
+  const lines = wrapText(cap.text, 820), lh = 25, bh = lines.length * lh + 22, by = H - 8 - bh;
+  ctx.fillStyle = "rgba(14,10,6,.82)"; roundRect(80, by, 840, bh, 12); ctx.fill();
+  ctx.strokeStyle = "rgba(242,193,78,.7)"; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = "#fff"; ctx.textAlign = "center";
+  lines.forEach((l, i) => ctx.fillText(l, W / 2, by + 28 + i * lh));
+  ctx.restore();
+}
 function drawHUD() {
   ctx.textAlign = "left";
   if (G.phase === "intro") {
@@ -1827,8 +1885,10 @@ function drawHUD() {
   // corner tag: difficulty, speed or replay
   ctx.textAlign = "right"; ctx.fillStyle = "rgba(10,8,6,.66)"; roundRect(W - 200, 10, 190, 24, 8); ctx.fill();
   ctx.font = "900 12px Nunito, sans-serif";
-  if (REPLAY) { ctx.fillStyle = "#ff8a8a"; ctx.fillText("● REPLAY " + (REPLAY.paused ? "paused" : REPLAY.speed + "x") + " · " + fmtTime(G.t), W - 18, 26); }
+  if (REPLAY && G.hist) { ctx.fillStyle = "#ffd166"; ctx.fillText("🎬 THE REAL BATTLE " + (REPLAY.paused ? "paused" : REPLAY.speed + "x") + " · " + fmtTime(G.t), W - 18, 26); }
+  else if (REPLAY) { ctx.fillStyle = "#ff8a8a"; ctx.fillText("● REPLAY " + (REPLAY.paused ? "paused" : REPLAY.speed + "x") + " · " + fmtTime(G.t), W - 18, 26); }
   else { ctx.fillStyle = "#f2c14e"; ctx.fillText(G.D.name + " · Quebec 1759" + (SPEED > 1 ? " · ⏩ " + SPEED + "x" : ""), W - 18, 26); }
+  if (G.hist && G.cap && G.phase !== "intro") drawCaption(G.cap);
   // banners
   ctx.textAlign = "center";
   for (const b of G.banners.slice(0, 1)) {
@@ -2009,13 +2069,23 @@ function startReplay(rep) {
   if (!rep || !rep.cmds) return;
   $("startOv").hidden = true; $("endOv").hidden = true; $("upOv").hidden = true;
   REPLAY = { rep, ci: 0, speed: 1, paused: false, dragging: false };
-  newBattle({ seed: rep.seed, diff: rep.diff, dbl: rep.dbl, up: rep.up });
+  newBattle(rep);
   SEL = null; DRAMA = null; SLOWT = 0; ACC = 0;
   $("rSeek").max = rep.end; $("rSeek").value = 0; cache.seek = null;
   document.body.classList.add("replaying");
   battleMode(true);
-  msg("Watching the replay. Speed it up, pause, or drag the bar to jump to any moment.", "");
+  if (!rep.hist) msg("Watching the replay. Speed it up, pause, or drag the bar to jump to any moment.", "");
   audio();
+}
+// the real battle: work out how long it runs (silently), then play it from the start
+let HIST_REP = null;
+function startHistory() {
+  if (!HIST_REP) {
+    HIST_REP = { hist: true, seed: 1759, diff: "redcoat", dbl: true, up: defaults().up, cmds: [], end: 0 };
+    SILENT = true;
+    try { newBattle(HIST_REP); let g = 0; while (!G.ended && g++ < 60 * 600) tick(); HIST_REP.end = G.n; } finally { SILENT = false; }
+  }
+  startReplay(HIST_REP);
 }
 function stopReplay(quiet) {
   REPLAY = null; document.body.classList.remove("replaying");
@@ -2025,7 +2095,7 @@ function stopReplay(quiet) {
 function replaySeek(n) {
   if (!REPLAY) return;
   n = clamp(Math.round(n), 0, REPLAY.rep.end);
-  if (n < G.n) { newBattle({ seed: REPLAY.rep.seed, diff: REPLAY.rep.diff, dbl: REPLAY.rep.dbl, up: REPLAY.rep.up }); REPLAY.ci = 0; }
+  if (n < G.n) { newBattle(REPLAY.rep); REPLAY.ci = 0; }
   SILENT = true;
   try { while (G.n < n && !G.ended) tick(); } finally { SILENT = false; }
   DRAMA = null; SLOWT = 0; ACC = 0;
@@ -2048,6 +2118,7 @@ tap("endAgain", startBattle);
 tap("goBtn", startBattle);
 tap("endReplay", () => startReplay(S.replay));
 tap("startReplay", () => startReplay(S.replay));
+tap("startHist", startHistory); tap("endHist", startHistory); tap("panelHist", startHistory);
 tap("rPlay", () => { if (!REPLAY) return; if (G.ended) { replaySeek(0); REPLAY.paused = false; } else REPLAY.paused = !REPLAY.paused; });
 tap("rExit", () => stopReplay(false));
 document.querySelectorAll("[data-sp]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); if (REPLAY) REPLAY.speed = +b.dataset.sp; }));
@@ -2110,6 +2181,7 @@ buildChips();
 resize();
 newBattle();
 showStart();
+if (/real|1759|history/i.test(location.hash)) startHistory(); // shareable link: #real
 ui();
 requestAnimationFrame(frame);
 

@@ -278,8 +278,9 @@ const WORLDS = [
   { n: "Outer Space", e: "🚀", g1: "#141533", g2: "#1a1c40", deco: "space", boss: "Alien Overlord", bossSkin: 9, bc: "#7dff8a" },
 ];
 const N_LEVELS = WORLDS.length * 10;
-const MAP_K = Math.sqrt(250);   // 250 times the area of the old map
-const N_OPP = 500;              // computer monsters in every level and in the arena
+const MAP_K = Math.sqrt(2500);  // 2500 times the area of the old map (George: 250x, then 10x more)
+const N_OPP = 500;              // computer monsters in every level
+const N_ARENA = 5000;           // computer monsters in the Public Arena
 // monsters: drawn from these settings
 const SKINS = [
   { n: "Blobby", c: "#6ad14b", c2: "#3f9a2a", eyes: 2, price: 0 },
@@ -292,6 +293,26 @@ const SKINS = [
   { n: "Golem", c: "#8c8f99", c2: "#5a5d66", eyes: 2, rock: 1, price: 7e9 },
   { n: "Demon", c: "#b0123a", c2: "#5e0a1f", eyes: 3, horns: 1, wings: 1, price: 1.2e11 },
   { n: "Shadow King", c: "#1d1630", c2: "#0b0814", eyes: 2, horns: 1, crown: 1, glow: 1, price: 2.5e12 },
+  { n: "Frost Wyrm", c: "#9fe3ff", c2: "#3a8fc2", eyes: 2, horns: 1, wings: 1, spikes: 1, price: 5e13 },
+  { n: "Toxic Ooze", c: "#7cff3a", c2: "#2f8a14", eyes: 3, tent: 1, price: 1e15 },
+  { n: "Bone Lord", c: "#ece6d6", c2: "#9a927e", eyes: 2, horns: 1, crown: 1, price: 2e16 },
+  { n: "Candy Chomp", c: "#ff8ad8", c2: "#c2409a", eyes: 2, spikes: 1, price: 4e17 },
+  { n: "Pumpkin King", c: "#ff8a1f", c2: "#8a3a0a", eyes: 3, crown: 1, glow: 1, price: 8e18 },
+  { n: "Crystal Golem", c: "#b9f2ff", c2: "#5ab0d6", eyes: 2, rock: 1, glow: 1, price: 1.6e20 },
+  { n: "Void Spider", c: "#2a0f4a", c2: "#12051f", eyes: 4, legs: 1, glow: 1, price: 3.2e21 },
+  { n: "Thunder Yeti", c: "#fff27a", c2: "#c2a81f", eyes: 2, fur: 1, horns: 1, glow: 1, price: 6.4e22 },
+  { n: "Lava Titan", c: "#ff4a1f", c2: "#5e1206", eyes: 1, rock: 1, horns: 1, glow: 1, price: 1.3e24 },
+  { n: "Deep Sea Kraken", c: "#1f6bff", c2: "#0a2e7a", eyes: 2, tent: 1, glow: 1, price: 2.6e25 },
+  { n: "Robo Chomper", c: "#c0c6d2", c2: "#5a6070", eyes: 1, spikes: 1, horns: 1, price: 5.2e26 },
+  { n: "Jungle Beast", c: "#3fae4a", c2: "#1f5a24", eyes: 2, fur: 1, spikes: 1, price: 1e28 },
+  { n: "Ghost Demon", c: "#e8ecff", c2: "#8a90c2", eyes: 3, horns: 1, wings: 1, glow: 1, price: 2e29 },
+  { n: "Gold Golem", c: "#ffd23a", c2: "#a87a10", eyes: 2, rock: 1, crown: 1, price: 4e30 },
+  { n: "Storm Dragon", c: "#5a6bff", c2: "#2a2f8a", eyes: 2, horns: 1, wings: 1, spikes: 1, glow: 1, price: 8e31 },
+  { n: "Rainbow Beast", c: "#ff5aa0", c2: "#5ad0ff", eyes: 4, fur: 1, horns: 1, glow: 1, price: 1.6e33 },
+  { n: "Galaxy Spider", c: "#3a1f7a", c2: "#ff5ae0", eyes: 4, legs: 1, crown: 1, glow: 1, price: 3.2e34 },
+  { n: "Cosmic Kraken", c: "#7a2fff", c2: "#20f0ff", eyes: 3, tent: 1, crown: 1, glow: 1, price: 6.4e35 },
+  { n: "Mega Demon King", c: "#ff1f4a", c2: "#2a0010", eyes: 3, horns: 1, wings: 1, crown: 1, glow: 1, price: 1.3e37 },
+  { n: "Ultimate Monster", c: "#ffffff", c2: "#ffd23a", eyes: 4, horns: 1, wings: 1, spikes: 1, crown: 1, glow: 1, price: 2.6e38 },
 ];
 // George: skins give a SIZE multi (you grow 3x faster with each skin) and a speed multi a hundredth of that (at least 1x, at most 75x)
 const skinBonus = i => Math.pow(3, i);
@@ -336,8 +357,7 @@ function loadSave() {
   b.skin = b.skins.includes(s.skin) ? s.skin : 0;
   b.kos = Math.floor(num(s.kos, 0)); b.bestStreak = Math.floor(num(s.bestStreak, 0)); b.eaten = Math.floor(num(s.eaten, 0));
   b.sel = clamp(Math.floor(num(s.sel, 0)), 0, WORLDS.length - 1);
-  if (s.bkGift) b.bkGift = 1;
-  if (s.bkGift2) b.bkGift2 = 1;
+  for (const k of ["bkGift", "bkGift2", "bkGift3", "bkLvl"]) if (s[k]) b[k] = 1;
   return b;
 }
 let S = loadSave();
@@ -358,10 +378,13 @@ function acctUser() { try { return localStorage.getItem("ghacct_user") || ""; } 
 function buckGift() {
   const isBuck = n => (n || "").trim().toLowerCase() === "buckasnuncle";
   if (!isBuck(NAME) && !isBuck(acctUser())) return;
-  const sk = SKINS.length - 1;
+  const sk = 9;   // Shadow King
   if (!S.skins.includes(sk)) S.skins.push(sk);
   if (!S.bkGift) { S.bkGift = 1; S.coins += 1e9; S.skin = sk; }
   if (!S.bkGift2) { S.bkGift2 = 1; S.coins += 1e27; }   // George: plus 1 Oc (octillion) coins, once
+  if (!S.bkGift3) { S.bkGift3 = 1; S.coins += 1e63; }   // and 1 Vg (vigintillion) coins, once
+  if (S.beaten < N_LEVELS - 1) S.beaten = N_LEVELS - 1;   // level 100 unlocked
+  if (!S.bkLvl) { S.bkLvl = 1; S.sel = WORLDS.length - 1; }
   S.up.spd = UPS.spd.max;
   save();
 }
@@ -625,7 +648,7 @@ const zMouth = inst(new THREE.BoxGeometry(0.38, 0.07, 0.05), new THREE.MeshBasic
 const ZSHIRT = { walker: col("#8a7a5a"), runner: col("#3a6ab3"), fatty: col("#b38b3a"), brute: col("#6b2f2f"), crawler: col("#5a4a3a"), sprinter: col("#e04a4a"),
   ghost: col("#b9c6ff"), toxic: col("#3a3a3a"), golden: col("#fff2a8"), giant: col("#4a2f6b"), king: col("#ffd23a") };
 const tank = z => !!ZTYPES[z.type].hp;
-const zPrev = new Float32Array(9000), zYaw = new Float32Array(4500);
+const zPrev = new Float32Array(32000), zYaw = new Float32Array(16000);
 const _zr = new THREE.Matrix4();
 function setI(meshI, i) { _m2.multiplyMatrices(_zr, _m); meshI.setMatrixAt(i, _m2); }
 function renderZombies(list, t) {
@@ -965,7 +988,10 @@ function renderHUD3D(st) {
   c.fillStyle = "rgba(0,0,0,.5)"; c.fillRect(0, 0, mm, mm);
   c.strokeStyle = "rgba(255,79,143,.8)"; c.lineWidth = 2; c.strokeRect(1, 1, mm - 2, mm - 2);
   if (st.ring) { c.strokeStyle = "rgba(200,120,255,.95)"; c.lineWidth = 3; c.beginPath(); c.arc(st.ring.cx * sc, st.ring.cy * sc, st.ring.r * sc, 0, 6.28); c.stroke(); }
-  for (const M of st.mons.values()) if (M.alive) { c.fillStyle = M.me ? "#c6ff6a" : M.boss ? "#ff3d6b" : M.remote && !M.bot ? "#4aa8ff" : "#ff8a3d"; c.beginPath(); c.arc(M.x * sc, M.y * sc, M.me ? 7 : (st.mons.size > 60 ? 2 : 5), 0, 6.28); c.fill(); }
+  if (st.mons.size > 60) {
+    c.fillStyle = "#ff8a3d"; for (const M of st.mons.values()) if (M.alive && M.bot && !M.boss) c.fillRect(M.x * sc - 1, M.y * sc - 1, 2, 2);
+    for (const M of st.mons.values()) if (M.alive && (M.me || M.boss || !M.bot)) { c.fillStyle = M.me ? "#c6ff6a" : M.boss ? "#ff3d6b" : "#4aa8ff"; c.beginPath(); c.arc(M.x * sc, M.y * sc, M.me ? 7 : 4, 0, 6.28); c.fill(); }
+  } else for (const M of st.mons.values()) if (M.alive) { c.fillStyle = M.me ? "#c6ff6a" : M.boss ? "#ff3d6b" : M.remote && !M.bot ? "#4aa8ff" : "#ff8a3d"; c.beginPath(); c.arc(M.x * sc, M.y * sc, M.me ? 7 : 5, 0, 6.28); c.fill(); }
   if (me && me.alive) { const x = me.x * sc, y = me.y * sc, fx = Math.sin(cam.yaw), fy = Math.cos(cam.yaw); c.strokeStyle = "rgba(255,255,255,.85)"; c.lineWidth = 3; c.beginPath(); c.moveTo(x, y); c.lineTo(x + fx * 22, y + fy * 22); c.stroke(); }
   // knocked out in the arena
   const ko = st.mode === "arena" && me && !me.alive;
@@ -1067,7 +1093,7 @@ function makeThumbs() {
 // ---------------- props (scenery) ----------------
 // ---------------- props (scenery) ----------------
 function makeProps(world, W, H, seed) {
-  const R = rng(seed), out = [], n = Math.round(W * H / 90000);
+  const R = rng(seed), out = [], n = Math.min(45000, Math.round(W * H / 90000));
   for (let i = 0; i < n; i++) out.push({ x: R() * W, y: R() * H, s: 0.7 + R() * 0.8, v: Math.floor(R() * 4), rot: R() * 6.28 });
   return out;
 }
@@ -1098,9 +1124,9 @@ function startLevel(L) {
   const size = Math.round((1700 + nB0 * 140 + wi * 60) * MAP_K);
   G = baseMatch("level", size, size, wi);
   G.L = L; G.boss = boss;
-  G.zCount = Math.round((30 + nB0 * 6 + wi * 2) * 60);
+  G.zCount = Math.min(16000, Math.round((30 + nB0 * 6 + wi * 2) * 120));
   const r0 = Math.hypot(size, size) / 2 + 50, minR = Math.max(400, size * 0.03);
-  G.ring = { r: r0, cx: size / 2, cy: size / 2, minR, start: boss ? 150 : 120, dur: Math.round((r0 - minR) / 95) };
+  G.ring = { r: r0, cx: size / 2, cy: size / 2, minR, start: boss ? 90 : 60, dur: Math.round((r0 - minR) / 110) };
   const pm = playerMults();
   G.me = newMonster({ id: MYID, name: NAME, bot: false, x: size / 2, y: size / 2, m: myStart(pm), skin: S.skin, hpM: pm.hp, dmgM: pm.dmg, spdM: pm.spd, xpM: pm.xp, regen: pm.regen, smashM: pm.smash, smashMax: pm.smashCd, me: true });
   G.mons.set(G.me.id, G.me);
@@ -1128,7 +1154,7 @@ function startArena() {
   const size = Math.round(3200 * MAP_K);
   // the arena's world changes every hour (the same for everyone)
   G = baseMatch("arena", size, size, Math.floor(Date.now() / 3600000) % WORLDS.length);
-  G.zSlots = 4000; G.azb = [];
+  G.zSlots = 15000; G.azb = []; G.zFrame = 0;
   G.eaten = new Map();
   G.streak = 0; G.respawn = 0;
   spawnMe();
@@ -1185,9 +1211,14 @@ function arenaZombie(k, t) {
   return { k, g, type, x, y, ph: p1, hp: 1, maxHp: 1 };
 }
 function arenaZombies() {
-  const t = netNow() / 1000, out = [];
-  for (let k = 0; k < G.zSlots; k++) out.push(arenaZombie(k, t));
-  return out;
+  // nearby zombies move every frame; far away ones only every 8th frame (keeps iPads fast)
+  const t = netNow() / 1000, f = G.zFrame++, old = G.zCache, R2 = Math.pow(viewR() * 1.6, 2), cx = G.cam ? G.cam.x : 0, cy = G.cam ? G.cam.y : 0;
+  if (!old || old.length !== G.zSlots) { const out = []; for (let k = 0; k < G.zSlots; k++) out.push(arenaZombie(k, t)); return out; }
+  for (let k = 0; k < G.zSlots; k++) {
+    const z = old[k], dx = z.x - cx, dy = z.y - cy;
+    if ((k + f) % 8 === 0 || dx * dx + dy * dy < R2 || (G.eaten.get(k) || 0) !== z.g) old[k] = arenaZombie(k, t);
+  }
+  return old;
 }
 
 // ---------------- enter / leave ----------------
@@ -1215,20 +1246,36 @@ function leaveGame() {
 function enemiesOf(M) { const out = []; for (const o of G.mons.values()) if (o !== M && o.alive) out.push(o); return out; }
 // the map is huge, so monsters and zombies are sorted into a grid and only nearby ones are checked
 const GC = 600, GMAX = 320;
-function gridOf(list) { const g = new Map(); for (const o of list) { if (o.alive === false || o.dead) continue; const k = Math.floor(o.x / GC) * 4096 + Math.floor(o.y / GC); let c = g.get(k); if (!c) g.set(k, c = []); c.push(o); } return g; }
+// fast grid: things are counted into squares, then packed into one list (no new arrays every frame)
+function gridOf(list, key) {
+  const nx = Math.ceil(G.W / GC) + 1, ny = Math.ceil(G.H / GC) + 1, n = nx * ny;
+  let b = G[key]; if (!b || b.n !== n) b = G[key] = { n, nx, ny, start: new Int32Array(n + 1), fill: new Int32Array(n), cell: new Int32Array(1024), tmp: [], items: [] };
+  const tmp = b.tmp; tmp.length = 0;
+  for (const o of list) if (o.alive !== false && !o.dead) tmp.push(o);
+  if (b.cell.length < tmp.length) b.cell = new Int32Array(tmp.length * 2);
+  const start = b.start, cell = b.cell; start.fill(0);
+  for (let i = 0; i < tmp.length; i++) { const o = tmp[i]; let cx = Math.floor(o.x / GC), cy = Math.floor(o.y / GC); cx = cx < 0 ? 0 : cx >= nx ? nx - 1 : cx; cy = cy < 0 ? 0 : cy >= ny ? ny - 1 : cy; const c = cx * ny + cy; cell[i] = c; start[c + 1]++; }
+  for (let c = 0; c < n; c++) start[c + 1] += start[c];
+  const fill = b.fill; fill.set(start.subarray(0, n)); const items = b.items; items.length = tmp.length;
+  for (let i = 0; i < tmp.length; i++) items[fill[cell[i]]++] = tmp[i];
+  return b;
+}
 function gridNear(g, x, y, R, out) {
   out = out || []; if (!g) return out;
-  const x0 = Math.floor((x - R) / GC), x1 = Math.floor((x + R) / GC), y0 = Math.floor((y - R) / GC), y1 = Math.floor((y + R) / GC);
-  for (let i = x0; i <= x1; i++) for (let j = y0; j <= y1; j++) { const c = g.get(i * 4096 + j); if (c) for (const o of c) out.push(o); }
+  const nx = g.nx, ny = g.ny, st = g.start, it = g.items;
+  let x0 = Math.floor((x - R) / GC), x1 = Math.floor((x + R) / GC), y0 = Math.floor((y - R) / GC), y1 = Math.floor((y + R) / GC);
+  if (x0 < 0) x0 = 0; if (y0 < 0) y0 = 0; if (x1 >= nx) x1 = nx - 1; if (y1 >= ny) y1 = ny - 1;
+  for (let i = x0; i <= x1; i++) { const row = i * ny; for (let j = y0; j <= y1; j++) { const c = row + j; for (let k = st[c], e = st[c + 1]; k < e; k++) out.push(it[k]); } }
   return out;
 }
 // giant monsters (bigger than a grid square) are kept in their own short list and always checked
 function monsNear(x, y, R) { const out = gridNear(G.mg, x, y, R + GMAX); if (G.bigM) for (const o of G.bigM) out.push(o); return out; }
 function enemiesNear(M, R) { const out = []; for (const o of monsNear(M.x, M.y, R)) if (o !== M && o.alive) out.push(o); return out; }
 function zombiesNear(x, y, R) { return gridNear(G.zg, x, y, R + 50).filter(z => !z.dead); }
-function buildGrids() { const small = []; G.bigM = []; for (const o of G.mons.values()) { if (!o.alive) continue; if (radius(o.m) > GMAX - 20) G.bigM.push(o); else small.push(o); } G.mg = gridOf(small); G.zg = gridOf(G.mode === "arena" ? (G.zCache || []) : G.zombies); }
+function buildGrids() { const small = []; G.bigM = []; for (const o of G.mons.values()) { if (!o.alive) continue; if (radius(o.m) > GMAX - 20) G.bigM.push(o); else small.push(o); } G.mg = gridOf(small, "_mgB"); if (!G.zg || G.mode !== "arena" || (G.frameN & 1)) G.zg = gridOf(G.mode === "arena" ? (G.zCache || []) : G.zombies, "_zgB"); }
 const viewR = () => (scene.fog.far + 20) / SC;
-function nearCam(x, y, k) { return !G || !G.cam || Math.hypot(x - G.cam.x, y - G.cam.y) < viewR() * (k || 1.1); }
+let _ncR = 0, _ncF = -1;
+function nearCam(x, y, k) { if (!G || !G.cam) return true; const r = viewR() * (k || 1.1), dx = x - G.cam.x, dy = y - G.cam.y; return dx * dx + dy * dy < r * r; }
 function doBite(M, T) {
   const d = biteDmg(M) * rand(0.9, 1.1);
   M.biteT = BITE_CD; M.atk = 1;
@@ -1415,9 +1462,13 @@ function stepMonster(M, dt) {
     for (const z of gridNear(G.zg, M.x, M.y, r + 60)) if (Math.hypot(z.x - M.x, z.y - M.y) < r + ZTYPES[z.type].r * 0.6 && (G.eaten.get(z.k) || 0) === z.g) eatZombie(M, z);
   }
 }
-function stepZombies(dt) {
-  for (const z of G.zombies) {
-    const T = ZTYPES[z.type];
+function stepZombies(dt0) {
+  const zf = G.frameN || 0;
+  for (let zi = 0; zi < G.zombies.length; zi++) {
+    const z = G.zombies[zi], T = ZTYPES[z.type];
+    // far away zombies move every 4th frame (16000 zombies on an iPad)
+    let dt = dt0;
+    if (!nearCam(z.x, z.y, 1.4)) { z.acc = (z.acc || 0) + dt0; if (((zf + zi) & 3) !== 0) continue; dt = Math.min(0.25, z.acc); z.acc = 0; }
     let near = null, nd = 1e9;
     for (const M of monsNear(z.x, z.y, 300)) if (M.alive) { const d = Math.hypot(M.x - z.x, M.y - z.y); if (d < nd) { nd = d; near = M; } }
     z.turn -= dt;
@@ -1445,23 +1496,34 @@ function update(dt) {
     const f = clamp((G.t - G.ring.start) / G.ring.dur, 0, 1);
     G.ring.r = lerp(G.ring.r0 || (G.ring.r0 = G.ring.r), G.ring.minR, f);
   }
+  G.frameN = (G.frameN || 0) + 1;
   for (const M of G.mons.values()) {
     if (M.remote) { stepRemote(M, dt); continue; }
-    if (M.bot && M.alive) botThink(M, dt);
+    // computer monsters far from your screen only get worked out every 4th frame (5000 bots on an iPad)
+    let mdt = dt;
+    if (M.bot && M.alive) {
+      M.acc = (M.acc || 0) + dt;
+      if (!nearCam(M.x, M.y, 1.6)) { const ev = G.mons.size > 1500 ? 7 : 3; if (((G.frameN + (M.slot || (M.slot = 1 + Math.floor(Math.random() * 8)))) & ev) !== 0) continue; }
+      mdt = Math.min(0.25, M.acc); M.acc = 0;
+    }
+    if (M.bot && M.alive) botThink(M, mdt);
     if (M.bot && M.alive && M.target && dist(M, M.target) < radius(M.m) * 3 + 50) {
       const near = enemiesNear(M, radius(M.m) * 3 + 60).filter(o => dist(M, o) < radius(M.m) * 3 + 60 + radius(o.m)).length;
       if ((near >= 2 || Math.random() < 0.02) && M.smashCd <= 0) smash(M);
     }
-    stepMonster(M, dt);
+    stepMonster(M, mdt);
   }
   // push overlapping monsters apart a little
   const arr = [...G.mons.values()].filter(m => m.alive);
   arr.forEach((m, i) => { m.gi = i; });
-  for (let i = 0; i < arr.length; i++) for (const b of monsNear(arr[i].x, arr[i].y, radius(arr[i].m))) {
-    const a = arr[i]; if (!b.alive || b.gi == null || b.gi <= i || arr[b.gi] !== b) continue;
+  for (let i = 0; i < arr.length; i++) {
+    const a = arr[i];
+    if (a.bot && ((G.frameN + (a.slot || 0)) & (arr.length > 1500 ? 7 : 3)) !== 0 && !nearCam(a.x, a.y, 1.6)) continue;   // far away: every 4th (or 8th) frame
+    for (const b of monsNear(a.x, a.y, radius(a.m))) {
+    if (!b.alive || b.gi == null || b.gi <= i || arr[b.gi] !== b) continue;
     const d = dist(a, b), min = (radius(a.m) + radius(b.m)) * 0.85;
     if (d < min && d > 0.01) { const p = (min - d) / 2, nx = (b.x - a.x) / d, ny = (b.y - a.y) / d; if (!a.remote) { a.x -= nx * p; a.y -= ny * p; } if (!b.remote) { b.x += nx * p; b.y += ny * p; } }
-  }
+  } }
   if (G.mode === "level") stepZombies(dt);
   else arenaTick(dt);
   // effects (only the ones you can see)
@@ -1479,7 +1541,7 @@ function update(dt) {
     G.cam.x = lerp(G.cam.x, focus.x, 1 - Math.pow(0.0005, dt)); G.cam.y = lerp(G.cam.y, focus.y, 1 - Math.pow(0.0005, dt));
   }
   // smoothed health bar
-  for (const M of G.mons.values()) M.hpShow = lerp(M.hpShow, clamp(M.hp / maxHp(M), 0, 1), 1 - Math.pow(0.01, dt));
+  { const hk = 1 - Math.pow(0.01, dt), many = G.mons.size > 200; for (const M of G.mons.values()) if (!many || M.me || nearCam(M.x, M.y)) M.hpShow = lerp(M.hpShow, clamp(M.hp / maxHp(M), 0, 1), hk); }
   updateButtons();
 }
 function popText(x, y, s, c, big) { if (G.txt.length > 60) G.txt.shift(); G.txt.push({ x: x + rand(-10, 10), y, s, c, life: big ? 1.6 : 0.9, big }); }
@@ -1709,7 +1771,7 @@ function becomeHost() {
   isHost = true; hostId = MYID;
   for (const M of G.mons.values()) if (M.bot) { M.remote = false; if (M.tx2 != null) { M.x = M.tx2; M.y = M.ty2; } M.think = 0; }
 }
-function wantBots() { const humans = Math.max(1, peers.length || 1); return clamp(N_OPP + 1 - humans, N_OPP - 50, N_OPP); }
+function wantBots() { const humans = Math.max(1, peers.length || 1); return clamp(N_ARENA + 1 - humans, N_ARENA - 50, N_ARENA); }
 function arenaBotPower() {
   // computer monsters match the strongest real player here, a bit either side
   return Math.sqrt(powerOf());
@@ -1744,12 +1806,17 @@ function arenaTick(dt) {
   if (isHost) for (const [id, M] of G.mons) if (M.bot && !M.alive) { M.deadT = (M.deadT || 0) + dt; if (M.deadT > 3) G.mons.delete(id); }
   // remote monsters that went quiet
   const now = performance.now();
-  for (const [id, M] of G.mons) if (M.remote && now - (M.seen || now) > 6000) G.mons.delete(id);
+  for (const [id, M] of G.mons) if (M.remote && now - (M.seen || now) > (M.bot ? 20000 : 6000)) G.mons.delete(id);
   netT -= dt; if (netT > 0 || !online) return;
   netT = 0.12;
   const me = G.me;
   const u = { i: MYID, n: NAME, ck: Date.now(), me: [Math.round(me.x), Math.round(me.y), +me.m.toFixed(1), Math.round(me.hp), Math.round(maxHp(me)), me.skin, +me.face[0].toFixed(2), +me.face[1].toFixed(2), me.alive ? 1 : 0, +me.dmgM.toPrecision(4), me.atk > 0.5 ? 1 : 0, me.shield > 0 ? 1 : 0] };
-  if (isHost) { const all = [...G.mons.values()].filter(m => m.bot), B = 100, st0 = (botSend * B) % Math.max(1, all.length); botSend++; u.b = all.slice(st0, st0 + B).concat(st0 + B > all.length ? all.slice(0, Math.min(st0, st0 + B - all.length)) : []).map(b => [b.id, b.name, Math.round(b.x), Math.round(b.y), +b.m.toFixed(1), Math.round(b.hp), Math.round(maxHp(b)), b.skin, +b.face[0].toFixed(2), +b.face[1].toFixed(2), b.alive ? 1 : 0, +b.dmgM.toPrecision(4), b.atk > 0.5 ? 1 : 0]); }
+  if (isHost) {
+    // 5000 bots won't fit in one message: send the ones near real players often, the rest a few at a time
+    const humans = [...G.mons.values()].filter(m => !m.bot && m.alive), nearB = [], farB = [];
+    for (const m of G.mons.values()) if (m.bot) (humans.some(h => Math.abs(h.x - m.x) < 7000 && Math.abs(h.y - m.y) < 7000) ? nearB : farB).push(m);
+    const pickB = (arr, n, key) => { if (!arr.length) return []; const st0 = ((G[key] || 0) * n) % arr.length; G[key] = (G[key] || 0) + 1; const o = arr.slice(st0, st0 + n); if (o.length < n) o.push(...arr.slice(0, Math.min(st0, n - o.length))); return o; };
+    u.b = pickB(nearB, 80, "sendN").concat(pickB(farB, 30, "sendF")).map(b => [b.id, b.name, Math.round(b.x), Math.round(b.y), +b.m.toFixed(1), Math.round(b.hp), Math.round(maxHp(b)), b.skin, +b.face[0].toFixed(2), +b.face[1].toFixed(2), b.alive ? 1 : 0, +b.dmgM.toPrecision(4), b.atk > 0.5 ? 1 : 0]); }
   bcast("u", u);
 }
 function remoteMon(id, name, bot) {

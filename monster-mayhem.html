@@ -296,6 +296,7 @@ const SKINS = [
 // George: skins give a SIZE multi (you grow 3x faster with each skin) and a speed multi a hundredth of that (at least 1x, at most 75x)
 const skinBonus = i => Math.pow(3, i);
 const skinSpd = i => clamp(skinBonus(i) / 100, 1, 75);
+const MAX_SPD = 5;   // George: total speed (skin x Fast Feet) never goes over 5x, any faster is too fast to play
 const UPS = {
   hp:     { n: "Thick Skin", e: "❤️", d: "+8% health each level", base: 25, g: 1.2, max: 250 },
   bite:   { n: "Sharp Teeth", e: "🦷", d: "+8% bite damage each level", base: 25, g: 1.2, max: 250 },
@@ -374,7 +375,7 @@ const BITE_CD = 0.55;
 function playerMults() {
   const sb = skinBonus(S.skin);
   return {
-    hp: Math.pow(1.08, S.up.hp), dmg: Math.pow(1.08, S.up.bite), spd: (1 + 0.03 * S.up.spd) * skinSpd(S.skin),
+    hp: Math.pow(1.08, S.up.hp), dmg: Math.pow(1.08, S.up.bite), spd: Math.min(MAX_SPD, (1 + 0.03 * S.up.spd) * skinSpd(S.skin)),
     xp: (1 + 0.05 * S.up.hunger) * sb, coin: 1 + 0.05 * S.up.coin, start: 10 + 2 * S.up.start,
     regen: 0.002 * S.up.regen, smash: Math.pow(1.1, S.up.smash), smashCd: Math.max(3, 8 - 0.05 * S.up.smash),
   };
@@ -1909,7 +1910,7 @@ function renderShop() {
     const b = document.createElement("button"); b.type = "button"; b.className = "skin" + (i === S.skin ? " sel" : "") + (own ? "" : " locked");
     b.appendChild(skinCanvas(i, 70));
     b.appendChild(document.createTextNode(sk.n));
-    const s = document.createElement("small"); s.style.color = own ? "#a6f04a" : "#ffc93c"; s.textContent = (own ? "" : "🪙 " + fmt(sk.price) + " · ") + `${fmt(skinBonus(i))}x size` + (skinSpd(i) > 1 ? ` · ${fmt(+skinSpd(i).toFixed(1))}x speed` : "");
+    const s = document.createElement("small"); s.style.color = own ? "#a6f04a" : "#ffc93c"; s.textContent = (own ? "" : "🪙 " + fmt(sk.price) + " · ") + `${fmt(skinBonus(i))}x size` + (skinSpd(i) > 1 ? ` · ${fmt(+Math.min(MAX_SPD, skinSpd(i)).toFixed(1))}x speed` : "");
     b.appendChild(s);
     b.onclick = () => {
       if (own) { S.skin = i; save(); renderAll(); renderLobby(); setMsg(`You are now ${sk.n}!`, "good"); return; }

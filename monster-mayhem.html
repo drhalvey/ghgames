@@ -365,7 +365,9 @@ function buckGift() {
 buckGift();
 
 // ---------------- monster maths ----------------
-const radius = m => Math.min(14 + 5 * Math.sqrt(m), 300);
+// George: monsters look as big as their size. They keep growing until they are a fifth of the map wide
+let RCAP = 300;
+const radius = m => Math.min(14 + 5 * Math.sqrt(m), RCAP);
 const hpBase = m => 60 + 6 * m;
 const biteBase = m => 7 + 0.5 * m;
 const BITE_CD = 0.55;
@@ -879,7 +881,11 @@ function camUpdate(st, dt) {
   camera.lookAt(cam.t);
   sky.position.copy(camera.position); stars.position.copy(camera.position);
   scene.fog.near = d * 1.4 + 25; scene.fog.far = d * 3.2 + 170;
-  aimSun(cam.t.x, cam.t.z, clamp(d * 1.5, 22, 160));
+  // giant monsters pull the camera a long way back, so let it see further
+  const cfar = Math.max(2400, scene.fog.far + 200), cnear = Math.max(0.3, d * 0.01);
+  if (Math.abs(camera.far - cfar) > camera.far * 0.05 || Math.abs(camera.near - cnear) > camera.near * 0.2) { camera.far = cfar; camera.near = cnear; camera.updateProjectionMatrix(); }
+  sky.scale.setScalar(Math.max(1, cfar / 2300)); stars.scale.setScalar(Math.max(1, cfar / 2300));
+  aimSun(cam.t.x, cam.t.z, clamp(d * 1.5, 22, 3000));
 }
 
 // ---------------- DOM overlays: names, health bars, floating text, HUD ----------------
@@ -980,7 +986,8 @@ function render3D(st, dt) {
   for (const M of st.mons.values()) { if (!M.alive) continue; const far = Math.hypot(M.x - fcx, M.y - fcy) - radius(M.m); if (far < VR || M.me) near.push([far, M]); }
   near.sort((a, b) => a[0] - b[0]);
   const full = new Set(), lod = [];
-  for (const [f, M] of near) { if (M.me || M.boss || full.size < NFULL) full.add(M); else lod.push(M); }
+  const nf = cam.d > 80 ? 4 : NFULL;   // zoomed right out (giant you): far fewer detailed models needed
+  for (const [f, M] of near) { if (M.me || M.boss || full.size < nf) full.add(M); else lod.push(M); }
   renderLod(lod, t, dt);
   for (const M of st.mons.values()) {
     let v = views.get(M.id);
@@ -995,7 +1002,7 @@ function render3D(st, dt) {
     for (const z of zl) { if (z.dead) continue; const dx = z.x - fcx, dy = z.y - fcy; if (dx * dx + dy * dy < VR2) vis.push(z); }
     if (vis.length > ZCAP) vis.sort((a, b) => Math.hypot(a.x - fcx, a.y - fcy) - Math.hypot(b.x - fcx, b.y - fcy));
     renderZombies(vis, t); }
-  refreshProps(fcx, fcy, VR);
+  refreshProps(fcx, fcy, Math.min(VR, 15000));
   renderFx(st, dt);
   renderStorm(st);
   for (const m of lavaMats) m.emissiveIntensity = 0.65 + Math.sin(t * 2) * 0.25;
@@ -1135,6 +1142,7 @@ function spawnMe() {
   G.streak = 0;
 }
 function baseMatch(mode, W, H, wi) {
+  RCAP = Math.round(Math.min(W, H) * 0.2);
   return { mode, W, H, world: wi, mons: new Map(), zombies: [], fx: [], txt: [], feed: [], t: 0, over: false, shake: 0, cam: { x: W / 2, y: H / 2, z: 1 },
     props: makeProps(wi, W, H, hash(mode + wi + W)), coinsGot: 0, eatenN: 0 };
 }
@@ -1211,9 +1219,11 @@ function gridNear(g, x, y, R, out) {
   for (let i = x0; i <= x1; i++) for (let j = y0; j <= y1; j++) { const c = g.get(i * 4096 + j); if (c) for (const o of c) out.push(o); }
   return out;
 }
-function enemiesNear(M, R) { const out = []; for (const o of gridNear(G.mg, M.x, M.y, R + GMAX)) if (o !== M && o.alive) out.push(o); return out; }
+// giant monsters (bigger than a grid square) are kept in their own short list and always checked
+function monsNear(x, y, R) { const out = gridNear(G.mg, x, y, R + GMAX); if (G.bigM) for (const o of G.bigM) out.push(o); return out; }
+function enemiesNear(M, R) { const out = []; for (const o of monsNear(M.x, M.y, R)) if (o !== M && o.alive) out.push(o); return out; }
 function zombiesNear(x, y, R) { return gridNear(G.zg, x, y, R + 50).filter(z => !z.dead); }
-function buildGrids() { G.mg = gridOf(G.mons.values()); G.zg = gridOf(G.mode === "arena" ? (G.zCache || []) : G.zombies); }
+function buildGrids() { const small = []; G.bigM = []; for (const o of G.mons.values()) { if (!o.alive) continue; if (radius(o.m) > GMAX - 20) G.bigM.push(o); else small.push(o); } G.mg = gridOf(small); G.zg = gridOf(G.mode === "arena" ? (G.zCache || []) : G.zombies); }
 const viewR = () => (scene.fog.far + 20) / SC;
 function nearCam(x, y, k) { return !G || !G.cam || Math.hypot(x - G.cam.x, y - G.cam.y) < viewR() * (k || 1.1); }
 function doBite(M, T) {
@@ -1406,7 +1416,7 @@ function stepZombies(dt) {
   for (const z of G.zombies) {
     const T = ZTYPES[z.type];
     let near = null, nd = 1e9;
-    for (const M of gridNear(G.mg, z.x, z.y, 300 + GMAX)) if (M.alive) { const d = Math.hypot(M.x - z.x, M.y - z.y); if (d < nd) { nd = d; near = M; } }
+    for (const M of monsNear(z.x, z.y, 300)) if (M.alive) { const d = Math.hypot(M.x - z.x, M.y - z.y); if (d < nd) { nd = d; near = M; } }
     z.turn -= dt;
     if (tank(z) && near && nd < 260 + T.r) z.a = Math.atan2(near.y - z.y, near.x - z.x);
     else if (near && nd < 170 + radius(near.m)) z.a = Math.atan2(z.y - near.y, z.x - near.x) + Math.sin(G.t * 3 + z.ph) * 0.4;
@@ -1444,7 +1454,7 @@ function update(dt) {
   // push overlapping monsters apart a little
   const arr = [...G.mons.values()].filter(m => m.alive);
   arr.forEach((m, i) => { m.gi = i; });
-  for (let i = 0; i < arr.length; i++) for (const b of gridNear(G.mg, arr[i].x, arr[i].y, radius(arr[i].m) + GMAX)) {
+  for (let i = 0; i < arr.length; i++) for (const b of monsNear(arr[i].x, arr[i].y, radius(arr[i].m))) {
     const a = arr[i]; if (!b.alive || b.gi == null || b.gi <= i || arr[b.gi] !== b) continue;
     const d = dist(a, b), min = (radius(a.m) + radius(b.m)) * 0.85;
     if (d < min && d > 0.01) { const p = (min - d) / 2, nx = (b.x - a.x) / d, ny = (b.y - a.y) / d; if (!a.remote) { a.x -= nx * p; a.y -= ny * p; } if (!b.remote) { b.x += nx * p; b.y += ny * p; } }

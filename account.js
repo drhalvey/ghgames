@@ -58,6 +58,7 @@
     "pocket-pool": { title: "Pocket Pool", keys: ["pocketpool-save"] },
     "slingshot-siege": { title: "Slingshot Siege", keys: ["slingshotsiege-save"] },
     "five-letters": { title: "Five Letters", keys: ["fiveletters-save"] },
+    "evo-clash": { title: "Evo Clash", keys: ["evoclash-save"] },
   };
 
   var TOKEN = "ghacct_token", USER = "ghacct_user", NICK = "ghgames_nick";

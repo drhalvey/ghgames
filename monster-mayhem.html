@@ -293,14 +293,13 @@ const SKINS = [
   { n: "Demon", c: "#b0123a", c2: "#5e0a1f", eyes: 3, horns: 1, wings: 1, price: 1.2e11 },
   { n: "Shadow King", c: "#1d1630", c2: "#0b0814", eyes: 2, horns: 1, crown: 1, glow: 1, price: 2.5e12 },
 ];
-// George: skins are OP. Each skin is 3x stronger than the one before, a bit faster and earns more coins
+// George: skins give a SIZE multi (you grow 3x faster with each skin) and a speed multi a hundredth of that (at least 1x, at most 75x)
 const skinBonus = i => Math.pow(3, i);
-const skinSpd = i => 1 + 0.06 * i;
-const skinCoin = i => 1 + 0.5 * i;
+const skinSpd = i => clamp(skinBonus(i) / 100, 1, 75);
 const UPS = {
   hp:     { n: "Thick Skin", e: "❤️", d: "+8% health each level", base: 25, g: 1.2, max: 250 },
   bite:   { n: "Sharp Teeth", e: "🦷", d: "+8% bite damage each level", base: 25, g: 1.2, max: 250 },
-  spd:    { n: "Fast Feet", e: "👟", d: "+3% speed each level", base: 60, g: 1.45, max: 25 },
+  spd:    { n: "Fast Feet", e: "👟", d: "+3% speed each level", base: 60, g: 1.45, max: 125 },
   hunger: { n: "Big Belly", e: "🍖", d: "+5% growth from zombies", base: 40, g: 1.28, max: 150 },
   coin:   { n: "Coin Sniffer", e: "🪙", d: "+5% coins from everything", base: 50, g: 1.3, max: 150 },
   start:  { n: "Head Start", e: "🚀", d: "Start every match a bit bigger", base: 80, g: 1.33, max: 100 },
@@ -336,12 +335,13 @@ function loadSave() {
   b.skin = b.skins.includes(s.skin) ? s.skin : 0;
   b.kos = Math.floor(num(s.kos, 0)); b.bestStreak = Math.floor(num(s.bestStreak, 0)); b.eaten = Math.floor(num(s.eaten, 0));
   b.sel = clamp(Math.floor(num(s.sel, 0)), 0, WORLDS.length - 1);
+  if (s.bkGift) b.bkGift = 1;
   return b;
 }
 let S = loadSave();
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
 // account.js may pull a newer save from another device into localStorage
-addEventListener("storage", e => { if (e.key === SAVE_KEY && !G) { S = loadSave(); renderAll(); } });
+addEventListener("storage", e => { if (e.key === SAVE_KEY && !G) { S = loadSave(); if (typeof buckGift === "function") buckGift(); renderAll(); } });
 
 // ---------------- names ----------------
 const NAME_KEY = "ghgames_nick";
@@ -351,6 +351,18 @@ function cleanName(v) { return (v || "").replace(/[^A-Za-z0-9 _\-!?.']/g, "").re
 function safeName(v) { const n = cleanName(v); return !n || isRude(n) ? "Player" : n; }
 let NAME = safeName((() => { try { return localStorage.getItem(NAME_KEY); } catch (e) { return ""; } })());
 const hasName = () => NAME && NAME !== "Player";
+// George: buckasnuncle gets the Shadow King skin, 1 billion coins and max Fast Feet (coins once only)
+function acctUser() { try { return localStorage.getItem("ghacct_user") || ""; } catch (e) { return ""; } }
+function buckGift() {
+  const isBuck = n => (n || "").trim().toLowerCase() === "buckasnuncle";
+  if (!isBuck(NAME) && !isBuck(acctUser())) return;
+  const sk = SKINS.length - 1;
+  if (!S.skins.includes(sk)) S.skins.push(sk);
+  if (!S.bkGift) { S.bkGift = 1; S.coins += 1e9; S.skin = sk; }
+  S.up.spd = UPS.spd.max;
+  save();
+}
+buckGift();
 
 // ---------------- monster maths ----------------
 const radius = m => Math.min(14 + 5 * Math.sqrt(m), 300);
@@ -360,17 +372,13 @@ const BITE_CD = 0.55;
 function playerMults() {
   const sb = skinBonus(S.skin);
   return {
-    hp: Math.pow(1.08, S.up.hp) * sb, dmg: Math.pow(1.08, S.up.bite) * sb, spd: (1 + 0.03 * S.up.spd) * skinSpd(S.skin),
-    xp: 1 + 0.05 * S.up.hunger, coin: (1 + 0.05 * S.up.coin) * skinCoin(S.skin), start: 10 + 2 * S.up.start,
+    hp: Math.pow(1.08, S.up.hp), dmg: Math.pow(1.08, S.up.bite), spd: (1 + 0.03 * S.up.spd) * skinSpd(S.skin),
+    xp: (1 + 0.05 * S.up.hunger) * sb, coin: 1 + 0.05 * S.up.coin, start: 10 + 2 * S.up.start,
     regen: 0.002 * S.up.regen, smash: Math.pow(1.1, S.up.smash), smashCd: Math.max(3, 8 - 0.05 * S.up.smash),
   };
 }
-// George: the player buckasnuncle starts every match at size 1 million,
-// also anyone signed in to the account iamtheglobaglab
-const BIG_START = ["buckasnuncle", "iamtheglobaglab"];
-function acctUser() { try { return localStorage.getItem("ghacct_user") || ""; } catch (e) { return ""; } }
-const myStart = pm => BIG_START.includes((NAME || "").trim().toLowerCase()) || BIG_START.includes(acctUser().trim().toLowerCase()) ? 1e6 : pm.start;
-const powerOf = () => Math.pow(1.08, S.up.hp + S.up.bite) * skinBonus(S.skin) ** 2;
+const myStart = pm => pm.start;
+const powerOf = () => Math.pow(1.08, S.up.hp + S.up.bite);
 const lvlWorld = L => Math.floor((L - 1) / 10);
 const isBoss = L => L % 10 === 0;
 const levelReward = L => Math.round(40 * Math.pow(1.2, L - 1));
@@ -1691,8 +1699,7 @@ function becomeHost() {
 function wantBots() { const humans = Math.max(1, peers.length || 1); return clamp(N_OPP + 1 - humans, N_OPP - 50, N_OPP); }
 function arenaBotPower() {
   // computer monsters match the strongest real player here, a bit either side
-  // they match your upgrades but only part of your skin, so OP skins stay OP
-  return Math.sqrt(Math.pow(1.08, S.up.hp + S.up.bite) * skinBonus(S.skin));
+  return Math.sqrt(powerOf());
 }
 function fillBots() {
   if (!isHost) return;
@@ -1892,7 +1899,7 @@ function renderShop() {
     const b = document.createElement("button"); b.type = "button"; b.className = "skin" + (i === S.skin ? " sel" : "") + (own ? "" : " locked");
     b.appendChild(skinCanvas(i, 70));
     b.appendChild(document.createTextNode(sk.n));
-    const s = document.createElement("small"); s.style.color = own ? "#a6f04a" : "#ffc93c"; s.textContent = own ? `${fmt(skinBonus(i))}x power` : "🪙 " + fmt(sk.price) + ` · ${fmt(skinBonus(i))}x`;
+    const s = document.createElement("small"); s.style.color = own ? "#a6f04a" : "#ffc93c"; s.textContent = (own ? "" : "🪙 " + fmt(sk.price) + " · ") + `${fmt(skinBonus(i))}x size` + (skinSpd(i) > 1 ? ` · ${fmt(+skinSpd(i).toFixed(1))}x speed` : "");
     b.appendChild(s);
     b.onclick = () => {
       if (own) { S.skin = i; save(); renderAll(); renderLobby(); setMsg(`You are now ${sk.n}!`, "good"); return; }
@@ -1921,6 +1928,7 @@ function askName(then) {
     if (!v) { $("nmErr").textContent = "Type a name first."; return; }
     if (isRude(v)) { $("nmErr").textContent = "That name is not allowed. Try another!"; return; }
     NAME = v; try { localStorage.setItem(NAME_KEY, v); } catch (e) {}
+    buckGift(); if (typeof renderAll === "function") renderAll();
     hideBox(); renderHUD(); if (G && G.me) G.me.name = NAME; if (then) then();
   };
   $("nmOk").onclick = ok; inp.onkeydown = e => { if (e.key === "Enter") ok(); };

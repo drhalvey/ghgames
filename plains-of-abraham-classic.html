@@ -81,9 +81,9 @@ canvas{display:block;width:100%;touch-action:none}
 .panel h2{font-family:var(--display);font-weight:400;margin:0 0 6px;font-size:24px;color:var(--gold)}
 .panel ul{margin:0;padding-left:20px;color:var(--muted);font-weight:700;line-height:1.5}
 .panel li b{color:var(--ink)}
-.overlay{position:fixed;inset:0;background:rgba(8,6,4,.8);display:flex;align-items:center;justify-content:center;padding:14px;z-index:50}
+.overlay{position:fixed;inset:0;background:rgba(8,6,4,.8);display:flex;align-items:flex-start;justify-content:center;padding:14px 14px 90px;z-index:50;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}
 .overlay[hidden]{display:none}
-.box{background:var(--panel);border:3px solid var(--line);border-radius:20px;padding:16px;max-width:600px;width:100%;max-height:90vh;overflow:auto}
+.box{background:var(--panel);border:3px solid var(--line);border-radius:20px;padding:16px;max-width:600px;width:100%;margin:auto 0}
 .box h2{font-family:var(--display);font-weight:400;margin:0 0 8px;color:var(--gold);font-size:30px}
 .box p{margin:0 0 10px;color:var(--muted);font-weight:700}
 .box p b{color:var(--ink)}
@@ -295,13 +295,13 @@ body.side .bc.all small{display:none}
   <div class="box">
     <h2 id="endTitle">Victory!</h2>
     <div class="stars" id="endStars"></div>
-    <div class="stats" id="endStats"></div>
-    <div class="hist" id="endHist"></div>
     <div class="two">
       <button class="bb shop" id="endUp">Upgrades</button>
       <button class="bb again big" id="endAgain">Fight again</button>
     </div>
-    <button class="bb hist close" id="endHist">🎬 Watch the real battle<small>how it actually happened in 1759</small></button>
+    <div class="stats" id="endStats" style="margin-top:10px"></div>
+    <div class="hist" id="endHist"></div>
+    <button class="bb hist close" id="endHistBtn">🎬 Watch the real battle<small>how it actually happened in 1759</small></button>
     <button class="bb watch close" id="endReplay">Watch replay<small>see the whole battle again, up to 8x speed</small></button>
     <a class="bb big" href="seven-years-war.html" style="display:block;text-align:center;text-decoration:none;margin-top:8px;background:linear-gradient(135deg,#2d4f9e,#7a1420);box-shadow:0 4px 0 #2a0c10">Fight the whole war &rarr;<small style="font-family:var(--body)">Seven Years' War: campaign map, sieges, forest ambushes and sea battles</small></a>
   </div>
@@ -324,9 +324,9 @@ const W = 1000, H = 620, LINE_Y = 500, DT = 1 / 60;
 
 // ---------- settings ----------
 const DIFFS = {
-  recruit: { name: "Recruit",       morale: 122, speed: 8,   fire: 1.1, sk: 0.35, art: 8.5, rows: 5, drain: 1.1, mult: 1,   aim: 0.35, cav: [], cavWarn: 5, reserves: 0, fireR: [125, 165] },
-  redcoat: { name: "Redcoat",       morale: 132, speed: 9.5, fire: 1.3, sk: 0.55, art: 6.5, rows: 6, drain: 1.3,  mult: 1.5, aim: 0.65, cav: [], cavWarn: 5, reserves: 0, fireR: [112, 148] },
-  wolfe:   { name: "General Wolfe", morale: 141, speed: 11,  fire: 1.6, sk: 0.92, art: 4.35,   rows: 6, drain: 1.5, mult: 2,   aim: 1,    cav: [], cavWarn: 5, reserves: 0, fireR: [95, 128] }
+  recruit: { name: "Recruit",       morale: 104, speed: 8,   fire: 0.85, sk: 0.35, art: 8.5, rows: 5, drain: 0.97, mult: 1,   aim: 0.35, cav: [], cavWarn: 5, reserves: 0, fireR: [125, 165] },
+  redcoat: { name: "Redcoat",       morale: 115, speed: 9.5, fire: 1.05, sk: 0.55, art: 6.5, rows: 6, drain: 1.15,  mult: 1.5, aim: 0.65, cav: [], cavWarn: 5, reserves: 0, fireR: [112, 148] },
+  wolfe:   { name: "General Wolfe", morale: 128, speed: 11,  fire: 1.35, sk: 0.92, art: 4.35,   rows: 6, drain: 1.4, mult: 2,   aim: 1,    cav: [], cavWarn: 5, reserves: 0, fireR: [95, 128] }
 };
 const UPS = [
   { id: "drill",    ic: "🥁", name: "Drill Sergeants",     desc: "Faster reloading, a wider green zone and quicker formation changes", max: 5, cost: 40 },
@@ -344,11 +344,15 @@ const BATDEFS = [
   { name: "47th Foot",  short: "47th", chip: "47th", call: "Forty-seventh", kind: "red",  x: 722 },
   { name: "58th Foot",  short: "58th", chip: "58th", call: "Fifty-eighth", kind: "red",  x: 870 }
 ];
+// Montcalm's five regular regiments, with Canadian militia mixed into their ranks (about 3,500 men)
 const COLDEFS = [
-  { name: "The left column",   x: 250, delay: 0.9 },
-  { name: "The centre column", x: 500, delay: 0 },
-  { name: "The right column",  x: 750, delay: 1.7 }
+  { name: "La Sarre",         x: 170, delay: 1.2 },
+  { name: "Languedoc",        x: 335, delay: 0.5 },
+  { name: "Béarn",            x: 500, delay: 0 },
+  { name: "Guyenne",          x: 665, delay: 0.7 },
+  { name: "Royal-Roussillon", x: 830, delay: 1.5 }
 ];
+const MEN = 15; // each little soldier stands for 15 men, so both armies are their real size
 const FORMNAME = { line: "LINE", column: "COLUMN", square: "SQUARE" };
 const FORMICON = { line: "▬", column: "▮", square: "◻" };
 
@@ -771,7 +775,7 @@ function layoutBat(bat, snap) {
 }
 function makeColFigs(rows) {
   const f = [];
-  for (let r = 0; r < rows; r++) for (let c = 0; c < 10; c++) f.push({ c: c - 4.5, r, alive: true, mil: r > 0 && RNG() < 0.3, jx: rnd(-1, 1), jy: rnd(-0.3, 1), ph: RNG() * 6 });
+  for (let r = 0; r < rows; r++) for (let c = 0; c < 8; c++) f.push({ c: c - 3.5, r, alive: true, mil: r > 0 && RNG() < 0.3, jx: rnd(-1, 1), jy: rnd(-0.3, 1), ph: RNG() * 6 });
   return f;
 }
 function makeCol(def, D, opts) {
@@ -782,7 +786,9 @@ function newBattle(o) {
   o = o || {};
   const seed = o.seed != null ? o.seed : (Math.random() * 4294967295) >>> 0;
   RNG = mulberry(seed);
-  const diff = o.diff || S.diff, D = DIFFS[diff];
+  const diff = o.diff || S.diff, D0 = DIFFS[diff];
+  // the real battle: French fire tuned so the losses come out near the real ones (British 658 killed and wounded)
+  const D = o.hist ? Object.assign({}, D0, { fire: D0.fire * 0.5, sk: D0.sk * 0.45, art: D0.art * 1.7 }) : D0;
   UP = Object.assign(defaults().up, o.up || S.up);
   const dbl = o.dbl != null ? o.dbl : S.dbl;
   const perRank = 18 + 2 * UP.reinf;
@@ -889,6 +895,7 @@ function fireBat(bat, ordered) {
     let p = 0.5 * Math.exp(-range / 45) * (1 + 0.1 * UP.musket);
     if (bat.dbl) p *= range <= 60 ? 1.6 : 0.8;
     if (bat.smokeT > 0) p *= 0.55;
+    if (G.hist) p *= 0.62; // real-battle mode: keeps French losses near the real figure
     p = Math.min(p, 0.62);
     const n = Math.round(aliveB(bat) * fireFrac(bat, !!tg.cav));
     for (let i = 0; i < n; i++) if (RNG() < p) kills++;
@@ -1058,7 +1065,7 @@ function resolveBatCharge(bat) {
     G.heldT = G.t;
     banner("THEY HELD!", "#ff7b7b", 54);
     say("Fall back! Re-form!", { cut: false });
-    msg(col.name + " was too steady and threw back the " + bat.def.short + ". Reload and volley again, or charge with two battalions at once!", "bad");
+    msg("The " + col.name + " regiment was too steady and threw back the " + bat.def.short + ". Reload and volley again, or charge with two battalions at once!", "bad");
   }
 }
 function orderForm(sel, form) {
@@ -1087,7 +1094,7 @@ function routCol(col, charged) {
   if (col.state === "rout" || col.state === "gone") return;
   col.state = "rout"; col.routT = 0;
   banner(charged ? "THEY RUN!" : "THEY BREAK!", "#ffd166", 58);
-  msg(col.name + " breaks and runs back towards Quebec!", "good");
+  msg("The " + col.name + " regiment breaks and runs back towards Quebec!", "good");
   activeCols().forEach(c => { c.morale -= 12; });
   liveBats().forEach(b => b.disc = Math.min(100, b.disc + 10));
   if (G.reservesLeft > 0) { G.reservesLeft--; G.reserveQ.push({ at: G.t + 4.5, x: col.home }); }
@@ -1136,7 +1143,7 @@ function cannonStrike(ball) {
   if (RNG() < 0.35) { const extra = bat.figs.filter(f => f.alive && near.indexOf(f) < 0 && Math.abs(f.tx - lx) < 13); if (extra.length) near.push(pick(extra)); }
   if (isLying(bat)) near = RNG() < 0.35 ? near.slice(0, 1) : [];
   near.forEach(f => hitFig(bat, f, 5));
-  if (near.length) { float(ball.tx, bat.d, "-" + near.length * 10 + " men"); scream(0.22, panX(ball.tx), 0.05); }
+  if (near.length) { float(ball.tx, bat.d, "-" + near.length * MEN + " men"); scream(0.22, panX(ball.tx), 0.05); }
   else float(ball.tx, bat.d, isLying(bat) ? "skipped over!" : "missed!", "#cfe8ff");
 }
 // two British 6-pounders on the flanks fire roundshot into the French columns
@@ -1155,7 +1162,7 @@ function stepGuns(dt) {
       lane.forEach(f => { f.alive = false; G.bodies.push({ x: col.x + f.c * 9 * spread + f.jx * col.disorder * 6, d: col.d + f.r * 1.6, py: 0, kind: f.mil ? "mil" : "fr", rot: rnd(-0.6, 0.6) }); });
       G.killed += lane.length; col.morale -= 3 + lane.length * 1.5;
       for (let i = 0; i < lane.length; i++) scream(vrnd(0.07, 0.12), panX(col.x), vrnd(0, 0.3));
-      float(col.x + file * 9 * spread, col.d, "-" + lane.length * 10, "#ffd166");
+      float(col.x + file * 9 * spread, col.d, "-" + lane.length * MEN, "#ffd166");
       for (let i = 0; i < 5; i++) G.smoke.push({ x: col.x + file * 9 * spread + rnd(-8, 8), d: col.d + rnd(0, 6), r: rnd(5, 10), a: 0.5, life: 1.4, age: 0, vx: rnd(-6, 6), dust: true });
     }
   }
@@ -1237,7 +1244,7 @@ function cavContact(cav) {
     t.disc -= (t.form === "square" ? 15 : 45) * vetMul();
     liveBats().forEach(b => { if (b !== t && Math.abs(b.x - t.x) < 200) b.disc -= 12 * vetMul(); });
     cav.n = Math.max(0, cav.n - 1); cav.lost++;
-    float(t.x, t.d, "-" + k * 10 + " men");
+    float(t.x, t.d, "-" + k * MEN + " men");
     banner(t.form === "square" ? "SQUARE NOT READY!" : "RIDDEN DOWN!", "#ff7b7b", 54);
     msg("The horsemen crash into the " + t.def.short + "! " + (t.form === "square" ? "The square was still forming." : "Next time pick them and FORM SQUARE before they arrive."), "bad");
   }
@@ -1287,7 +1294,7 @@ function stepHistory() {
   const r = minRange();
   if (h.s === 1 && G.phase === "wait") { h.s = 2; h.t = G.t; orderLie(all); caption("About 3,300 redcoats stand only two ranks deep. Canadian militia and First Nations warriors fire from the bushes and cornfields, so Wolfe orders his men to lie down."); }
   else if (h.s === 2 && G.t - h.t > 8) { h.s = 3; caption("Every British musket is loaded with two balls, for a deadlier first shot at close range."); }
-  else if (h.s === 3 && G.phase === "battle") { h.s = 4; caption("About 10 am. Montcalm, on his dark horse, sends about 3,500 men forward in columns."); }
+  else if (h.s === 3 && G.phase === "battle") { h.s = 4; caption("About 10 am. Montcalm, on his dark horse, sends his five regiments forward in columns, with Canadian militia in their ranks: about 3,500 men, a few more than the British."); }
   else if (h.s === 4 && r < 330) { h.s = 5; orderLie(all); caption("The redcoats stand up. The order is: hold your fire."); }
   else if (h.s === 5 && G.firstFrench) { h.s = 6; caption("The French fire first, raggedly and from too far away. Militia drop down to reload and the columns lose their order."); }
   else if (h.s === 6 && r <= 56) { h.s = 7; orderReady(all); caption("Make ready! Present!"); }
@@ -1456,7 +1463,7 @@ function stepCols(dt) {
           const sc = b.disc + aliveB(b) / b.n0 * 60 - (b.form !== "line" ? 25 : 0) + Math.abs(b.x - col.x) * 0.05;
           if (sc < bs) { bs = sc; best = b; }
         }
-        if (best) col.x = clamp(col.x + clamp(best.x - col.x, -1, 1) * 9 * G.D.aim * dt, col.home - 130, col.home + 130);
+        if (best) col.x = clamp(col.x + clamp(best.x - col.x, -1, 1) * 9 * G.D.aim * dt, col.home - 60, col.home + 60);
       }
       if (r > 7.5) { col.d -= G.D.speed * (1 - 0.35 * col.disorder) * (r > 220 ? 2 : 1) * dt; col.contact = 0; }
       else {
@@ -1468,20 +1475,20 @@ function stepCols(dt) {
         lane.forEach(b => b.disc -= 7 * dt * vetMul() * G.D.drain);
         if (RNG() < 0.6 * dt) killCol(col, 1);
         col.morale -= 2 * dt;
-        if (col.contact > 0 && col.contact - dt <= 0) msg(col.name + " has reached your line! Fire point-blank or charge!", "bad");
+        if (col.contact > 0 && col.contact - dt <= 0) msg("The " + col.name + " regiment has reached your line! Fire point-blank or charge!", "bad");
       }
       if (!col.fired && r < col.fireR) {
         col.state = "halt"; col.halt = 1.6; col.fired = true; col.disorder = 0.6;
         frenchVolley(col, 1);
         if (!G.firstFrench) { G.firstFrench = true; msg("The French fire first, from far away! Their ranks get jumbled as the militia drop down to reload. HOLD YOUR FIRE...", "bad"); }
       } else if (col.fired && r < 140 && RNG() < 1.2 * dt) frenchVolley(col, 0.12);
-      if (col.morale < 30) { col.state = "waver"; col.wavered = true; msg(col.name + " is wavering! Volley again or CHARGE!", "good"); }
+      if (col.morale < 30) { col.state = "waver"; col.wavered = true; msg("The " + col.name + " regiment is wavering! Volley again or CHARGE!", "good"); }
     } else if (col.state === "halt") {
       col.halt -= dt; if (col.halt <= 0) col.state = "advance";
     } else if (col.state === "waver") {
       if (RNG() < 0.8 * dt) frenchVolley(col, 0.1);
       col.morale += 2.2 * dt;
-      if (col.morale >= 42) { col.state = "advance"; msg(col.name + " has rallied and comes on again!", "bad"); }
+      if (col.morale >= 42) { col.state = "advance"; msg("The " + col.name + " regiment has rallied and comes on again!", "bad"); }
     } else if (col.state === "rout") {
       col.routT += dt; col.d += 26 * dt;
       if (col.d - lineD() > 420) col.state = "gone";
@@ -1538,16 +1545,16 @@ function evaluateVolley() {
   if (range <= 75 && sync >= 2) shock = sync * 3.5 * (range <= 50 ? 1.5 : 1) + (perfect ? 15 : 0);
   if (perfect) {
     G.perfects++; text = "PERFECT VOLLEY!"; color = "#ffd166"; good = true;
-    note = "\"The most perfect volley ever fired on battlefield!\" " + kills * 10 + " French soldiers fall at " + Math.round(range) + " yards.";
+    note = "\"The most perfect volley ever fired on battlefield!\" " + kills * MEN + " French soldiers fall at " + Math.round(range) + " yards.";
     liveBats().forEach(b => b.disc = Math.min(100, b.disc + 15));
     SLOWT = 1.5; dramaAt(500, lineD() + 30, 1.9, 1.3);
     huzzah(0.55, 0.9);
   } else if (range > 110) {
     text = "WASTED!"; color = "#ff9b9b"; note = "Fired at " + Math.round(range) + " yards: far too far. Almost every ball missed and the French cheer! Wait until they are close.";
   } else if (sync >= 4 && range <= 75) {
-    G.crashing++; text = "CRASHING VOLLEY!"; color = "#fff"; good = true; note = sync + " battalions fired together at " + Math.round(range) + " yards. " + kills * 10 + " French soldiers hit.";
+    G.crashing++; text = "CRASHING VOLLEY!"; color = "#fff"; good = true; note = sync + " battalions fired together at " + Math.round(range) + " yards. " + kills * MEN + " French soldiers hit.";
   } else if (v.subset && sync >= v.n && range <= 75) {
-    text = "STEADY VOLLEY"; color = "#fff"; good = true; note = v.names.join(" and ") + " fired together at " + Math.round(range) + " yards. " + kills * 10 + " French soldiers hit.";
+    text = "STEADY VOLLEY"; color = "#fff"; good = true; note = v.names.join(" and ") + " fired together at " + Math.round(range) + " yards. " + kills * MEN + " French soldiers hit.";
   } else if (range <= 75) {
     text = "RAGGED VOLLEY"; color = "#ffcf9b"; note = "Only " + sync + " battalion" + (sync > 1 ? "s" : "") + " fired together. MAKE READY first and keep discipline high for a crashing volley.";
   } else {
@@ -1815,7 +1822,7 @@ function drawBat(bat) {
   ctx.fillStyle = sel ? "rgba(70,48,16,.88)" : "rgba(10,8,6,.72)"; roundRect(lx - 62, ly, 124, 38, 7); ctx.fill();
   if (sel) { ctx.strokeStyle = "#f2c14e"; ctx.lineWidth = 2; ctx.stroke(); }
   ctx.fillStyle = "#fff"; ctx.font = "900 11px Nunito, sans-serif"; ctx.textAlign = "center";
-  ctx.fillText(FORMICON[bat.form] + " " + bat.def.short + "  ·  " + aliveB(bat) * 10, lx, ly + 12);
+  ctx.fillText(FORMICON[bat.form] + " " + bat.def.short + "  ·  " + aliveB(bat) * MEN, lx, ly + 12);
   const dc = bat.disc / 100;
   ctx.fillStyle = "#2b2b2b"; ctx.fillRect(lx - 56, ly + 16, 112, 7);
   ctx.fillStyle = dc > 0.6 ? "#4fcf6a" : dc > 0.35 ? "#f2c14e" : "#e0383f"; ctx.fillRect(lx - 56, ly + 16, 112 * dc, 7);
@@ -2053,8 +2060,8 @@ function showEnd() {
     '<div>Fired without orders<b>' + G.noOrders + '</b></div>' +
     '<div>Battalions that ran<b>' + broke + '</b></div>' +
     '<div>Battle time<b>' + fmtTime(G.t) + '</b></div>' +
-    '<div>Your men lost<b>' + fmt(G.lost * 10) + '</b></div>' +
-    '<div>French soldiers hit<b>' + fmt(G.killed * 10) + '</b></div>';
+    '<div>Your men lost<b>' + fmt(G.lost * MEN) + '</b></div>' +
+    '<div>French soldiers hit<b>' + fmt(G.killed * MEN) + '</b></div>';
   let tip = "";
   if (win && stars < 3) tip = stars === 1 ? " For more stars: get a PERFECT VOLLEY by pressing MAKE READY at about 50 yards and FIRE at 40." : " For the third star: no battalion may run and nobody may fire without orders. Use STEADY, LADS!";
   $("endHist").textContent = win
@@ -2118,7 +2125,7 @@ tap("endAgain", startBattle);
 tap("goBtn", startBattle);
 tap("endReplay", () => startReplay(S.replay));
 tap("startReplay", () => startReplay(S.replay));
-tap("startHist", startHistory); tap("endHist", startHistory); tap("panelHist", startHistory);
+tap("startHist", startHistory); tap("endHistBtn", startHistory); tap("panelHist", startHistory);
 tap("rPlay", () => { if (!REPLAY) return; if (G.ended) { replaySeek(0); REPLAY.paused = false; } else REPLAY.paused = !REPLAY.paused; });
 tap("rExit", () => stopReplay(false));
 document.querySelectorAll("[data-sp]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); if (REPLAY) REPLAY.speed = +b.dataset.sp; }));

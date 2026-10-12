@@ -49,10 +49,12 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
 .mute{font-size:20px;background:var(--panel);border:2px solid var(--line);border-radius:14px;color:var(--ink);padding:0 12px;cursor:pointer}
 .stage{position:relative;border-radius:18px;overflow:hidden;border:3px solid var(--line);background:#000}
 canvas{display:block;width:100%;touch-action:none}
-.orders{display:grid;grid-template-columns:1fr 1fr 1.3fr 1fr;gap:8px}
+.orders{display:grid;grid-template-columns:1fr 1fr 1fr 1.3fr 1fr;gap:8px;grid-auto-flow:dense}
+.bb.present{background:#c2561c;box-shadow:0 4px 0 #6e2a08}
+.bb.present.now{animation:pulse .5s infinite alternate}
 .orders2{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
 .btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-@media (max-width:640px){.orders{grid-template-columns:1fr 1fr}.orders2{grid-template-columns:1fr 1fr}.orders2 .drill{grid-column:1/3}}
+@media (max-width:640px){.orders{grid-template-columns:1fr 1fr 1fr}.orders .fire{grid-column:span 2}.orders2{grid-template-columns:1fr 1fr}.orders2 .drill{grid-column:1/3}}
 .bb{font-family:var(--body);font-weight:900;font-size:16px;border:none;border-radius:14px;padding:12px 8px;color:#fff;cursor:pointer;background:#4a5a7a;box-shadow:0 4px 0 #262f44;line-height:1.1}
 .bb small{display:block;font-size:11px;font-weight:800;opacity:.88;margin-top:3px}
 .bb:active{transform:translateY(3px);box-shadow:0 1px 0 #262f44}
@@ -159,6 +161,7 @@ body.side .arena{flex-direction:row;align-items:flex-start}
 body.side .stagebox{flex:1}
 body.side .controls{width:340px;flex:none;max-height:calc(100vh - 16px);overflow-y:auto}
 body.side .orders{grid-template-columns:1fr 1fr}
+body.side .orders .fire{grid-column:span 2}
 body.side .orders2{grid-template-columns:1fr 1fr}
 body.side .orders2 .drill{grid-column:1/3}
 body.side .batbar{grid-template-columns:repeat(4,1fr)}
@@ -203,7 +206,8 @@ body.side .bc.all small{display:none}
 
   <div class="orders">
     <button class="bb lie" id="lieBtn">LIE DOWN<small>hide from snipers · L</small></button>
-    <button class="bb ready" id="readyBtn">MAKE READY<small>raise muskets · R</small></button>
+    <button class="bb ready" id="readyBtn">MAKE READY<small>raise and cock · R</small></button>
+    <button class="bb present" id="presentBtn">PRESENT<small>level at the French · P</small></button>
     <button class="bb fire big" id="fireBtn">FIRE!<small style="font-family:var(--body)" id="fireHint">all together · space</small></button>
     <button class="bb steady" id="steadyBtn">STEADY, LADS!<small id="steadyHint">calm the men · S</small></button>
   </div>
@@ -232,7 +236,7 @@ body.side .bc.all small{display:none}
       <li><b>Pick your battalions.</b> Tap a battalion on the battlefield or its button under the picture. Orders then go to just those men. Tap <b>ALL</b> to command the whole line again. Keys 1 to 6 pick battalions, 0 picks all.</li>
       <li>French sharpshooters hide in the bushes and their cannon fire from far away. <b>Lie down</b> while you wait so fewer men get hit.</li>
       <li>When the drums beat, the French columns attack. <b>Stand up</b>, then <b>hold your fire</b>. Shooting too far away hardly hits anyone. A clever enemy heads for your weakest battalion.</li>
-      <li>At about <b>40 yards</b> press <b>MAKE READY</b>, then <b>FIRE!</b> If every battalion fires at the same moment you get a <b>PERFECT VOLLEY</b>, which smashes the French courage and slows time.</li>
+      <li>At about <b>40 yards</b> press <b>MAKE READY</b>, then <b>PRESENT</b> to level the muskets, then <b>FIRE!</b> If every battalion fires at the same moment you get a <b>PERFECT VOLLEY</b>, which smashes the French courage and slows time.</li>
       <li><b>Formations.</b> <b>LINE</b> fires with every musket. <b>COLUMN</b> marches further when you advance and hits harder in a charge, but only the front men can shoot and cannonballs plough through it. Changing formation takes a few seconds.</li>
       <li>Each battalion has a <b>discipline</b> bar. Low discipline means ragged volleys, men who <b>fire without orders</b>, or a battalion that runs away. Shout <b>STEADY, LADS!</b> to calm them.</li>
       <li>After a volley, tap <b>RELOAD DRILL</b> when the white marker is in the green to reload faster. Your smoke spoils the next shot, so <b>ADVANCE</b> through it.</li>
@@ -545,6 +549,20 @@ const sfx = {
   thud(pan) { tone(90, 0.4, "sine", 0.6, 0, 35, pan); noise(0.45, 220, "lowpass", 0.5, 1, 0, pan); noise(0.3, 1200, "bandpass", 0.18, 0.7, 0.02, pan); },
   drum(acc, v, when) { noise(acc ? 0.16 : 0.1, acc ? 260 : 420, "lowpass", (acc ? 0.32 : 0.16) * v, 1, when); tone(acc ? 110 : 150, 0.12, "sine", 0.12 * v, when, 70); },
   cheer() { huzzah(0.7); },
+  cock() { for (let i = 0; i < 18; i++) { const w = vrnd(0, 0.45), p = vrnd(-0.9, 0.9); noise(0.03, 3200, "highpass", 0.12, 0.8, w, p); tone(vrnd(1500, 2200), 0.04, "square", 0.02, w, 0, p); } },
+  roar(n, x) { // the men yell as they bring their muskets down, with the clatter of wood and steel
+    const a = audio(); if (!a) return;
+    const t0 = a.currentTime, voices = 8 + Math.min(16, n * 3);
+    for (let i = 0; i < voices; i++) {
+      const t = t0 + vrnd(0.05, 0.22), f = vrnd(110, 210), o = a.createOscillator(), g = a.createGain(), bp = a.createBiquadFilter();
+      o.type = "sawtooth"; bp.type = "bandpass"; bp.Q.value = 2.5; bp.frequency.value = vrnd(650, 950);
+      o.frequency.setValueAtTime(f * 0.9, t); o.frequency.linearRampToValueAtTime(f * 1.35, t + 0.12); o.frequency.exponentialRampToValueAtTime(f * 0.8, t + 0.7);
+      const v = 0.07; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.04); g.gain.setValueAtTime(v, t + 0.4); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.75);
+      o.connect(bp); bp.connect(g); g.connect(out(a, clamp(panX(x) + vrnd(-0.5, 0.5), -1, 1))); o.start(t); o.stop(t + 0.8);
+    }
+    noise(0.6, 900, "bandpass", 0.25, 0.6, 0.06, panX(x));
+    for (let i = 0; i < 14; i++) noise(0.05, vrnd(1800, 3000), "bandpass", 0.12, 1.5, vrnd(0, 0.3), vrnd(-0.9, 0.9)); // musket clatter
+  },
   clicks() { // bayonets snapping onto muzzles all down the line
     for (let i = 0; i < 26; i++) { const w = vrnd(0, 0.7), p = vrnd(-0.9, 0.9); noise(0.035, 4200, "highpass", 0.16, 0.8, w, p); tone(vrnd(2300, 3400), 0.07, "triangle", 0.035, w + 0.01, 0, p); }
   },
@@ -674,12 +692,14 @@ function drawSoldier(x, y, s, kind, pose, flash, bayo) {
   c.beginPath();
   if (pose === "present" || pose === "fire") { c.moveTo(x + 2.5 * s, y - 15 * s); c.lineTo(x + 0.8 * s, y - 27 * s); }
   else if (pose === "charge") { c.moveTo(x + 3 * s, y - 11 * s); c.lineTo(x - 2 * s, y - 25 * s); }
+  else if (pose === "ready") { c.moveTo(x + 1.6 * s, y - 9 * s); c.lineTo(x + 1.2 * s, y - 28 * s); }
   else if (french) { c.moveTo(x - 3.6 * s, y - 9 * s); c.lineTo(x - 4.6 * s, y - 27 * s); }
   else { c.moveTo(x + 3.6 * s, y - 9 * s); c.lineTo(x + 4.6 * s, y - 27 * s); }
   c.stroke();
   if (bayo && pose !== "charge") { // fixed bayonet glinting on the muzzle
     c.strokeStyle = "#e4e9ef"; c.lineWidth = 0.75 * s; c.beginPath();
     if (pose === "present" || pose === "fire") { c.moveTo(x + 0.8 * s, y - 27 * s); c.lineTo(x + 0.55 * s, y - 31.5 * s); }
+    else if (pose === "ready") { c.moveTo(x + 1.2 * s, y - 28 * s); c.lineTo(x + 1.1 * s, y - 32.5 * s); }
     else { c.moveTo(x + 4.6 * s, y - 27 * s); c.lineTo(x + 4.9 * s, y - 31.5 * s); }
     c.stroke();
   }
@@ -814,7 +834,7 @@ const activeCols = () => G.cols.filter(c => c.state !== "rout" && c.state !== "g
 const liveBats = () => G.bats.filter(b => b.state !== "broken");
 const brokenCount = () => G.bats.filter(b => b.state === "broken").length;
 const isLying = b => b.state === "lie" || b.state === "lying";
-const isUp = b => b.state === "stand" || b.state === "present" || b.state === "presenting" || b.state === "firing";
+const isUp = b => b.state === "stand" || b.state === "readying" || b.state === "ready" || b.state === "present" || b.state === "presenting" || b.state === "firing";
 const busy = b => b.formT > 0 || b.advT > 0 || b.state === "fixing" || b.state === "charge" || b.state === "broken";
 function lineD() { const l = liveBats(); return l.length ? l.reduce((a, b) => a + b.d, 0) / l.length : 0; }
 // the British battalions a French column is walking into
@@ -937,17 +957,38 @@ function orderReady(sel) {
     if (isLying(b) || b.state === "rising") { lying++; return; }
     if (b.formT > 0 || b.advT > 0 || b.state === "fixing" || b.state === "charge") { moving++; return; }
     if (!b.loaded) { empty++; return; }
-    if (b.state === "stand") { b.state = "presenting"; b.st = 0.5; n++; ok.push(b); }
+    if (b.state === "stand") { b.state = "readying"; b.st = 0.4; n++; ok.push(b); }
   });
   if (n) {
     say(callFor(ok) + "Make ready!", { pitch: 0.7 });
     clearTimeout(G.presentTimer);
-    G.presentTimer = setTimeout(() => { if (G && !G.result && !SILENT && liveBats().some(b => b.state === "present" || b.state === "presenting")) say("Present!", { cut: false, pitch: 0.7 }); }, 900);
-    msg("Make ready! " + (ok.length >= liveBats().length ? "The whole line raises" : namesOf(ok) + " raise") + " their muskets. Arms get heavy, so don't wait too long!", "");
+    sfx.cock();
+    msg("Make ready! " + (ok.length >= liveBats().length ? "The whole line raises" : namesOf(ok) + " raise") + " their muskets and cock them. Now PRESENT, then FIRE.", "");
   }
   else if (lying) msg("Your men are lying down. Stand them up first!", "bad");
   else if (moving) msg("Wait until they have finished moving or changing formation.", "bad");
   else if (empty) msg("Still reloading! Use the RELOAD DRILL.", "bad");
+}
+// PRESENT: the front rank levels its muskets at the French with a roar
+function orderPresent(sel) {
+  let lying = 0, empty = 0, moving = 0;
+  const ok = [];
+  batsOf(sel).forEach(b => {
+    if (isLying(b) || b.state === "rising") { lying++; return; }
+    if (b.formT > 0 || b.advT > 0 || b.state === "fixing" || b.state === "charge") { moving++; return; }
+    if (!b.loaded) { empty++; return; }
+    if (b.state === "ready" || b.state === "readying") { b.state = "presenting"; b.st = 0.45; ok.push(b); }
+    else if (b.state === "stand") { b.state = "presenting"; b.st = 0.9; ok.push(b); } // ready and present in one go: slower
+  });
+  if (ok.length) {
+    say(callFor(ok) + "Present!", { pitch: 0.65, rate: 1.1 });
+    sfx.roar(ok.length, ok.reduce((a, b) => a + b.x, 0) / ok.length);
+    msg("Present! " + (ok.length >= liveBats().length ? "The whole line levels" : namesOf(ok) + " level") + " their muskets at the French. Arms get heavy, so FIRE soon!", "");
+  }
+  else if (lying) msg("Your men are lying down. Stand them up first!", "bad");
+  else if (moving) msg("Wait until they have finished moving or changing formation.", "bad");
+  else if (empty) msg("Still reloading! Use the RELOAD DRILL.", "bad");
+  else msg("They are already presenting. FIRE!", "");
 }
 function orderFire(sel) {
   let n = 0, lying = 0;
@@ -959,6 +1000,9 @@ function orderFire(sel) {
     if (isLying(b) || b.state === "rising") { lying++; return; }
     if (!b.loaded || b.formT > 0 || b.advT > 0 || b.state === "fixing" || b.state === "charge") return;
     if (b.state === "present") b.fireAt = G.t + 0.02 + RNG() * (1 - b.disc / 100) * 0.55;
+    else if (b.state === "ready" || b.state === "readying" || b.state === "presenting") { // never presented: a little ragged
+      b.state = "presenting"; b.st = 0.4; b.fireAt = G.t + 0.45 + RNG() * 0.45;
+    }
     else { // had to raise muskets first, so the volley comes out ragged
       if (b.state === "stand") { b.state = "presenting"; b.st = 0.5; }
       b.fireAt = G.t + 0.55 + RNG() * 0.9;
@@ -1263,6 +1307,7 @@ function exec(o) {
     case "skip": G.introT = 0; break;
     case "lie": orderLie(o.s); break;
     case "ready": orderReady(o.s); break;
+    case "present": orderPresent(o.s); break;
     case "fire": orderFire(o.s); break;
     case "steady": orderSteady(); break;
     case "drill": orderDrill(); break;
@@ -1297,8 +1342,9 @@ function stepHistory() {
   else if (h.s === 3 && G.phase === "battle") { h.s = 4; caption("About 10 am. Montcalm, on his dark horse, sends his five regiments forward in columns, with Canadian militia in their ranks: about 3,500 men, a few more than the British."); }
   else if (h.s === 4 && r < 330) { h.s = 5; orderLie(all); caption("The redcoats stand up. The order is: hold your fire."); }
   else if (h.s === 5 && G.firstFrench) { h.s = 6; caption("The French fire first, raggedly and from too far away. Militia drop down to reload and the columns lose their order."); }
-  else if (h.s === 6 && r <= 56) { h.s = 7; orderReady(all); caption("Make ready! Present!"); }
-  else if (h.s === 7 && r <= 42) { h.s = 8; h.t = G.t; orderFire(all); caption("About 40 yards. FIRE! The volley goes off almost as one great crash. An officer, John Knox, called it 'as remarkable a close and heavy discharge as I ever saw'."); }
+  else if (h.s === 6 && r <= 62) { h.s = 7; h.t = G.t; orderReady(all); caption("Make ready! The muskets come up and are cocked."); }
+  else if (h.s === 7 && !h.p && r <= 50) { h.p = 1; orderPresent(all); caption("Present! The whole line levels its muskets at the French, and still holds its fire."); }
+  else if (h.s === 7 && h.p && r <= 42) { h.s = 8; h.t = G.t; orderFire(all); caption("About 40 yards. FIRE! The volley goes off almost as one great crash. An officer, John Knox, called it 'as remarkable a close and heavy discharge as I ever saw'."); }
   else if (h.s === 8 && G.t - h.t > 2.6) {
     h.s = 9; h.t = G.t;
     const ok = liveBats().filter(canAdvBat);
@@ -1307,8 +1353,9 @@ function stepHistory() {
     caption("The French are stunned. The British step forward a few paces, out of their own smoke, and reload.");
   }
   if (h.s >= 8 && h.s <= 10) activeCols().forEach(c => { if (c.state === "advance" || c.state === "halt") { c.state = "halt"; c.halt = 1; } }); // dazed, they stand and take it
-  if (h.s === 9 && G.t - h.t > 3.2) { h.s = 10; h.t = G.t; liveBats().forEach(b => { b.reloading = false; b.loaded = true; b.reload = 0; }); orderReady(all); caption("Reloaded. Make ready..."); }
-  else if (h.s === 10 && G.t - h.t > 1.1) { h.s = 11; h.t = G.t; orderFire(all); caption("A second general volley. It shatters the French columns."); }
+  if (h.s === 9 && G.t - h.t > 3.2) { h.s = 10; h.t = G.t; liveBats().forEach(b => { b.reloading = false; b.loaded = true; b.reload = 0; }); orderReady(all); caption("Reloaded. Make ready... Present!"); }
+  else if (h.s === 10 && !h.p2 && G.t - h.t > 0.5) { h.p2 = 1; orderPresent(all); }
+  else if (h.s === 10 && h.p2 && G.t - h.t > 1.4) { h.s = 11; h.t = G.t; orderFire(all); caption("A second general volley. It shatters the French columns."); }
   else if (h.s === 11 && G.t - h.t > 1.8) {
     h.s = 12;
     activeCols().forEach(c => routCol(c, false));
@@ -1406,6 +1453,7 @@ function stepBats(dt) {
     if (bat.formT > 0) bat.formT -= dt;
     if (bat.state === "lying" && bat.st <= 0) bat.state = "lie";
     if (bat.state === "rising" && bat.st <= 0) bat.state = "stand";
+    if (bat.state === "readying" && bat.st <= 0) bat.state = "ready";
     if (bat.state === "presenting" && bat.st <= 0) bat.state = "present";
     if (bat.state === "firing" && bat.st <= 0) bat.state = "stand";
     if (bat.state === "fixing" && bat.st <= 0) startRun(bat);
@@ -1436,11 +1484,12 @@ function stepBats(dt) {
     let dd = 0;
     if (G.phase === "battle" && r < 130 && bat.loaded && isUp(bat) && bat.state !== "firing") dd -= (130 - r) / 130 * 3.2 * G.D.drain * vetMul();
     if (bat.state === "present") dd -= 1.2 * G.D.drain * vetMul();
+    if (bat.state === "ready") dd -= 0.4 * G.D.drain * vetMul();
     if (G.phase === "battle" && r > 250) dd += 1.5;
     if (G.phase === "wait" && isLying(bat)) dd += 0.6;
     bat.disc = clamp(bat.disc + dd * dt, 0, 100);
     // nervous men fire without orders
-    if (G.phase === "battle" && bat.disc < 35 && r < 170 && bat.loaded && bat.fireAt < 0 && bat.formT <= 0 && bat.advT <= 0 && (bat.state === "stand" || bat.state === "present")) {
+    if (G.phase === "battle" && bat.disc < 35 && r < 170 && bat.loaded && bat.fireAt < 0 && bat.formT <= 0 && bat.advT <= 0 && (bat.state === "stand" || bat.state === "ready" || bat.state === "present")) {
       if (RNG() < (35 - bat.disc) / 35 * 0.5 * dt) fireBat(bat, false);
     }
     if (bat.disc <= 0 || aliveB(bat) < bat.n0 * 0.25) breakBat(bat);
@@ -1790,6 +1839,7 @@ function drawWolfe() {
 function batPose(bat) {
   if (isLying(bat)) return "lie";
   if (bat.state === "present" || bat.state === "presenting") return "present";
+  if (bat.state === "ready" || bat.state === "readying") return "ready";
   if (bat.state === "firing") return "fire";
   if (bat.state === "charge") return "charge";
   return "stand";
@@ -1835,7 +1885,7 @@ function drawBat(bat) {
     ctx.fillStyle = "#e0873a"; ctx.fillRect(lx - 56, ly + 27, 112 * clamp(bat.reload, 0, 1), 6);
   } else {
     ctx.fillStyle = bat.loaded ? "#b8ffc4" : "#ffb0b0";
-    ctx.fillText((bat.loaded ? "LOADED" + (bat.dbl ? " ×2 BALLS" : "") : "EMPTY") + (bat.state === "present" ? " · READY" : "") + (isLying(bat) ? " · DOWN" : ""), lx, ly + 34);
+    ctx.fillText((bat.loaded ? "LOADED" + (bat.dbl ? " ×2 BALLS" : "") : "EMPTY") + (bat.state === "present" ? " · PRESENT" : bat.state === "ready" ? " · READY" : "") + (isLying(bat) ? " · DOWN" : ""), lx, ly + 34);
   }
 }
 function selBats() { if (!G) return []; return SEL ? G.bats.filter(b => SEL.has(b.idx) && b.state !== "broken") : liveBats(); }
@@ -1881,8 +1931,9 @@ function drawHUD() {
     else {
       big = Math.round(r) + " yds";
       if (r > 110) { adv = "HOLD YOUR FIRE"; col = "#fff"; }
-      else if (r > 60) { adv = "Hold... hold..."; col = "#f2c14e"; }
-      else if (r > 50) { adv = "MAKE READY!"; col = "#ffb04e"; }
+      else if (r > 70) { adv = "Hold... hold..."; col = "#f2c14e"; }
+      else if (r > 55) { adv = "MAKE READY!"; col = "#ffb04e"; }
+      else if (r > 45) { adv = "PRESENT!"; col = "#ffd166"; }
       else if (r >= 25) { adv = "FIRE NOW!"; col = "#7dff95"; }
       else { adv = "Point blank! Fire or charge!"; col = "#ff7b7b"; }
     }
@@ -1950,16 +2001,18 @@ function ui() {
     const bar = $("bcb" + i), dc = broken ? 0 : b.disc / 100, w = Math.round(dc * 100) + "%", c = dc > 0.6 ? "#4fcf6a" : dc > 0.35 ? "#f2c14e" : "#e0383f";
     if (cache["bw" + i] !== w) { cache["bw" + i] = w; bar.style.width = w; }
     if (cache["bcol" + i] !== c) { cache["bcol" + i] = c; bar.style.background = c; }
-    const st = broken ? "ran" : FORMICON[b.form] + " " + (b.formT > 0 ? "…" : b.state === "charge" || b.state === "fixing" ? "⚔" : isLying(b) ? "↓" : b.reloading ? Math.round(b.reload * 100) + "%" : b.loaded ? (b.state === "present" ? "◎" : "✓") : "✗");
+    const st = broken ? "ran" : FORMICON[b.form] + " " + (b.formT > 0 ? "…" : b.state === "charge" || b.state === "fixing" ? "⚔" : isLying(b) ? "↓" : b.reloading ? Math.round(b.reload * 100) + "%" : b.loaded ? (b.state === "present" ? "◎" : b.state === "ready" ? "⇡" : "✓") : "✗");
     setT("bcs" + i, st);
   });
   setC($("bcAll"), "on", !SEL);
-  const done = !!G.result, sb = selBats();
+  const done = !!G.result, sb = selBats(), r0 = sb.length ? Math.min(...sb.map(rangeBat)) : 9999;
   const anyUp = sb.some(isUp);
   const lieLabel = anyUp || !sb.some(isLying) ? "LIE DOWN" : "STAND UP";
   if (cache.lieL !== lieLabel) { cache.lieL = lieLabel; $("lieBtn").firstChild.nodeValue = lieLabel; }
   setD("lieBtn", done || !sb.length);
   setD("readyBtn", done || !sb.some(b => b.state === "stand" && b.loaded && !busy(b)));
+  setD("presentBtn", done || !sb.some(b => (b.state === "stand" || b.state === "ready" || b.state === "readying") && b.loaded && !busy(b)));
+  setC($("presentBtn"), "now", !done && G.phase === "battle" && sb.some(b => b.state === "ready") && r0 <= 60);
   const canFire = sb.some(b => b.loaded && !isLying(b) && b.state !== "rising" && !busy(b));
   setD("fireBtn", done || !canFire);
   setT("fireHint", SEL ? (sb.length === 1 ? sb[0].def.short + " only" : sb.length + " battalions") : "all together · space");
@@ -2111,7 +2164,7 @@ function replaySeek(n) {
 
 // ---------- input ----------
 const tap = (id, fn) => $(id).addEventListener("click", e => { e.preventDefault(); audio(); fn(); });
-tap("lieBtn", () => cmd("lie")); tap("readyBtn", () => cmd("ready")); tap("fireBtn", () => cmd("fire")); tap("steadyBtn", () => cmd("steady"));
+tap("lieBtn", () => cmd("lie")); tap("readyBtn", () => cmd("ready")); tap("presentBtn", () => cmd("present")); tap("fireBtn", () => cmd("fire")); tap("steadyBtn", () => cmd("steady"));
 tap("advBtn", () => cmd("adv")); tap("chargeBtn", () => cmd("charge"));
 tap("fLine", () => cmd("form", "line")); tap("fCol", () => cmd("form", "column"));
 tap("speedBtn", () => { SPEED = SPEED >= 3 ? 1 : SPEED + 1; });
@@ -2158,7 +2211,7 @@ document.addEventListener("keydown", e => {
   if (e.code === "Space") { e.preventDefault(); audio(); cmd("fire"); }
   else if (k >= "1" && k <= "6") toggleSel(+k - 1);
   else if (k === "0") selAll();
-  else if (k === "l") cmd("lie"); else if (k === "r") cmd("ready"); else if (k === "s") cmd("steady");
+  else if (k === "l") cmd("lie"); else if (k === "r") cmd("ready"); else if (k === "p") cmd("present"); else if (k === "s") cmd("steady");
   else if (k === "d") cmd("drill"); else if (k === "a") cmd("adv"); else if (k === "c") cmd("charge");
   else if (k === "q") cmd("form", "line"); else if (k === "w") cmd("form", "column");
   else if (k === "f") SPEED = SPEED >= 3 ? 1 : SPEED + 1;

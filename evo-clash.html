@@ -206,6 +206,13 @@ function fmtLog(lg){
   const e=Math.floor(lg),m=Math.pow(10,lg-e);return m.toFixed(1)+"e"+e;
 }
 const mult=()=>1+S.reb;
+// George (13/10/2026): the player buckasnuncle gets 1 million rebirths, once (matched on game nickname or account username)
+function buckGift(){
+  const isBuck=n=>(n||"").trim().toLowerCase()==="buckasnuncle";
+  let nick="",acct="";try{nick=localStorage.getItem("ghgames_nick")||"";acct=localStorage.getItem("ghacct_user")||"";}catch(e){}
+  if(!isBuck(nick)&&!isBuck(acct))return;
+  if(!S.bkReb){S.bkReb=1;S.reb+=1000000;S.rebReady=false;persist();setTimeout(()=>{A3.sfx("win");A3.toast("buckasnuncle: 1,000,000 rebirths! XP multi x"+A3.fmt(mult()),3500);},800);}
+}
 const startEvo=()=>1+Math.min(S.reb*2,500);
 const rebNeed=(r)=>Math.min(MAXL,20+10*(r==null?S.reb:r));
 // once a rebirth needs Evo 1000 (the cap), each further one needs Evo 1000 reached again, so the peak is cleared after it
@@ -562,6 +569,7 @@ function spawnMe(){
   hud();
 }
 function startGame(){
+  buckGift();
   DIFF=S.diff;
   if(S.mode==="public"){setupArena("public");spawnMe();for(let i=0;i<wantBots();i++)spawnBot();connect();}
   else{setupArena("solo");spawnMe();for(let i=0;i<BOTS[DIFF];i++)spawnBot();}
@@ -666,9 +674,9 @@ function animate(c,dt,t){
 const mini=$("mini"),mg=mini.getContext("2d");
 function rankList(){return chars.filter(c=>c.alive).sort((a,b)=>b.lt-a.lt);}
 function hud(){
-  $("hReb").textContent=S.reb;
+  $("hReb").textContent=A3.fmt(S.reb);
   if(me){$("hEvo").textContent=me.L;$("hXP").textContent=fmtLog(me.lt);$("hKO").textContent=round?round.ko:0;
-    $("evoName").innerHTML=formName(me.L)+"<small>Evo "+me.L+"/"+MAXL+" · "+AGES[ageOf(me.L)].n+(mult()>1?" · x"+mult()+" XP":"")+"</small>";
+    $("evoName").innerHTML=formName(me.L)+"<small>Evo "+me.L+"/"+MAXL+" · "+AGES[ageOf(me.L)].n+(mult()>1?" · x"+A3.fmt(mult())+" XP":"")+"</small>";
     $("evoFill").style.width=(me.L>=MAXL?100:Math.min(100,me.xp*100))+"%";
     let fx="";for(const T of PU){const v=me.fx[T.k]||0;if(v>0&&(T.k!=="shield"||me.shield))fx+='<span style="--c:'+T.c+'">'+T.e+" "+Math.ceil(v)+"</span>";}
     if(me.spawnT>0&&me.alive)fx+='<span style="--c:#fff">🫧 Safe '+Math.ceil(me.spawnT)+"</span>";
@@ -881,7 +889,7 @@ document.addEventListener("visibilitychange",()=>{if(GMODE!=="public")return;if(
 /* ---------- menus ---------- */
 function persist(){A3.store(SAVE,S);}
 function titleStats(){
-  $("tStats").innerHTML="<div>Best evolution <b>"+S.evoEver+" "+formName(S.evoEver)+"</b></div><div>Best KOs <b>"+S.bestKO+"</b></div><div>Rebirths <b>"+S.reb+"</b></div><div>XP multi <b>x"+mult()+"</b></div>";
+  $("tStats").innerHTML="<div>Best evolution <b>"+S.evoEver+" "+formName(S.evoEver)+"</b></div><div>Best KOs <b>"+S.bestKO+"</b></div><div>Rebirths <b>"+A3.fmt(S.reb)+"</b></div><div>XP multi <b>x"+A3.fmt(mult())+"</b></div>";
   [...$("diffs").children].forEach(b=>b.classList.toggle("on",+b.dataset.d===S.diff));
   [...$("modes").children].forEach(b=>b.classList.toggle("on",b.dataset.m===S.mode));
   $("diffs").hidden=S.mode==="public";
@@ -899,8 +907,8 @@ function drawEvos(){
   $("evogrid").innerHTML=h;
 }
 function drawReb(){
-  $("rTitle").textContent="Rebirths: "+S.reb;
-  $("rMul1").textContent="x"+mult();$("rMul2").textContent="x"+(mult()+1);
+  $("rTitle").textContent="Rebirths: "+A3.fmt(S.reb);
+  $("rMul1").textContent="x"+A3.fmt(mult());$("rMul2").textContent="x"+A3.fmt(mult()+1);
   $("rStart").textContent="Evo "+startEvo()+" → Evo "+(1+Math.min((S.reb+1)*2,500));
   $("rNeed").textContent="Evo "+rebNeed()+" in one life";
   $("rText").textContent=S.rebReady?"You're ready! Rebirth to get more XP from every orb and knockout, and start higher up. Your best evolution and knockouts are kept.":"Reach Evo "+rebNeed()+" ("+formName(rebNeed())+") in one life to unlock your next rebirth.";
@@ -913,7 +921,7 @@ function doRebirth(max){
   if(n<1)return;
   const usedTop=rebNeed(S.reb+n-1)>=MAXL;
   S.reb+=n;if(usedTop)S.rebPeak=0;syncReb();persist();
-  A3.sfx("win");A3.toast((n>1?n+" rebirths! ":"")+"Rebirth "+S.reb+"! XP multi is now x"+mult(),2600);
+  A3.sfx("win");A3.toast((n>1?n+" rebirths! ":"")+"Rebirth "+A3.fmt(S.reb)+"! XP multi is now x"+A3.fmt(mult()),2600);
   try{if(window.PhatCoin)PhatCoin.earn("rebirth",25,"rebirth "+S.reb+" in Evo Clash");}catch(e){}
   drawReb();titleStats();
 }
@@ -931,6 +939,7 @@ $("oAgain").onclick=()=>{A3.sfx("click");A3.hide("ovOver");if(GMODE==="public"){
 $("oMenu").onclick=()=>{A3.sfx("click");A3.hide("ovOver");toTitle();};
 $("bQuit").onclick=()=>{A3.sfx("click");if(me&&me.alive&&round&&round.ko>0)A3.best(round.ko);["ovOver"].forEach(A3.hide);toTitle();};
 function toTitle(){
+  buckGift();
   disconnect();mode="title";
   DIFF=S.diff;setupArena("solo");for(let i=0;i<14;i++)spawnBot();
   ["board","mini","evobar","fxrow","bSwing","bDash","onlineLbl"].forEach(id=>$(id).hidden=true);$("bQuit").hidden=true;

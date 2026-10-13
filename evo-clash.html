@@ -81,7 +81,7 @@
 
     <div class="ov" id="ovTitle">
       <h2>EVO CLASH</h2>
-      <p>Swing your weapon to bonk other fighters. One good hit knocks them out! Gobble the glowing orbs and knock out rivals to get XP. Every level you evolve into something new: 1000 evolutions, from Cave Kid to Infinity Emperor, and each one needs twice as much XP as the last. Bigger means longer reach, but slower feet.</p>
+      <p>Swing your weapon to bonk other fighters. One good hit knocks them out! Gobble the glowing orbs and knock out rivals to get XP. Every level you evolve into something new: 1000 evolutions, from Cave Kid to Infinity Emperor, and each one needs 5 times as much XP as the last. Bigger means longer reach, but slower feet.</p>
       <div class="seg" id="modes"><button data-m="solo">Solo vs computer</button><button data-m="public">🌍 Public Arena</button></div>
       <div class="seg" id="diffs"><button data-d="0">Calm</button><button data-d="1">Normal</button><button data-d="2">Wild</button></div>
       <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bEvos">Evolutions</button><button class="btn pink" id="bReb">Rebirth</button></div>
@@ -131,7 +131,7 @@
 "use strict";
 const $=id=>document.getElementById(id);
 const SAVE="evoclash-save";
-const S=A3.save(SAVE,{bestKO:0,bestEvo:1,evoEver:1,reb:0,rebReady:false,kills:0,games:0,diff:1,mode:"solo",tops:0,bestXP:0});
+const S=A3.save(SAVE,{bestKO:0,bestEvo:1,evoEver:1,reb:0,rebReady:false,kills:0,games:0,diff:1,mode:"solo",tops:0,bestXP:0,bestXPlog:0});
 const stage=$("stage");
 const V=A3.view(stage,{fov:50,far:600,sky:["#3d8be8","#c9ecff"],fog:["#bfe3ff",90,260],shadowSize:28});
 if(!V){return;}
@@ -191,10 +191,18 @@ THEMES.forEach((t,i)=>{const h=i*47+20;
 if(new Set(THEMES).size!==90||AGES.length!==100)console.error("Evo Clash: ages list is wrong");
 const ageOf=L=>Math.floor((L-1)/10), formOf=L=>(L-1)%10;
 const formName=L=>AGES[ageOf(L)].forms[formOf(L)];
-const NEED=[0],CUM=[0,0];
-// every evolution costs 1.5x the one before (George, 10/10/2026, changed from 2x); Evo 1000 needs about 1e177 XP
-for(let L=1;L<=MAXL;L++){NEED[L]=12*Math.pow(1.5,L-1);CUM[L+1]=CUM[L]+NEED[L];}
-const need=L=>NEED[Math.min(MAXL,Math.max(1,L))];
+// George (13/10/2026): every evolution needs 5x the XP of the one before.
+// Evo 1000 needs about 1e699 XP, far past JavaScript's biggest number (about 1.8e308), so XP is kept as
+// log10 (c.lt = log10 of total XP) and progress inside a level as a fraction (c.xp, 0 to 1).
+const GROW=5,LG=Math.log10(GROW),L12=Math.log10(12);
+const needLog=L=>L12+(Math.min(MAXL,Math.max(1,L))-1)*LG;          // log10 XP to go from L to L+1
+const cumLog=L=>L<=1?0:L12+Math.log10((Math.pow(GROW,Math.min(L-1,300))-1)/(GROW-1))+Math.max(0,L-1-300)*LG; // log10 XP to reach L
+function logAdd(a,b){if(a===-Infinity)return b;if(b===-Infinity)return a;const m=Math.max(a,b);return m+Math.log10(1+Math.pow(10,Math.min(a,b)-m));}
+function fmtLog(lg){
+  if(!isFinite(lg)||lg<0)return "0";
+  if(lg<300)return A3.fmt(Math.pow(10,lg));
+  const e=Math.floor(lg),m=Math.pow(10,lg-e);return m.toFixed(1)+"e"+e;
+}
 const mult=()=>1+S.reb;
 const startEvo=()=>1+Math.min(S.reb*2,500);
 const rebNeed=()=>Math.min(MAXL,20+10*S.reb);
@@ -379,7 +387,7 @@ function derive(c){
 function makeChar(o){
   const L=Math.max(1,Math.min(MAXL,o.L||1));
   const c={id:o.id,name:o.name,p:!!o.p,human:!!o.human,bot:!!o.bot,remote:!!o.remote,x:o.x||0,z:o.z||0,a:o.a||0,ta:o.a||0,go:0,
-    L,xp:0,tot:o.tot!=null?o.tot:CUM[L],alive:true,swingT:-1,cd:0,hit:new Set(),dashT:0,dashCd:0,fx:{},shield:false,spawnT:o.spawnT!=null?o.spawnT:2.5,
+    L,xp:0,lt:o.lt!=null?o.lt:cumLog(L),alive:true,swingT:-1,cd:0,hit:new Set(),dashT:0,dashCd:0,fx:{},shield:false,spawnT:o.spawnT!=null?o.spawnT:2.5,
     kills:0,skin:o.skin!=null?o.skin:(Math.random()*4)|0,skill:o.skill||0.5,aggr:Math.random(),think:Math.random(),goal:null,phase:Math.random()*6,ds:1,respawn:0,seen:performance.now(),moving:false};
   derive(c);c.ds=c.s;buildModel(c);
   chars.push(c);byId.set(c.id,c);return c;
@@ -405,10 +413,14 @@ function spawnBot(){
   return makeChar({id:"b"+Math.random().toString(36).slice(2,7),name:A3.pick(free.length?free:BOT_NAMES),bot:true,x:p.x,z:p.z,a:Math.random()*6.28,L:botLevel(),skill:A3.rand(sk[0],sk[1]),spawnT:1.5});
 }
 function addXP(c,amt){
-  if(!(amt>0))return;
-  c.tot=Math.min(1.7e308,c.tot+amt);c.xp+=amt;let up=false;
-  while(c.L<MAXL&&c.xp>=need(c.L)){c.xp-=need(c.L);c.L++;up=true;}
-  if(c.L>=MAXL)c.xp=Math.min(c.xp,need(MAXL));
+  if(!(amt>-Infinity)||isNaN(amt))return;
+  // amt is log10 of the XP gained
+  c.lt=logAdd(c.lt,amt);let up=false;
+  let d=amt-needLog(c.L);
+  while(d>12&&c.L<MAXL){d-=LG;c.L++;c.xp=0;up=true;}   // huge gains: jump levels directly
+  let u=Math.pow(10,d);                                  // gain measured in "current levels"
+  while(c.L<MAXL&&c.xp+u>=1-1e-9){u=Math.max(0,u-(1-c.xp));c.xp=0;c.L++;u/=GROW;up=true;}
+  if(c.L<MAXL)c.xp+=u;else c.xp=1;
   if(up)evolve(c);
 }
 function evolve(c){
@@ -504,19 +516,19 @@ function die(t,by){
   const near=me&&Math.hypot(t.x-me.x,t.z-me.z)<45;
   if(near||t.p){parts.burst(new THREE.Vector3(t.x,1.2*t.s,t.z),AGES[ageOf(t.L)].col,t.p?34:20,7,1);A3.sfx(t.p?"boom":"pop");}
   if(t.root)t.root.visible=false;if(t.tag)t.tag.visible=false;
-  const gift=t.tot*0.5;
+  const gift=t.lt+Math.log10(0.5);
   if(by&&!by.remote&&byId.has(by.id))reward(by,gift,t);
-  if(online&&!t.remote)bcast("ko",{i:t.id,b:by?by.id:"",x:+gift.toPrecision(6),n:t.name,bn:by?by.name:""});
+  if(online&&!t.remote)bcast("ko",{i:t.id,b:by?by.id:"",x:+gift.toFixed(4),n:t.name,bn:by?by.name:""});
   if(t.p)endGame(by);
   else if(t.bot&&!t.remote)t.respawn=A3.rand(2,4);
 }
 function reward(k,base,t){
   if(!k.alive)return;
-  const amt=(base+need(k.L)*0.6)*(k.p?mult():1)*((k.fx.dbl||0)>0?2:1);
+  const amt=logAdd(base,needLog(k.L)+Math.log10(0.6))+Math.log10((k.p?mult():1)*((k.fx.dbl||0)>0?2:1));
   addXP(k,amt);k.kills++;
   if(k.p){
     round.ko++;round.streak++;S.kills++;A3.sfx("boom");
-    A3.toast("You bonked "+(t?t.name:"someone")+"! +"+A3.fmt(amt)+" XP",1600);
+    A3.toast("You bonked "+(t?t.name:"someone")+"! +"+fmtLog(amt)+" XP",1600);
     if(round.streak===5){A3.win(2,"a 5 knockout streak in Evo Clash");A3.toast("5 knockout streak! +PhatCoin",2000);}
     if(round.streak===15){A3.win(4,"a 15 knockout streak in Evo Clash");A3.toast("15 knockout streak! +PhatCoin",2000);}
     persist();
@@ -554,11 +566,11 @@ function endGame(by){
   mode="dead";A3.sfx("lose");
   const L=Math.max(round.peakL,me.L),ko=round.ko;
   const newKO=ko>S.bestKO;if(newKO)S.bestKO=ko;
-  if(me.tot>S.bestXP)S.bestXP=me.tot;
+  if(me.lt>(S.bestXPlog||0))S.bestXPlog=me.lt;
   if(ko>0)A3.best(ko);
   $("oTitle").textContent=newKO?"New record!":"Bonked!";
   $("oText").textContent=by?(by.name+" bonked you with their "+formName(by.L)+" swing!"):"You got bonked!";
-  $("oStats").innerHTML="<div>Reached <b>Evo "+L+" "+formName(L)+"</b></div><div>Knockouts <b>"+ko+"</b></div><div>XP <b>"+A3.fmt(me.tot)+"</b></div><div>Best KOs <b>"+S.bestKO+"</b></div>";
+  $("oStats").innerHTML="<div>Reached <b>Evo "+L+" "+formName(L)+"</b></div><div>Knockouts <b>"+ko+"</b></div><div>XP <b>"+fmtLog(me.lt)+"</b></div><div>Best KOs <b>"+S.bestKO+"</b></div>";
   $("oReb").hidden=!S.rebReady;
   persist();hud();
   setTimeout(()=>{if(mode==="dead"){["board","mini","evobar","fxrow","bSwing","bDash"].forEach(id=>$(id).hidden=true);A3.show("ovOver");}},1100);
@@ -615,7 +627,7 @@ function updateChar(c,dt){
   const mag=(c.fx.magnet||0)>0?8*c.s:0,er=c.rad+0.9+mag,er2=er*er,eat=c.rad+0.6;
   for(let i=no-1;i>=0;i--){const dx=ox[i]-c.x,dz=oz[i]-c.z,d2=dx*dx+dz*dz;if(d2>er2)continue;
     const dl=Math.sqrt(d2);
-    if(dl<eat){if(!c.remote){const g=ov[i]*need(c.L)*0.035*(c.p?mult():1)*((c.fx.dbl||0)>0?2:1);addXP(c,g);if(c.p)eatSfx();}delOrb(i);}
+    if(dl<eat){if(!c.remote){const g=needLog(c.L)+Math.log10(ov[i]*0.035*(c.p?mult():1)*((c.fx.dbl||0)>0?2:1));addXP(c,g);if(c.p)eatSfx();}delOrb(i);}
     else{const k=Math.min(1,dt*(mag?6:9));ox[i]-=dx*k;oz[i]-=dz*k;}}
   // power-ups
   for(let i=pus.length-1;i>=0;i--){const p=pus[i];if(Math.hypot(p.x-c.x,p.z-c.z)<c.rad+1.3)takePU(c,i);}
@@ -647,12 +659,12 @@ function animate(c,dt,t){
 
 /* ---------- HUD, board, mini-map ---------- */
 const mini=$("mini"),mg=mini.getContext("2d");
-function rankList(){return chars.filter(c=>c.alive).sort((a,b)=>b.tot-a.tot);}
+function rankList(){return chars.filter(c=>c.alive).sort((a,b)=>b.lt-a.lt);}
 function hud(){
   $("hReb").textContent=S.reb;
-  if(me){$("hEvo").textContent=me.L;$("hXP").textContent=A3.fmt(me.tot);$("hKO").textContent=round?round.ko:0;
+  if(me){$("hEvo").textContent=me.L;$("hXP").textContent=fmtLog(me.lt);$("hKO").textContent=round?round.ko:0;
     $("evoName").innerHTML=formName(me.L)+"<small>Evo "+me.L+"/"+MAXL+" · "+AGES[ageOf(me.L)].n+(mult()>1?" · x"+mult()+" XP":"")+"</small>";
-    $("evoFill").style.width=(me.L>=MAXL?100:Math.min(100,me.xp/need(me.L)*100))+"%";
+    $("evoFill").style.width=(me.L>=MAXL?100:Math.min(100,me.xp*100))+"%";
     let fx="";for(const T of PU){const v=me.fx[T.k]||0;if(v>0&&(T.k!=="shield"||me.shield))fx+='<span style="--c:'+T.c+'">'+T.e+" "+Math.ceil(v)+"</span>";}
     if(me.spawnT>0&&me.alive)fx+='<span style="--c:#fff">🫧 Safe '+Math.ceil(me.spawnT)+"</span>";
     $("fxrow").innerHTML=fx;
@@ -818,18 +830,18 @@ function arenaTick(dt){
   const now=performance.now();
   for(const c of chars.slice())if(c.remote&&now-c.seen>(c.bot?15000:6000))removeChar(c);
   netT-=dt;if(netT>0||!online||!me)return;netT=0.12;
-  const u={i:MYID,n:me.name,me:[+me.x.toFixed(2),+me.z.toFixed(2),+me.a.toFixed(2),me.L,me.alive?1:0,me.swingT>=0?1:0,(me.shield||me.spawnT>0)?1:0,(me.fx.giant||0)>0?1:0,+me.tot.toPrecision(6),me.skin]};
-  if(isHost)u.b=chars.filter(c=>c.bot&&!c.remote).map(c=>[c.id,c.name,+c.x.toFixed(2),+c.z.toFixed(2),+c.a.toFixed(2),c.L,c.alive?1:0,c.swingT>=0?1:0,(c.shield||c.spawnT>0)?1:0,(c.fx.giant||0)>0?1:0,+c.tot.toPrecision(6),c.skin]);
+  const u={i:MYID,n:me.name,me:[+me.x.toFixed(2),+me.z.toFixed(2),+me.a.toFixed(2),me.L,me.alive?1:0,me.swingT>=0?1:0,(me.shield||me.spawnT>0)?1:0,(me.fx.giant||0)>0?1:0,+me.lt.toFixed(4),me.skin]};
+  if(isHost)u.b=chars.filter(c=>c.bot&&!c.remote).map(c=>[c.id,c.name,+c.x.toFixed(2),+c.z.toFixed(2),+c.a.toFixed(2),c.L,c.alive?1:0,c.swingT>=0?1:0,(c.shield||c.spawnT>0)?1:0,(c.fx.giant||0)>0?1:0,+c.lt.toFixed(4),c.skin]);
   bcast("u",u);
 }
 function applyRemote(c,a){
-  const [x,z,ang,L,alive,sw,sh,gi,tot,skin]=a;
+  const [x,z,ang,L,alive,sw,sh,gi,lt,skin]=a;
   c.tx=A3.clamp(+x||0,-RA,RA);c.tz=A3.clamp(+z||0,-RA,RA);c.ta=+ang||0;
   const nl=A3.clamp(L|0,1,MAXL);if(nl!==c.L){const up=nl>c.L;c.L=nl;if(up&&me&&Math.hypot(c.x-me.x,c.z-me.z)<40)parts.burst(new THREE.Vector3(c.x,1.5*c.s,c.z),AGES[ageOf(nl)].col,12,5,0.8);}
   const was=c.alive;c.alive=!!alive;
   if(!was&&c.alive){c.x=c.tx;c.z=c.tz;}
   if(sw&&c.swingT<0&&c.alive){c.swingT=0;if(me&&Math.hypot(c.x-me.x,c.z-me.z)<25)A3.sfx("whoosh");}
-  c.shield=!!sh;c.spawnT=0;c.fx.giant=gi?1:0;c.tot=Math.min(1.7e308,+tot||0);
+  c.shield=!!sh;c.spawnT=0;c.fx.giant=gi?1:0;c.lt=A3.clamp(+lt||0,0,1000);
   derive(c);c.seen=performance.now();
 }
 function remoteChar(id,name,bot,a){
@@ -857,7 +869,7 @@ function onKO(p){
   if(!p)return;const t=byId.get(String(p.i));
   if(t&&t.remote&&t.alive){t.alive=false;t.swingT=-1;dropOrbs(t);if(me&&Math.hypot(t.x-me.x,t.z-me.z)<45){parts.burst(new THREE.Vector3(t.x,1.2*t.s,t.z),AGES[ageOf(t.L)].col,20,7,1);A3.sfx("pop");}}
   const k=byId.get(String(p.b));
-  if(k&&!k.remote)reward(k,Math.min(1.7e308,Math.max(0,+p.x||0)),t||{name:safeName(p.n)});
+  if(k&&!k.remote)reward(k,A3.clamp(+p.x||0,0,1000),t||{name:safeName(p.n)});
 }
 document.addEventListener("visibilitychange",()=>{if(GMODE!=="public")return;if(document.hidden){disconnect();updateOnlineMsg();}else if(!online&&mode!=="title"){joinT=Date.now();connect();}});
 
@@ -919,7 +931,7 @@ $("bMute").onclick=()=>{A3.mute(!A3.mute());$("bMute").textContent=A3.mute()?"�
 
 toTitle();
 window.addEventListener("pagehide",()=>{persist();disconnect();});
-window.__evoTest={orbs:()=>[no,orbMesh.count,orbMesh.instanceColor?Array.from(orbMesh.instanceColor.array.slice(0,9)):null,orbMesh.material.type],fps:()=>fpsN,me:()=>me,chars:()=>chars,xp:n=>{if(me)addXP(me,n);},level:L=>{if(me){me.tot=CUM[L];me.xp=0;me.L=L;evolve(me);}},die:()=>{if(me&&me.alive){me.spawnT=0;me.shield=false;tryKill(me,chars.find(c=>!c.p&&c.alive));}},swing:()=>{if(me)startSwing(me);}};
+window.__evoTest={orbs:()=>[no,orbMesh.count,orbMesh.instanceColor?Array.from(orbMesh.instanceColor.array.slice(0,9)):null,orbMesh.material.type],fps:()=>fpsN,me:()=>me,chars:()=>chars,xp:n=>{if(me)addXP(me,Math.log10(n));},xpLog:lg=>{if(me)addXP(me,lg);},level:L=>{if(me){me.lt=cumLog(L);me.xp=0;me.L=L;evolve(me);}},die:()=>{if(me&&me.alive){me.spawnT=0;me.shield=false;tryKill(me,chars.find(c=>!c.p&&c.alive));}},swing:()=>{if(me)startSwing(me);}};
 if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"evo-clash",dir:"desc",unit:"KOs",title:"Evo Clash: most knockouts in one life"});
 })();
 </script>

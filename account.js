@@ -59,6 +59,7 @@
     "slingshot-siege": { title: "Slingshot Siege", keys: ["slingshotsiege-save"] },
     "five-letters": { title: "Five Letters", keys: ["fiveletters-save"] },
     "evo-clash": { title: "Evo Clash", keys: ["evoclash-save"] },
+    "rifts-ultimate-clash": { title: "Rift's Ultimate Clash", keys: ["riftclash-save"] },
   };
 
   var TOKEN = "ghacct_token", USER = "ghacct_user", NICK = "ghgames_nick";

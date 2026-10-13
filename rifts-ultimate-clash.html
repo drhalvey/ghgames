@@ -1,0 +1,1033 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Rift's Ultimate Clash</title>
+<meta property="og:title" content="Rift's Ultimate Clash · GH Games">
+<meta property="og:description" content="Buy units, merge two the same to power them up, line up your team and watch them clash! 62 units, 11 factions, 250 campaign levels with bosses, a Public Arena against real players' teams, chests and rebirths.">
+<meta property="og:image" content="https://ghgames.au/og/rifts-ultimate-clash.png">
+<meta property="og:url" content="https://ghgames.au/rifts-ultimate-clash.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f1a33">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Games">
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="rifts-ultimate-clash"></script>
+<script src="phatcoin.js" data-game="rifts-ultimate-clash" data-pill="none"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<link rel="stylesheet" href="arcade3d.css">
+<style>
+.stage{aspect-ratio:16/11;min-height:420px}
+.stage [hidden]{display:none!important}
+.mbar{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:15;display:flex;align-items:center;gap:10px;pointer-events:none;width:min(560px,70%)}
+.mbar .side{flex:1;background:rgba(10,8,30,.6);border-radius:12px;padding:4px 8px;font-weight:900;font-size:12px}
+.mbar .side b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mbar .hp{height:9px;border-radius:5px;background:rgba(0,0,0,.5);overflow:hidden;margin-top:2px}
+.mbar .hp i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#5fd36a,#b6ff7a);transition:width .4s}
+.mbar .foe .hp i{background:linear-gradient(90deg,#ff5d5d,#ff9a7a)}
+.mbar .foe{text-align:right}
+.mbar .mid{font-family:var(--display);font-size:18px;text-align:center;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.6);line-height:1;white-space:nowrap}
+.mbar .mid small{display:block;font-family:var(--body);font-weight:900;font-size:11px;color:var(--gold);margin-top:3px}
+.syn{position:absolute;left:10px;top:52px;z-index:15;display:flex;flex-direction:column;gap:3px;pointer-events:none;max-height:45%;overflow:hidden}
+.syn div{background:rgba(10,8,30,.6);border-radius:9px;padding:2px 8px;font-weight:900;font-size:12px;color:#9aa6c4;border-left:4px solid transparent}
+.syn div.on{color:#fff;border-left-color:var(--c)}
+.gold{position:absolute;right:10px;top:52px;z-index:15;background:rgba(10,8,30,.65);border-radius:12px;padding:5px 10px;font-weight:900;font-size:16px;text-align:right;pointer-events:none}
+.gold b{color:var(--gold);font-size:20px}
+.gold small{display:block;font-size:12px;color:#dfe7ff}
+.info{position:absolute;right:10px;top:112px;z-index:15;background:rgba(10,8,30,.82);border:2px solid var(--line);border-radius:12px;padding:7px 10px;font-weight:800;font-size:12px;width:200px;pointer-events:none;line-height:1.35}
+.info h4{margin:0;font-family:var(--display);font-weight:400;font-size:16px;color:#fff}
+.info .ab{color:#ffe27a}
+.speed{position:absolute;right:10px;top:52px;z-index:16;font-family:var(--display);font-size:20px;background:rgba(0,0,0,.55);color:#fff;border-radius:12px;padding:6px 14px;cursor:pointer}
+.banner{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:18;font-family:var(--display);font-size:clamp(30px,6vw,56px);color:var(--gold);text-shadow:0 4px 0 #b3541e,0 8px 0 rgba(0,0,0,.35);pointer-events:none;text-align:center;line-height:1}
+.banner small{display:block;font-family:var(--body);font-weight:900;font-size:18px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.6);margin-top:6px}
+.dock{position:absolute;left:0;right:0;bottom:0;z-index:15;padding:20px 8px 8px;background:linear-gradient(180deg,rgba(8,10,30,0),rgba(8,10,30,.88) 28%);display:flex;flex-direction:column;gap:6px;align-items:center}
+.bench{display:flex;gap:4px;justify-content:center}
+.bslot{width:min(10vw,60px);height:min(10vw,60px);border-radius:10px;border:2px dashed rgba(255,255,255,.28);background:rgba(255,255,255,.05);position:relative;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.bslot .em{font-size:min(6vw,30px);line-height:1}
+.bslot .st{position:absolute;bottom:1px;left:0;right:0;text-align:center;font-size:10px;color:var(--gold);font-weight:900;letter-spacing:-1px}
+.bslot .fe{position:absolute;top:1px;left:3px;font-size:10px}
+.bslot.full{border-style:solid;border-color:var(--rc);background:rgba(30,40,80,.9)}
+.sel{outline:3px solid var(--gold);outline-offset:1px;box-shadow:0 0 14px var(--gold)}
+.shoprow{display:flex;gap:6px;align-items:stretch;justify-content:center;width:100%;max-width:820px}
+.shop{display:flex;gap:5px;flex:1}
+.cd{flex:1;min-width:0;background:linear-gradient(180deg,#26386b,#1a2750);border:2px solid var(--rc);border-radius:12px;padding:4px 3px 3px;display:flex;flex-direction:column;align-items:center;cursor:pointer;position:relative;font-weight:900}
+.cd .em{font-size:min(6.5vw,32px);line-height:1.1}
+.cd .nm{font-size:min(2.4vw,12px);line-height:1.1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.cd .ft{font-size:11px;color:var(--muted)}
+.cd .cost{position:absolute;top:2px;right:4px;font-size:12px;color:var(--gold)}
+.cd .mg{position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--green);color:#0d3312;font-size:10px;border-radius:6px;padding:0 5px}
+.cd.no{opacity:.45}
+.cd.sold{visibility:hidden}
+.dbtns{display:flex;flex-direction:column;gap:4px;width:min(22vw,118px)}
+.db{font-family:var(--body);font-weight:900;font-size:13px;border:none;border-radius:10px;padding:5px 4px;background:var(--panel2);color:#fff;cursor:pointer;line-height:1.05}
+.db small{display:block;font-size:11px;color:var(--gold)}
+.db:disabled{opacity:.4}
+.db.fight{background:linear-gradient(#ffe27a,#ffb300);color:#3b2200;font-family:var(--display);font-size:20px;font-weight:400;flex:1}
+.sell{position:absolute;right:10px;bottom:calc(100% + 4px);font-family:var(--body);font-weight:900;font-size:14px;border:none;border-radius:10px;padding:7px 12px;background:var(--red);color:#fff;cursor:pointer}
+.ugrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:6px;margin-top:6px}
+.uc{background:var(--panel2);border:2px solid var(--rc);border-radius:10px;padding:4px;font-weight:900;font-size:11px;text-align:center;line-height:1.2}
+.uc .em{font-size:26px;display:block}
+.uc.lock{opacity:.4;filter:grayscale(.8)}
+.uc small{display:block;color:var(--muted);font-size:10px}
+.fh{grid-column:1/-1;font-family:var(--display);font-size:17px;color:#fff;margin-top:6px}
+.fh small{font-family:var(--body);font-weight:800;font-size:12px;color:var(--muted);margin-left:6px}
+.wide{width:min(780px,100%)}
+.drops{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.drop{width:110px;background:var(--panel2);border:3px solid var(--rc);border-radius:14px;padding:8px 4px;font-weight:900;font-size:12px;text-align:center;animation:pop .45s ease-out both}
+.drop .em{font-size:38px;display:block}
+.drop b{display:block;color:var(--rc)}
+@keyframes pop{0%{transform:scale(.2) rotate(-20deg);opacity:0}70%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+.badge{background:var(--red);color:#fff;border-radius:8px;font-family:var(--body);font-weight:900;font-size:12px;padding:1px 6px;margin-left:4px;vertical-align:middle}
+.wline{font-weight:900;color:#fff}
+.wline b{color:var(--gold)}
+@media (max-width:640px){.stage{aspect-ratio:3/4.4}.mbar{top:50px;width:94%}.syn{top:94px}.syn div{font-size:10px}.gold,.speed{top:94px}.gold{font-size:13px}.gold b{font-size:16px}.info{top:150px;width:150px;font-size:11px}.mbar .mid{font-size:14px}.shoprow{flex-direction:column}.dbtns{flex-direction:row;width:100%}.db{flex:1}.db.fight{font-size:18px}.cd .em{font-size:26px}.cd .nm{font-size:10px}.dock{padding-top:10px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="links"><a class="home" href="index.html">← GH Games</a></div>
+  <div class="top">
+    <h1>Rift's Ultimate Clash<small>3D</small></h1>
+    <div class="hud">
+      <div class="chip"><span>Coins</span><b id="hCoins">0</b></div>
+      <div class="chip"><span>Level</span><b id="hLvl">1</b></div>
+      <div class="chip"><span>Trophies</span><b id="hTro">0</b></div>
+      <div class="chip"><span>Rebirths</span><b id="hReb">0</b></div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="ingame"><button id="bFs">⛶</button><button id="bMute">🔊</button><button id="bQuit" hidden>✕</button></div>
+    <div class="toast" id="toast"></div>
+    <div class="mbar" id="mbar" hidden>
+      <div class="side me"><b id="myName">You</b><div class="hp"><i id="myHpF"></i></div></div>
+      <div class="mid"><span id="mRound">Round 1</span><small id="mHp">❤️ 100 vs 100</small></div>
+      <div class="side foe"><b id="foeName">Enemy</b><div class="hp"><i id="foeHpF"></i></div></div>
+    </div>
+    <div class="syn" id="syn" hidden></div>
+    <div class="gold" id="goldBox" hidden>💰 <b id="gold">0</b><small id="teamTxt">Team 0/3</small></div>
+    <div class="info" id="info" hidden></div>
+    <div class="speed" id="bSpeed" hidden>1x</div>
+    <div class="banner" id="banner" hidden></div>
+    <div class="dock" id="dock" hidden>
+      <button class="sell" id="bSell" hidden>Sell</button>
+      <div class="bench" id="bench"></div>
+      <div class="shoprow">
+        <div class="shop" id="shop"></div>
+        <div class="dbtns">
+          <button class="db" id="bRoll">🔄 New units<small>2 💰</small></button>
+          <button class="db" id="bLvUp">➕ Team slot<small>4 💰</small></button>
+          <button class="db fight" id="bFight">⚔️ FIGHT</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ov" id="ovTitle">
+      <h2>RIFT'S ULTIMATE CLASH</h2>
+      <p>Buy units, merge two the same to power them up, put them on the board and watch them fight on their own. Field units from the same faction for big bonuses!</p>
+      <div class="wline" id="tWorld"></div>
+      <div class="row" id="rowCont" hidden><button class="btn green" id="bCont">Continue match</button><button class="btn alt small" id="bGive">Give up</button></div>
+      <div class="row"><button class="btn" id="bCamp">Campaign</button><button class="btn alt" id="bArena">🌍 Public Arena</button></div>
+      <div class="row"><button class="btn small alt" id="bUnits">Units</button><button class="btn small alt" id="bChest">Chests</button><button class="btn small alt" id="bUpg">Upgrades</button><button class="btn small pink" id="bReb">Rebirth</button></div>
+      <div class="stats" id="tStats"></div>
+    </div>
+
+    <div class="ov" id="ovUnits" hidden>
+      <h2>UNITS</h2>
+      <div class="shopbox wide">
+        <p class="help" id="uHelp"></p>
+        <div class="ugrid" id="ugrid"></div>
+      </div>
+      <div class="row"><button class="btn green" id="uBack">Done</button></div>
+    </div>
+
+    <div class="ov" id="ovChest" hidden>
+      <h2>CHESTS</h2>
+      <div class="shopbox">
+        <p class="help">Chests give unit cards. A new unit gets unlocked and can then turn up in your shop. A unit you already have goes up a card level (+8% health and damage). Rarer units are worth a lot more!</p>
+        <div class="item"><span>🎁 Daily Chest (4 cards, free once a day)</span><button class="btn small green" id="cDaily">Open</button></div>
+        <div class="item"><span>🌀 Rift Chest (3 cards)</span><button class="btn small" id="cBuy">Buy</button></div>
+        <div class="drops" id="drops"></div>
+      </div>
+      <div class="row"><button class="btn alt" id="cBack">Back</button></div>
+    </div>
+
+    <div class="ov" id="ovUpg" hidden>
+      <h2>UPGRADES</h2>
+      <div class="shopbox">
+        <h3>💪 Army Power</h3>
+        <p class="help">Every level makes all your units 12% stronger (health and damage). Army Power goes back to 0 when you rebirth.</p>
+        <div class="item"><span>Level</span><span class="c" id="aLv">0</span></div>
+        <div class="item"><span>Army multi</span><span class="c" id="aMul">x1</span></div>
+        <div class="item"><span>Next level costs</span><span class="c" id="aCost">40</span></div>
+        <div class="row" style="margin-top:6px"><button class="btn small" id="aBuy">Upgrade</button><button class="btn small pink" id="aMax">Upgrade to max</button></div>
+      </div>
+      <div class="row"><button class="btn alt" id="aBack">Back</button></div>
+    </div>
+
+    <div class="ov" id="ovReb" hidden>
+      <h2>REBIRTH</h2>
+      <div class="shopbox">
+        <h3 id="rTitle">Rebirths: 0</h3>
+        <p class="help" id="rText"></p>
+        <div class="item"><span>Coin multi</span><span class="c" id="rCoin">x1</span></div>
+        <div class="item"><span>Damage multi</span><span class="c" id="rDmg">x1</span></div>
+        <div class="item"><span>Extra team slots</span><span class="c" id="rSlot">+0</span></div>
+        <div class="item"><span>Rift-born unit unlocked</span><span class="c" id="rUnit">-</span></div>
+        <div class="item"><span>Needs</span><span class="c" id="rNeed">-</span></div>
+      </div>
+      <div class="row"><button class="btn pink" id="rGo">Rebirth now</button><button class="btn alt" id="rBack">Back</button></div>
+    </div>
+
+    <div class="ov" id="ovEnd" hidden>
+      <h2 id="eTitle">Victory!</h2>
+      <p id="eText"></p>
+      <div class="stats" id="eStats"></div>
+      <div class="row"><button class="btn green" id="eNext">Next level</button><button class="btn pink" id="eReb" hidden>Rebirth</button><button class="btn alt" id="eMenu">Menu</button></div>
+    </div>
+  </div>
+
+  <p class="help">How to play: tap a shop card to buy a unit. Buy two of the same and they merge into a stronger one (up to 5 stars). Tap a unit on the board or bench, then tap a square or a bench slot to move it. Tanks and fighters go at the front, archers, mages and healers at the back. Drag the 3D view to turn the camera, pinch or scroll to zoom. Units from the same faction give bonuses at 2, 4 and 6 (Rift-born at 1, 2 and 3). Win rounds to knock the other side's hearts down to 0. Campaign: 25 worlds of 10 levels with a boss on every 10th. Public Arena: fight teams that real players have used, win trophies and climb the leaderboard. Rebirth after beating the boss shown on the Rebirth screen: more coins, more damage, an extra team slot and a new Rift-born unit each time.</p>
+  <div id="lb"></div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="arcade3d.js"></script>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const THREE=window.THREE;
+const SAVE="riftclash-save";
+const SB_URL="https://bpqaeqswtgtbqrczjcrx.supabase.co";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwcWFlcXN3dGd0YnFyY3pqY3J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzUzOTIsImV4cCI6MjA5NjkxMTM5Mn0.hsEZJ_C4NvySPMb59G9EPPfdJRSNBODbnuo9ij_zxrI";
+
+/* ---------------- data ---------------- */
+const FACTIONS={
+  flame:{n:"Flame Clan",e:"🔥",c:"#ff5a2a",h:"#ffcf9e",d:t=>"+"+15*t+"% damage"},
+  frost:{n:"Frost Folk",e:"❄️",c:"#7fd8ff",h:"#eaf7ff",d:t=>"enemies attack "+10*t+"% slower"},
+  jungle:{n:"Jungle Beasts",e:"🌿",c:"#4fc24a",h:"#c9a37a",d:t=>"+"+20*t+"% health"},
+  robo:{n:"Robo Corp",e:"🤖",c:"#a8b4c8",h:"#d5dbe6",d:t=>"take "+12*t+"% less damage"},
+  shadow:{n:"Shadow Guild",e:"🌑",c:"#7a4bd1",h:"#3a2d5a",d:t=>15*t+"% chance to crit for double"},
+  sky:{n:"Sky Knights",e:"🪽",c:"#ffe47a",h:"#ffe9c4",d:t=>"+"+18*t+"% attack speed"},
+  ocean:{n:"Ocean Tide",e:"🌊",c:"#2f8cff",h:"#9fd9ff",d:t=>"heal "+(1.5*t)+"% health a second"},
+  star:{n:"Star Mages",e:"✨",c:"#ff8ee8",h:"#ffe0f6",d:t=>"+"+35*t+"% mana, powers come faster"},
+  bone:{n:"Bone Legion",e:"💀",c:"#e9e4d0",h:"#f4f0e0",d:t=>"come back once with "+30*t+"% health"},
+  candy:{n:"Candy Crew",e:"🍭",c:"#ff7fb5",h:"#ffc2dc",d:t=>"+"+t+" gold a round and +"+10*t+"% health"},
+  rift:{n:"Rift-born",e:"🌀",c:"#b45cff",h:"#d9b3ff",d:t=>"+"+12*t+"% health and damage"}
+};
+const FKEYS=Object.keys(FACTIONS).filter(k=>k!=="rift");
+const ROSTER={
+  flame:[["Ember Pup","🐶","fighter"],["Torch Archer","🏹","archer"],["Lava Golem","🪨","tank"],["Blaze Witch","🧙","mage"],["Inferno Dragon","🐉","mage"]],
+  frost:[["Snow Scout","⛄","archer"],["Ice Guard","🛡️","tank"],["Frost Fox","🦊","assassin"],["Blizzard Sage","🧊","mage"],["Glacier Titan","🗿","tank"]],
+  jungle:[["Vine Sprout","🌱","healer"],["Gorilla Bruiser","🦍","fighter"],["Thorn Ranger","🌵","archer"],["Rhino Rammer","🦏","tank"],["Ancient Treant","🌳","healer"]],
+  robo:[["Bolt Bot","🔩","fighter"],["Laser Drone","🛸","archer"],["Shield Mech","🤖","tank"],["Rocket Robo","🚀","mage"],["Mega Mech X","🦾","fighter"]],
+  shadow:[["Sneak Ninja","🥷","assassin"],["Shadow Cat","🐈‍⬛","assassin"],["Night Archer","🌙","archer"],["Phantom Blade","👻","assassin"],["Void Lord","🕳️","mage"]],
+  sky:[["Feather Knight","🪶","fighter"],["Cloud Archer","☁️","archer"],["Griffin Rider","🦅","fighter"],["Storm Caller","⛈️","mage"],["Sky Paladin","👼","tank"]],
+  ocean:[["Bubble Crab","🦀","tank"],["Coral Healer","🪸","healer"],["Shark Diver","🦈","assassin"],["Tide Priestess","🧜","healer"],["Kraken King","🐙","tank"]],
+  star:[["Spark Wizard","🪄","mage"],["Moon Monk","🧘","fighter"],["Comet Archer","☄️","archer"],["Galaxy Sorcerer","🌌","mage"],["Star Queen","👑","healer"]],
+  bone:[["Skelly","🦴","fighter"],["Bone Archer","🎯","archer"],["Grave Knight","⚔️","tank"],["Necro Kid","🧟","mage"],["Lich Emperor","☠️","mage"]],
+  candy:[["Gummy Bear","🧸","tank"],["Lolly Slinger","🍡","archer"],["Cupcake Cleric","🧁","healer"],["Choco Brute","🍫","fighter"],["Sugar Rush Queen","🍬","assassin"]]
+};
+const RIFTBORN=[["Rift Walker","🌀","assassin",1],["Portal Knight","🚪","tank",2],["Chaos Wyrm","🐲","mage",3],["Echo Twin","👯","fighter",4],["Time Breaker","⏳","assassin",5],["Void Hydra","🐍","mage",6],["Prism Titan","💎","tank",7],["Nova Phoenix","🐦‍🔥","archer",8],["Rift Colossus","🏔️","tank",9],["Omega Sentinel","🛰️","archer",10],["Infinity Djinn","🧞","healer",15],["The Rift Emperor","🌠","mage",20]];
+const ROLE={
+  tank:{hp:700,dmg:38,as:0.65,rng:1.75,icon:"🛡️",nm:"Tank",ab:"Iron Wall: gets a big shield and stuns enemies next to it"},
+  fighter:{hp:540,dmg:52,as:0.8,rng:1.75,icon:"⚔️",nm:"Fighter",ab:"Big Swing: hits the target and everyone next to it"},
+  assassin:{hp:430,dmg:62,as:0.95,rng:1.75,icon:"🗡️",nm:"Assassin",ab:"Backstab: leaps on the weakest enemy for triple damage (jumps to the back row at the start)"},
+  archer:{hp:380,dmg:50,as:0.85,rng:5.4,icon:"🏹",nm:"Archer",ab:"Volley: shoots three enemies at once"},
+  mage:{hp:360,dmg:42,as:0.7,rng:5,icon:"🔮",nm:"Mage",ab:"Rift Blast: blows up a big area"},
+  healer:{hp:420,dmg:30,as:0.7,rng:5,icon:"💚",nm:"Healer",ab:"Heal Wave: heals the most hurt friend a lot"},
+  boss:{hp:5200,dmg:95,as:0.6,rng:2.6,icon:"👹",nm:"Boss",ab:"Ground Stomp: smashes everyone close and stuns them"}
+};
+const TIERM=[0,1,1.35,1.75,2.2,2.8,3.6];
+const RAR=[null,{n:"Common",c:"#b9c4d6"},{n:"Rare",c:"#4aa8ff"},{n:"Epic",c:"#b46cff"},{n:"Legendary",c:"#ffb300"},{n:"Mythic",c:"#ff4d6d"},{n:"Rift-born",c:"#ff5cf0"}];
+const ODDS={3:[75,25,0,0,0,0],4:[60,32,8,0,0,0],5:[45,33,18,4,0,0],6:[30,35,25,9,1,0],7:[20,30,30,16,3,1],8:[15,22,32,22,7,2],9:[10,18,28,28,12,4],10:[5,12,25,30,20,8]};
+const U={},ULIST=[];
+FKEYS.forEach(f=>ROSTER[f].forEach((a,i)=>{const u={id:f+(i+1),n:a[0],e:a[1],f,role:a[2],tier:i+1,rb:0};U[u.id]=u;ULIST.push(u);}));
+RIFTBORN.forEach((a,i)=>{const u={id:"rift"+(i+1),n:a[0],e:a[1],f:"rift",role:a[2],tier:6,rb:a[3]};U[u.id]=u;ULIST.push(u);});
+const WORLDS=[
+ ["Meadow Rift","Mega Slime","#6cc24a","#62b543","#4aa8ff","#cfeeff","#3f8f3a"],
+ ["Desert Dunes","Sand Worm","#e9c46a","#e0b85a","#ff9e4a","#ffe3b0","#c98b3a"],
+ ["Frozen Peaks","Yeti Chief","#e8f4ff","#d6ebfb","#6fb7ff","#eaf7ff","#9fd3ff"],
+ ["Lava Lands","Magma King","#4a2a26","#3d2220","#ff5a2a","#ffb07a","#ff6a00"],
+ ["Mushroom Woods","Mushroom Giant","#5a8f4a","#4f8242","#9a6bff","#ffd0f0","#ff4d6d"],
+ ["Candy Kingdom","Gingerbread Brute","#ffc2dc","#ffb0d2","#ff8ad0","#fff0f8","#7fd8ff"],
+ ["Robot Factory","Factory Overlord","#8f99a8","#838d9c","#556078","#c9d3e6","#ffd23f"],
+ ["Haunted Graveyard","Ghost Captain","#3d4a3a","#344032","#2b2450","#8f7fbf","#9fffb0"],
+ ["Coral Reef","Giant Crab","#f2d7a0","#e8cb92","#1f7fd1","#7fd8ff","#ff7f6a"],
+ ["Sky Castle","Thunder Griffin","#f5f7ff","#e8ecfb","#7fbfff","#ffffff","#ffe47a"],
+ ["Crystal Caves","Crystal Golem","#4a3d6a","#40345e","#2a1f4a","#7f6fbf","#7fffe0"],
+ ["Jungle Temple","Temple Guardian","#3f8a3a","#367c32","#3aa86a","#d0ffd8","#c9a36a"],
+ ["Storm Isles","Storm Serpent","#5f7a8a","#55707f","#3a4a6a","#9fb0c8","#ffe47a"],
+ ["Shadow Realm","Shadow Beast","#2a2240","#231c38","#120c24","#4b3a7a","#b45cff"],
+ ["Moon Base","Moon Robot","#bfc4cc","#b0b6bf","#05051a","#2a2a5a","#dfe7ff"],
+ ["Dragon Mountain","Elder Dragon","#7a5a4a","#6e5042","#ff7f4a","#ffd0a0","#c94a2a"],
+ ["Toy Town","Wind-Up Titan","#ffd23f","#ffc81f","#4aa8ff","#d8f1ff","#ff5d5d"],
+ ["Pirate Cove","Pirate King Barnacle","#e9d29a","#dfc58a","#2f8cff","#bfe6ff","#8a5a3a"],
+ ["Clockwork City","Clock Tyrant","#b08a4a","#a27e42","#6a4a2a","#e0c08a","#ffd23f"],
+ ["Volcano Core","Volcano Lord","#3a1a14","#2e1410","#ff3a1a","#ff9a4a","#ffcf3a"],
+ ["Neon City","Neon Hydra","#1a1a3a","#141432","#0a0a24","#3a1a6a","#00ffd0"],
+ ["Ice Comet","Comet Colossus","#cfeaff","#bfe0fb","#0a1a4a","#4a7fd1","#ffffff"],
+ ["Star Forge","Forge Master","#4a2a6a","#40245e","#1a0a3a","#ff6ff0","#ffd23f"],
+ ["Void Edge","Void Devourer","#1a1026","#140c1f","#000008","#2a0a3a","#ff3af0"],
+ ["The Rift Heart","Rift Overlord","#5a2a8a","#4f247a","#2a0a4a","#ff8af0","#ffffff"]
+];
+const ARENA_W=["Public Arena","",'#3a2a6a','#33255e','#1a1040','#6a4aff','#ffd23f'];
+const MAXLV=250;
+
+/* ---------------- save + multis ---------------- */
+const S=A3.save(SAVE,{coins:0,reb:0,lvl:1,best:1,army:0,cards:{},tro:0,bestTro:0,daily:"",wins:0,games:0,match:null,speed:1,chests:0,bossWins:0,arenaW:0});
+if(!S.cards||!Object.keys(S.cards).length){S.cards={};ULIST.filter(u=>u.tier<=2).forEach(u=>S.cards[u.id]=1);}
+function unlockRift(){let got=null;ULIST.forEach(u=>{if(u.tier===6&&S.reb>=u.rb&&!S.cards[u.id]){S.cards[u.id]=1;got=u;}});return got;}
+unlockRift();
+function persist(){A3.store(SAVE,S);hud();}
+const coinMul=()=>1+S.reb;
+const dmgMul=()=>Math.pow(1.6,S.reb);
+const armyMul=()=>Math.pow(1.12,S.army);
+const slotBonus=()=>Math.min(S.reb,10);
+const maxCap=()=>10+slotBonus();
+const hmOf=id=>armyMul()*Math.pow(1.08,(S.cards[id]||1)-1);
+const dmOf=id=>hmOf(id)*dmgMul();
+const campE=L=>0.72*Math.pow(1.085,L-1);
+const reward=L=>Math.round(60*Math.pow(1.2,L-1)*coinMul());
+const armyCost=()=>Math.round(40*Math.pow(1.42,S.army));
+const chestCost=()=>Math.round(150*Math.pow(1.2,S.lvl-1));
+const rebNeed=()=>Math.min(10*(S.reb+1),MAXLV);
+const rebReady=()=>S.lvl>rebNeed();
+const isBoss=L=>L%10===0;
+function worldOf(L){const wi=Math.min(WORLDS.length-1,Math.floor((L-1)/10));return {wi,w:WORLDS[wi],st:((L-1)%10)+1,name:L>MAXLV?"Endless Rift":WORLDS[wi][0],boss:WORLDS[Math.floor((L-1)/10)%WORLDS.length][1]};}
+function today(){try{return new Date().toLocaleDateString("en-AU",{timeZone:"Australia/Perth"});}catch(e){return new Date().toDateString();}}
+const league=t=>t>=2000?"🌀 Rift Master":t>=1000?"💎 Diamond":t>=500?"🥇 Gold":t>=200?"🥈 Silver":"🥉 Bronze";
+const fmt=A3.fmt;
+function hud(){$("hCoins").textContent=fmt(S.coins);$("hLvl").textContent=S.lvl;$("hTro").textContent=S.tro;$("hReb").textContent=S.reb;}
+
+/* ---------------- 3D view ---------------- */
+const stage=$("stage");
+const V=A3.view(stage,{fov:45,far:400,sky:["#4aa8ff","#cfeeff"],fog:["#cfeeff",60,170],shadowSize:22});
+if(!V)return;
+const {scene,camera,renderer}=V;
+const canvas=renderer.domElement;
+const parts=A3.particles(scene);
+const CELL=1.7;
+const cx=c=>(c-3)*CELL;
+const cz=(r,side)=>side===0?(r+0.5)*CELL:-(r+0.5)*CELL;
+
+let ground=null,deco=new THREE.Group();scene.add(deco);
+const tiles=[];
+const island=A3.cyl(10.8,8.5,2.2,"#6b5a4a",40);island.position.y=-1.1;scene.add(island);
+const top=A3.cyl(10.8,10.8,0.2,"#5fbf4a",40);top.position.y=-0.05;scene.add(top);
+for(let r=-4;r<4;r++)for(let c=0;c<7;c++){
+  const mine=r>=0;const dark=(r+c)%2===0;
+  const col=mine?(dark?"#3f6fd8":"#5585ec"):(dark?"#c4485a":"#d6606f");
+  const t=A3.box(CELL*0.96,0.14,CELL*0.96,A3.mat(col,{nocache:true,rough:.5}));
+  t.position.set(cx(c),0.07,mine?(r+0.5)*CELL:(r+0.5)*CELL);
+  t.userData={c,r:mine?r:-r-1,mine,base:col};tiles.push(t);scene.add(t);
+}
+const riftLine=A3.box(CELL*7.4,0.06,0.18,A3.mat("#d27bff",{emissive:"#b45cff",glow:2}));riftLine.position.set(0,0.17,0);scene.add(riftLine);
+const portals=[];
+[[1,-8.2,"#ff5d5d"]].forEach(p=>{
+  const tor=new THREE.Mesh(new THREE.TorusGeometry(1.6,0.25,12,40),A3.mat(p[2],{emissive:p[2],glow:1.4}));
+  tor.position.set(0,1.9,p[1]);scene.add(tor);
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(1.45,32),new THREE.MeshBasicMaterial({color:"#b45cff",transparent:true,opacity:.55,side:THREE.DoubleSide}));
+  disc.position.copy(tor.position);scene.add(disc);portals.push(tor,disc);
+});
+let worldKey=-1;
+function setWorld(w,key){
+  if(key===worldKey)return;worldKey=key;
+  scene.background=A3.skyTexture(w[4],w[5]);scene.fog.color.set(w[5]);
+  if(ground)scene.remove(ground);
+  ground=A3.ground(260,w[2],w[3],110);ground.position.y=-2.2;scene.add(ground);
+  top.material=A3.mat(w[2]);
+  while(deco.children.length)deco.remove(deco.children[0]);
+  const rnd=A3.seeded(key*977+13);
+  for(let i=0;i<46;i++){
+    const a=rnd()*Math.PI*2,d=12+rnd()*30,x=Math.cos(a)*d,z=Math.sin(a)*d;
+    const k=rnd();let m;
+    if(k<0.4){m=new THREE.Group();const tr=A3.cyl(.25,.35,1.6,"#7a5236",8);tr.position.y=.8;const lf=A3.ball(1.1+rnd(),w[6]);lf.position.y=2.1;m.add(tr,lf);}
+    else if(k<0.7){m=new THREE.Mesh(new THREE.OctahedronGeometry(.8+rnd()*1.2),A3.mat(w[6],{emissive:w[6],glow:.35,rough:.2}));m.position.y=1.2;m.castShadow=true;}
+    else{m=A3.box(1+rnd()*2,.8+rnd()*3,1+rnd()*2,w[3]);m.position.y=.5;}
+    const g=new THREE.Group();g.add(m);g.position.set(x,-2.2,z);g.rotation.y=rnd()*6;deco.add(g);
+  }
+}
+
+/* ---------------- unit models ---------------- */
+const HATS={
+  flame:g=>{const m=new THREE.Mesh(new THREE.ConeGeometry(.16,.4,8),A3.mat("#ffb300",{emissive:"#ff5a00",glow:1.2}));m.position.set(0,1.58,0);g.add(m);},
+  frost:g=>{[-.15,0,.15].forEach(x=>{const m=new THREE.Mesh(new THREE.ConeGeometry(.07,.3,6),A3.mat("#bff0ff",{emissive:"#7fd8ff",glow:.6}));m.position.set(x,1.5,0);g.add(m);});},
+  jungle:g=>{const m=A3.box(.5,.06,.3,"#3aa83a");m.position.set(0,1.42,0);m.rotation.z=.3;g.add(m);},
+  robo:g=>{const a=A3.cyl(.02,.02,.3,"#556078",6);a.position.set(0,1.53,0);const b=A3.ball(.06,"#ff5d5d",{emissive:"#ff0000"});b.position.set(0,1.7,0);g.add(a,b);},
+  shadow:g=>{const m=A3.box(.52,.2,.5,"#1a1230");m.position.set(0,1.44,-.02);g.add(m);},
+  sky:g=>{[-1,1].forEach(s=>{const m=A3.box(.06,.45,.32,"#ffffff");m.position.set(s*.2,.85,-.28);m.rotation.y=s*.6;g.add(m);});},
+  ocean:g=>{const m=new THREE.Mesh(new THREE.ConeGeometry(.12,.3,4),A3.mat("#1f7fd1"));m.position.set(0,1.5,-.05);m.rotation.x=-.3;g.add(m);},
+  star:g=>{const m=new THREE.Mesh(new THREE.ConeGeometry(.28,.5,10),A3.mat("#3a3aa8"));m.position.set(0,1.62,0);m.castShadow=true;g.add(m);},
+  bone:g=>{},
+  candy:g=>{const m=A3.ball(.12,"#ff4d9a");m.position.set(0,1.48,0);g.add(m);},
+  rift:g=>{const m=new THREE.Mesh(new THREE.TorusGeometry(.22,.035,8,24),A3.mat("#ffe27a",{emissive:"#ffd23f",glow:1.5}));m.rotation.x=Math.PI/2;m.position.set(0,1.58,0);g.add(m);}
+};
+function prop(role,arm){
+  let m=null;
+  if(role==="tank"){m=A3.box(.08,.5,.4,"#9aa6c4",{metal:.4});m.position.set(.05,-.25,.12);}
+  else if(role==="fighter"||role==="boss"){m=A3.box(.06,.75,.1,"#dfe7ff",{metal:.6,rough:.3});m.position.set(0,-.55,.18);m.rotation.x=.4;}
+  else if(role==="assassin"){m=A3.box(.05,.35,.06,"#c0c8e0",{metal:.6});m.position.set(0,-.4,.15);}
+  else if(role==="archer"){m=new THREE.Mesh(new THREE.TorusGeometry(.28,.03,6,16,Math.PI),A3.mat("#8a5a3a"));m.position.set(0,-.35,.12);m.rotation.y=Math.PI/2;}
+  else{m=new THREE.Group();const st=A3.cyl(.03,.03,.9,"#8a5a3a",6);const orb=A3.ball(.1,role==="healer"?"#5fff8a":"#b98aff",{emissive:role==="healer"?"#2fd36a":"#8a4aff",glow:1.2});orb.position.y=.48;m.add(st,orb);m.position.set(0,-.35,.12);}
+  arm.add(m);
+}
+function model(u,s,opt){
+  opt=opt||{};
+  const g=new THREE.Group(),inner=new THREE.Group();g.add(inner);
+  const fc=opt.color||FACTIONS[u.f].c,hc=opt.head||FACTIONS[u.f].h;
+  const legs=[-1,1].map(sx=>{const p=new THREE.Group();p.position.set(sx*.13,.42,0);const l=A3.box(.18,.42,.2,"#2b2f45");l.position.y=-.21;p.add(l);inner.add(p);return p;});
+  const body=A3.box(.58,.56,.38,fc);body.position.y=.7;inner.add(body);
+  const head=A3.box(.46,.42,.42,hc);head.position.y=1.2;inner.add(head);
+  const glowEye=u.f==="shadow"||u.f==="rift"||u.f==="robo"||opt.boss;
+  [-1,1].forEach(sx=>{const e=A3.box(.07,.09,.03,glowEye?"#ffef5a":"#111",glowEye?{emissive:"#ffd23f",glow:1.5}:undefined);e.position.set(sx*.1,1.23,.215);inner.add(e);});
+  const arms=[-1,1].map(sx=>{const p=new THREE.Group();p.position.set(sx*.38,.95,0);const a=A3.box(.15,.46,.16,fc);a.position.y=-.21;p.add(a);inner.add(p);return p;});
+  prop(u.role,arms[1]);
+  if(u.role==="tank"){const sh=A3.box(.08,.55,.5,fc,{metal:.3});sh.position.set(-.06,-.25,.1);arms[0].add(sh);}
+  if(opt.boss){[-1,1].forEach(sx=>{const h=new THREE.Mesh(new THREE.ConeGeometry(.08,.35,8),A3.mat("#fff7e0"));h.position.set(sx*.18,1.5,0);h.rotation.z=-sx*.4;inner.add(h);});}
+  else (HATS[u.f]||(()=>{}))(inner);
+  const sc=(opt.scale||1)*(0.88+0.05*Math.min(u.tier,6)+0.07*(s-1));
+  inner.scale.setScalar(sc);
+  const tagTxt=u.e+(s>1?" "+"★".repeat(s):"");
+  const tag=A3.label(tagTxt,{size:.36,px:64,bg:"rgba(10,8,30,.55)",color:s>=4?"#ffd23f":"#fff"});tag.position.y=1.72*sc+.35;g.add(tag);
+  const barBg=new THREE.Sprite(new THREE.SpriteMaterial({color:0x111111,depthTest:false}));barBg.scale.set(.95,.1,1);barBg.position.y=1.72*sc+.08;
+  const bar=new THREE.Sprite(new THREE.SpriteMaterial({color:opt.side===1?0xff5d5d:0x5fd36a,depthTest:false}));bar.scale.set(.9,.07,1);bar.position.copy(barBg.position);
+  const mana=new THREE.Sprite(new THREE.SpriteMaterial({color:0x4aa8ff,depthTest:false}));mana.scale.set(0,.04,1);mana.position.y=barBg.position.y-.08;
+  barBg.renderOrder=bar.renderOrder=mana.renderOrder=5;
+  g.add(barBg,bar,mana);
+  barBg.visible=bar.visible=mana.visible=!!opt.bars;
+  g.traverse(o=>{if(o.isMesh){o.castShadow=true;}});
+  g.userData={legs,arms,inner,bar,mana,barBg,tag,sc};
+  return g;
+}
+
+/* ---------------- camera ---------------- */
+const cam={yaw:0,pitch:0.92,dist:17,tx:0,tz:2.6,gYaw:0,gPitch:.92,gDist:17,gtx:0,gtz:2.6,spin:0};
+function camGoal(kind){
+  if(kind==="shop"){cam.gtz=4.3;cam.gDist=17.5;cam.gPitch=.98;}
+  else if(kind==="fight"){cam.gtz=0.4;cam.gDist=21;cam.gPitch=.88;}
+  else {cam.gtz=0;cam.gDist=22;cam.gPitch=.6;}
+}
+function updCam(dt){
+  if(phase==="title")cam.gYaw+=dt*0.08;
+  const k=Math.min(1,dt*5);
+  cam.yaw+=(cam.gYaw-cam.yaw)*k;cam.pitch+=(cam.gPitch-cam.pitch)*k;cam.dist+=(cam.gDist-cam.dist)*k;cam.tz+=(cam.gtz-cam.tz)*k;
+  const cp=Math.cos(cam.pitch),narrow=camera.aspect<1?1.5:1,D=cam.dist*narrow;
+  camera.position.set(cam.tx+Math.sin(cam.yaw)*cp*D,Math.sin(cam.pitch)*D,cam.tz+Math.cos(cam.yaw)*cp*D);
+  camera.lookAt(cam.tx,0,cam.tz);
+}
+const ptrs=new Map();let drag=null,pinch=null;
+canvas.addEventListener("pointerdown",e=>{
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+  if(ptrs.size===1)drag={x:e.clientX,y:e.clientY,lx:e.clientX,ly:e.clientY,moved:false};
+  else if(ptrs.size===2){if(drag)drag.moved=true;const a=[...ptrs.values()];pinch={d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),dist:cam.gDist};}
+});
+canvas.addEventListener("pointermove",e=>{
+  if(!ptrs.has(e.pointerId))return;
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size>=2&&pinch){const a=[...ptrs.values()];const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);cam.gDist=A3.clamp(pinch.dist*pinch.d/Math.max(20,d),8,32);return;}
+  if(!drag)return;
+  const dx=e.clientX-drag.lx,dy=e.clientY-drag.ly;
+  if(Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y)>9)drag.moved=true;
+  if(drag.moved){cam.gYaw-=dx*0.008;cam.gPitch=A3.clamp(cam.gPitch+dy*0.006,0.3,1.4);}
+  drag.lx=e.clientX;drag.ly=e.clientY;
+});
+function ptrUp(e){
+  if(drag&&!drag.moved&&ptrs.size===1)tapWorld(e);
+  ptrs.delete(e.pointerId);
+  if(ptrs.size<2)pinch=null;
+  if(ptrs.size===0)drag=null;
+}
+canvas.addEventListener("pointerup",ptrUp);
+canvas.addEventListener("pointercancel",e=>{ptrs.delete(e.pointerId);drag=null;pinch=null;});
+canvas.addEventListener("wheel",e=>{e.preventDefault();cam.gDist=A3.clamp(cam.gDist+e.deltaY*0.01,8,32);},{passive:false});
+canvas.addEventListener("dblclick",()=>{cam.gYaw=0;});
+
+/* ---------------- match state ---------------- */
+let phase="title",M=null,sel=null,prep=[],fighters=[],shots=[],fightT=0,fightOver=false,bannerT=0;
+const key=(c,r)=>c+","+r;
+const unitAt=(c,r)=>M.board[key(c,r)]||null;
+const boardCount=()=>Object.keys(M.board).length;
+const cost=u=>u.tier;
+const sellVal=x=>cost(U[x.id])*Math.pow(2,x.s-1);
+function prefCells(role){
+  const cols=[3,2,4,1,5,0,6],out=[];
+  const rows=role==="tank"||role==="fighter"||role==="boss"?[0,1,2,3]:role==="assassin"?[0,1,2,3]:[3,2,1,0];
+  rows.forEach(r=>cols.forEach(c=>out.push([c,r])));
+  if(role==="assassin"){out.sort((a,b)=>(a[1]-b[1])||(Math.abs(b[0]-3)-Math.abs(a[0]-3)));}
+  return out;
+}
+function freeCell(board,role){for(const [c,r] of prefCells(role))if(!board[key(c,r)])return [c,r];return null;}
+function synCount(list){
+  const seen={},cnt={};
+  list.forEach(x=>{if(seen[x.id])return;seen[x.id]=1;const f=U[x.id]?U[x.id].f:null;if(f)cnt[f]=(cnt[f]||0)+1;});
+  return cnt;
+}
+const synTier=(f,n)=>f==="rift"?Math.min(3,n):n>=6?3:n>=4?2:n>=2?1:0;
+function shopLv(){return Math.max(3,Math.min(10,M.cap-slotBonus()));}
+function rollCard(lv,pool){
+  const W=ODDS[Math.max(3,Math.min(10,lv))];let tot=0;W.forEach(w=>tot+=w);let x=Math.random()*tot,t=1;
+  for(let i=0;i<6;i++){x-=W[i];if(x<=0){t=i+1;break;}}
+  for(;t>=1;t--){const c=pool.filter(u=>u.tier===t);if(c.length)return A3.pick(c).id;}
+  return pool[0].id;
+}
+const playerPool=()=>ULIST.filter(u=>S.cards[u.id]);
+const aiPool=ULIST.filter(u=>u.tier<=5);
+function newShop(){const p=playerPool();M.shop=[];for(let i=0;i<5;i++)M.shop.push(rollCard(shopLv(),p));}
+function income(){
+  if(M.round===1)return 6;
+  const st=Math.abs(M.streak);const sb=st>=5?3:st>=4?2:st>=2?1:0;
+  const cnt=synCount(Object.values(M.board));const candy=synTier("candy",cnt.candy||0);
+  return 5+Math.min(5,Math.floor(M.gold/10))+sb+candy;
+}
+function allRefs(){
+  const out=[];Object.keys(M.board).forEach(k=>out.push({w:"b",k,x:M.board[k]}));
+  M.bench.forEach((x,i)=>{if(x)out.push({w:"n",i,x});});return out;
+}
+function removeRef(r){if(r.w==="b")delete M.board[r.k];else M.bench[r.i]=null;}
+function chainMerge(){
+  let again=true,made=null;
+  while(again){
+    again=false;const refs=allRefs();
+    outer:for(let i=0;i<refs.length;i++)for(let j=i+1;j<refs.length;j++){
+      const a=refs[i],b=refs[j];
+      if(a.x.id===b.x.id&&a.x.s===b.x.s&&a.x.s<5){
+        let keep=a,drop=b;if(b.w==="b"&&a.w!=="b"){keep=b;drop=a;}
+        keep.x.s++;removeRef(drop);made=keep;again=true;break outer;
+      }
+    }
+  }
+  return made;
+}
+function canAdd(id){
+  if(allRefs().some(r=>r.x.id===id&&r.x.s===1))return true;
+  if(boardCount()<M.cap&&freeCell(M.board,U[id].role))return true;
+  return M.bench.some(x=>!x);
+}
+function addUnit(id){
+  const dup=allRefs().find(r=>r.x.id===id&&r.x.s===1);
+  if(dup){dup.x.s=2;return chainMerge()||dup;}
+  const x={id,s:1};
+  if(boardCount()<M.cap){const fc=freeCell(M.board,U[id].role);if(fc){const k=key(fc[0],fc[1]);M.board[k]=x;return {w:"b",k,x};}}
+  const bi=M.bench.indexOf(null);if(bi>=0){M.bench[bi]=x;return {w:"n",i:bi,x};}
+  return null;
+}
+function disposeObj(o){o.traverse(n=>{if(n.geometry)n.geometry.dispose();if(n.isSprite&&n.material){if(n.material.map)n.material.map.dispose();n.material.dispose();}});}
+
+/* ---------------- AI ---------------- */
+function newAI(E,max,skill){return {units:[],gold:0,cap:3,fav:[A3.pick(FKEYS),A3.pick(FKEYS)],E,max,skill,board:{}};}
+function aiMerge(ai){let again=true;while(again){again=false;for(let i=0;i<ai.units.length&&!again;i++)for(let j=i+1;j<ai.units.length;j++){const a=ai.units[i],b=ai.units[j];if(a.id===b.id&&a.s===b.s&&a.s<5){a.s++;ai.units.splice(j,1);again=true;break;}}}}
+function aiTurn(ai,round){
+  ai.gold+=round===1?6:5+Math.min(5,Math.floor(ai.gold/10));
+  ai.cap=Math.min(ai.max,3+Math.floor((round-1)/2)+(ai.skill>0.85?Math.floor(round/5):0));
+  let shop=[];const roll=()=>{shop=[];for(let i=0;i<5;i++)shop.push(rollCard(ai.cap,aiPool));};roll();
+  for(let loop=0;loop<10;loop++){
+    let best=-1,bs=-1;
+    shop.forEach((id,i)=>{if(!id)return;const u=U[id];if(u.tier>ai.gold)return;
+      let sc=u.tier+(ai.units.some(x=>x.id===id)?6:0)+(ai.fav.includes(u.f)?3:0)+Math.random()*2;
+      if(ai.units.length>=ai.cap+3&&!ai.units.some(x=>x.id===id&&x.s===1))sc=-1;
+      if(sc>bs){bs=sc;best=i;}});
+    if(best>=0&&Math.random()<ai.skill+0.25){const id=shop[best];ai.gold-=U[id].tier;ai.units.push({id,s:1});shop[best]=null;aiMerge(ai);continue;}
+    if(ai.gold>=5){ai.gold-=2;roll();continue;}
+    break;
+  }
+  ai.units.sort((a,b)=>U[b.id].tier*Math.pow(1.8,b.s-1)-U[a.id].tier*Math.pow(1.8,a.s-1));
+  while(ai.units.length>ai.cap+4)ai.units.pop();
+  ai.board={};
+  ai.units.slice(0,ai.cap).forEach(x=>{const fc=freeCell(ai.board,U[x.id].role);if(fc)ai.board[key(fc[0],fc[1])]={id:x.id,s:x.s};});
+}
+
+/* ---------------- ghosts (Public Arena) ---------------- */
+function myName(){try{return (window.Leaderboard&&Leaderboard.getName())||localStorage.getItem("ghacct_user")||"Player";}catch(e){return "Player";}}
+function rpc(fn,body){return fetch(SB_URL+"/rest/v1/rpc/"+fn,{method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json"},body:JSON.stringify(body)}).then(r=>r.ok?r.json():null).catch(()=>null);}
+const num=v=>{v=+v;return isFinite(v)&&v>0?+v.toPrecision(5):1;};
+function myTeam(){return Object.keys(M.board).map(k=>{const [c,r]=k.split(",").map(Number),x=M.board[k];return [x.id,x.s,c,r,num(hmOf(x.id)),num(dmOf(x.id))];});}
+function putGhost(){const t=myTeam();if(!t.length||!navigator.onLine)return;rpc("rc_ghost_put",{p_name:myName(),p_round:Math.min(60,M.round),p_team:t,p_power:1});}
+function cleanGhost(g){
+  if(!g||!Array.isArray(g.team))return null;const used={},team=[];
+  g.team.forEach(a=>{if(!Array.isArray(a)||!U[a[0]])return;const c=a[2]|0,r=a[3]|0;if(c<0||c>6||r<0||r>3||used[key(c,r)])return;used[key(c,r)]=1;
+    team.push([a[0],A3.clamp(a[1]|0,1,5),c,r,Math.min(1e300,num(a[4])),Math.min(1e300,num(a[5]))]);});
+  if(!team.length)return null;return {name:String(g.name||"Player").slice(0,20),team};
+}
+function fetchGhost(){
+  const mm=M,round=M.round;M.ghost=null;
+  if(!navigator.onLine){updMbar();return;}
+  rpc("rc_ghost_get",{p_round:Math.min(60,round),p_not:myName()}).then(d=>{
+    if(mm!==M||phase!=="shop"||M.round!==round)return;
+    const g=cleanGhost(Array.isArray(d)?d[0]:null);M.ghost=g;updMbar();
+  });
+}
+
+/* ---------------- match flow ---------------- */
+function newMatch(mode){
+  const L=S.lvl;
+  M={mode,level:L,round:1,hp:100,ehp:100,gold:0,cap:3+slotBonus(),bench:Array(8).fill(null),board:{},shop:[],streak:0,ghost:null,boss:mode==="camp"&&isBoss(L)};
+  if(mode==="camp"){const sk=Math.min(0.95,0.5+L*0.018);M.ai=newAI(campE(L),Math.min(10,4+Math.floor(L/4)),sk);}
+  else M.ai=newAI(1,10,0.9);
+  S.match=M;S.games++;
+  startShop();
+}
+function startShop(){
+  phase="shop";sel=null;fightOver=false;
+  if(M.round>1&&M.round%2===1&&M.cap<maxCap())M.cap++;
+  M.gold+=income();
+  newShop();
+  aiTurn(M.ai,M.round);
+  if(M.mode==="arena")fetchGhost();
+  const w=M.mode==="arena"?ARENA_W:worldOf(M.level).w;setWorld(w,M.mode==="arena"?999:worldOf(M.level).wi);
+  camGoal("shop");
+  ["dock","goldBox","mbar","syn"].forEach(id=>$(id).hidden=false);$("bSpeed").hidden=true;$("bQuit").hidden=false;
+  persist();drawPrep();renderDock();updMbar();
+}
+function updMbar(){
+  if(!M)return;
+  $("myName").textContent=myName()==="Player"?"You":myName();
+  $("myHpF").style.width=Math.max(0,M.hp)+"%";$("foeHpF").style.width=Math.max(0,M.ehp)+"%";
+  $("mRound").textContent="Round "+M.round;
+  $("mHp").textContent="❤️ "+Math.max(0,M.hp)+" vs "+Math.max(0,M.ehp);
+  let foe;
+  if(M.mode==="arena")foe=M.ghost?M.ghost.name+"'s team":(phase==="shop"?"Finding a player…":"Rift Bot");
+  else{const wo=worldOf(M.level);foe=M.boss?"👹 "+wo.boss:wo.name+" "+wo.st+"/10";}
+  $("foeName").textContent=foe;
+}
+function clearPrep(){prep.forEach(m=>{scene.remove(m);disposeObj(m);});prep=[];}
+function drawPrep(){
+  clearPrep();
+  Object.keys(M.board).forEach(k=>{const [c,r]=k.split(",").map(Number),x=M.board[k];const g=model(U[x.id],x.s,{side:0});g.position.set(cx(c),0.14,cz(r,0));g.rotation.y=Math.PI;
+    g.userData.prepKey=k;scene.add(g);prep.push(g);});
+  tiles.forEach(t=>{const hi=sel&&t.userData.mine;t.material.emissive.set(hi?"#ffd23f":"#000000");t.material.emissiveIntensity=hi?0.18:1;});
+  if(sel&&sel.w==="b"){const t=tiles.find(t=>t.userData.mine&&key(t.userData.c,t.userData.r)===sel.k);if(t){t.material.emissive.set("#ffd23f");t.material.emissiveIntensity=.6;}}
+}
+function cardHTML(u,extra){return '<span class="em">'+u.e+'</span><span class="nm">'+u.n+'</span><span class="ft">'+FACTIONS[u.f].e+ROLE[u.role].icon+'</span>'+(extra||"");}
+function renderDock(){
+  let h="";
+  M.bench.forEach((x,i)=>{
+    if(!x){h+='<div class="bslot'+(sel&&sel.w==="n"&&sel.i===i?" sel":"")+'" data-i="'+i+'"></div>';return;}
+    const u=U[x.id];
+    h+='<div class="bslot full'+(sel&&sel.w==="n"&&sel.i===i?" sel":"")+'" data-i="'+i+'" style="--rc:'+RAR[u.tier].c+'"><span class="fe">'+FACTIONS[u.f].e+'</span><span class="em">'+u.e+'</span><span class="st">'+"★".repeat(x.s)+'</span></div>';
+  });
+  $("bench").innerHTML=h;
+  h="";
+  M.shop.forEach((id,i)=>{
+    if(!id){h+='<div class="cd sold"></div>';return;}
+    const u=U[id],ok=M.gold>=cost(u)&&canAdd(id),mg=allRefs().some(r=>r.x.id===id&&r.x.s===1);
+    h+='<div class="cd'+(ok?"":" no")+'" data-s="'+i+'" style="--rc:'+RAR[u.tier].c+'">'+(mg?'<span class="mg">MERGE!</span>':"")+'<span class="cost">'+cost(u)+'💰</span>'+cardHTML(u)+'</div>';
+  });
+  $("shop").innerHTML=h;
+  $("gold").textContent=M.gold;
+  $("teamTxt").textContent="Team "+boardCount()+"/"+M.cap;
+  $("bRoll").disabled=M.gold<2;
+  $("bLvUp").disabled=M.gold<4||M.cap>=maxCap();
+  $("bFight").disabled=boardCount()===0;
+  const sx=selX();$("bSell").hidden=!sx;if(sx)$("bSell").textContent="Sell for "+sellVal(sx)+" 💰";
+  renderSyn(Object.values(M.board));
+  renderInfo(sx);
+}
+function renderSyn(list){
+  const cnt=synCount(list);
+  const keys=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]);
+  $("syn").innerHTML=keys.map(f=>{const t=synTier(f,cnt[f]);const nx=f==="rift"?[1,2,3]:[2,4,6];const goal=nx.find(n=>n>cnt[f])||nx[2];
+    return '<div class="'+(t?"on":"")+'" style="--c:'+FACTIONS[f].c+'">'+FACTIONS[f].e+" "+FACTIONS[f].n+" "+cnt[f]+"/"+goal+(t?" · "+FACTIONS[f].d(t):"")+'</div>';}).join("");
+}
+function statsOf(id,s){const u=U[id],R=ROLE[u.role],sm=Math.pow(1.8,s-1);return {hp:R.hp*TIERM[u.tier]*sm*hmOf(id),dmg:R.dmg*TIERM[u.tier]*sm*dmOf(id)};}
+function renderInfo(x){
+  if(!x){$("info").hidden=true;return;}
+  const u=U[x.id],R=ROLE[u.role],st=statsOf(x.id,x.s);
+  $("info").innerHTML="<h4>"+u.e+" "+u.n+" "+"★".repeat(x.s)+"</h4>"+RAR[u.tier].n+" "+R.nm+" · "+FACTIONS[u.f].e+" "+FACTIONS[u.f].n+"<br>❤️ "+fmt(st.hp)+" · 💥 "+fmt(st.dmg)+"<br>Card level "+(S.cards[x.id]||1)+'<br><span class="ab">'+R.ab+"</span>";
+  $("info").hidden=false;
+}
+function selX(){if(!sel)return null;return sel.w==="b"?M.board[sel.k]:M.bench[sel.i];}
+function buy(i){
+  if(phase!=="shop")return;const id=M.shop[i];if(!id)return;const u=U[id];
+  if(M.gold<cost(u)){A3.toast("Not enough gold!");A3.sfx("lose");return;}
+  if(!canAdd(id)){A3.toast("No room! Sell something or level up your team.");return;}
+  M.gold-=cost(u);M.shop[i]=null;sel=null;
+  const r=addUnit(id);
+  if(r&&r.x&&r.x.s>1){A3.sfx("win");A3.toast(u.e+" "+u.n+" merged to "+"★".repeat(r.x.s)+"!");}
+  else A3.sfx("coin");
+  persist();drawPrep();renderDock();
+  if(r&&r.w==="b"){const [c,rr]=r.k.split(",").map(Number);parts.burst(new THREE.Vector3(cx(c),1,cz(rr,0)),RAR[u.tier].c,24,5);}
+}
+function tapBench(i){
+  if(phase!=="shop")return;
+  const here=M.bench[i];
+  if(sel){
+    if(sel.w==="n"){const t=M.bench[sel.i];M.bench[sel.i]=here;M.bench[i]=t;}
+    else{const t=M.board[sel.k];if(here)M.board[sel.k]=here;else delete M.board[sel.k];M.bench[i]=t;}
+    sel=null;A3.sfx("pop");
+  } else if(here){sel={w:"n",i};A3.sfx("click");}
+  persist();drawPrep();renderDock();
+}
+function tapCell(c,r){
+  const here=unitAt(c,r),k=key(c,r);
+  if(sel){
+    if(sel.w==="b"){if(sel.k!==k){const t=M.board[sel.k];if(here)M.board[sel.k]=here;else delete M.board[sel.k];M.board[k]=t;}}
+    else{
+      const t=M.bench[sel.i];
+      if(!here&&boardCount()>=M.cap){A3.toast("Team is full! Buy a team slot for more.");sel=null;drawPrep();renderDock();return;}
+      M.bench[sel.i]=here||null;M.board[k]=t;
+    }
+    sel=null;A3.sfx("pop");
+  } else if(here){sel={w:"b",k};A3.sfx("click");}
+  persist();drawPrep();renderDock();
+}
+function tapWorld(e){
+  if(phase!=="shop")return;
+  const p=A3.floorPoint(e,camera,canvas,0.14);if(!p)return;
+  // tap near a unit body: also try ray against prep models
+  const rc=A3.ray(e,camera,canvas);const hits=rc.intersectObjects(prep,true);
+  if(hits.length){let o=hits[0].object;while(o&&!o.userData.prepKey)o=o.parent;if(o){const [c,r]=o.userData.prepKey.split(",").map(Number);tapCell(c,r);return;}}
+  const c=Math.round(p.x/CELL+3),r=Math.floor(p.z/CELL);
+  if(c<0||c>6||r<0||r>3){if(sel){sel=null;drawPrep();renderDock();}return;}
+  tapCell(c,r);
+}
+$("bench").addEventListener("click",e=>{const b=e.target.closest(".bslot");if(b)tapBench(+b.dataset.i);});
+$("shop").addEventListener("click",e=>{const b=e.target.closest(".cd");if(b&&b.dataset.s!==undefined)buy(+b.dataset.s);});
+$("bRoll").onclick=()=>{if(M.gold<2)return;M.gold-=2;newShop();A3.sfx("whoosh");persist();renderDock();};
+$("bLvUp").onclick=()=>{if(M.gold<4||M.cap>=maxCap())return;M.gold-=4;M.cap++;A3.sfx("jump");A3.toast("Team slots: "+M.cap);persist();renderDock();};
+$("bSell").onclick=()=>{const x=selX();if(!x)return;M.gold+=sellVal(x);if(sel.w==="b")delete M.board[sel.k];else M.bench[sel.i]=null;sel=null;A3.sfx("coin");persist();drawPrep();renderDock();};
+$("bFight").onclick=()=>{if(boardCount()===0){A3.toast("Put some units on the board first!");return;}startFight();};
+$("bSpeed").onclick=()=>{S.speed=S.speed===1?2:S.speed===2?4:1;$("bSpeed").textContent=S.speed+"x";persist();};
+
+/* ---------------- battle ---------------- */
+function mkFighter(id,s,c,r,side,hm,dm,cnt){
+  const u=U[id],R=ROLE[u.role],sm=Math.pow(1.8,s-1);
+  const f={u,id,s,side,role:u.role,hpMax:R.hp*TIERM[u.tier]*sm*hm,dmg:R.dmg*TIERM[u.tier]*sm*dm,as:R.as*(1+0.04*(s-1)),rng:R.rng,mana:0,manaMul:1,shield:0,crit:0,dr:0,heal:0,revive:0,revived:false,
+    x:cx(c),z:cz(r,side),alive:true,cd:Math.random()*0.6,stun:0,target:null,jumped:false,lunge:0,flash:0,walk:0,dead:0,boss:false};
+  const t=fac=>synTier(fac,cnt[fac]||0);
+  const tf=t(u.f);
+  if(tf){switch(u.f){
+    case "flame":f.dmg*=1+.15*tf;break;case "jungle":f.hpMax*=1+.2*tf;break;case "robo":f.dr=.12*tf;break;
+    case "shadow":f.crit=.15*tf;break;case "sky":f.as*=1+.18*tf;break;case "ocean":f.heal=.015*tf;break;
+    case "star":f.manaMul=1+.35*tf;break;case "bone":f.revive=.3*tf;break;case "candy":f.hpMax*=1+.1*tf;break;
+    case "rift":f.hpMax*=1+.12*tf;f.dmg*=1+.12*tf;break;}}
+  f.hp=f.hpMax;
+  f.mesh=model(u,s,{side,bars:true});f.mesh.position.set(f.x,0.14,f.z);f.mesh.rotation.y=side===0?Math.PI:0;scene.add(f.mesh);
+  return f;
+}
+function mkBoss(E,round){
+  const wo=worldOf(M.level);
+  const u={id:"boss",n:wo.boss,e:"👹",f:"rift",role:"boss",tier:6};
+  const f={u,id:"boss",s:1,side:1,role:"boss",hpMax:ROLE.boss.hp*E*(1+0.3*(round-1)),dmg:ROLE.boss.dmg*E*(1+0.12*round),as:.6,rng:ROLE.boss.rng,mana:0,manaMul:1,shield:0,crit:0,dr:.1,heal:0,revive:0,revived:false,
+    x:0,z:cz(2,1),alive:true,cd:.5,stun:0,target:null,jumped:true,lunge:0,flash:0,walk:0,dead:0,boss:true};
+  f.hp=f.hpMax;
+  f.mesh=model(u,1,{side:1,bars:true,boss:true,scale:2.2,color:wo.w[6],head:"#5a2a2a"});f.mesh.position.set(f.x,0.14,f.z);scene.add(f.mesh);
+  return f;
+}
+let foeLabel="";
+function startFight(){
+  phase="fight";sel=null;fightT=0;fightOver=false;clearPrep();drawPrepTilesOff();
+  $("dock").hidden=true;$("info").hidden=true;$("goldBox").hidden=true;$("bSpeed").hidden=false;$("bSpeed").textContent=S.speed+"x";
+  camGoal("fight");
+  const mine=myTeam();
+  putGhost();
+  let enemy,eSide;
+  if(M.mode==="arena"&&M.ghost){enemy=M.ghost.team;foeLabel=M.ghost.name;}
+  else{
+    let E=M.ai.E;
+    if(M.mode==="arena"){let s=0;mine.forEach(a=>s+=Math.sqrt(a[4]*a[5]));E=mine.length?s/mine.length:1;foeLabel="Rift Bot";}
+    enemy=Object.keys(M.ai.board).map(k=>{const [c,r]=k.split(",").map(Number),x=M.ai.board[k];return [x.id,x.s,c,r,E,E];});
+  }
+  const cm=synCount(mine.map(a=>({id:a[0]}))),ce=synCount(enemy.map(a=>({id:a[0]})));
+  fighters=[];
+  mine.forEach(a=>fighters.push(mkFighter(a[0],a[1],a[2],a[3],0,a[4],a[5],cm)));
+  enemy.forEach(a=>{if(M.boss&&M.round>=2&&a[2]===3&&a[3]===2)return;fighters.push(mkFighter(a[0],a[1],a[2],a[3],1,a[4],a[5],ce));});
+  if(M.boss&&M.round>=2)fighters.push(mkBoss(M.ai.E,M.round));
+  const fr0=synTier("frost",cm.frost||0),fr1=synTier("frost",ce.frost||0);
+  fighters.forEach(f=>{const ft=f.side===0?fr1:fr0;if(ft)f.as*=1-.1*ft;});
+  renderSyn(mine.map(a=>({id:a[0]})));
+  updMbar();A3.sfx("boom");
+  showBanner("FIGHT!",M.mode==="arena"?"vs "+(M.ghost?M.ghost.name:"Rift Bot"):"",1.1);
+  persist();
+}
+function drawPrepTilesOff(){tiles.forEach(t=>{t.material.emissive.set("#000000");});}
+function showBanner(t,sub,sec){const b=$("banner");b.innerHTML="";b.appendChild(document.createTextNode(t));if(sub){const s=document.createElement("small");s.textContent=sub;b.appendChild(s);}b.hidden=false;bannerT=sec||1.4;}
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
+function enemiesOf(f){return fighters.filter(o=>o.alive&&o.side!==f.side);}
+function alliesOf(f){return fighters.filter(o=>o.alive&&o.side===f.side);}
+function nearest(f,list){let b=null,bd=1e9;list.forEach(o=>{const d=dist(f,o);if(d<bd){bd=d;b=o;}});return b;}
+function hit(t,amt,src,kind){
+  if(!t.alive)return;
+  let crit=false;if(src&&src.crit&&Math.random()<src.crit){amt*=2;crit=true;}
+  amt*=1-t.dr;
+  if(t.shield>0){const a=Math.min(t.shield,amt);t.shield-=a;amt-=a;}
+  t.hp-=amt;t.mana=Math.min(100,t.mana+4*t.manaMul);t.flash=.12;
+  if(crit)parts.burst(new THREE.Vector3(t.x,1.4,t.z),"#ffd23f",6,3,.4);
+  if(t.hp<=0){
+    if(t.revive>0&&!t.revived){t.revived=true;t.hp=t.hpMax*t.revive;parts.burst(new THREE.Vector3(t.x,1,t.z),"#ffffff",18,4);A3.sfx("pop");return;}
+    t.alive=false;t.dead=0.001;parts.burst(new THREE.Vector3(t.x,1,t.z),t.side===0?"#4aa8ff":"#ff5d5d",16,5);A3.sfx("hit");
+  }
+}
+function shoot(src,tgt,dmg,kind){
+  const col=kind==="heal"?"#5fff8a":kind==="aoe"?"#c78aff":FACTIONS[src.u.f].c;
+  const m=kind==="arrow"?A3.box(.06,.06,.5,col,{emissive:col,glow:.6}):A3.ball(kind==="aoe"?.28:.14,col,{emissive:col,glow:1});
+  m.position.set(src.x,1.1,src.z);scene.add(m);
+  shots.push({m,src,tgt,dmg,kind,tx:tgt.x,tz:tgt.z});
+}
+function attack(f,t){
+  f.lunge=.25;A3.sfx("tick");
+  if(f.role==="archer")shoot(f,t,f.dmg,"arrow");
+  else if(f.role==="mage")shoot(f,t,f.dmg,"orb");
+  else if(f.role==="healer")shoot(f,t,f.dmg,"orb");
+  else hit(t,f.dmg,f);
+  f.mana+=12*f.manaMul;
+  if(f.mana>=100)cast(f,t);
+}
+function cast(f,t){
+  f.mana=0;const P=f.u.tier===6&&!f.boss?1.3:1;
+  const pos=new THREE.Vector3(f.x,1.2,f.z);
+  switch(f.role){
+    case "tank":f.shield+=f.hpMax*.35*P;enemiesOf(f).forEach(o=>{if(dist(f,o)<2.3)o.stun=Math.max(o.stun,1.1);});parts.burst(pos,"#bfe6ff",20,4);A3.sfx("boom");break;
+    case "fighter":enemiesOf(f).forEach(o=>{if(o===t||dist(t,o)<1.9)hit(o,f.dmg*2*P,f);});parts.burst(new THREE.Vector3(t.x,1,t.z),"#ffd23f",18,5);A3.sfx("hit");break;
+    case "assassin":{const es=enemiesOf(f);let w=null;es.forEach(o=>{if(!w||o.hp<w.hp)w=o;});if(w){f.x=w.x+(Math.random()-.5);f.z=w.z+(f.side===0?-1:1)*0.9;f.target=w;parts.burst(new THREE.Vector3(f.x,1,f.z),"#7a4bd1",16,4);hit(w,f.dmg*3*P,f);A3.sfx("whoosh");}break;}
+    case "archer":enemiesOf(f).sort((a,b)=>dist(f,a)-dist(f,b)).slice(0,3).forEach(o=>shoot(f,o,f.dmg*1.6*P,"arrow"));A3.sfx("whoosh");break;
+    case "mage":shoot(f,t,f.dmg*2.6*P,"aoe");break;
+    case "healer":{const al=alliesOf(f);let w=null;al.forEach(o=>{if(!w||o.hp/o.hpMax<w.hp/w.hpMax)w=o;});if(w){w.hp=Math.min(w.hpMax,w.hp+f.dmg*7*P);parts.burst(new THREE.Vector3(w.x,1.2,w.z),"#5fff8a",18,3);}f.hp=Math.min(f.hpMax,f.hp+f.dmg*1.5);A3.sfx("pop");break;}
+    case "boss":enemiesOf(f).forEach(o=>{if(dist(f,o)<3.4){hit(o,f.dmg*2.2,f);o.stun=Math.max(o.stun,1);}});parts.burst(new THREE.Vector3(f.x,.3,f.z),"#ffb300",40,7);A3.sfx("boom");break;
+  }
+}
+function simStep(dt){
+  fightT+=dt;
+  fighters.forEach(f=>{
+    if(!f.alive)return;
+    if(f.heal)f.hp=Math.min(f.hpMax,f.hp+f.hpMax*f.heal*dt);
+    if(f.stun>0){f.stun-=dt;return;}
+    const es=enemiesOf(f);if(!es.length)return;
+    if(f.role==="assassin"&&!f.jumped&&fightT>0.4){
+      f.jumped=true;let far=null;es.forEach(o=>{if(!far||Math.abs(o.z)>Math.abs(far.z))far=o;});
+      if(far){f.x=far.x+(Math.random()-.5)*.6;f.z=far.z+(f.side===0?-1:1)*1.0;f.target=far;parts.burst(new THREE.Vector3(f.x,1,f.z),"#7a4bd1",14,4);A3.sfx("whoosh");}
+    }
+    if(!f.target||!f.target.alive)f.target=nearest(f,es);
+    const t=f.target,d=dist(f,t);
+    if(d>f.rng){
+      const sp=(f.boss?1.5:2.3)*dt;f.x+=(t.x-f.x)/d*sp;f.z+=(t.z-f.z)/d*sp;f.walk+=dt*9;
+    } else {
+      f.cd-=dt;if(f.cd<=0){f.cd=1/f.as;attack(f,t);}
+    }
+  });
+  // push apart
+  const al=fighters.filter(f=>f.alive);
+  for(let i=0;i<al.length;i++)for(let j=i+1;j<al.length;j++){
+    const a=al[i],b=al[j];const min=(a.boss||b.boss)?1.6:0.85;const d=dist(a,b);
+    if(d<min&&d>0.0001){const p=(min-d)/2;const nx=(a.x-b.x)/d,nz=(a.z-b.z)/d;a.x+=nx*p;a.z+=nz*p;b.x-=nx*p;b.z-=nz*p;}
+  }
+  al.forEach(f=>{f.x=A3.clamp(f.x,-9,9);f.z=A3.clamp(f.z,-9,9);});
+  // shots
+  for(let i=shots.length-1;i>=0;i--){
+    const s=shots[i];if(s.tgt.alive){s.tx=s.tgt.x;s.tz=s.tgt.z;}
+    const dx=s.tx-s.m.position.x,dz=s.tz-s.m.position.z,dd=Math.hypot(dx,dz),sp=16*dt;
+    if(dd<=sp+.1){
+      if(s.kind==="aoe"){fighters.forEach(o=>{if(o.alive&&o.side!==s.src.side&&Math.hypot(o.x-s.tx,o.z-s.tz)<2.4)hit(o,s.dmg,s.src);});parts.burst(new THREE.Vector3(s.tx,1,s.tz),"#c78aff",26,6);A3.sfx("boom");}
+      else if(s.tgt.alive)hit(s.tgt,s.dmg,s.src);
+      scene.remove(s.m);disposeObj(s.m);shots.splice(i,1);
+    } else {s.m.position.x+=dx/dd*sp;s.m.position.z+=dz/dd*sp;s.m.lookAt(s.tx,1.1,s.tz);}
+  }
+  const a0=fighters.some(f=>f.alive&&f.side===0),a1=fighters.some(f=>f.alive&&f.side===1);
+  if(!a0||!a1||fightT>50)endRound(a0,a1);
+}
+function animFighters(dt){
+  fighters.forEach(f=>{
+    const g=f.mesh,ud=g.userData;
+    if(f.dead){f.dead+=dt;ud.inner.rotation.x=Math.min(Math.PI/2,f.dead*4)*(f.side===0?-1:1);g.position.y=0.14-Math.max(0,f.dead-.5)*1.2;
+      ud.bar.visible=ud.barBg.visible=ud.mana.visible=ud.tag.visible=false;
+      if(f.dead>1.6&&g.parent){scene.remove(g);}return;}
+    const tgt=f.target&&f.target.alive?f.target:null;
+    let lx=0,lz=0;
+    if(tgt){const ang=Math.atan2(tgt.x-f.x,tgt.z-f.z);let dr=ang-g.rotation.y;while(dr>Math.PI)dr-=Math.PI*2;while(dr<-Math.PI)dr+=Math.PI*2;g.rotation.y+=dr*Math.min(1,dt*10);
+      if(f.lunge>0){const l=Math.sin(f.lunge/.25*Math.PI)*.35;const d=dist(f,tgt)||1;lx=(tgt.x-f.x)/d*l;lz=(tgt.z-f.z)/d*l;}}
+    f.lunge=Math.max(0,f.lunge-dt);
+    g.position.set(f.x+lx,0.14,f.z+lz);
+    ud.legs[0].rotation.x=Math.sin(f.walk)*.6;ud.legs[1].rotation.x=-Math.sin(f.walk)*.6;
+    ud.arms[1].rotation.x=f.lunge>0?-1.6*Math.sin(f.lunge/.25*Math.PI):Math.sin(f.walk)*.4;
+    ud.inner.position.y=f.stun>0?0:Math.abs(Math.sin(fightT*4+f.x))*.03;
+    const fr=Math.max(0,f.hp/f.hpMax);ud.bar.scale.x=.9*fr;
+    ud.mana.scale.x=.9*f.mana/100;
+    if(f.flash>0){f.flash-=dt;ud.inner.scale.setScalar(ud.sc*(1+f.flash));}else ud.inner.scale.setScalar(ud.sc);
+    if(f.shield>0)ud.bar.material.color.set(0xdfe7ff);else ud.bar.material.color.set(f.side===1?0xff5d5d:0x5fd36a);
+  });
+}
+function endRound(a0,a1){
+  if(fightOver)return;fightOver=true;
+  let win;
+  if(a0&&!a1)win=true;else if(a1&&!a0)win=false;else if(!a0&&!a1)win=false;
+  else{let p0=0,p1=0;fighters.forEach(f=>{if(f.alive){if(f.side===0)p0+=f.hp/f.hpMax;else p1+=f.hp/f.hpMax;}});win=p0>p1;}
+  const surv=fighters.filter(f=>f.alive&&f.side===(win?0:1));
+  let dmg=3+M.round;surv.forEach(f=>dmg+=f.boss?5:f.s);
+  dmg=Math.min(dmg,40);
+  if(win){M.ehp-=dmg;M.streak=M.streak>0?M.streak+1:1;A3.sfx("win");showBanner("Round won!",(M.mode==="arena"?foeLabel:"Enemy")+" loses "+dmg+" ❤️",1.8);}
+  else{M.hp-=dmg;M.streak=M.streak<0?M.streak-1:-1;A3.sfx("lose");showBanner("Round lost",(fightT>50?"Time up! ":"")+"You lose "+dmg+" ❤️",1.8);}
+  updMbar();
+  setTimeout(afterRound,2000);
+}
+function clearFight(){fighters.forEach(f=>{scene.remove(f.mesh);disposeObj(f.mesh);});fighters=[];shots.forEach(s=>{scene.remove(s.m);disposeObj(s.m);});shots=[];}
+function afterRound(){
+  if(phase!=="fight")return;
+  clearFight();
+  if(M.hp<=0||M.ehp<=0){endMatch(M.ehp<=0&&M.hp>0);return;}
+  M.round++;startShop();
+}
+function endMatch(win){
+  phase="end";const m=M;S.match=null;M=null;
+  ["dock","goldBox","mbar","syn","bSpeed","info","banner"].forEach(id=>$(id).hidden=true);$("bQuit").hidden=true;
+  let title,text,stats=[];
+  if(m.mode==="camp"){
+    const wo=worldOf(m.level),rw=reward(m.level);
+    if(win){
+      S.coins+=rw;S.wins++;if(m.level===S.lvl)S.lvl++;S.best=Math.max(S.best,S.lvl);
+      if(m.boss){S.bossWins++;A3.win(5,"beat "+wo.boss+" in Rift's Ultimate Clash");}else A3.win(3,"won level "+m.level+" in Rift's Ultimate Clash");
+      title=m.boss?"Boss beaten!":"Victory!";text=(m.boss?"You beat "+wo.boss+"! ":"")+"Level "+m.level+" cleared.";
+      stats.push("Coins +"+fmt(rw));
+      if(m.boss&&m.level<MAXLV)text+=" On to "+worldOf(m.level+1).name+"!";
+    } else {
+      const c=Math.round(rw*0.2);S.coins+=c;title="Defeated";text="Your hearts ran out on round "+m.round+". Try a new team, buy Army Power or open chests.";stats.push("Coins +"+fmt(c));
+    }
+    $("eNext").textContent=win?"Next level":"Try again";
+  } else {
+    const before=S.tro,rw=Math.round(reward(S.lvl)*(win?0.6:0.15));
+    if(win){S.tro+=30+Math.floor(Math.max(0,m.hp)/10);S.arenaW++;A3.win(4,"won in the Public Arena");}else S.tro=Math.max(0,S.tro-15);
+    S.coins+=rw;
+    if(S.tro>S.bestTro){S.bestTro=S.tro;A3.best(S.tro);}
+    title=win?"Arena win!":"Arena loss";text=(win?"You beat the Arena in "+m.round+" rounds!":"Knocked out on round "+m.round+".")+" League: "+league(S.tro);
+    stats.push("Trophies "+(S.tro-before>=0?"+":"")+(S.tro-before),"Coins +"+fmt(rw));
+    $("eNext").textContent="Play again";
+  }
+  stats.push("❤️ left "+Math.max(0,m.hp));
+  $("eTitle").textContent=title;$("eText").textContent=text;
+  $("eStats").innerHTML=stats.map(s=>"<div>"+s+"</div>").join("");
+  $("eReb").hidden=!rebReady();
+  $("eNext").dataset.mode=m.mode;
+  persist();A3.show("ovEnd");
+  if(win)parts.burst(new THREE.Vector3(0,2,0),"#ffd23f",60,8,1.4);
+}
+
+/* ---------------- menus ---------------- */
+function toTitle(){
+  phase="title";clearFight();clearPrep();sel=null;M=null;
+  ["dock","goldBox","mbar","syn","bSpeed","info","banner"].forEach(id=>$(id).hidden=true);$("bQuit").hidden=true;
+  const wo=worldOf(S.lvl);setWorld(wo.w,wo.wi);camGoal("title");
+  // a few idle units for show
+  const ids=Object.keys(S.cards);for(let i=0;i<6;i++){const id=A3.pick(ids),g=model(U[id],1+Math.floor(Math.random()*3),{});g.position.set(cx(i+0.5)-0.85,0.14,(i%2?1:-1)*1.3);g.rotation.y=i%2?Math.PI:0;scene.add(g);prep.push(g);}
+  titleStats();A3.show("ovTitle");
+}
+function titleStats(){
+  const wo=worldOf(S.lvl);
+  $("tWorld").innerHTML="";
+  const t=document.createElement("span");t.innerHTML="Campaign: <b>Level "+S.lvl+"</b> · "+wo.name+(S.lvl<=MAXLV?" "+wo.st+"/10":"")+(isBoss(S.lvl)?" · 👹 BOSS: "+wo.boss:"")+" · Arena: <b>"+S.tro+"</b> 🏆 "+league(S.tro);$("tWorld").appendChild(t);
+  $("tStats").innerHTML="<div>💰 <b>"+fmt(S.coins)+"</b></div><div>Coin multi <b>x"+fmt(coinMul())+"</b></div><div>Damage multi <b>x"+fmt(dmgMul())+"</b></div><div>Army <b>x"+fmt(armyMul())+"</b></div><div>Units <b>"+Object.keys(S.cards).length+"/"+ULIST.length+"</b></div>";
+  $("rowCont").hidden=!S.match;
+  $("bChest").innerHTML="Chests"+(S.daily!==today()?'<span class="badge">FREE</span>':"");
+  $("bReb").innerHTML="Rebirth"+(rebReady()?'<span class="badge">READY</span>':"");
+  hud();
+}
+function drawUnits(){
+  let h="";
+  Object.keys(FACTIONS).forEach(f=>{
+    const F=FACTIONS[f];const th=f==="rift"?[1,2,3]:[2,4,6];
+    h+='<div class="fh">'+F.e+" "+F.n+"<small>"+th.map((n,i)=>n+": "+F.d(i+1)).join(" · ")+"</small></div>";
+    ULIST.filter(u=>u.f===f).forEach(u=>{const lv=S.cards[u.id];
+      h+='<div class="uc'+(lv?"":" lock")+'" style="--rc:'+RAR[u.tier].c+'"><span class="em">'+(lv?u.e:"❔")+"</span>"+u.n+"<small>"+RAR[u.tier].n+" "+ROLE[u.role].icon+" "+ROLE[u.role].nm+"</small><small>"+(lv?"Card level "+lv:(u.tier===6?"Rebirth "+u.rb:"Find in chests"))+"</small></div>";});
+  });
+  $("ugrid").innerHTML=h;
+  $("uHelp").textContent="You have "+Object.keys(S.cards).length+" of "+ULIST.length+" units. Only unlocked units turn up in your shop. Shop odds get better as your team grows: Epic from 4 slots, Legendary from 5, Mythic from 6 and Rift-born from 7.";
+}
+function rollDrop(){
+  const W=[0,40,30,17,9,4];let x=Math.random()*100,t=1;for(let i=1;i<=5;i++){x-=W[i];if(x<=0){t=i;break;}}
+  const u=A3.pick(ULIST.filter(v=>v.tier===t));const isNew=!S.cards[u.id];S.cards[u.id]=(S.cards[u.id]||0)+1;return {u,isNew};
+}
+function openChest(n){
+  const out=[];for(let i=0;i<n;i++)out.push(rollDrop());
+  S.chests++;persist();
+  $("drops").innerHTML="";
+  out.forEach((d,i)=>{const e=document.createElement("div");e.className="drop";e.style.setProperty("--rc",RAR[d.u.tier].c);e.style.animationDelay=(i*.25)+"s";
+    e.innerHTML='<span class="em">'+d.u.e+"</span><b>"+RAR[d.u.tier].n+"</b>"+d.u.n+"<br>"+(d.isNew?"✨ NEW!":"Level "+S.cards[d.u.id]);$("drops").appendChild(e);});
+  A3.sfx(out.some(d=>d.u.tier>=4)?"win":"coin");
+  drawChest();
+}
+function drawChest(){
+  const free=S.daily!==today();$("cDaily").disabled=!free;$("cDaily").textContent=free?"Open":"Come back tomorrow";
+  $("cBuy").textContent="Buy "+fmt(chestCost())+" 💰";$("cBuy").disabled=S.coins<chestCost();
+}
+function drawUpg(){
+  $("aLv").textContent=S.army;$("aMul").textContent="x"+fmt(armyMul());$("aCost").textContent=fmt(armyCost())+" 💰 (you have "+fmt(S.coins)+")";
+  $("aBuy").disabled=S.coins<armyCost();$("aMax").disabled=S.coins<armyCost();
+}
+function drawReb(){
+  $("rTitle").textContent="Rebirths: "+S.reb;
+  $("rCoin").textContent="x"+fmt(coinMul())+" → x"+fmt(coinMul()+1);
+  $("rDmg").textContent="x"+fmt(dmgMul())+" → x"+fmt(dmgMul()*1.6);
+  $("rSlot").textContent="+"+slotBonus()+" → +"+Math.min(S.reb+1,10);
+  const nx=ULIST.find(u=>u.tier===6&&u.rb===S.reb+1);$("rUnit").textContent=nx?nx.e+" "+nx.n:"none this time";
+  $("rNeed").textContent="Beat level "+rebNeed()+" ("+worldOf(rebNeed()).boss+")";
+  $("rText").textContent=rebReady()?"You're ready! Rebirth resets your coins, Army Power and campaign back to level 1, but you keep all your units and card levels and get the boosts below.":"Beat campaign level "+rebNeed()+" to rebirth. You are on level "+S.lvl+".";
+  $("rGo").disabled=!rebReady();
+}
+function doRebirth(){
+  if(!rebReady())return;
+  if(S.match){S.match=null;}
+  S.reb++;S.coins=0;S.army=0;S.lvl=1;
+  const got=unlockRift();
+  try{if(window.PhatCoin)PhatCoin.earn("rebirth",25,"rebirth "+S.reb+" in Rift's Ultimate Clash");}catch(e){}
+  persist();A3.sfx("win");A3.toast("Rebirth "+S.reb+"!"+(got?" Unlocked "+got.e+" "+got.n:""),3000);
+  parts.burst(new THREE.Vector3(0,2,0),"#ff5cf0",80,9,1.5);
+  drawReb();titleStats();
+}
+function menu(from,to,draw){A3.sfx("click");if(draw)draw();A3.hide(from);A3.show(to);}
+$("bCamp").onclick=()=>{if(S.match&&!confirm("Start a new match? Your match in progress will be lost."))return;A3.sfx("click");A3.hide("ovTitle");clearPrep();newMatch("camp");};
+$("bArena").onclick=()=>{if(S.match&&!confirm("Start a new match? Your match in progress will be lost."))return;A3.sfx("click");A3.hide("ovTitle");clearPrep();newMatch("arena");};
+$("bCont").onclick=()=>{A3.sfx("click");A3.hide("ovTitle");clearPrep();M=S.match;phase="shop";
+  if(!M.ai)M.ai=newAI(1,10,.9);
+  const w=M.mode==="arena"?ARENA_W:worldOf(M.level).w;setWorld(w,M.mode==="arena"?999:worldOf(M.level).wi);
+  camGoal("shop");["dock","goldBox","mbar","syn"].forEach(id=>$(id).hidden=false);$("bQuit").hidden=false;
+  if(M.mode==="arena")fetchGhost();drawPrep();renderDock();updMbar();};
+$("bGive").onclick=()=>{if(!S.match)return;A3.sfx("click");M=S.match;A3.hide("ovTitle");clearPrep();endMatch(false);};
+$("bUnits").onclick=()=>menu("ovTitle","ovUnits",drawUnits);
+$("uBack").onclick=()=>{menu("ovUnits","ovTitle",titleStats);};
+$("bChest").onclick=()=>{$("drops").innerHTML="";menu("ovTitle","ovChest",drawChest);};
+$("cBack").onclick=()=>menu("ovChest","ovTitle",titleStats);
+$("cDaily").onclick=()=>{if(S.daily===today())return;S.daily=today();openChest(4);try{if(window.PhatCoin)PhatCoin.earn("win",2,"daily chest in Rift's Ultimate Clash");}catch(e){}};
+$("cBuy").onclick=()=>{const c=chestCost();if(S.coins<c)return;S.coins-=c;openChest(3);};
+$("bUpg").onclick=()=>menu("ovTitle","ovUpg",drawUpg);
+$("aBack").onclick=()=>menu("ovUpg","ovTitle",titleStats);
+$("aBuy").onclick=()=>{const c=armyCost();if(S.coins<c)return;S.coins-=c;S.army++;A3.sfx("coin");persist();drawUpg();};
+$("aMax").onclick=()=>{let n=0;while(S.coins>=armyCost()&&n<10000){S.coins-=armyCost();S.army++;n++;}if(n){A3.sfx("win");A3.toast("Army Power +"+n);}persist();drawUpg();};
+$("bReb").onclick=()=>menu("ovTitle","ovReb",drawReb);
+$("rBack").onclick=()=>menu("ovReb","ovTitle",titleStats);
+$("rGo").onclick=()=>doRebirth();
+$("eNext").onclick=()=>{A3.sfx("click");A3.hide("ovEnd");newMatch($("eNext").dataset.mode||"camp");};
+$("eMenu").onclick=()=>{A3.sfx("click");A3.hide("ovEnd");toTitle();};
+$("eReb").onclick=()=>{A3.hide("ovEnd");toTitle();menu("ovTitle","ovReb",drawReb);};
+$("bQuit").onclick=()=>{A3.sfx("click");if(phase==="fight"){clearFight();if(M){S.match=M;}}persist();toTitle();};
+A3.fullscreen($("bFs"),stage);
+$("bMute").onclick=()=>{A3.mute(!A3.mute());$("bMute").textContent=A3.mute()?"🔇":"🔊";};$("bMute").textContent=A3.mute()?"🔇":"🔊";
+
+/* ---------------- loop ---------------- */
+let fpsN=0,fpsT=0,fpsC=0;
+A3.loop((dt,t)=>{
+  fpsT+=dt;fpsC++;if(fpsT>1){fpsN=fpsC;fpsT=0;fpsC=0;}
+  if(phase==="fight"&&!fightOver){const sp=S.speed||1;const n=sp;for(let i=0;i<n;i++)simStep(dt);}
+  if(phase==="fight")animFighters(dt*(S.speed||1));
+  if(phase==="shop"||phase==="title")prep.forEach((g,i)=>{g.userData.inner.position.y=Math.abs(Math.sin(t*3+i))*.06;});
+  if(bannerT>0){bannerT-=dt;if(bannerT<=0)$("banner").hidden=true;}
+  portals.forEach((p,i)=>{p.rotation.z+=dt*(i%2?-1.5:1);});
+  riftLine.material.emissiveIntensity=1.5+Math.sin(t*4)*.8;
+  parts.update(dt);updCam(dt);V.render();
+});
+
+toTitle();
+window.addEventListener("pagehide",()=>{if(M&&phase==="fight"){S.match=M;}persist();});
+window.__rc={S,M:()=>M,phase:()=>phase,fps:()=>fpsN,fighters:()=>fighters,give:n=>{S.coins+=n;persist();},
+  gold:n=>{if(M){M.gold+=n;renderDock();}},buy:i=>buy(i),fight:()=>startFight(),lvl:L=>{S.lvl=L;persist();titleStats();},
+  win:()=>{if(M){M.ehp=0;endMatch(true);}},lose:()=>{if(M){M.hp=0;endMatch(false);}},auto:()=>{fighters.forEach(f=>{if(f.side===1)f.hp=1;});}};
+if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"rifts-ultimate-clash",dir:"desc",unit:"trophies",title:"Rift's Ultimate Clash: most Public Arena trophies"});
+})();
+</script>
+</body>
+</html>

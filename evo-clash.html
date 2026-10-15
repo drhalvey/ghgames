@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Evo Clash</title>
 <meta property="og:title" content="Evo Clash · GH Games">
-<meta property="og:description" content="Swing, bonk and evolve! Knock out rivals to climb through 1000 evolutions from Cave Kid to Infinity Emperor. Grab power-ups, rebirth for big XP multis and battle real players in the Public Arena.">
+<meta property="og:description" content="Swing, bonk and evolve! Knock out rivals to climb through 4000 evolutions from Cave Kid to Omni Infinity Emperor. Unlock 10 worlds, hatch pets, rebirth for big XP multis and battle real players in the Public Arena.">
 <meta property="og:image" content="https://ghgames.au/og/evo-clash.png">
 <meta property="og:url" content="https://ghgames.au/evo-clash.html">
 <meta name="twitter:card" content="summary_large_image">
@@ -48,6 +48,10 @@
 .evo.lock{opacity:.45}
 .evo.lock .n{filter:blur(3px)}
 .evo .sw{height:6px;border-radius:4px;margin-top:4px}
+.evo.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold) inset}
+.evo.click{cursor:pointer}
+.evo .bt{display:block;margin-top:4px;font-family:var(--body);font-weight:900;font-size:12px;border:none;border-radius:8px;padding:4px 6px;background:var(--gold);color:#3b2200;cursor:pointer;width:100%}
+.evo .bt:disabled{opacity:.45;cursor:default}
 .agehead{grid-column:1/-1;font-family:var(--display);font-size:18px;color:#fff;margin-top:6px}
 .wide{width:min(760px,100%)}
 @media (max-width:600px){.board10{font-size:10px;min-width:118px}.stage canvas.mini{width:80px;height:80px}.evobar{width:52%}.online{top:46px}}
@@ -64,6 +68,7 @@
       <div class="chip"><span>KOs</span><b id="hKO">0</b></div>
       <div class="chip"><span>Rank</span><b id="hRank">-</b></div>
       <div class="chip"><span>Rebirths</span><b id="hReb">0</b></div>
+      <div class="chip"><span>Coins</span><b id="hCoin">0</b></div>
     </div>
   </div>
 
@@ -81,11 +86,32 @@
 
     <div class="ov" id="ovTitle">
       <h2>EVO CLASH</h2>
-      <p>Swing your weapon to bonk other fighters. One good hit knocks them out! Gobble the glowing orbs and knock out rivals to get XP. Every level you evolve into something new: 1000 evolutions, from Cave Kid to Infinity Emperor, and each one needs 5 times as much XP as the last. Bigger means longer reach, but slower feet.</p>
+      <p>Swing your weapon to bonk other fighters. One good hit knocks them out! Gobble the glowing orbs and knock out rivals to get XP. Every level you evolve into something new: 4000 evolutions, from Cave Kid to Omni Infinity Emperor, and each one needs 5 times as much XP as the last. Bigger means longer reach, but slower feet.</p>
       <div class="seg" id="modes"><button data-m="solo">Solo vs computer</button><button data-m="public">🌍 Public Arena</button></div>
       <div class="seg" id="diffs"><button data-d="0">Calm</button><button data-d="1">Normal</button><button data-d="2">Wild</button></div>
-      <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bEvos">Evolutions</button><button class="btn pink" id="bReb">Rebirth</button></div>
+      <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bEvos">Evolutions</button><button class="btn green" id="bWorlds">Worlds</button><button class="btn alt" id="bPets">Pets</button><button class="btn pink" id="bReb">Rebirth</button></div>
       <div class="stats" id="tStats"></div>
+    </div>
+
+    <div class="ov" id="ovWorlds" hidden>
+      <h2>WORLDS</h2>
+      <div class="shopbox wide">
+        <p class="help">Unlock worlds by reaching evolutions (your best ever). Every world gives x3 more XP and coins than the one before, and has its own egg of pets.</p>
+        <div class="evogrid" id="worldgrid"></div>
+      </div>
+      <div class="row"><button class="btn green" id="worldsBack">Done</button></div>
+    </div>
+
+    <div class="ov" id="ovPets" hidden>
+      <h2>PETS</h2>
+      <div class="shopbox wide">
+        <h3>Coins: <span id="pCoins">0</span> · Pet boost <span id="pMult">x1</span></h3>
+        <p class="help">Buy eggs with coins from orbs and knockouts. Up to 3 pets follow you and their XP boosts multiply. Tap a pet to put it on or take it off.</p>
+        <div class="evogrid" id="egggrid"></div>
+        <div class="agehead">Your pets</div>
+        <div class="evogrid" id="petgrid"></div>
+      </div>
+      <div class="row"><button class="btn" id="petsBest">Equip best</button><button class="btn green" id="petsBack">Done</button></div>
     </div>
 
     <div class="ov" id="ovEvos" hidden>
@@ -102,8 +128,8 @@
       <div class="shopbox">
         <h3 id="rTitle">Rebirths: 0</h3>
         <p class="help" id="rText"></p>
-        <div class="item"><span>XP multi now</span><span class="c" id="rMul1">x1</span></div>
-        <div class="item"><span>XP multi after rebirth</span><span class="c" id="rMul2">x2</span></div>
+        <div class="item"><span>Rebirth XP multi now</span><span class="c" id="rMul1">x1</span></div>
+        <div class="item"><span>Rebirth XP multi after</span><span class="c" id="rMul2">x2</span></div>
         <div class="item"><span>You start at</span><span class="c" id="rStart">Evo 1</span></div>
         <div class="item"><span>Next rebirth needs</span><span class="c" id="rNeed">Evo 20 in one life</span></div>
       </div>
@@ -131,7 +157,7 @@
 "use strict";
 const $=id=>document.getElementById(id);
 const SAVE="evoclash-save";
-const S=A3.save(SAVE,{bestKO:0,bestEvo:1,evoEver:1,reb:0,rebReady:false,kills:0,games:0,diff:1,mode:"solo",tops:0,bestXP:0,bestXPlog:0});
+const S=A3.save(SAVE,{bestKO:0,bestEvo:1,evoEver:1,reb:0,rebReady:false,kills:0,games:0,diff:1,mode:"solo",tops:0,bestXP:0,bestXPlog:0,world:0,coins:0,pets:{},equip:[]});
 // rebPeak = highest evolution reached in one life; each rebirth needs rebNeed() and the peak is kept, so Max rebirth can do several at once
 if(S.rebPeak==null)S.rebPeak=S.rebReady?Math.min(1000,20+10*S.reb):0;
 const stage=$("stage");
@@ -150,7 +176,7 @@ function myName(){let n="";try{n=localStorage.getItem("ghgames_nick")||"";}catch
 const MYID=(()=>{try{let v=sessionStorage.getItem("ec_id");if(!v){v="p"+Math.random().toString(36).slice(2,9);sessionStorage.setItem("ec_id",v);}return v;}catch(e){return "p"+Math.random().toString(36).slice(2,9);}})();
 const BOT_NAMES=["Bonko","Grug","Mega Mo","Zappy","Biff","Clonk","Dizzy","Thud","Captain Bop","Wham","Pip","Rocky","Sir Swish","Tornado","Kiwi","Noodle","Bash Bro","Turbo","Waffle","Gizmo","Biscuit","Zorp","Sparky","Mango","Pebble","Dodge","Smashy","Ziggy","Nugget","Blip","Wobble","Sprout","Boomer","Jelly","Taco","Pickle","Rumble","Zoom","Clank","Fizz"];
 
-/* ---------- 1000 evolutions in 100 ages ---------- */
+/* ---------- 4000 evolutions in 400 ages ---------- */
 const AGES=[
  {n:"Stone Age",w:"club",tunic:["#a0703c","#8d5f2f","#b9824a"],legs:"#6b4423",trim:"#4a2e14",cape:"#d8c8a8",col:"#b9824a",
   forms:["Cave Kid","Twig Swinger","Rock Basher","Bone Club","Flint Fighter","Cave Chief","Mammoth Hunter","Sabre Tooth","Fire Keeper","Stone King"]},
@@ -173,7 +199,7 @@ const AGES=[
  {n:"Galaxy Age",w:"star",tunic:["#2a1a5a","#1a1040","#3a1a7a"],legs:"#120a30",trim:"#ff7ae0",cape:"#3a1a8a",col:"#ff7ae0",space:true,
   forms:["Star Kid","Comet Rider","Space Ranger","Nova","Star Warden","Galaxy Guard","Cosmic Titan","Black Hole","Supernova","Galaxy Emperor"]}
 ];
-const MAXL=1000;
+const MAXL=4000;
 /* George (10/10/2026): 900 more evolutions, so 1000 in all. Ages 11-100 are made from a theme word,
    the ten rank names below and a colour per age; weapons and hats cycle through the first ten ages' styles. */
 const THEMES=["Lava","Ice","Jungle","Desert","Ocean","Thunder","Shadow","Crystal","Candy","Toxic",
@@ -190,7 +216,12 @@ function hsl(h,s,l){return "#"+new THREE.Color().setHSL(((h%360)+360)%360/360,s,
 THEMES.forEach((t,i)=>{const h=i*47+20;
   AGES.push({n:t+" Age",w:AGES[i%10].w,tunic:[hsl(h,.6,.45),hsl(h+20,.55,.38),hsl(h-20,.65,.5)],legs:hsl(h,.4,.2),trim:hsl(h+180,.75,.62),cape:hsl(h+30,.6,.32),col:hsl(h,.85,.6),
     forms:RANKS.map(r=>t+" "+r)});});
-if(new Set(THEMES).size!==90||AGES.length!==100)console.error("Evo Clash: ages list is wrong");
+// George (15/10/2026): 4000 evolutions. Ages 101-400 add a prefix (Mega, Giga, Tera, then Omni) to the 90 themes.
+["Mega","Giga","Tera","Omni"].forEach((pre,k)=>{THEMES.forEach((t,i)=>{if(AGES.length>=400||k===3&&i<60)return;   // Omni uses the last 30 themes, so Evo 4000 is the Omni Infinity Emperor
+ const h=i*47+20+k*90,lt=.45+k*.04;
+  AGES.push({n:pre+" "+t+" Age",w:AGES[(i+k*3)%10].w,tunic:[hsl(h,.7,lt),hsl(h+25,.6,lt-.07),hsl(h-25,.7,lt+.05)],legs:hsl(h,.45,.18),trim:hsl(h+180,.85,.6),cape:hsl(h+40,.65,.3),col:hsl(h,.95,.6),
+    forms:RANKS.map(r=>pre+" "+t+" "+r)});});});
+if(new Set(THEMES).size!==90||AGES.length!==400)console.error("Evo Clash: ages list is wrong");
 const ageOf=L=>Math.floor((L-1)/10), formOf=L=>(L-1)%10;
 const formName=L=>AGES[ageOf(L)].forms[formOf(L)];
 // George (13/10/2026): every evolution needs 5x the XP of the one before.
@@ -205,7 +236,45 @@ function fmtLog(lg){
   if(lg<300)return A3.fmt(Math.pow(10,lg));
   const e=Math.floor(lg),m=Math.pow(10,lg-e);return m.toFixed(1)+"e"+e;
 }
-const mult=()=>1+S.reb;
+const rebMult=()=>1+S.reb;
+const mult=()=>rebMult()*worldMult()*petMult();
+
+/* ---------- worlds (George, 15/10/2026) ----------
+   10 worlds, unlocked by evolutions reached (best ever). World 2 needs 250; each next world needs 250 more than
+   the step before it, and that 250 grows by 5% each world: 250, 262.5, 275.6 ... XP and coins x3 per world. */
+const WORLDS=[
+ {n:"Meadow Island",g:["#4a9e3a","#43952f"],sand:"#f4dea8",leaf:"#2f9a3a",water:"#2f8fe0",sky:["#3d8be8","#c9ecff"],fog:"#bfe3ff",egg:"#fff3c4"},
+ {n:"Desert Dunes",g:["#d9b462","#cfa955"],sand:"#f6e0a2",leaf:"#6f9a3a",water:"#2fb8d0",sky:["#f0a040","#ffe4b0"],fog:"#ffe0a8",egg:"#ffcf7a"},
+ {n:"Frozen Peaks",g:["#dfeef8","#cfe2f0"],sand:"#ffffff",leaf:"#3f7a6a",water:"#6fb8e8",sky:["#7fb0e0","#eef6ff"],fog:"#e6f2ff",egg:"#bfe6ff"},
+ {n:"Jungle Ruins",g:["#2f7a2a","#296f25"],sand:"#b9a070",leaf:"#1f6a24",water:"#2f9a8a",sky:["#3a8a6a","#cfeec8"],fog:"#b8e0b0",egg:"#9be07a"},
+ {n:"Volcano Isle",g:["#4a3a36","#3f302c"],sand:"#2a2220",leaf:"#ff6a2a",water:"#ff5a1a",sky:["#3a1010","#ff8a4a"],fog:"#7a3020",egg:"#ff6a3a"},
+ {n:"Candy Land",g:["#ffb3d9","#ffa3cf"],sand:"#fff0f8",leaf:"#ff6fa3",water:"#b085ff",sky:["#ff9ad0","#fff0ff"],fog:"#ffe0f4",egg:"#ff9ad0"},
+ {n:"Deep Ocean",g:["#2a6a8a","#25607d"],sand:"#e8d8a8",leaf:"#2fd0a0",water:"#0f3a7a",sky:["#0a2a5a","#3a8ac0"],fog:"#1a4a7a",egg:"#3fd0ff"},
+ {n:"Cloud Kingdom",g:["#f4f8ff","#e8eef8"],sand:"#ffffff",leaf:"#ffd23f",water:"#9fd0ff",sky:["#8ab8ff","#ffffff"],fog:"#f0f6ff",egg:"#ffffff"},
+ {n:"Shadow Realm",g:["#2a2040","#241a38"],sand:"#3a2a5a",leaf:"#9a5aff",water:"#1a0a3a",sky:["#0a0614","#3a2060"],fog:"#1a1030",egg:"#7a3aff"},
+ {n:"Galaxy Rift",g:["#1a1a4a","#16163f"],sand:"#4a3a8a",leaf:"#ff7ae0",water:"#05051a",sky:["#000010","#2a1a6a"],fog:"#100830",egg:"#ff7ae0"}
+];
+const WORLD_NEED=[0];{let step=250,tot=0;for(let w=1;w<WORLDS.length;w++){tot+=step;WORLD_NEED.push(Math.round(tot));step*=1.05;}}
+const worldOpen=w=>S.evoEver>=WORLD_NEED[w];
+const worldMult=()=>Math.pow(3,S.world||0);
+
+/* ---------- pets (George, 15/10/2026) ----------
+   Every world has an egg bought with coins (coins come from orbs and knockouts). Each egg holds 5 pets,
+   Common to Legendary. Up to 3 pets follow you; their XP boosts multiply together. */
+const RARITY=[{n:"Common",c:"#c8ced8",w:50,b:1.5},{n:"Uncommon",c:"#5fd36a",w:27,b:2},{n:"Rare",c:"#4aa8ff",w:14,b:3},{n:"Epic",c:"#b085ff",w:7,b:5},{n:"Legendary",c:"#ffd23f",w:2,b:10}];
+const PET_NAMES=[
+ ["Bunny","Puppy","Kitty","Fox","Golden Lion"],["Camel","Lizard","Scorpion","Cobra","Sun Sphinx"],["Penguin","Snow Hare","Seal","Polar Bear","Ice Dragon"],
+ ["Monkey","Parrot","Frog","Jaguar","Temple Gorilla"],["Lava Slug","Fire Bat","Magma Pup","Ash Wolf","Phoenix"],["Gummy Bear","Candy Cat","Lolly Bunny","Cupcake Pup","Rainbow Unicorn"],
+ ["Clownfish","Turtle","Octopus","Shark","Kraken"],["Cloud Lamb","Sky Owl","Pegasus","Storm Eagle","Angel Griffin"],["Shadow Cat","Ghost","Bat King","Void Wolf","Nightmare Dragon"],
+ ["Star Bunny","Comet Pup","Alien","Nebula Whale","Galaxy Dragon"]];
+const PET_SHAPE=["bunny","dog","cat","dog","lion","dog","lizard","lizard","lizard","cat","bird","bunny","dog","dog","dragon","monkey","bird","lizard","cat","monkey",
+ "lizard","bird","dog","dog","bird","dog","cat","bunny","dog","horse","fish","lizard","octo","fish","octo","dog","bird","horse","bird","bird",
+ "cat","ghost","bird","dog","dragon","bunny","dog","ghost","fish","dragon"];
+const LEG_COL=["#ffd23f","#ffb347","#9fe0ff","#6a6a6a","#ff6a2a","#ffffff","#4a4ad0","#fff6c4","#4a0a6a","#ff7ae0"];
+const PETS=[];PET_NAMES.forEach((list,w)=>list.forEach((n,r)=>PETS.push({id:w*5+r,w,r,n,shape:PET_SHAPE[w*5+r],
+  col:[WORLDS[w].leaf,WORLDS[w].egg,WORLDS[w].g[0],WORLDS[w].water,LEG_COL[w]][r],boost:+(RARITY[r].b*Math.pow(2,w)).toPrecision(4)})));
+const eggPrice=w=>100*Math.pow(4,w);
+const petMult=()=>{let m=1;for(const id of (S.equip||[]))if(PETS[id])m*=PETS[id].boost;return m;};
 // George (13/10/2026): the player buckasnuncle gets 1 million rebirths, once (matched on game nickname or account username)
 function buckGift(){
   const isBuck=n=>(n||"").trim().toLowerCase()==="buckasnuncle";
@@ -213,7 +282,8 @@ function buckGift(){
   if(!isBuck(nick)&&!isBuck(acct))return;
   if(!S.bkReb){S.bkReb=1;S.reb+=1000000;S.rebReady=false;persist();setTimeout(()=>{A3.sfx("win");A3.toast("buckasnuncle: 1,000,000 rebirths! XP multi x"+A3.fmt(mult()),3500);},800);}
 }
-const startEvo=()=>1+Math.min(S.reb*2,500);
+const START_CAP=2000;
+const startEvo=()=>1+Math.min(S.reb*2,START_CAP);
 const rebNeed=(r)=>Math.min(MAXL,20+10*(r==null?S.reb:r));
 // once a rebirth needs Evo 1000 (the cap), each further one needs Evo 1000 reached again, so the peak is cleared after it
 function rebCan(){let n=0,r=S.reb;while(rebNeed(r)<MAXL&&S.rebPeak>=rebNeed(r)){n++;r++;}if(S.rebPeak>=MAXL&&rebNeed(r)>=MAXL)n++;return n;}
@@ -233,30 +303,39 @@ const PU=[
 /* ---------- island ---------- */
 const R_SOLO=110,R_PUB=150;
 let RA=R_SOLO;
-const grassTex=A3.canvasTex(256,256,(g,w,h)=>{
-  g.fillStyle="#4a9e3a";g.fillRect(0,0,w,h);
-  g.fillStyle="#43952f";g.fillRect(0,0,128,128);g.fillRect(128,128,128,128);
-  g.fillStyle="rgba(255,255,255,.08)";for(let i=0;i<2;i++)for(let j=0;j<2;j++){g.beginPath();g.arc(i*128+64,j*128+64,16,0,7);g.fill();}
-});
-grassTex.wrapS=grassTex.wrapT=THREE.RepeatWrapping;
+let grassTex=null;
+function makeGrass(c1,c2){
+  if(grassTex)grassTex.dispose();
+  grassTex=A3.canvasTex(256,256,(g,w,h)=>{
+    g.fillStyle=c1;g.fillRect(0,0,w,h);
+    g.fillStyle=c2;g.fillRect(0,0,128,128);g.fillRect(128,128,128,128);
+    g.fillStyle="rgba(255,255,255,.08)";for(let i=0;i<2;i++)for(let j=0;j<2;j++){g.beginPath();g.arc(i*128+64,j*128+64,16,0,7);g.fill();}
+  });
+  grassTex.wrapS=grassTex.wrapT=THREE.RepeatWrapping;
+}
 const island=new THREE.Group();scene.add(island);
 const water=new THREE.Mesh(new THREE.CircleGeometry(900,64),new THREE.MeshStandardMaterial({color:new THREE.Color("#2f8fe0").convertSRGBToLinear(),roughness:.3,metalness:.1}));
 water.rotation.x=-Math.PI/2;water.position.y=-1.2;scene.add(water);
 let groundMesh=null,sandMesh=null,rimMesh=null,treeT=null,treeL=null,flowers=null;
 function buildIsland(R){
   [groundMesh,sandMesh,rimMesh,treeT,treeL,flowers].forEach(m=>{if(m)island.remove(m);});
+  const W=WORLDS[S.world||0];
+  makeGrass(W.g[0],W.g[1]);
+  scene.background=A3.skyTexture(W.sky[0],W.sky[1]);
+  if(scene.fog)scene.fog.color.set(W.fog).convertSRGBToLinear();
+  water.material.color.set(W.water).convertSRGBToLinear();
   grassTex.repeat.set(R/3,R/3);
   groundMesh=new THREE.Mesh(new THREE.CircleGeometry(R+1,120),new THREE.MeshStandardMaterial({map:grassTex,roughness:.9}));
   groundMesh.rotation.x=-Math.PI/2;groundMesh.receiveShadow=true;island.add(groundMesh);
-  sandMesh=new THREE.Mesh(new THREE.CylinderGeometry(R+14,R+22,2.4,120,1,true),A3.mat("#f1d79a",{rough:1}));
+  sandMesh=new THREE.Mesh(new THREE.CylinderGeometry(R+14,R+22,2.4,120,1,true),A3.mat(W.sand,{rough:.9}));
   sandMesh.position.y=-1.1;island.add(sandMesh);
-  const top=new THREE.Mesh(new THREE.RingGeometry(R+1,R+14,120),A3.mat("#f4dea8",{rough:1}));top.rotation.x=-Math.PI/2;top.position.y=0.02;island.add(top);sandMesh.add(top);top.position.set(0,1.21,0);
+  const top=new THREE.Mesh(new THREE.RingGeometry(R+1,R+14,120),A3.mat(W.sand,{rough:1}));top.rotation.x=-Math.PI/2;top.position.y=0.02;island.add(top);sandMesh.add(top);top.position.set(0,1.21,0);
   rimMesh=new THREE.Mesh(new THREE.TorusGeometry(R+0.5,0.45,8,160),A3.mat("#8a5a2b",{rough:.8}));
   rimMesh.rotation.x=Math.PI/2;rimMesh.position.y=0.45;island.add(rimMesh);
   // trees round the shore
   const N=Math.round(R*0.7);
   treeT=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.35,0.5,3,8),A3.mat("#7a4a22"),N);
-  treeL=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1.9,0),A3.mat("#2f9a3a",{flat:true}),N);
+  treeL=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1.9,0),A3.mat(W.leaf,{flat:true}),N);
   const mx=new THREE.Matrix4(),q=new THREE.Quaternion(),p=new THREE.Vector3(),sc=new THREE.Vector3();
   for(let i=0;i<N;i++){const a=i/N*6.283+Math.random()*0.05,r=R+4+Math.random()*8,s=0.8+Math.random()*0.7;
     p.set(Math.cos(a)*r,1.5*s,Math.sin(a)*r);sc.set(s,s,s);mx.compose(p,q,sc);treeT.setMatrixAt(i,mx);
@@ -392,7 +471,7 @@ let chars=[];const byId=new Map();
 let me=null;
 function derive(c){
   // growth slows after Evo 100 so the giants still fit on the island (about 8x at Evo 1000)
-  c.s=(c.L<=100?1+(c.L-1)*0.045:5.455+2.6*(1-Math.exp(-(c.L-100)/300)))*((c.fx.giant||0)>0?1.45:1);
+  c.s=(c.L<=100?1+(c.L-1)*0.045:5.455+2.6*(1-Math.exp(-(c.L-100)/300))+0.6*(1-Math.exp(-Math.max(0,c.L-1000)/1500)))*((c.fx.giant||0)>0?1.45:1);
   c.rad=0.5*c.s;c.reach=c.s*(0.62+wlen(c.L)*1.12);
   c.spd=8.5/(1+(c.s-1)*0.2)*((c.fx.speed||0)>0?1.6:1);
 }
@@ -440,7 +519,7 @@ function evolve(c){
   if(c.p){
     A3.sfx("win");parts.burst(new THREE.Vector3(c.x,1.5*c.s,c.z),AGES[ageOf(c.L)].col,30,7,1);
     A3.toast("Evolved! You are now a "+formName(c.L)+" (Evo "+c.L+")",2200);
-    if(c.L>S.evoEver)S.evoEver=c.L;
+    if(c.L>S.evoEver){const before=WORLDS.filter((_,w)=>worldOpen(w)).length;S.evoEver=c.L;const after=WORLDS.filter((_,w)=>worldOpen(w)).length;if(after>before)setTimeout(()=>{A3.sfx("win");A3.toast("New world unlocked: "+WORLDS[after-1].n+"! Open Worlds from the menu",3000);},2400);}
     if(c.L>S.bestEvo)S.bestEvo=c.L;
     while(round.mile+10<=c.L){round.mile+=10;if(round.mile>round.startL){A3.win(3,"reaching Evo "+round.mile+" in Evo Clash");A3.toast("Evo "+round.mile+"! +PhatCoin",2000);}}
     if(c.L>S.rebPeak){S.rebPeak=c.L;const was=S.rebReady;syncReb();if(!was&&S.rebReady)setTimeout(()=>{A3.sfx("coin");A3.toast("Rebirth ready! Open Rebirth from the menu for +1x XP",2600);},1400);}
@@ -539,7 +618,7 @@ function reward(k,base,t){
   const amt=logAdd(base,needLog(k.L)+Math.log10(0.6))+Math.log10((k.p?mult():1)*((k.fx.dbl||0)>0?2:1));
   addXP(k,amt);k.kills++;
   if(k.p){
-    round.ko++;round.streak++;S.kills++;A3.sfx("boom");
+    round.ko++;round.streak++;S.kills++;A3.sfx("boom");S.coins+=25*worldMult();
     A3.toast("You bonked "+(t?t.name:"someone")+"! +"+fmtLog(amt)+" XP",1600);
     if(round.streak===5){A3.win(2,"a 5 knockout streak in Evo Clash");A3.toast("5 knockout streak! +PhatCoin",2000);}
     if(round.streak===15){A3.win(4,"a 15 knockout streak in Evo Clash");A3.toast("15 knockout streak! +PhatCoin",2000);}
@@ -561,6 +640,8 @@ function spawnMe(){
   if(me)removeChar(me);
   const p=safeSpot(18),L=startEvo();
   me=makeChar({id:MYID,name:myName(),p:true,x:p.x,z:p.z,a:Math.atan2(-p.z,-p.x),L,skin:0,spawnT:3});
+  if(L>S.evoEver)S.evoEver=L;
+  makePets();
   round={ko:0,streak:0,peakL:L,startL:L,mile:Math.floor(L/10)*10,firstT:0,gotFirst:false,t:0};
   mode="play";S.games++;persist();
   ["board","mini","evobar","fxrow"].forEach(id=>$(id).hidden=false);$("bQuit").hidden=false;
@@ -640,7 +721,7 @@ function updateChar(c,dt){
   const mag=(c.fx.magnet||0)>0?8*c.s:0,er=c.rad+0.9+mag,er2=er*er,eat=c.rad+0.6;
   for(let i=no-1;i>=0;i--){const dx=ox[i]-c.x,dz=oz[i]-c.z,d2=dx*dx+dz*dz;if(d2>er2)continue;
     const dl=Math.sqrt(d2);
-    if(dl<eat){if(!c.remote){const g=needLog(c.L)+Math.log10(ov[i]*0.035*(c.p?mult():1)*((c.fx.dbl||0)>0?2:1));addXP(c,g);if(c.p)eatSfx();}delOrb(i);}
+    if(dl<eat){if(!c.remote){const g=needLog(c.L)+Math.log10(ov[i]*0.035*(c.p?mult():1)*((c.fx.dbl||0)>0?2:1));addXP(c,g);if(c.p){eatSfx();S.coins+=ov[i]*worldMult();}}delOrb(i);}
     else{const k=Math.min(1,dt*(mag?6:9));ox[i]-=dx*k;oz[i]-=dz*k;}}
   // power-ups
   for(let i=pus.length-1;i>=0;i--){const p=pus[i];if(Math.hypot(p.x-c.x,p.z-c.z)<c.rad+1.3)takePU(c,i);}
@@ -651,6 +732,47 @@ function separate(){
     for(let j=i+1;j<chars.length;j++){const b=chars[j];if(!b.alive)continue;
       const dx=b.x-a.x,dz=b.z-a.z,d=Math.hypot(dx,dz),m=a.rad+b.rad;
       if(d<m&&d>0.001){const push=(m-d)/2,nx=dx/d,nz=dz/d;if(!a.remote){a.x-=nx*push;a.z-=nz*push;}if(!b.remote){b.x+=nx*push;b.z+=nz*push;}}}}
+}
+let petObjs=[];
+function petModel(P){
+  const g=new THREE.Group(),col=P.col,dark="#1a1530",o=P.r>=3?{emissive:col,glow:P.r===4?0.45:0.2}:{};
+  const sh=P.shape;
+  if(sh==="fish"){g.add(part(GB,col,0.7,0.45,0.35,0,0.6,0,o));const t=part(GB,col,0.25,0.4,0.08,-0.45,0.6,0,o);g.add(t);g.add(part(GB,dark,0.06,0.08,0.38,0.28,0.68,0));}
+  else if(sh==="octo"){g.add(part(GS,col,0.4,0.36,0.4,0,0.75,0,o));for(let i=0;i<6;i++){const a=i/6*6.28;g.add(part(GB,col,0.1,0.35,0.1,Math.cos(a)*0.28,0.3,Math.sin(a)*0.28,o));}g.add(part(GB,dark,0.06,0.1,0.3,0.38,0.82,0));}
+  else if(sh==="ghost"){g.add(part(GS,col,0.38,0.5,0.38,0,0.75,0,{emissive:col,glow:0.3,opacity:0.85}));g.add(part(GB,dark,0.06,0.12,0.28,0.36,0.85,0));}
+  else{
+    const bird=sh==="bird",fly=bird||sh==="dragon"&&P.r>=3;
+    g.add(part(GB,col,0.6,0.42,0.42,0,0.45,0,o));
+    g.add(part(GB,col,0.42,0.42,0.42,0.38,0.75,0,o));
+    g.add(part(GB,dark,0.04,0.08,0.06,0.6,0.8,-0.11),part(GB,dark,0.04,0.08,0.06,0.6,0.8,0.11));
+    if(!bird&&sh!=="lizard"&&sh!=="fish")for(const z of [-0.18,0.18])for(const x of [-0.2,0.2])g.add(part(GB,col,0.12,0.25,0.12,x,0.12,z,o));
+    if(sh==="bunny"){g.add(part(GB,col,0.1,0.42,0.1,0.34,1.12,-0.12,o),part(GB,col,0.1,0.42,0.1,0.34,1.12,0.12,o));}
+    if(sh==="cat"||sh==="lion"){g.add(part(GK,col,0.1,0.18,0.1,0.34,1.02,-0.14,o),part(GK,col,0.1,0.18,0.1,0.34,1.02,0.14,o));}
+    if(sh==="lion")g.add(part(GB,"#b8742a",0.2,0.58,0.58,0.3,0.78,0));
+    if(sh==="dog"||sh==="horse"){g.add(part(GB,col,0.14,0.2,0.08,0.3,0.98,-0.17,o),part(GB,col,0.14,0.2,0.08,0.3,0.98,0.17,o));g.add(part(GB,col,0.18,0.18,0.24,0.62,0.68,0,o));}
+    if(sh==="horse"&&P.n.indexOf("Unicorn")>=0||P.n==="Pegasus"){g.add(part(GK,"#ffd23f",0.05,0.3,0.05,0.5,1.1,0,{emissive:"#ffd23f",glow:0.6}));}
+    if(sh==="lizard"||sh==="dragon"){g.add(part(GB,col,0.5,0.15,0.15,-0.5,0.4,0,o));g.add(part(GB,col,0.2,0.12,0.42,0.1,0.15,0,o));}
+    if(sh==="monkey")g.add(part(GB,"#f1c7a0",0.06,0.24,0.28,0.6,0.72,0));
+    if(fly||sh==="dragon"){const wing=part(GB,sh==="dragon"?col:WORLDS[P.w].egg,0.36,0.05,0.5,0,0.7,-0.42,o);const wing2=wing.clone();wing2.position.z=0.42;g.add(wing,wing2);g.userData.wings=[wing,wing2];}
+    if(bird)g.add(part(GK,"#ffb300",0.08,0.16,0.08,0.66,0.72,0));
+  }
+  if(P.r===4){const ring=part(GT,"#ffd23f",0.42,0.42,0.42,0,1.25,0,{emissive:"#ffd23f",glow:1.2});ring.rotation.x=Math.PI/2;ring.castShadow=false;g.add(ring);}
+  return g;
+}
+function makePets(){
+  petObjs.forEach(o=>scene.remove(o.g));petObjs=[];
+  (S.equip||[]).forEach((id,i)=>{if(!PETS[id])return;const g=petModel(PETS[id]);scene.add(g);petObjs.push({g,i,x:me?me.x:0,z:me?me.z:0,ph:Math.random()*6});});
+}
+function updatePets(dt,t){
+  for(const o of petObjs){
+    if(!me||!me.alive){o.g.visible=false;continue;}o.g.visible=true;
+    const side=(o.i-1)*1.9,back=2.4+me.ds*0.7,ang=me.a;
+    const tx=me.x-Math.cos(ang)*back-Math.sin(ang)*side*(0.6+me.ds*0.4),tz=me.z-Math.sin(ang)*back+Math.cos(ang)*side*(0.6+me.ds*0.4);
+    const k=Math.min(1,dt*5);o.x+=(tx-o.x)*k;o.z+=(tz-o.z)*k;o.ph+=dt*8;
+    const s=0.9+me.ds*0.25;o.g.scale.setScalar(s);
+    o.g.position.set(o.x,Math.abs(Math.sin(o.ph))*0.18*s,o.z);o.g.rotation.y=-Math.atan2(me.z-o.z,me.x-o.x);
+    if(o.g.userData.wings)o.g.userData.wings.forEach((w,j)=>w.rotation.x=(j?-1:1)*Math.sin(t*14)*0.5);
+  }
 }
 function animate(c,dt,t){
   if(!c.root)return;
@@ -674,7 +796,7 @@ function animate(c,dt,t){
 const mini=$("mini"),mg=mini.getContext("2d");
 function rankList(){return chars.filter(c=>c.alive).sort((a,b)=>b.lt-a.lt);}
 function hud(){
-  $("hReb").textContent=A3.fmt(S.reb);
+  $("hReb").textContent=A3.fmt(S.reb);$("hCoin").textContent=A3.fmt(Math.floor(S.coins));
   if(me){$("hEvo").textContent=me.L;$("hXP").textContent=fmtLog(me.lt);$("hKO").textContent=round?round.ko:0;
     $("evoName").innerHTML=formName(me.L)+"<small>Evo "+me.L+"/"+MAXL+" · "+AGES[ageOf(me.L)].n+(mult()>1?" · x"+A3.fmt(mult())+" XP":"")+"</small>";
     $("evoFill").style.width=(me.L>=MAXL?100:Math.min(100,me.xp*100))+"%";
@@ -777,6 +899,7 @@ A3.loop((dt,t)=>{fpsN++;
     V.lights.sun.position.set(camLook.x+12,34,camLook.z+10);V.lights.sun.target.position.copy(camLook);
   }
   for(const c of chars)animate(c,dt,t);
+  updatePets(dt,t);
   drawOrbs(t);parts.update(dt);
   water.position.y=-1.2+Math.sin(t*0.8)*0.08;
   V.render();
@@ -794,7 +917,7 @@ function connect(){
   if(!window.supabase||!navigator.onLine){updateOnlineMsg();return;}
   try{
     if(!sb)sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false},realtime:{params:{eventsPerSecond:30}}});
-    ch=sb.channel("evoclash-arena",{config:{broadcast:{self:false},presence:{key:MYID}}});
+    ch=sb.channel("evoclash-arena"+(S.world?"-w"+S.world:""),{config:{broadcast:{self:false},presence:{key:MYID}}});
     ch.on("broadcast",{event:"u"},m=>onU(m.payload));
     ch.on("broadcast",{event:"hit"},m=>onHit(m.payload));
     ch.on("broadcast",{event:"ko"},m=>onKO(m.payload));
@@ -854,7 +977,7 @@ function applyRemote(c,a){
   const was=c.alive;c.alive=!!alive;
   if(!was&&c.alive){c.x=c.tx;c.z=c.tz;}
   if(sw&&c.swingT<0&&c.alive){c.swingT=0;if(me&&Math.hypot(c.x-me.x,c.z-me.z)<25)A3.sfx("whoosh");}
-  c.shield=!!sh;c.spawnT=0;c.fx.giant=gi?1:0;c.lt=A3.clamp(+lt||0,0,1000);
+  c.shield=!!sh;c.spawnT=0;c.fx.giant=gi?1:0;c.lt=A3.clamp(+lt||0,0,5000);
   derive(c);c.seen=performance.now();
 }
 function remoteChar(id,name,bot,a){
@@ -882,14 +1005,14 @@ function onKO(p){
   if(!p)return;const t=byId.get(String(p.i));
   if(t&&t.remote&&t.alive){t.alive=false;t.swingT=-1;dropOrbs(t);if(me&&Math.hypot(t.x-me.x,t.z-me.z)<45){parts.burst(new THREE.Vector3(t.x,1.2*t.s,t.z),AGES[ageOf(t.L)].col,20,7,1);A3.sfx("pop");}}
   const k=byId.get(String(p.b));
-  if(k&&!k.remote)reward(k,A3.clamp(+p.x||0,0,1000),t||{name:safeName(p.n)});
+  if(k&&!k.remote)reward(k,A3.clamp(+p.x||0,0,5000),t||{name:safeName(p.n)});
 }
 document.addEventListener("visibilitychange",()=>{if(GMODE!=="public")return;if(document.hidden){disconnect();updateOnlineMsg();}else if(!online&&mode!=="title"){joinT=Date.now();connect();}});
 
 /* ---------- menus ---------- */
 function persist(){A3.store(SAVE,S);}
 function titleStats(){
-  $("tStats").innerHTML="<div>Best evolution <b>"+S.evoEver+" "+formName(S.evoEver)+"</b></div><div>Best KOs <b>"+S.bestKO+"</b></div><div>Rebirths <b>"+A3.fmt(S.reb)+"</b></div><div>XP multi <b>x"+A3.fmt(mult())+"</b></div>";
+  $("tStats").innerHTML="<div>Best evolution <b>"+S.evoEver+" "+formName(S.evoEver)+"</b></div><div>Best KOs <b>"+S.bestKO+"</b></div><div>Rebirths <b>"+A3.fmt(S.reb)+"</b></div><div>XP multi <b>x"+A3.fmt(mult())+"</b></div><div>World <b>"+((S.world||0)+1)+" "+WORLDS[S.world||0].n+"</b></div><div>Coins <b>"+A3.fmt(Math.floor(S.coins))+"</b></div>";
   [...$("diffs").children].forEach(b=>b.classList.toggle("on",+b.dataset.d===S.diff));
   [...$("modes").children].forEach(b=>b.classList.toggle("on",b.dataset.m===S.mode));
   $("diffs").hidden=S.mode==="public";
@@ -899,29 +1022,69 @@ function titleStats(){
 function drawEvos(){
   $("evoHelp").textContent="You have reached Evo "+S.evoEver+" of "+MAXL+". Each level you evolve into the next form. Evolutions you have not reached yet stay blurry.";
   let h="";
-  for(let L=1;L<=MAXL;L++){
+  const lastAge=Math.min(AGES.length-1,ageOf(Math.max(1,S.evoEver))+3);   // show reached ages plus the next 3, so 4000 boxes don't slow the iPad
+  for(let L=1;L<=Math.min(MAXL,(lastAge+1)*10);L++){
     if(formOf(L)===0)h+='<div class="agehead">'+AGES[ageOf(L)].n+"</div>";
     const lock=L>S.evoEver;
     h+='<div class="evo'+(lock?" lock":"")+'"><b>Evo '+L+'</b><span class="n">'+formName(L)+'</span><div class="sw" style="background:'+AGES[ageOf(L)].col+'"></div></div>';
   }
+  if(lastAge<AGES.length-1)h+='<div class="agehead" style="color:var(--muted)">... and '+(AGES.length-1-lastAge)+' more ages, up to Evo '+MAXL+' '+formName(MAXL)+'</div>';
   $("evogrid").innerHTML=h;
 }
+function drawWorlds(){
+  let h="";
+  WORLDS.forEach((W,w)=>{const open=worldOpen(w),on=(S.world||0)===w;
+    h+='<div class="evo click'+(on?" on":"")+(open?"":" lock")+'" data-w="'+w+'"><b>World '+(w+1)+'</b>'+W.n+'<div class="sw" style="background:linear-gradient(90deg,'+W.g[0]+','+W.leaf+','+W.water+')"></div>'
+      +'<span style="font-size:11px;color:var(--muted)">'+(open?(on?"You are here":"Tap to go")+" · x"+A3.fmt(Math.pow(3,w))+" XP":"Needs Evo "+WORLD_NEED[w]+" (best "+S.evoEver+")")+"</span></div>";});
+  $("worldgrid").innerHTML=h;
+}
+$("worldgrid").addEventListener("click",e=>{const b=e.target.closest("[data-w]");if(!b)return;const w=+b.dataset.w;
+  if(!worldOpen(w)){A3.sfx("hit");A3.toast("Reach Evo "+WORLD_NEED[w]+" to unlock "+WORLDS[w].n,1800);return;}
+  S.world=w;persist();A3.sfx("coin");A3.toast("Welcome to "+WORLDS[w].n+"!",1500);setupArena("solo");for(let i=0;i<14;i++)spawnBot();drawWorlds();});
+function drawPets(){
+  $("pCoins").textContent=A3.fmt(Math.floor(S.coins));$("pMult").textContent="x"+A3.fmt(petMult());
+  let h="";
+  WORLDS.forEach((W,w)=>{const open=worldOpen(w),pr=eggPrice(w);
+    h+='<div class="evo'+(open?"":" lock")+'"><b>'+W.n+' egg</b>🥚 '+A3.fmt(pr)+' coins<div class="sw" style="background:'+W.egg+'"></div>'
+      +'<button class="bt" data-egg="'+w+'" data-n="1"'+(open&&S.coins>=pr?"":" disabled")+'>Hatch 1</button><button class="bt" data-egg="'+w+'" data-n="10"'+(open&&S.coins>=pr*10?"":" disabled")+'>Hatch 10</button></div>';});
+  $("egggrid").innerHTML=h;
+  const own=PETS.filter(P=>(S.pets[P.id]||0)>0).sort((a,b)=>b.boost-a.boost);
+  $("petgrid").innerHTML=own.length?own.map(P=>'<div class="evo click'+(S.equip.includes(P.id)?" on":"")+'" data-p="'+P.id+'"><b style="color:'+RARITY[P.r].c+'">'+RARITY[P.r].n+'</b>'+P.n+(S.pets[P.id]>1?" x"+S.pets[P.id]:"")
+    +'<div class="sw" style="background:'+P.col+'"></div><span style="font-size:11px">x'+A3.fmt(P.boost)+' XP</span></div>').join(""):'<p class="help" style="grid-column:1/-1">No pets yet. Hatch an egg!</p>';
+}
+function hatch(w,n){
+  const pr=eggPrice(w)*n;if(!worldOpen(w)||S.coins<pr){A3.sfx("hit");return;}
+  S.coins-=pr;const got=[];
+  for(let k=0;k<n;k++){let x=Math.random()*100,r=0;while(r<4&&x>=RARITY[r].w){x-=RARITY[r].w;r++;}const P=PETS[w*5+r];S.pets[P.id]=(S.pets[P.id]||0)+1;got.push(P);}
+  const best=got.sort((a,b)=>b.r-a.r)[0];
+  if((S.equip||[]).length<3&&!S.equip.includes(best.id))S.equip.push(best.id);
+  persist();A3.sfx(best.r>=3?"win":"coin");A3.toast((n>1?"Hatched "+n+"! Best: ":"You hatched ")+RARITY[best.r].n+" "+best.n+"! x"+A3.fmt(best.boost)+" XP",2600);drawPets();hud();
+}
+$("egggrid").addEventListener("click",e=>{const b=e.target.closest("[data-egg]");if(b&&!b.disabled)hatch(+b.dataset.egg,+b.dataset.n);});
+$("petgrid").addEventListener("click",e=>{const b=e.target.closest("[data-p]");if(!b)return;const id=+b.dataset.p,i=S.equip.indexOf(id);
+  if(i>=0)S.equip.splice(i,1);else{if(S.equip.length>=3){A3.sfx("hit");A3.toast("You can have 3 pets out. Tap one to take it off first.",1800);return;}S.equip.push(id);}
+  A3.sfx("click");persist();drawPets();});
+$("petsBest").onclick=()=>{S.equip=PETS.filter(P=>(S.pets[P.id]||0)>0).sort((a,b)=>b.boost-a.boost).slice(0,3).map(P=>P.id);A3.sfx("coin");persist();drawPets();};
+$("bWorlds").onclick=()=>{A3.sfx("click");drawWorlds();A3.hide("ovTitle");A3.show("ovWorlds");};
+$("worldsBack").onclick=()=>{A3.sfx("click");A3.hide("ovWorlds");titleStats();A3.show("ovTitle");};
+$("bPets").onclick=()=>{A3.sfx("click");drawPets();A3.hide("ovTitle");A3.show("ovPets");};
+$("petsBack").onclick=()=>{A3.sfx("click");A3.hide("ovPets");titleStats();A3.show("ovTitle");};
 function drawReb(){
   $("rTitle").textContent="Rebirths: "+A3.fmt(S.reb);
-  $("rMul1").textContent="x"+A3.fmt(mult());$("rMul2").textContent="x"+A3.fmt(mult()+1);
-  $("rStart").textContent="Evo "+startEvo()+" → Evo "+(1+Math.min((S.reb+1)*2,500));
+  $("rMul1").textContent="x"+A3.fmt(rebMult());$("rMul2").textContent="x"+A3.fmt(rebMult()+1);
+  $("rStart").textContent="Evo "+startEvo()+" → Evo "+(1+Math.min((S.reb+1)*2,START_CAP));
   $("rNeed").textContent="Evo "+rebNeed()+" in one life";
   $("rText").textContent=S.rebReady?"You're ready! Rebirth to get more XP from every orb and knockout, and start higher up. Your best evolution and knockouts are kept.":"Reach Evo "+rebNeed()+" ("+formName(rebNeed())+") in one life to unlock your next rebirth.";
   $("rGo").disabled=!S.rebReady;
   const n=rebCan();$("rMax").disabled=n<1;$("rMax").textContent=n>1?"Max rebirth (x"+n+")":"Max rebirth";
-  if(n>1)$("rText").textContent="You can rebirth "+n+" times right now! Max rebirth does them all at once: XP multi x"+mult()+" → x"+(mult()+n)+", start at Evo "+(1+Math.min((S.reb+n)*2,500))+".";
+  if(n>1)$("rText").textContent="You can rebirth "+n+" times right now! Max rebirth does them all at once: rebirth multi x"+A3.fmt(rebMult())+" → x"+A3.fmt(rebMult()+n)+", start at Evo "+(1+Math.min((S.reb+n)*2,START_CAP))+".";
 }
 function doRebirth(max){
   const n=max?rebCan():Math.min(1,rebCan());
   if(n<1)return;
   const usedTop=rebNeed(S.reb+n-1)>=MAXL;
   S.reb+=n;if(usedTop)S.rebPeak=0;syncReb();persist();
-  A3.sfx("win");A3.toast((n>1?n+" rebirths! ":"")+"Rebirth "+A3.fmt(S.reb)+"! XP multi is now x"+A3.fmt(mult()),2600);
+  A3.sfx("win");A3.toast((n>1?n+" rebirths! ":"")+"Rebirth "+A3.fmt(S.reb)+"! Rebirth multi is now x"+A3.fmt(rebMult()),2600);
   try{if(window.PhatCoin)PhatCoin.earn("rebirth",25,"rebirth "+S.reb+" in Evo Clash");}catch(e){}
   drawReb();titleStats();
 }
@@ -940,6 +1103,7 @@ $("oMenu").onclick=()=>{A3.sfx("click");A3.hide("ovOver");toTitle();};
 $("bQuit").onclick=()=>{A3.sfx("click");if(me&&me.alive&&round&&round.ko>0)A3.best(round.ko);["ovOver"].forEach(A3.hide);toTitle();};
 function toTitle(){
   buckGift();
+  petObjs.forEach(o=>scene.remove(o.g));petObjs=[];
   disconnect();mode="title";
   DIFF=S.diff;setupArena("solo");for(let i=0;i<14;i++)spawnBot();
   ["board","mini","evobar","fxrow","bSwing","bDash","onlineLbl"].forEach(id=>$(id).hidden=true);$("bQuit").hidden=true;
@@ -950,7 +1114,7 @@ $("bMute").onclick=()=>{A3.mute(!A3.mute());$("bMute").textContent=A3.mute()?"�
 
 toTitle();
 window.addEventListener("pagehide",()=>{persist();disconnect();});
-window.__evoTest={S:()=>S,drawReb:()=>drawReb(),rebCan:()=>rebCan(),orbs:()=>[no,orbMesh.count,orbMesh.instanceColor?Array.from(orbMesh.instanceColor.array.slice(0,9)):null,orbMesh.material.type],fps:()=>fpsN,me:()=>me,chars:()=>chars,xp:n=>{if(me)addXP(me,Math.log10(n));},xpLog:lg=>{if(me)addXP(me,lg);},level:L=>{if(me){me.lt=cumLog(L);me.xp=0;me.L=L;evolve(me);}},die:()=>{if(me&&me.alive){me.spawnT=0;me.shield=false;tryKill(me,chars.find(c=>!c.p&&c.alive));}},swing:()=>{if(me)startSwing(me);}};
+window.__evoTest={S:()=>S,WORLD_NEED:()=>WORLD_NEED,drawPets:()=>drawPets(),hatch:(w,n)=>hatch(w,n),drawReb:()=>drawReb(),rebCan:()=>rebCan(),orbs:()=>[no,orbMesh.count,orbMesh.instanceColor?Array.from(orbMesh.instanceColor.array.slice(0,9)):null,orbMesh.material.type],fps:()=>fpsN,me:()=>me,chars:()=>chars,xp:n=>{if(me)addXP(me,Math.log10(n));},xpLog:lg=>{if(me)addXP(me,lg);},level:L=>{if(me){me.lt=cumLog(L);me.xp=0;me.L=L;evolve(me);}},die:()=>{if(me&&me.alive){me.spawnT=0;me.shield=false;tryKill(me,chars.find(c=>!c.p&&c.alive));}},swing:()=>{if(me)startSwing(me);}};
 if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"evo-clash",dir:"desc",unit:"KOs",title:"Evo Clash: most knockouts in one life"});
 })();
 </script>

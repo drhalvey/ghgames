@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Pocket Pool</title>
 <meta property="og:title" content="Pocket Pool · GH Games">
-<meta property="og:description" content="3D 8-ball pool with real ball physics. Aim with the guide line, add spin, and beat the computer on 3 levels or a friend on one device. Win coins for new cues and cloths.">
+<meta property="og:description" content="Trick-shot puzzle pool! Bank off bumpers, jump ramps, shoot through portals and colour gates to solve 60 wild tables across 6 worlds. Earn 3 stars, buy cues with longer aim lines, collect cue balls and pets, and rebirth. Classic 8-ball is still here too.">
 <meta property="og:image" content="https://ghgames.au/og/pocket-pool.png">
 <meta property="og:url" content="https://ghgames.au/pocket-pool.html">
 <meta name="twitter:card" content="summary_large_image">
@@ -21,6 +21,152 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
 <link rel="stylesheet" href="arcade3d.css">
+<style>
+body.classic #wrap{visibility:hidden}
+body.adv .stage [hidden]{display:none!important}
+body.adv .toast{top:64px}
+body.adv .wide{width:min(820px,100%)}
+body.adv .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(122px,1fr));gap:8px;margin-top:8px;max-height:min(44vh,400px);overflow:auto;padding:2px}
+body.adv .card{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:7px;font-weight:900;font-size:12px;text-align:center;line-height:1.25;cursor:pointer;position:relative;color:var(--ink);font-family:var(--body)}
+body.adv .card .r{font-size:10px;text-transform:uppercase;letter-spacing:.05em}
+body.adv .card .m{color:var(--green)}
+body.adv .card .p{color:var(--gold)}
+body.adv .card.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold) inset}
+body.adv .card.lock{opacity:.5}
+body.adv .card.done{border-color:var(--green)}
+body.adv .card .tick{position:absolute;right:5px;top:3px;font-size:14px}
+body.adv .card .face{font-size:30px;line-height:1.15}
+body.adv .card img{width:46px;height:46px;display:block;margin:0 auto 4px}
+body.adv .petdot{width:46px;height:46px;border-radius:50%;margin:0 auto 4px;border:3px solid rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center;font-size:25px}
+body.adv .urow{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;background:var(--panel2);border-radius:10px;padding:7px 10px;margin:5px 0;font-weight:800;font-size:13px}
+body.adv .urow b{color:#fff;font-size:15px}
+body.adv .urow small{display:block;color:var(--muted);font-weight:700}
+body.adv .urow .btn{font-size:14px;padding:6px 10px;border-radius:10px;box-shadow:0 4px 0 #a86a00;min-width:96px}
+body.adv .tabsum{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;font-weight:900;font-size:13px;color:var(--muted)}
+body.adv .tabsum b{color:var(--gold)}
+body.adv .goal{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:15;background:rgba(10,16,36,.8);border:2px solid var(--gold);border-radius:14px;padding:4px 14px;font-weight:900;font-size:clamp(13px,2vw,16px);text-align:center;pointer-events:none;white-space:nowrap;line-height:1.3}
+body.adv .goal b{font-family:var(--display);font-weight:400;font-size:clamp(16px,2.6vw,20px);color:var(--gold)}
+body.adv .goal .shots i{display:inline-block;width:12px;height:12px;border-radius:50%;background:#ffd23f;margin:0 2px;vertical-align:middle;border:2px solid #fff}
+body.adv .goal .shots i.used{background:#3a4466;border-color:#6a7496}
+body.adv .goal .shots i.bonus{background:#ff7ae0}
+body.adv .power{position:absolute;right:12px;top:64px;bottom:64px;width:56px;z-index:15;border-radius:28px;background:rgba(0,0,0,.42);border:2px solid rgba(255,255,255,.35);touch-action:none;overflow:hidden}
+body.adv .power .fill{position:absolute;left:0;right:0;top:0;height:0;background:linear-gradient(#5fd36a,#ffd23f 55%,#ff5d5d)}
+body.adv .power .lab{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-weight:900;font-size:11px;color:#fff;pointer-events:none;line-height:1.1}
+body.adv .power .knob{position:absolute;left:6px;right:6px;height:30px;top:4px;border-radius:15px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.4);pointer-events:none}
+body.adv .msg{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:14;background:rgba(10,16,36,.8);border:2px solid var(--line);border-radius:14px;padding:6px 14px;font-weight:900;font-size:clamp(13px,2vw,16px);pointer-events:none;white-space:nowrap;max-width:76%;overflow:hidden;text-overflow:ellipsis}
+body.adv .ingame{flex-wrap:wrap;max-width:46%}
+body.adv .starrow{font-size:46px;letter-spacing:6px;line-height:1}
+body.adv .starrow span{display:inline-block;animation:spin .6s ease-out both;filter:drop-shadow(0 3px 0 rgba(0,0,0,.4))}
+body.adv .starrow span.off{filter:grayscale(1) opacity(.35)}
+@keyframes spin{from{transform:scale(0) rotate(-180deg)}to{transform:scale(1) rotate(0)}}
+body.adv .egg{font-size:96px;line-height:1;animation:wob .25s ease-in-out infinite alternate}
+@keyframes wob{from{transform:rotate(-14deg) scale(1)}to{transform:rotate(14deg) scale(1.08)}}
+body.adv .hres{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+body.adv .hres div{background:var(--panel2);border:3px solid var(--c);border-radius:14px;padding:8px 12px;font-weight:900;font-size:14px;animation:popin .45s cubic-bezier(.3,1.6,.6,1) both;box-shadow:0 0 18px var(--c)}
+body.adv .hres div .e{font-size:40px;display:block}
+@keyframes popin{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
+body.adv .daily{animation:glow 1s ease-in-out infinite alternate}
+@keyframes glow{from{box-shadow:0 6px 0 #a8406d,0 0 0 rgba(255,111,163,0)}to{box-shadow:0 6px 0 #a8406d,0 0 22px rgba(255,111,163,.9)}}
+body.adv h3.sec{margin:10px 0 2px;font-family:var(--display);font-weight:400;font-size:20px;color:var(--gold)}
+@media (max-width:700px){body.adv .power{width:46px;top:92px}body.adv .goal{top:50px}body.adv .toast{top:104px}}
+</style>
+</head>
+<body>
+<script>var CLASSIC=/[?&]classic\b/.test(location.search);document.body.className=CLASSIC?"classic":"adv";</script>
+<div class="wrap" id="wrap">
+  <div class="links"><a class="home" href="index.html">← GH Games</a><a class="home" href="pocket-pool.html?classic=1">Play Classic 8-ball</a></div>
+  <div class="top">
+    <h1>Pocket Pool<small>3D</small></h1>
+    <div class="hud">
+      <div class="chip"><span>Coins</span><b id="hCoins">0</b></div>
+      <div class="chip"><span>Stars</span><b id="hStars">0</b></div>
+      <div class="chip"><span>World</span><b id="hWorld">1</b></div>
+      <div class="chip"><span>Rebirths</span><b id="hReb">0</b></div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="ingame"><button id="bMenu">☰ Menu</button><button id="bRetry">↻ Retry</button><button id="bFs">⛶</button><button id="bMute">🔊</button></div>
+    <div class="goal" id="goal" hidden></div>
+    <div class="toast" id="toast"></div>
+    <div class="msg" id="msg" hidden></div>
+    <div class="power" id="power" hidden><div class="fill" id="pFill"></div><div class="knob" id="pKnob"></div><div class="lab">PULL<br>DOWN</div></div>
+
+    <div class="ov" id="ovTitle">
+      <h2>POCKET POOL</h2>
+      <p>Every table is a trick-shot puzzle with bumpers, ramps, portals, colour gates and moving obstacles. Pot the right balls in only a few shots to earn 3 stars, then buy cues with longer aim lines!</p>
+      <div class="tabsum" id="tSum"></div>
+      <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bCont" hidden>Continue</button><button class="btn pink daily" id="bDaily" hidden>🎁 Daily</button></div>
+      <div class="row"><button class="btn green small" id="bShop">Cues and chalk</button><button class="btn alt small" id="bBalls">Cue balls</button><button class="btn alt small" id="bPets">Pets</button><button class="btn pink small" id="bReb">Rebirth</button></div>
+      <div class="row"><a class="btn alt small" href="pocket-pool.html?classic=1">🎱 Classic 8-ball</a></div>
+    </div>
+
+    <div class="ov" id="ovLevels" hidden>
+      <h2 id="lvTitle">WOOD BAR</h2>
+      <div class="seg" id="lvTabs"></div>
+      <div class="shopbox wide"><p class="help" id="lvHelp"></p><div class="cards" id="lvList"></div></div>
+      <div class="row"><button class="btn green" id="lvBack">Back</button></div>
+    </div>
+
+    <div class="ov" id="ovShop" hidden>
+      <h2>CUES</h2>
+      <div class="shopbox wide"><p class="help">Coins: <b id="shCoins" style="color:var(--gold)">0</b>. Better cues hit harder and show a longer aim line that bounces off walls. Cues and chalk reset when you rebirth.</p><div id="shList"></div></div>
+      <div class="row"><button class="btn green" id="shBack">Done</button></div>
+    </div>
+
+    <div class="ov" id="ovBalls" hidden>
+      <h2>CUE BALLS</h2>
+      <div class="shopbox wide"><p class="help" id="bHelp"></p><div class="cards" id="bList"></div></div>
+      <div class="row"><button class="btn green" id="bBack">Done</button></div>
+    </div>
+
+    <div class="ov" id="ovPets" hidden>
+      <h2>PETS</h2>
+      <div class="shopbox wide">
+        <p class="help" id="pHelp"></p>
+        <div class="row"><button class="btn small" id="pOpen1">Hatch 1</button><button class="btn small pink" id="pOpen3">Hatch 3</button><button class="btn small green" id="pBest">Equip best</button></div>
+        <div class="cards" id="pList"></div>
+      </div>
+      <div class="row"><button class="btn green" id="pBack">Done</button></div>
+    </div>
+
+    <div class="ov" id="ovHatch" hidden>
+      <div class="egg" id="hEgg">🥚</div>
+      <div class="hres" id="hRes"></div>
+      <div class="row"><button class="btn green" id="hOk" hidden>Nice!</button></div>
+    </div>
+
+    <div class="ov" id="ovReb" hidden>
+      <h2>REBIRTH</h2>
+      <div class="shopbox">
+        <h3 id="rTitle">Rebirths: 0</h3>
+        <p class="help" id="rText"></p>
+        <div class="item"><span>Coin multi</span><span class="c" id="rMul">x1 → x2</span></div>
+        <div class="item"><span>Pet slots</span><span class="c" id="rSlots">3</span></div>
+        <div class="item"><span>Next rebirth costs</span><span class="c" id="rCost">0</span></div>
+      </div>
+      <div class="row"><button class="btn pink" id="rGo">Rebirth now</button><button class="btn" id="rMax">Max rebirth</button><button class="btn alt" id="rBack">Back</button></div>
+    </div>
+
+    <div class="ov" id="ovWin" hidden>
+      <h2 id="wTitle">Solved!</h2>
+      <div class="starrow" id="wStars"></div>
+      <p id="wText"></p>
+      <div class="stats" id="wStats"></div>
+      <div class="row"><button class="btn green" id="wNext">Next table</button><button class="btn alt" id="wRetry">Replay</button><button class="btn pink" id="wMenu">Tables</button></div>
+    </div>
+
+    <div class="ov" id="ovFail" hidden>
+      <h2>Out of shots!</h2>
+      <p id="fText"></p>
+      <div class="row"><button class="btn green" id="fRetry">Try again</button><button class="btn pink" id="fMenu">Tables</button></div>
+    </div>
+  </div>
+
+  <p class="help">Pick a table, then solve it in as few shots as you can. Tap or drag on the table to aim (the dotted line shows where the white ball goes), then pull the power bar down and let go to shoot. You can also drag back from the white ball like a slingshot. Keyboard: arrows to aim, hold Space to charge, let go to shoot. Goals: pot all the red balls, pot the gold ball after it goes through a portal, pot 1, 2 and 3 in order, or sink the white ball in the gold hole. Bumpers bounce, ramps launch balls over low hedges, portals teleport balls, and a coloured gate only lets balls of its own colour through. Potting the white ball in a normal hole costs a shot. Use par shots or fewer for 3 stars. Coins buy cues (more power and longer aim lines), chalk (more coins) and cue balls with coin multis. Pets give coin multis plus extra shots or longer aim lines. Rebirth resets coins, cues and chalk for a coin multi that lasts for ever, and new worlds need rebirths. The leaderboard is total stars. Classic 8-ball against the computer or a friend is still here: press Classic 8-ball.</p>
+  <div id="lb"></div>
+</div>
+<template id="tplClassic">
 <style>
 .btn[hidden]{display:none}
 .toast{top:56px}
@@ -49,10 +195,8 @@
 .cuesw{display:inline-block;width:42px;height:8px;border-radius:4px;vertical-align:middle;margin-right:8px}
 .coins{color:var(--gold);font-weight:900}
 </style>
-</head>
-<body>
-<div class="wrap">
-  <div class="links"><a class="home" href="index.html">← GH Games</a></div>
+
+  <div class="links"><a class="home" href="index.html">← GH Games</a><a class="home" href="pocket-pool.html">Back to Trick Shots</a></div>
   <div class="top">
     <h1>Pocket Pool<small>3D</small></h1>
     <div class="hud">
@@ -97,7 +241,8 @@
 
   <p class="help">Drag on the table to aim (or tap a ball to aim straight at it). Pull the power bar on the right down and let go to shoot, or drag backwards from the white ball like pulling a cue. The guide line shows what your white ball will hit first. Tap the spin ball for top spin, back spin or side. Arrow keys aim and Space shoots on a keyboard. Fouls (potting the white, hitting the wrong ball first, or nothing touching a cushion) give your opponent ball in hand: drag the white ball to place it. Win games for coins to buy new cues and cloths.</p>
   <div id="lb"></div>
-</div>
+</template>
+<script>if(CLASSIC){document.getElementById("wrap").innerHTML=document.getElementById("tplClassic").innerHTML;document.title=document.title+" Classic";document.body.className="cls";}</script>
 
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
@@ -183,11 +328,18 @@ function simulate(B0,ang,speed,spinX,spinY,maxT){
 
 </script>
 <script>
-(function(){
+/* save v2: an old save (no v) belonged to the classic game. Keep it in .classic and give a starter bonus */
+(function(){var K='pocketpool-save';try{var raw=JSON.parse(localStorage.getItem(K)||"null");
+  if(raw&&typeof raw==="object"&&!(raw.v>=2)){var conv={v:2,classic:raw,coins:0};conv.coins=Math.min(20000,(+raw.coins||0)+10*(+raw.played||0)); conv.converted=conv.coins;localStorage.setItem(K,JSON.stringify(conv));}}catch(e){}})();
+</script>
+<script>
+if(CLASSIC)(function(){
+const CLS={load(d){let all={};try{all=JSON.parse(localStorage.getItem(SAVE)||"{}")||{};}catch(e){}const src=(all.v>=2?all.classic:all)||{};const o=JSON.parse(JSON.stringify(d));for(const k in src)o[k]=src[k];return o;},
+ store(s){let all={};try{all=JSON.parse(localStorage.getItem(SAVE)||"{}")||{};}catch(e){}if(!(all.v>=2))all={v:2};all.classic=s;A3.store(SAVE,all);}};
 "use strict";
 const $=id=>document.getElementById(id);
 const SAVE="pocketpool-save";
-const S=A3.save(SAVE,{mode:"cpu",level:2,coins:0,hardWins:0,wins:{1:0,2:0,3:0},losses:0,played:0,pots:0,cue:0,cloth:0,ownCue:[0],ownCloth:[0],game:null});
+const S=CLS.load({mode:"cpu",level:2,coins:0,hardWins:0,wins:{1:0,2:0,3:0},losses:0,played:0,pots:0,cue:0,cloth:0,ownCue:[0],ownCloth:[0],game:null});
 const CUES=[
   {n:"Classic Maple",a:"#e9c58f",b:"#5a3214",c:0},{n:"Ocean Blue",a:"#9fd8ff",b:"#1f4fd8",c:60},{n:"Candy Stripe",a:"#ffffff",b:"#ff4f8b",c:120,stripe:1},
   {n:"Gold Star",a:"#ffe27a",b:"#b8860b",c:200},{n:"Lava",a:"#ffb347",b:"#c2212d",c:300,stripe:1},{n:"Galaxy",a:"#c7a6ff",b:"#2b145e",c:450,stripe:1},{n:"Rainbow",a:"#ff6fa3",b:"#4aa8ff",c:700,rainbow:1}];
@@ -428,7 +580,7 @@ function gameOver(winner,how){
       A3.win(G.lvl===3?4:G.lvl,"winning Pocket Pool on "+LVLN[G.lvl]);}
     else{S.losses++;coins=3;}
   }else coins=8;
-  S.coins+=coins;A3.store(SAVE,S);
+  S.coins+=coins;CLS.store(S);
   $("oTitle").textContent=G.mode==="cpu"?(winner===0?"You win!":"Computer wins"):pname(winner)+" wins!";
   $("oText").textContent=pname(winner)+" "+how+". +"+coins+" coins.";
   $("oStats").innerHTML="<div>Shots <b>"+G.shots+"</b></div><div>Fouls <b>"+G.fouls[0]+(G.mode==="2p"?" / "+G.fouls[1]:"")+"</b></div><div>Coins <b>"+S.coins+"</b></div>"+(G.mode==="cpu"?"<div>Hard wins <b>"+S.hardWins+"</b></div>":"");
@@ -700,7 +852,7 @@ function hud(){
 }
 function persist(){
   if(G&&!G.over&&phase!=="roll")S.game={b:balls.map(b=>[+b.x.toFixed(3),+b.z.toFixed(3),b.on?1:0]),turn:G.turn,groups:G.groups,bih:G.bih,brk:G.brk,mode:G.mode,lvl:G.lvl,shots:G.shots,fouls:G.fouls,pots:G.pots};
-  A3.store(SAVE,S);
+  CLS.store(S);
 }
 function loadGame(g){
   G={turn:g.turn,groups:g.groups,bih:g.bih,brk:g.brk,mode:g.mode,lvl:g.lvl,over:false,shots:g.shots||0,fouls:g.fouls||[0,0],pots:g.pots||[0,0]};
@@ -727,7 +879,7 @@ $("ovShop").addEventListener("click",e=>{const b=e.target.closest("button[data-k
   if(b.dataset.buy){const c=+b.dataset.buy;if(S.coins<c)return;S.coins-=c;(k==="cue"?S.ownCue:S.ownCloth).push(i);A3.sfx("coin");A3.toast("Bought "+(k==="cue"?CUES[i].n+" cue":CLOTHS[i].n+" cloth")+"!",1600);}
   else A3.sfx("pop");
   if(k==="cue"){S.cue=i;buildCue();}else{S.cloth=i;buildTable();}
-  A3.store(SAVE,S);shopMenu();hud();});
+  CLS.store(S);shopMenu();hud();});
 $("bShop").onclick=()=>{A3.sfx("click");shopMenu();A3.hide("ovTitle");A3.show("ovShop");};
 $("bShopBack").onclick=()=>{A3.sfx("click");A3.hide("ovShop");titleMenu();A3.show("ovTitle");};
 $("bPlay").onclick=()=>{A3.sfx("click");A3.hide("ovTitle");newGame();};
@@ -747,6 +899,633 @@ buildTable();buildCue();rack();camMode="over";
 titleMenu();hud();
 if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"pocket-pool",dir:"desc",unit:"wins",title:"Pocket Pool: most wins vs the Hard computer"});
 })();
+</script>
+<script>
+if(!CLASSIC)(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const SAVE="pocketpool-save";
+const fmt=n=>A3.fmt(n);
+const mf=n=>n<10?String(Math.round(n*100)/100):n<1000?String(Math.round(n*10)/10):A3.fmt(n);
+const CAP=1e300,cap=n=>(n>0&&isFinite(n))?Math.min(CAP,n):(n>0?CAP:0);
+const DEF={v:2,coins:0,reb:0,cue:0,cues:[0],chalk:0,ball:0,balls:[0],stars:{},pets:[],eq:[],daily:{day:"",streak:0},cur:null,world:0,pots:0,clears:0,eggs:0,bk:0,classic:null};
+const S=A3.save(SAVE,DEF);
+if(!Array.isArray(S.cues)||!S.cues.length)S.cues=[0];if(!Array.isArray(S.balls)||!S.balls.length)S.balls=[0];
+if(!S.stars||typeof S.stars!=="object")S.stars={};if(!Array.isArray(S.pets))S.pets=[];if(!Array.isArray(S.eq))S.eq=[];
+if(!S.daily||typeof S.daily!=="object")S.daily={day:"",streak:0};
+if(!(S.chalk>=0))S.chalk=0;
+function persist(){A3.store(SAVE,S);}
+
+/*PZ-START*/
+const BR=0.25; // ball radius
+const PW=[ // 6 worlds: friction, bumper kick, mirror, extra element
+ {n:"Wood Bar",fa:0.9,fb:0.16,kick:1.12,mx:false,mz:false,extra:null},
+ {n:"Ice Rink",fa:0.32,fb:0.07,kick:1.1,mx:true,mz:false,extra:"ice"},
+ {n:"Jungle",fa:1.0,fb:0.17,kick:1.15,mx:false,mz:true,extra:"vines"},
+ {n:"Pirate Ship",fa:0.9,fb:0.16,kick:1.15,mx:true,mz:true,extra:"barrel"},
+ {n:"Space",fa:0.45,fb:0.08,kick:1.15,mx:false,mz:false,extra:"wormhole"},
+ {n:"Candy",fa:0.95,fb:0.16,kick:1.35,mx:true,mz:false,extra:"gum"}
+];
+const STD_HOLES=[[-6.75,-3.75],[6.75,-3.75],[-6.75,3.75],[6.75,3.75],[0,-3.95],[0,3.95]];
+function rectWalls(x0,z0,x1,z1){return [[x0,z0,x1,z0],[x1,z0,x1,z1],[x1,z1,x0,z1],[x0,z1,x0,z0]];}
+/* blueprints: cue, balls [x,z,kind] (kind: "r" red, "g" gold, 1..3 numbered), holes, walls, bumpers, gates, portals, ramps, movers */
+const BLUE=[
+ {n:"Warm Up",goal:"reds",shots:3,par:2,cue:[-4,0],balls:[[1.5,-1.4,"r"],[1.5,1.4,"r"]],holes:STD_HOLES},
+ {n:"Bumper Alley",goal:"reds",shots:5,par:3,cue:[-4.5,0],balls:[[3,-2,"r"],[3,0,"r"],[3,2,"r"]],holes:STD_HOLES,bumpers:[[0,-1.7,0.45],[0,1.7,0.45]]},
+ {n:"Portal Pot",goal:"portal",shots:3,par:1,cue:[-5,0],balls:[[-2.6,0,"g"]],holes:[[6.65,-2.2],[-6.75,3.75],[-6.75,-3.75]],portals:[[0.2,0,4.3,-2.2]]},
+ {n:"One Two Three",goal:"order",shots:6,par:3,cue:[-4.5,0],balls:[[-1,-1.6,1],[1.2,1.4,2],[3.2,-0.4,3]],holes:STD_HOLES},
+ {n:"Gate Keeper",goal:"reds",shots:5,par:2,cue:[-4.5,0],balls:[[1.2,-1.1,"r"],[1.2,1.1,"r"]],holes:[[6.75,-3.75],[6.75,3.75],[6.7,0]],gates:[[3.4,-4.3,3.4,4.3,"r"]]},
+ {n:"Ramp Jump",goal:"cuein",shots:3,par:1,cue:[-4.5,0],balls:[],holes:[[4.9,0,1],[-1,-3.4],[-1,3.4]],walls:[[2.2,-4.3,2.2,4.3,1]],ramps:[[0,0]]},
+ {n:"Windmill",goal:"reds",shots:5,par:3,cue:[-4.8,0],balls:[[3,-2.2,"r"],[3.6,0.6,"r"],[2.4,2.6,"r"]],holes:STD_HOLES,movers:[{t:"mill",x:0,z:0,len:1.5,spin:1.1}]},
+ {n:"Corner Shop",goal:"reds",shots:6,par:3,cue:[-4,2],balls:[[-3,-2.5,"r"],[2.8,2,"r"],[4.8,1,"r"]],shape:"L",holes:[[-6.75,-3.75],[-6.75,3.75],[6.75,3.75],[0.5,-3.75],[6.75,-0.25]]},
+ {n:"Portal Maze",goal:"order",shots:7,par:4,cue:[-4.5,0],balls:[[2.5,-2,1],[3,1.5,2],[5,0,3]],holes:[[6.75,-3.75],[6.75,3.75],[6.7,0],[1,-3.95],[1,3.95]],walls:[[-0.2,-4.3,-0.2,4.3]],portals:[[-2.6,-2.4,1.7,-0.2]]},
+ {n:"Boss Table",goal:"reds",shots:8,par:5,cue:[-5,0],balls:[[0.5,-2.6,"r"],[1,2.4,"r"],[3.6,-0.5,"r"],[5.2,2.2,"r"]],holes:STD_HOLES,bumpers:[[-1.8,0,0.4]],gates:[[5.5,-4.3,5.5,-2,"r"]],portals:[[-4.6,-3,2.8,3]],movers:[{t:"slide",x:2.2,z:0,ax:0,az:1,amp:2.2,spd:1.2,r:0.42}]}
+];
+const NLV=BLUE.length;
+function buildLevel(w,l){
+  const B=BLUE[l],P=PW[w],sx=P.mx?-1:1,sz=P.mz?-1:1;
+  const X=x=>x*sx,Z=z=>z*sz;
+  const L={w,l,n:B.n,goal:B.goal,shots:B.shots,par:B.par,fa:P.fa,fb:P.fb,kick:P.kick,walls:[],bumpers:[],holes:[],portals:[],ramps:[],movers:[],balls:[]};
+  // outer cushions
+  let outer;
+  if(B.shape==="L")outer=[[-7,-4],[0.9,-4],[0.9,-0.6],[7,-0.6],[7,4],[-7,4]];
+  else outer=[[-7,-4],[7,-4],[7,4],[-7,4]];
+  outer=outer.map(p=>[X(p[0]),Z(p[1])]);L.outline=outer;
+  for(let i=0;i<outer.length;i++){const a=outer[i],b=outer[(i+1)%outer.length];L.walls.push({ax:a[0],az:a[1],bx:b[0],bz:b[1],low:false,col:null,outer:true});}
+  (B.walls||[]).forEach(s=>L.walls.push({ax:X(s[0]),az:Z(s[1]),bx:X(s[2]),bz:Z(s[3]),low:!!s[4],col:null}));
+  (B.gates||[]).forEach(s=>L.walls.push({ax:X(s[0]),az:Z(s[1]),bx:X(s[2]),bz:Z(s[3]),low:false,col:s[4]}));
+  (B.holes||[]).forEach(h=>L.holes.push({x:X(h[0]),z:Z(h[1]),r:0.46,gold:!!h[2]}));
+  (B.bumpers||[]).forEach(b=>L.bumpers.push({x:X(b[0]),z:Z(b[1]),r:b[2],kick:P.kick}));
+  (B.portals||[]).forEach(p=>L.portals.push({ax:X(p[0]),az:Z(p[1]),bx:X(p[2]),bz:Z(p[3])}));
+  (B.ramps||[]).forEach(r=>L.ramps.push({x:X(r[0]),z:Z(r[1]),r:0.62}));
+  (B.movers||[]).forEach(m=>L.movers.push(Object.assign({},m,{x:X(m.x),z:Z(m.z),az:(m.az||0)*sz,ax:(m.ax||0)*sx,spin:(m.spin||0)*sx*sz})));
+  L.cue={x:X(B.cue[0]),z:Z(B.cue[1])};
+  L.balls.push({id:0,kind:"c",x:L.cue.x,z:L.cue.z,vx:0,vz:0,on:true,air:0,pcd:0,rcd:0,portaled:false,sx:L.cue.x,sz:L.cue.z});
+  B.balls.forEach((b,i)=>L.balls.push({id:i+1,kind:b[2],x:X(b[0]),z:Z(b[1]),vx:0,vz:0,on:true,air:0,pcd:0,rcd:0,portaled:false,sx:X(b[0]),sz:Z(b[1])}));
+  // world extras, placed where blueprints leave room
+  const ex=P.extra;
+  if(ex==="vines"&&l!==5&&l!==8)[[-1.6,-3.1],[-1.6,3.1]].forEach(p=>L.bumpers.push({x:X(p[0]),z:Z(p[1]),r:0.38,kick:P.kick,deco:"vine"}));
+  if(ex==="gum"&&l!==5&&l!==8)[[-6.1,0],[5.6,3.3]].forEach(p=>{if(l===7&&p[1]>0)return;L.bumpers.push({x:X(p[0]),z:Z(p[1]),r:0.36,kick:P.kick,deco:"gum"});});
+  if(ex==="ice"&&l!==5&&l!==8&&l!==7)[[-2.6,-3.2],[-2.6,3.2]].forEach(p=>L.walls.push({ax:X(p[0]-0.45),az:Z(p[1]),bx:X(p[0]+0.45),bz:Z(p[1]),low:false,col:null,deco:"ice"}));
+  if(ex==="barrel"&&l!==5&&l!==8&&l!==2)L.movers.push({t:"slide",x:X(-2.4),z:0,ax:0,az:1,amp:2.6,spd:0.9,r:0.36,deco:"barrel"});
+  if(ex==="wormhole"&&l!==2&&l!==8&&l!==9&&l!==5)L.portals.push({ax:X(-6.2),az:Z(-3.2),bx:X(6.2),bz:Z(3.2)});
+  L.t=0;L.need=L.balls.filter(b=>b.kind==="r").length;L.next=1;
+  return L;
+}
+function moverPos(m,t){if(m.t==="slide"){const s=Math.sin(t*m.spd)*m.amp;return {x:m.x+m.ax*s,z:m.z+m.az*s,vx:m.ax*Math.cos(t*m.spd)*m.amp*m.spd,vz:m.az*Math.cos(t*m.spd)*m.amp*m.spd};}
+  const a=t*m.spin;return {a,cx:Math.cos(a),sz:Math.sin(a)};}
+function segHit(b,ax,az,bx,bz,ev){
+  const dx=bx-ax,dz=bz-az,l2=dx*dx+dz*dz;let t=((b.x-ax)*dx+(b.z-az)*dz)/l2;t=t<0?0:t>1?1:t;
+  const cx=ax+dx*t,cz=az+dz*t,ox=b.x-cx,oz=b.z-cz,d2=ox*ox+oz*oz;if(d2>=BR*BR)return false;
+  const d=Math.sqrt(d2)||1e-6,nx=ox/d,nz=oz/d;b.x=cx+nx*BR;b.z=cz+nz*BR;
+  const vn=b.vx*nx+b.vz*nz;if(vn>=0)return true;
+  const tx=-nz,tz=nx,vt=(b.vx*tx+b.vz*tz)*0.97,nvn=-vn*0.8;b.vx=nx*nvn+tx*vt;b.vz=nz*nvn+tz*vt;if(ev)ev.cush.push(-vn);return true;
+}
+/* one physics step. ev collects: potted [{id,hole}], hits, cush, tele */
+function pzStep(L,dt,ev){
+  L.t+=dt;const B=L.balls;
+  for(const b of B){if(!b.on)continue;
+    if(b.pcd>0)b.pcd-=dt;if(b.rcd>0)b.rcd-=dt;
+    const s=Math.hypot(b.vx,b.vz);
+    if(b.air>0){b.air-=dt;b.x+=b.vx*dt;b.z+=b.vz*dt;}
+    else if(s>0){const ns=Math.max(0,s-(L.fa+L.fb*s)*dt);if(ns<0.03){b.vx=b.vz=0;}else{const k=ns/s;b.vx*=k;b.vz*=k;}b.x+=b.vx*dt;b.z+=b.vz*dt;}
+  }
+  // ball-ball
+  for(let i=0;i<B.length;i++){const a=B[i];if(!a.on||a.air>0)continue;
+    for(let j=i+1;j<B.length;j++){const c=B[j];if(!c.on||c.air>0)continue;
+      const dx=c.x-a.x,dz=c.z-a.z,d2=dx*dx+dz*dz;if(d2>=4*BR*BR||d2===0)continue;
+      const d=Math.sqrt(d2),nx=dx/d,nz=dz/d,ov=(2*BR-d)/2;a.x-=nx*ov;a.z-=nz*ov;c.x+=nx*ov;c.z+=nz*ov;
+      const rel=(a.vx-c.vx)*nx+(a.vz-c.vz)*nz;if(rel<=0)continue;const imp=rel*0.96;
+      a.vx-=imp*nx;a.vz-=imp*nz;c.vx+=imp*nx;c.vz+=imp*nz;if(ev){ev.hits.push(rel);if(ev.first<0&&(a.id===0||c.id===0))ev.first=a.id===0?c.id:a.id;}}}
+  for(const b of B){if(!b.on)continue;
+    // walls and gates (low walls can be jumped)
+    for(const w of L.walls){if(w.col&&w.col===b.kind)continue;if(w.low&&b.air>0)continue;segHit(b,w.ax,w.az,w.bx,w.bz,ev);}
+    // bumpers
+    for(const u of L.bumpers){const dx=b.x-u.x,dz=b.z-u.z,d2=dx*dx+dz*dz,rr=BR+u.r;if(d2>=rr*rr)continue;const d=Math.sqrt(d2)||1e-6,nx=dx/d,nz=dz/d;b.x=u.x+nx*rr;b.z=u.z+nz*rr;
+      const vn=b.vx*nx+b.vz*nz;if(vn<0){const out=Math.max(2.5,-vn*u.kick);b.vx+=nx*(out-vn);b.vz+=nz*(out-vn);if(ev)ev.bump.push(u);}}
+    // movers
+    for(const m of L.movers){const p=moverPos(m,L.t);
+      if(m.t==="slide"){const dx=b.x-p.x,dz=b.z-p.z,d2=dx*dx+dz*dz,rr=BR+m.r;if(d2>=rr*rr)continue;const d=Math.sqrt(d2)||1e-6,nx=dx/d,nz=dz/d;b.x=p.x+nx*rr;b.z=p.z+nz*rr;
+        const rvn=(b.vx-p.vx)*nx+(b.vz-p.vz)*nz;if(rvn<0){const k=-rvn*1.6;b.vx+=nx*k;b.vz+=nz*k;if(ev)ev.cush.push(-rvn);}}
+      else{for(const sgn of [1,-1]){const ex=m.x+p.cx*m.len*sgn,ez=m.z+p.sz*m.len*sgn;
+        const dx=ex-m.x,dz=ez-m.z,l2=dx*dx+dz*dz;let t=((b.x-m.x)*dx+(b.z-m.z)*dz)/l2;t=t<0?0:t>1?1:t;const cx=m.x+dx*t,cz=m.z+dz*t,ox=b.x-cx,oz=b.z-cz,d2=ox*ox+oz*oz,rr=BR+0.12;
+        if(d2>=rr*rr)continue;const d=Math.sqrt(d2)||1e-6,nx=ox/d,nz=oz/d;b.x=cx+nx*rr;b.z=cz+nz*rr;
+        const wvx=-m.spin*(cz-m.z),wvz=m.spin*(cx-m.x),rvn=(b.vx-wvx)*nx+(b.vz-wvz)*nz;if(rvn<0){const k=-rvn*1.75;b.vx+=nx*k;b.vz+=nz*k;if(ev)ev.cush.push(-rvn);}}}
+    }
+    if(b.air>0)continue;
+    // ramps launch fast balls into the air
+    for(const r of L.ramps){if(b.rcd>0)break;const dx=b.x-r.x,dz=b.z-r.z;if(dx*dx+dz*dz<r.r*r.r){const s=Math.hypot(b.vx,b.vz);if(s>3.5){b.air=Math.min(0.75,0.2+s*0.028);b.air0=b.air;b.rcd=0.8;if(ev)ev.jump.push(b.id);}}}
+    // portals
+    for(const p of L.portals){if(b.pcd>0)break;for(const end of [0,1]){const px=end?p.bx:p.ax,pz=end?p.bz:p.az,qx=end?p.ax:p.bx,qz=end?p.az:p.bz;const dx=b.x-px,dz=b.z-pz;
+      if(dx*dx+dz*dz<0.36*0.36){const s=Math.hypot(b.vx,b.vz)||1;b.x=qx+b.vx/s*0.05;b.z=qz+b.vz/s*0.05;b.pcd=0.5;b.portaled=true;if(ev)ev.tele.push({id:b.id,x:px,z:pz,qx,qz});break;}}}
+    // holes
+    for(let k=0;k<L.holes.length;k++){const h=L.holes[k],dx=b.x-h.x,dz=b.z-h.z;if(dx*dx+dz*dz<(h.r-0.05)*(h.r-0.05)){b.on=false;b.vx=b.vz=0;b.hole=k;if(ev)ev.potted.push({id:b.id,hole:k});break;}}
+  }
+}
+function pzMoving(L){for(const b of L.balls)if(b.on&&(b.vx||b.vz||b.air>0))return true;return false;}
+function pzEv(){return {first:-1,potted:[],hits:[],cush:[],bump:[],tele:[],jump:[]};}
+/*PZ-END*/
+
+
+/* ---------- worlds ---------- */
+const WT=[
+ {sky:["#2a1a10","#6a4a2a"],g:["#5a3a22","#4e321c"],cloth:"#1b8a4c",rail:"#6b3a1c",wall:"#8a5a2a",deco:"stool",leaf:"#c8302a",bump:"#d8b04a",pets:["Bar Mouse","Pool Cat","Snooker Dog","Billiard Owl","Cue Fox","Lucky Lion","Golden Eight"],pe:["🐭","🐱","🐶","🦉","🦊","🦁","🎱"]},
+ {sky:["#8ec9ff","#f2fbff"],g:["#f4f9ff","#e3eefa"],cloth:"#bfe6ff",rail:"#3a6aa0",wall:"#9fd8ff",deco:"pine",leaf:"#e8f4ff",bump:"#9fe8ff",pets:["Snow Hare","Penguin","Arctic Fox","Seal","Polar Bear","Ice Dragon","Yeti"],pe:["🐇","🐧","🦊","🦭","🐻‍❄️","🐉","🦍"]},
+ {sky:["#4ab06a","#d8ffd0"],g:["#3f9a3a","#378a33"],cloth:"#4a7a2a",rail:"#6a4a22",wall:"#5a8a3a",deco:"tree",leaf:"#1f7a2a",bump:"#7a5a2a",pets:["Frog","Parrot","Monkey","Toucan","Tiger","Jungle Dragon","Golden Idol"],pe:["🐸","🦜","🐒","🐦","🐯","🐲","🗿"]},
+ {sky:["#3a8ad8","#bfe8ff"],g:["#2a7ac8","#2470be"],cloth:"#b0283a",rail:"#7a4a22",wall:"#8a5a2a",deco:"mast",leaf:"#f4f1ea",bump:"#a8743a",pets:["Crab","Parrot","Sea Turtle","Shark","Kraken","Ghost Ship","Pirate King"],pe:["🦀","🦜","🐢","🦈","🐙","👻","🏴‍☠️"]},
+ {sky:["#050018","#3a1a7a"],g:["#1a1040","#140c34"],cloth:"#26304a",rail:"#3afff0",wall:"#5a6aa0",deco:"crystal",leaf:"#b085ff",bump:"#b085ff",glow:1,pets:["Space Slug","Robot Dog","Moon Cat","Alien Pup","Comet Fox","Star Whale","Galaxy Dragon"],pe:["🐛","🤖","🐱","👽","🦊","🐋","🐉"]},
+ {sky:["#ff9ad8","#ffe3f4"],g:["#ffc2e2","#ffb2da"],cloth:"#e0559a",rail:"#ffffff",wall:"#ff9ad8",deco:"lolly",leaf:"#ff3a8a",bump:"#7ae0ff",pets:["Gummy Bear","Jelly Fish","Cupcake Cat","Candy Pig","Choc Bunny","Sugar Dragon","Sweet Unicorn"],pe:["🐻","🪼","🐱","🐷","🐰","🐉","🦄"]}
+];
+const NW=PW.length,WREB=[0,0,1,2,3,5];
+const worldMult=w=>Math.pow(20,w);
+const lvKey=(w,l)=>w+"-"+l,starsOf=(w,l)=>S.stars[lvKey(w,l)]||0;
+function totalStars(){let n=0;for(const k in S.stars)n+=S.stars[k]||0;return n;}
+const worldDone=w=>starsOf(w,NLV-1)>0;
+const worldOpen=w=>w===0||(worldDone(w-1)&&S.reb>=WREB[w]);
+const levelOpen=(w,l)=>worldOpen(w)&&(l===0||starsOf(w,l-1)>0);
+function maxWorld(){let m=0;for(let w=0;w<NW;w++)if(worldOpen(w))m=w;return m;}
+
+/* ---------- shop data ---------- */
+const CUES=[
+ {n:"Bar Stick",pow:1.0,aim:2.6,bn:0,price:0,a:"#e9c58f",b:"#5a3214"},{n:"Oak Cue",pow:1.08,aim:4,bn:1,price:60,a:"#d8a868",b:"#6a3a14"},
+ {n:"Pro Cue",pow:1.15,aim:5.5,bn:1,price:450,a:"#9fd8ff",b:"#1f4fd8"},{n:"Laser Cue",pow:1.22,aim:7.5,bn:2,price:3000,a:"#ff6a6a",b:"#2a2a3a",glow:1},
+ {n:"Pirate Cue",pow:1.3,aim:10,bn:2,price:2e4,a:"#ffd23f",b:"#3a2a1a"},{n:"Galaxy Cue",pow:1.4,aim:13,bn:3,price:1.5e5,a:"#c7a6ff",b:"#2b145e",glow:1},{n:"Rainbow Cue",pow:1.5,aim:17,bn:4,price:1.2e6,a:"#ff6fa3",b:"#4aa8ff",glow:1}];
+const chalkPrice=l=>cap(30*Math.pow(1.5,l));
+const BALLS=[
+ {n:"Classic White",st:"plain",c:["#fbf8ef","#e63946"]},{n:"Spotty",st:"dots",c:["#fbf8ef","#4aa8ff"]},{n:"Smiley",st:"face",c:["#ffd23f","#3b2200"]},{n:"Footy",st:"spots",c:["#ffffff","#1a1a1a"]},
+ {n:"Beach Ball",st:"wedge",c:["#ff4a4a","#ffffff","#ffd23f","#4aa8ff"]},{n:"Moon",st:"spots",c:["#c8ccd6","#9aa0aa"]},{n:"Planet Earth",st:"spots",c:["#2a6ad8","#3aa83a"]},{n:"Lava",st:"cracks",c:["#2a0a0a","#ff6a1a"],glow:.8},
+ {n:"Ice Orb",st:"cracks",c:["#bfe8ff","#ffffff"],glow:.25},{n:"Galaxy",st:"stars",c:["#0a0520","#7a3aff"],glow:.6},{n:"Disco",st:"grid",c:["#dfe4ee","#8a929e","#ffffff"],metal:.6},{n:"Rainbow King",st:"wedge",c:["#ff4a4a","#ff9f43","#ffd23f","#5fd36a","#4aa8ff","#9b6bff"],glow:.4}
+].map((s,k)=>Object.assign(s,{k,mul:k===0?1:Math.round((1+0.15*Math.pow(k,1.35))*100)/100,price:k===0?0:Math.round(100*Math.pow(6,k-1))}));
+const BEST_BALL=BALLS.length-1;
+const RAR=[{n:"Common",c:"#cfd6e6",m:1.1,o:55},{n:"Uncommon",c:"#5fd36a",m:1.25,o:25},{n:"Rare",c:"#4aa8ff",m:1.5,o:12},{n:"Epic",c:"#b085ff",m:2,o:5},{n:"Legendary",c:"#ffd23f",m:3,o:2.2},{n:"Mythic",c:"#ff7ae0",m:5,o:0.7},{n:"Secret",c:"#ff5d5d",m:10,o:0.1}];
+const petMul=p=>RAR[p[1]].m*Math.pow(1.6,p[0]);
+const petKind=p=>(p[0]+p[1])%2?"shot":"aim";
+const petAim=p=>petKind(p)==="aim"?0.5+p[1]*0.5:0;
+const petShots=p=>petKind(p)==="shot"&&p[1]>=2?(p[1]>=5?2:1):0;
+const petName=p=>WT[p[0]].pets[p[1]],petEmo=p=>WT[p[0]].pe[p[1]];
+const petPerk=p=>petKind(p)==="aim"?"+"+petAim(p)+" aim":(petShots(p)?"+"+petShots(p)+" shot"+(petShots(p)>1?"s":""):"lucky (Rare+ gives shots)");
+const eggPrice=w=>250*worldMult(w);
+const slots=()=>3+Math.min(3,Math.floor(S.reb/2));
+const PETCAP=120;
+function petSum(){let s=0;for(const i of S.eq){const p=S.pets[i];if(p)s+=petMul(p);}return Math.max(1,s);}
+const petAimBonus=()=>S.eq.reduce((a,i)=>a+(S.pets[i]?petAim(S.pets[i]):0),0);
+const petShotBonus=()=>Math.min(3,S.eq.reduce((a,i)=>a+(S.pets[i]?petShots(S.pets[i]):0),0));
+const rebMul=()=>1+S.reb;
+const mult=()=>cap(rebMul()*petSum()*BALLS[S.ball].mul*(1+0.25*S.chalk));
+const coinBase=w=>cap(worldMult(w)*mult());
+const rebCost=r=>cap(2500*Math.pow(12,r==null?S.reb:r));
+const cueNow=()=>CUES[S.cue]||CUES[0];
+const aimLen=()=>cueNow().aim+petAimBonus();
+
+/* George: the player buckasnuncle gets 1 million coins and the best cue ball, once */
+function buckGift(){
+  const isBuck=n=>(n||"").trim().toLowerCase()==="buckasnuncle";
+  let nick="",acct="";try{nick=(window.Leaderboard&&Leaderboard.getName())||localStorage.getItem("ghgames_nick")||"";acct=localStorage.getItem("ghacct_user")||"";}catch(e){}
+  if((!isBuck(nick)&&!isBuck(acct))||S.bk)return;
+  S.bk=1;S.coins=cap(S.coins+1e6);if(S.balls.indexOf(BEST_BALL)<0)S.balls.push(BEST_BALL);S.ball=BEST_BALL;persist();
+  setTimeout(()=>{A3.sfx("win");A3.toast("buckasnuncle: 1,000,000 coins and the Rainbow King cue ball!",3500);hud();setCueBallSkin();},700);
+}
+
+/* ---------- 3D ---------- */
+const stage=$("stage");
+const V=A3.view(stage,{fov:40,sky:WT[0].sky,shadowSize:11});
+if(!V)return;
+const {scene,camera,renderer}=V;
+const parts=A3.particles(scene);
+V.lights.sun.position.set(-4,20,6);V.lights.sun.intensity=0.95;V.lights.hemi.intensity=0.75;
+const tableG=new THREE.Group(),dynG=new THREE.Group();scene.add(tableG,dynG);
+function clearG(g){while(g.children.length){const c=g.children.pop();c.traverse(o=>{if(o.geometry&&!o.userData.keep)o.geometry.dispose();if(o.material&&o.material.userData&&o.material.userData.own){if(o.material.map)o.material.map.dispose();o.material.dispose();}});}}
+function own(m){m.userData.own=true;return m;}
+function decoParts(type,leaf){
+  switch(type){
+    case "tree":return [[new THREE.CylinderGeometry(0.3,0.42,2,7),"#7a4a22",1],[new THREE.IcosahedronGeometry(1.4,0),leaf,2.6,{flat:true}]];
+    case "lolly":return [[new THREE.CylinderGeometry(0.12,0.12,3,6),"#ffffff",1.5],[new THREE.SphereGeometry(1,14,10),leaf,3.1]];
+    case "pine":return [[new THREE.CylinderGeometry(0.25,0.3,1.2,6),"#6a4a2a",0.6],[new THREE.ConeGeometry(1.3,3.2,8),"#2f7a4a",2.3,{flat:true}],[new THREE.ConeGeometry(0.85,1.3,8),leaf,3.5,{flat:true}]];
+    case "crystal":return [[new THREE.OctahedronGeometry(0.95,0),leaf,1.6,{flat:true,emissive:leaf,glow:0.6}]];
+    case "stool":return [[new THREE.CylinderGeometry(0.12,0.16,1.6,8),"#3a3a44",0.8],[new THREE.CylinderGeometry(0.6,0.6,0.22,16),leaf,1.7]];
+    case "mast":return [[new THREE.CylinderGeometry(0.18,0.24,7,8),"#7a4a22",3.5],[new THREE.BoxGeometry(2.6,2.2,0.08),leaf,5]];
+  }
+  return [];
+}
+const HCOL={r:"#e8323a",g:"#ffcf3f",c:"#fbf8ef",1:"#ffd23f",2:"#2f6fe0",3:"#9b3ad8"};
+function buildTable(L){
+  clearG(tableG);
+  const T=WT[L.w];
+  scene.background=A3.skyTexture(T.sky[0],T.sky[1]);scene.fog=new THREE.Fog(T.sky[1],34,80);
+  // cloth from the outline
+  const sh=new THREE.Shape();L.outline.forEach((p,i)=>{if(i)sh.lineTo(p[0],-p[1]);else sh.moveTo(p[0],-p[1]);});
+  const ct=A3.canvasTex(512,512,(g,w,h)=>{g.fillStyle=T.cloth;g.fillRect(0,0,w,h);const r=A3.seeded(9);for(let k=0;k<14000;k++){g.fillStyle=r()<0.5?"rgba(255,255,255,.04)":"rgba(0,0,0,.05)";g.fillRect(r()*w,r()*h,2,2);}});
+  ct.wrapS=ct.wrapT=THREE.RepeatWrapping;ct.repeat.set(0.12,0.12);
+  const cg=new THREE.ShapeGeometry(sh);cg.rotateX(-Math.PI/2);
+  const cloth=new THREE.Mesh(cg,own(new THREE.MeshStandardMaterial({map:ct,roughness:.95})));cloth.receiveShadow=true;tableG.add(cloth);
+  // base and floor
+  let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;L.outline.forEach(p=>{x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);z0=Math.min(z0,p[1]);z1=Math.max(z1,p[1]);});
+  const base=new THREE.Mesh(new THREE.BoxGeometry(x1-x0+1.6,1.2,z1-z0+1.6),A3.mat(shade(T.rail,-25),{rough:.6}));base.position.set((x0+x1)/2,-0.62,(z0+z1)/2);base.receiveShadow=true;base.castShadow=true;tableG.add(base);
+  const gt=A3.canvasTex(128,128,(g,cw,ch)=>{g.fillStyle=T.g[0];g.fillRect(0,0,cw,ch);g.fillStyle=T.g[1];if(L.w===3){for(let y=0;y<128;y+=16)g.fillRect(0,y,128,3);}else{g.fillRect(0,0,64,64);g.fillRect(64,64,64,64);}});
+  gt.wrapS=gt.wrapT=THREE.RepeatWrapping;gt.repeat.set(26,26);
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(120,120),own(new THREE.MeshStandardMaterial({map:gt,roughness:.9})));fl.rotation.x=-Math.PI/2;fl.position.y=-1.25;fl.receiveShadow=true;tableG.add(fl);
+  // decorations around the room
+  const pl=decoParts(T.deco,T.leaf),n=26,mats=pl.map(p=>A3.mat(p[1],p[3]||{}));
+  const meshes=pl.map((p,i)=>{const m=new THREE.InstancedMesh(p[0],mats[i],n);m.castShadow=true;m.position.y=-1.25;tableG.add(m);return m;});
+  const mx=new THREE.Matrix4(),q=new THREE.Quaternion(),pp=new THREE.Vector3(),sc=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),rng=A3.seeded(L.w*17+3);
+  for(let i=0;i<n;i++){const a=i/n*6.283+rng()*0.1,rr=11+rng()*10,s=0.8+rng()*0.7;q.setFromAxisAngle(up,rng()*6.28);pl.forEach((p,j)=>{pp.set(Math.cos(a)*rr*1.3,p[2]*s,Math.sin(a)*rr);sc.set(s,s,s);mx.compose(pp,q,sc);meshes[j].setMatrixAt(i,mx);});}
+  // walls: outer rails, inner walls, low hedges, gates
+  const railM=A3.mat(T.rail,{rough:.45}),wallM=A3.mat(T.wall,{rough:.5}),hedgeM=A3.mat("#3aa84a",{rough:.8}),iceM=A3.mat("#bff0ff",{rough:.1,metal:.1});
+  for(const w of L.walls){const dx=w.bx-w.ax,dz=w.bz-w.az,len=Math.hypot(dx,dz),mxp=(w.ax+w.bx)/2,mzp=(w.az+w.bz)/2,ang=-Math.atan2(dz,dx);
+    if(w.col){const gm=own(new THREE.MeshStandardMaterial({color:new THREE.Color(HCOL[w.col]).convertSRGBToLinear(),transparent:true,opacity:0.42,emissive:new THREE.Color(HCOL[w.col]),emissiveIntensity:0.5,depthWrite:false,side:THREE.DoubleSide}));
+      const panel=new THREE.Mesh(new THREE.BoxGeometry(len,0.55,0.06),gm);panel.position.set(mxp,0.28,mzp);panel.rotation.y=ang;tableG.add(panel);
+      for(const e of [[w.ax,w.az],[w.bx,w.bz]]){const post=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,0.7,10),A3.mat(HCOL[w.col],{emissive:HCOL[w.col],glow:.4}));post.position.set(e[0],0.35,e[1]);post.castShadow=true;tableG.add(post);}
+      const lab=A3.label("only "+(w.col==="r"?"RED":"GOLD")+" passes",{size:0.32,color:"#fff",bg:"rgba(160,20,30,.75)"});lab.position.set(mxp,0.95,mzp);tableG.add(lab);continue;}
+    if(w.outer){const b=new THREE.Mesh(new THREE.BoxGeometry(len+0.62,0.42,0.62),railM);const nx=-dz/len,nz=dx/len;const cx=(L.outline.reduce((a,p)=>a+p[0],0)/L.outline.length),cz=(L.outline.reduce((a,p)=>a+p[1],0)/L.outline.length);
+      const sgn=((mxp+nx*0.3-cx)*nx+(mzp+nz*0.3-cz)*nz)>0?1:-1;b.position.set(mxp+nx*0.31*sgn,0.12,mzp+nz*0.31*sgn);b.rotation.y=ang;b.castShadow=true;b.receiveShadow=true;tableG.add(b);continue;}
+    const m=w.low?hedgeM:w.deco==="ice"?iceM:wallM;const h=w.low?0.22:0.42;
+    const b=new THREE.Mesh(new THREE.BoxGeometry(len+0.1,h,w.low?0.3:0.22),m);b.position.set(mxp,h/2,mzp);b.rotation.y=ang;b.castShadow=true;b.receiveShadow=true;tableG.add(b);
+    if(w.low){const lab=A3.label("jump the hedge!",{size:0.3,color:"#fff",bg:"rgba(30,110,40,.75)"});lab.position.set(mxp,0.75,mzp+1.2);tableG.add(lab);}}
+  // holes
+  const hole=new THREE.MeshBasicMaterial({color:0x050507});
+  for(const h of L.holes){const hg=new THREE.CircleGeometry(h.r,28);hg.rotateX(-Math.PI/2);const d=new THREE.Mesh(hg,hole);d.position.set(h.x,0.006,h.z);tableG.add(d);
+    if(Math.abs(h.x)>6.2||Math.abs(h.z)>3.4){const d2=new THREE.Mesh(hg,hole);d2.position.set(h.x,0.335,h.z);tableG.add(d2);}
+    const t=new THREE.Mesh(new THREE.TorusGeometry(h.r+0.03,0.06,8,28),h.gold?A3.mat("#ffd23f",{emissive:"#ffb300",glow:.7,metal:.6}):A3.mat("#2a2a32",{rough:.4}));t.rotation.x=Math.PI/2;t.position.set(h.x,0.02,h.z);tableG.add(t);
+    if(h.gold){const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,1.4,6),A3.mat("#ffffff"));pole.position.set(h.x+0.3,0.7,h.z-0.3);tableG.add(pole);
+      const flag=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.3,0.02),A3.mat("#ffd23f",{emissive:"#ffb300",glow:.5}));flag.position.set(h.x+0.55,1.25,h.z-0.3);tableG.add(flag);flag.userData.flag=1;}}
+  // bumpers
+  for(const u of L.bumpers){const deco=u.deco||(L.w===2?"vine":L.w===5?"gum":"post");
+    const col=deco==="gum"?A3.pick(["#ff6fa3","#7ae0ff","#ffd23f","#5fd36a"]):deco==="vine"?"#7a5a2a":T.bump;
+    const c=new THREE.Mesh(new THREE.CylinderGeometry(u.r,u.r*1.08,0.5,24),A3.mat(col,{rough:.35,metal:deco==="post"?.5:0}));c.position.set(u.x,0.25,u.z);c.castShadow=true;tableG.add(c);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(u.r*0.9,0.06,8,24),A3.mat("#ffffff",{emissive:T.bump,glow:.8}));ring.rotation.x=Math.PI/2;ring.position.set(u.x,0.52,u.z);tableG.add(ring);ring.userData.bump=u;
+    if(deco==="gum"){const top=new THREE.Mesh(new THREE.SphereGeometry(u.r,16,10,0,Math.PI*2,0,Math.PI/2),A3.mat(col,{rough:.3}));top.position.set(u.x,0.5,u.z);tableG.add(top);}
+    if(deco==="vine"){const lf=new THREE.Mesh(new THREE.IcosahedronGeometry(u.r*1.3,0),A3.mat("#2f9a3a",{flat:true}));lf.position.set(u.x,0.75,u.z);lf.castShadow=true;tableG.add(lf);}}
+  // portals
+  for(const p of L.portals){for(const end of [0,1]){const x=end?p.bx:p.ax,z=end?p.bz:p.az,col=end?"#4aa8ff":"#ff8a3d";
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(0.42,0.08,10,32),A3.mat(col,{emissive:col,glow:1}));ring.rotation.x=Math.PI/2;ring.position.set(x,0.05,z);tableG.add(ring);
+    const sw=new THREE.Mesh(new THREE.CircleGeometry(0.4,28),new THREE.MeshBasicMaterial({map:swirlTex(col),transparent:true}));sw.material.userData.own=true;sw.rotation.x=-Math.PI/2;sw.position.set(x,0.012,z);sw.userData.swirl=end?-1:1;tableG.add(sw);}}
+  // ramps
+  for(const r of L.ramps){const g=new THREE.Mesh(new THREE.CylinderGeometry(r.r,r.r,0.08,24),own(new THREE.MeshStandardMaterial({map:rampTex,roughness:.5,emissive:new THREE.Color("#ffb300"),emissiveIntensity:0.3})));g.position.set(r.x,0.04,r.z);g.receiveShadow=true;tableG.add(g);}
+  // movers
+  moverMeshes=[];
+  for(const m of L.movers){let o;
+    if(m.t==="mill"){o=new THREE.Group();const bar=new THREE.Mesh(new THREE.BoxGeometry(m.len*2,0.3,0.24),A3.mat(L.w===3?"#a8743a":"#ff8a3d",{rough:.4}));bar.position.y=0.25;bar.castShadow=true;o.add(bar);
+      const hub=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,0.5,16),A3.mat("#ffd23f",{metal:.5}));hub.position.y=0.25;o.add(hub);}
+    else{o=new THREE.Mesh(new THREE.CylinderGeometry(m.r,m.r,0.6,20),A3.mat(m.deco==="barrel"||L.w===3?"#a8743a":"#ff5d8a",{rough:.5}));o.castShadow=true;o.position.y=0.3;
+      const band=new THREE.Mesh(new THREE.TorusGeometry(m.r*1.01,0.04,6,24),A3.mat("#3a3a44",{metal:.6}));band.rotation.x=Math.PI/2;o.add(band);}
+    o.position.set(m.x,o.position.y||0,m.z);tableG.add(o);moverMeshes.push({m,o});}
+  fitCam(x0,x1,z0,z1);
+}
+let moverMeshes=[];
+function shade(hex,amt){let n=parseInt(hex.slice(1),16),r=A3.clamp((n>>16)+amt,0,255),g=A3.clamp(((n>>8)&255)+amt,0,255),b=A3.clamp((n&255)+amt,0,255);return "#"+((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1);}
+function swirlTex(col){return A3.canvasTex(128,128,(g,w,h)=>{const gr=g.createRadialGradient(64,64,4,64,64,64);gr.addColorStop(0,"#ffffff");gr.addColorStop(0.4,col);gr.addColorStop(1,"rgba(0,0,0,.8)");g.fillStyle=gr;g.beginPath();g.arc(64,64,63,0,7);g.fill();
+  g.strokeStyle="rgba(255,255,255,.7)";g.lineWidth=5;for(let k=0;k<3;k++){g.beginPath();for(let a=0;a<5;a+=0.1){const r=a*11;g.lineTo(64+Math.cos(a+k*2.1)*r,64+Math.sin(a+k*2.1)*r);}g.stroke();}});}
+const rampTex=A3.canvasTex(128,128,(g,w,h)=>{g.fillStyle="#ffb300";g.beginPath();g.arc(64,64,64,0,7);g.fill();g.fillStyle="#fff27a";for(const y of [22,58]){g.beginPath();g.moveTo(24,y+40);g.lineTo(64,y);g.lineTo(104,y+40);g.lineTo(86,y+40);g.lineTo(64,y+18);g.lineTo(42,y+40);g.fill();}});
+
+/* ---------- balls ---------- */
+const ballGeo=new THREE.SphereGeometry(BR,28,18);ballGeo.userData={};
+function paintBall(g,w,h,B){
+  const c=B.c,rnd=A3.seeded(B.k*13+5);g.fillStyle=c[0];g.fillRect(0,0,w,h);const circ=(x,y,r,col)=>{g.fillStyle=col;g.beginPath();g.arc(x,y,r,0,7);g.fill();};
+  switch(B.st){
+    case "plain":circ(w*0.25,h/2,9,c[1]);circ(w*0.75,h/2,9,c[1]);break;
+    case "dots":for(let y=12;y<h;y+=22)for(let x=(y/22%2)*14+8;x<w;x+=28)circ(x,y,6,c[1]);break;
+    case "spots":for(let i=0;i<22;i++)circ(rnd()*w,10+rnd()*(h-20),6+rnd()*12,c[1]);break;
+    case "wedge":{const n=c.length;for(let i=0;i<n;i++){g.fillStyle=c[i];g.fillRect(i*w/n,0,w/n+1,h);}break;}
+    case "cracks":g.strokeStyle=c[1];g.lineWidth=4;for(let i=0;i<16;i++){let x=rnd()*w,y=rnd()*h;g.beginPath();g.moveTo(x,y);for(let j=0;j<5;j++){x+=rnd()*40-20;y+=rnd()*30-15;g.lineTo(x,y);}g.stroke();}break;
+    case "stars":for(let i=0;i<110;i++)circ(rnd()*w,rnd()*h,rnd()*1.8+0.4,"#ffffff");circ(w*0.6,h*0.45,22,c[1]);break;
+    case "grid":for(let y=0;y<h;y+=12)for(let x=0;x<w;x+=12){g.fillStyle=c[(rnd()*c.length)|0];g.fillRect(x+1,y+1,10,10);}break;
+    case "face":for(const u of [0.25,0.75]){circ(u*w-12,h/2-10,6,c[1]);circ(u*w+12,h/2-10,6,c[1]);g.strokeStyle=c[1];g.lineWidth=5;g.beginPath();g.arc(u*w,h/2,20,0.3,Math.PI-0.3);g.stroke();}break;
+  }
+}
+function ballTex(kind){
+  return A3.canvasTex(256,128,(g,w,h)=>{
+    if(kind==="r"){g.fillStyle="#e8323a";g.fillRect(0,0,w,h);g.fillStyle="rgba(255,255,255,.25)";g.fillRect(0,h*0.46,w,h*0.08);return;}
+    if(kind==="g"){g.fillStyle="#ffcf3f";g.fillRect(0,0,w,h);g.fillStyle="#fff6c8";for(const u of [0.25,0.75]){g.beginPath();for(let k=0;k<10;k++){const a=-Math.PI/2+k*Math.PI/5,q=k%2?9:22;g.lineTo(u*w+Math.cos(a)*q,h/2+Math.sin(a)*q);}g.fill();}return;}
+    g.fillStyle=HCOL[kind];g.fillRect(0,0,w,h);
+    for(const u of [0.25,0.75]){g.fillStyle="#fbf8ef";g.beginPath();g.arc(u*w,h/2,24,0,7);g.fill();g.fillStyle="#15151a";g.font="900 32px Nunito, Arial Black, Arial";g.textAlign="center";g.textBaseline="middle";g.fillText(String(kind),u*w,h/2+2);}
+  });
+}
+const kindMat={};
+function ballMat(kind){if(kindMat[kind])return kindMat[kind];const m=new THREE.MeshStandardMaterial({map:ballTex(kind),roughness:.18,metalness:kind==="g"?.6:0});return kindMat[kind]=m;}
+const cueMat=new THREE.MeshStandardMaterial({roughness:.18});
+function setCueBallSkin(){const B=BALLS[S.ball]||BALLS[0];if(cueMat.map)cueMat.map.dispose();cueMat.map=A3.canvasTex(256,128,(g,w,h)=>paintBall(g,w,h,B));
+  cueMat.metalness=B.metal||0;cueMat.emissive=new THREE.Color(B.glow?"#ffffff":"#000000");cueMat.emissiveMap=B.glow?cueMat.map:null;cueMat.emissiveIntensity=B.glow||0;cueMat.needsUpdate=true;}
+const prevCache=new Map();
+function ballPreview(k){if(prevCache.has(k))return prevCache.get(k);const src=document.createElement("canvas");src.width=256;src.height=128;paintBall(src.getContext("2d"),256,128,BALLS[k]);
+  const cv=document.createElement("canvas");cv.width=cv.height=92;const g=cv.getContext("2d");g.save();g.beginPath();g.arc(46,46,42,0,7);g.clip();g.drawImage(src,30,0,128,128,4,4,84,84);
+  const gr=g.createRadialGradient(32,30,4,46,46,46);gr.addColorStop(0,"rgba(255,255,255,.5)");gr.addColorStop(.5,"rgba(255,255,255,0)");gr.addColorStop(1,"rgba(0,0,0,.4)");g.fillStyle=gr;g.fillRect(0,0,92,92);g.restore();const u=cv.toDataURL();prevCache.set(k,u);return u;}
+let ballMeshes=[];
+function makeBallMeshes(){ballMeshes.forEach(m=>dynG.remove(m));ballMeshes=L.balls.map(b=>{const m=new THREE.Mesh(ballGeo,b.kind==="c"?cueMat:ballMat(b.kind));m.castShadow=true;m.position.set(b.x,BR,b.z);m.rotation.set(Math.random()*6,Math.random()*6,0);dynG.add(m);return m;});}
+
+/* ---------- cue stick + aim dots ---------- */
+const cueG=new THREE.Group(),cuePivot=new THREE.Group();scene.add(cueG);cueG.add(cuePivot);
+function buildCue(){
+  while(cuePivot.children.length)cuePivot.remove(cuePivot.children[0]);
+  const C=cueNow(),Ln=6.5;
+  const mk=(rt,rb,len,col,x)=>{const g=new THREE.CylinderGeometry(rt,rb,len,14);g.rotateZ(Math.PI/2);const m=new THREE.Mesh(g,A3.mat(col,{rough:.35,emissive:C.glow?col:"#000000",glow:C.glow?0.35:1}));m.position.x=x;m.castShadow=true;cuePivot.add(m);};
+  mk(0.045,0.045,0.08,"#3d7bd9",-0.04);mk(0.05,0.052,0.1,"#f4f1ea",-0.13);mk(0.1,0.055,Ln*0.6,C.a,-0.18-Ln*0.3);mk(0.15,0.1,Ln*0.35,C.b,-0.18-Ln*0.6-Ln*0.175);
+  cuePivot.rotation.z=-0.08;
+}
+const DOTS=160;
+const dotMesh=new THREE.InstancedMesh(new THREE.SphereGeometry(0.045,8,6),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.85}),DOTS);dotMesh.frustumCulled=false;scene.add(dotMesh);
+const ghost=new THREE.Mesh(new THREE.RingGeometry(BR*0.85,BR,32),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.85,side:THREE.DoubleSide,depthWrite:false}));ghost.rotation.x=-Math.PI/2;scene.add(ghost);
+const objDots=new THREE.InstancedMesh(new THREE.SphereGeometry(0.04,8,6),new THREE.MeshBasicMaterial({color:0xffe14d}),12);objDots.frustumCulled=false;scene.add(objDots);
+const mtx=new THREE.Matrix4();
+function preview(){
+  const c=L.balls[0];let x=c.x,z=c.z,dx=Math.cos(ang),dz=Math.sin(ang);const C=cueNow(),maxB=C.bn,len=aimLen();
+  let k=0,dist=0,bn=0,step=0.06,hit=null,tele=0;const gap=0.24;let nextDot=0.35;
+  while(dist<len&&k<DOTS){
+    x+=dx*step;z+=dz*step;dist+=step;
+    let stop=false;
+    for(const w of L.walls){if(w.low)continue;const ex=w.bx-w.ax,ez=w.bz-w.az,l2=ex*ex+ez*ez;let t=((x-w.ax)*ex+(z-w.az)*ez)/l2;t=t<0?0:t>1?1:t;const ox=x-(w.ax+ex*t),oz=z-(w.az+ez*t),d2=ox*ox+oz*oz;
+      if(d2<BR*BR){const d=Math.sqrt(d2)||1e-6,nx=ox/d,nz=oz/d;const vn=dx*nx+dz*nz;if(vn<0){if(bn>=maxB){stop=true;break;}dx-=2*vn*nx;dz-=2*vn*nz;bn++;x+=nx*(BR-d);z+=nz*(BR-d);}}}
+    if(stop)break;
+    for(const u of L.bumpers){const ox=x-u.x,oz=z-u.z,d=Math.hypot(ox,oz);if(d<BR+u.r){const nx=ox/d,nz=oz/d,vn=dx*nx+dz*nz;if(vn<0){if(bn>=maxB){stop=true;break;}dx-=2*vn*nx;dz-=2*vn*nz;bn++;}}}
+    if(stop)break;
+    for(const b of L.balls){if(!b.on||b.id===0)continue;if(Math.hypot(b.x-x,b.z-z)<2*BR){hit=b;break;}}
+    if(hit)break;
+    let inHole=false;for(const h of L.holes)if(Math.hypot(h.x-x,h.z-z)<h.r-0.05){inHole=true;break;}if(inHole)break;
+    if(tele<=0)for(const p of L.portals){for(const end of [0,1]){const px=end?p.bx:p.ax,pz=end?p.bz:p.az;if(Math.hypot(x-px,z-pz)<0.36){x=end?p.ax:p.bx;z=end?p.az:p.bz;tele=0.8;break;}}if(tele>0)break;}
+    if(tele>0)tele-=step;
+    if(dist>=nextDot){mtx.makeTranslation(x,0.05,z);dotMesh.setMatrixAt(k++,mtx);nextDot+=gap;}
+  }
+  dotMesh.count=k;dotMesh.instanceMatrix.needsUpdate=true;
+  ghost.visible=true;ghost.position.set(x,0.03,z);
+  if(hit){const nx=(hit.x-x)/(2*BR),nz=(hit.z-z)/(2*BR);let n=0;for(let i=1;i<=8;i++){mtx.makeTranslation(hit.x+nx*i*0.2,0.05,hit.z+nz*i*0.2);objDots.setMatrixAt(n++,mtx);}objDots.count=n;}else objDots.count=0;
+  objDots.instanceMatrix.needsUpdate=true;
+}
+
+/* ---------- level state ---------- */
+let L=null,mode="title",phase="idle",ang=0,power=0,ev=null,acc=0,shotT=0,cueAnim=null,sinking=[],lastLv=null;
+function shotsMax(){return L.shots+petShotBonus();}
+function startLevel(w,l,resume){
+  if(resume&&S.cur&&S.cur.w===w&&S.cur.l===l){L=S.cur.L;}else{L=buildLevel(w,l);L.used=0;L.earned=0;}
+  mode="level";phase="aim";sinking=[];
+  buildTable(L);makeBallMeshes();buildCue();
+  const c=L.balls[0];const tgt=L.balls.find(b=>b.id&&b.on);ang=tgt?Math.atan2(tgt.z-c.z,tgt.x-c.x):0;
+  if(L.goal==="cuein"){const g=L.holes.find(h=>h.gold);if(g)ang=Math.atan2(g.z-c.z,g.x-c.x);}
+  setPower(0);$("power").hidden=false;$("goal").hidden=false;updGoal();
+  msg(L.used?"":"Tap the table to aim, then pull the power bar down");
+  A3.sfx("whoosh");saveCur();hud();
+}
+function goalText(){
+  if(L.goal==="reds"){const left=L.balls.filter(b=>b.kind==="r"&&b.on).length;return "🔴 Pot all the red balls ("+left+" left)";}
+  if(L.goal==="portal")return "🌀 Pot the gold ball after it goes through a portal";
+  if(L.goal==="order")return L.next>3?"Done!":"🔢 Pot the balls in order: next is "+L.next;
+  return "⛳ Sink the white ball in the gold hole";
+}
+function updGoal(){
+  const mx=shotsMax();let dots="";for(let i=0;i<mx;i++)dots+='<i class="'+(i<L.used?"used":i>=L.shots?"bonus":"")+'"></i>';
+  $("goal").innerHTML="<b>"+(L.w+1)+"-"+(L.l+1)+" "+L.n+"</b><br>"+goalText()+'<br><span class="shots">'+dots+"</span> par "+L.par;
+}
+function msg(t){const e=$("msg");e.hidden=!t;e.textContent=t||"";}
+function saveCur(){if(L&&mode==="level"&&phase!=="roll"&&!L.won){S.cur={w:L.w,l:L.l,L:L};}persist();}
+function shoot(p){
+  if(phase!=="aim")return;p=A3.clamp(p,0.04,1);
+  cueAnim={t:0,speed:3+p*20*cueNow().pow,pull:p};phase="shoot";msg("");
+}
+function strike(speed){const c=L.balls[0];c.vx=Math.cos(ang)*speed;c.vz=Math.sin(ang)*speed;ev=pzEv();ev.seen=0;phase="roll";shotT=0;L.used++;updGoal();A3.sfx(speed>14?"hit":"click");setPower(0);}
+function endShot(){
+  let foul=false,coins=0;const cb=coinBase(L.w);
+  for(const p of ev.potted){const b=L.balls[p.id],h=L.holes[p.hole];
+    if(b.kind==="c"){if(L.goal==="cuein"&&h.gold){L.won=true;}else foul=true;continue;}
+    if(h.gold){respot(b);A3.toast("That hole is only for the white ball!",1500);continue;}
+    if(b.kind==="r"){coins+=cb*5;}
+    else if(b.kind==="g"){if(b.portaled){L.won=true;coins+=cb*10;}else{respot(b);A3.toast("The gold ball must go through a portal first!",1800);}}
+    else{if(b.kind===L.next){L.next++;coins+=cb*6;}else{respot(b);A3.toast("Wrong order! Ball "+L.next+" is next",1600);}}
+  }
+  if(L.goal==="reds"&&!L.balls.some(b=>b.kind==="r"&&b.on))L.won=true;
+  if(L.goal==="order"&&L.next>3)L.won=true;
+  if(coins){L.earned=cap(L.earned+coins);S.coins=cap(S.coins+coins);S.pots++;}
+  const c=L.balls[0];
+  if(foul&&!L.won){respot(c);A3.toast("The white ball went in! It goes back to the start",1700);A3.sfx("lose");}
+  L.balls.forEach(b=>{b.portaled=false;b.air=0;b.vx=b.vz=0;});
+  hud();updGoal();
+  if(L.won)return winLevel();
+  if(L.used>=shotsMax()){phase="over";S.cur=null;persist();$("fText").textContent="You used all "+shotsMax()+" shots. Have another go! Tip: a longer aim line from a better cue makes trick shots easier.";setTimeout(()=>A3.show("ovFail"),500);A3.sfx("lose");return;}
+  phase="aim";saveCur();
+}
+function respot(b){b.on=true;b.vx=b.vz=0;b.x=b.sx;b.z=b.sz;
+  for(let k=0;k<40;k++){if(!L.balls.some(o=>o!==b&&o.on&&Math.hypot(o.x-b.x,o.z-b.z)<2*BR+0.02))break;b.x+=0.3*Math.cos(k);b.z+=0.3*Math.sin(k);}
+  const m=ballMeshes[b.id];if(m){m.visible=true;m.scale.setScalar(1);}parts.burst(new THREE.Vector3(b.x,0.4,b.z),"#ffffff",10,3,0.5);}
+function winLevel(){
+  phase="over";const w=L.w,l=L.l,used=L.used,st=used<=L.par?3:used<=L.par+1?2:1,prev=starsOf(w,l),first=prev===0;
+  const bonus=cap(coinBase(w)*(20+5*l)*(1+0.5*st)*(first?2:1));S.coins=cap(S.coins+bonus);L.earned=cap(L.earned+bonus);
+  if(st>prev){S.stars[lvKey(w,l)]=st;A3.best(totalStars());}
+  S.clears++;S.cur=null;lastLv={w,l};persist();hud();
+  if(first&&st===3)A3.win(1,"3 stars on Pocket Pool table "+(w+1)+"-"+(l+1));
+  if(first&&l===NLV-1)A3.win(3,"finishing the "+PW[w].n+" world in Pocket Pool");
+  $("wTitle").textContent=st===3?"Perfect shot!":"Solved!";
+  $("wStars").innerHTML=[0,1,2].map(k=>'<span class="'+(k<st?"":"off")+'" style="animation-delay:'+(0.15+k*0.25)+'s">⭐</span>').join("");
+  $("wText").textContent=L.n+" solved in "+used+" shot"+(used>1?"s":"")+" (par "+L.par+")."+(first?" First clear bonus x2!":"");
+  $("wStats").innerHTML="<div>Coins <b>+"+fmt(L.earned)+"</b></div><div>Shots <b>"+used+"</b></div><div>Stars <b>"+totalStars()+"</b></div>";
+  $("wNext").hidden=!(l+1<NLV?levelOpen(w,l+1):(w+1<NW&&worldOpen(w+1)));$("wNext").textContent=l+1<NLV?"Next table":"Next world";
+  A3.sfx("win");for(let i=0;i<6;i++)setTimeout(()=>{parts.burst(new THREE.Vector3(A3.rand(-5,5),1.5,A3.rand(-3,3)),A3.pick(["#ffd23f","#ff6fa3","#4aa8ff","#5fd36a"]),16,6,1.1);A3.sfx("pop");},i*170);
+  $("power").hidden=true;
+  setTimeout(()=>A3.show("ovWin"),900);
+}
+
+/* ---------- input ---------- */
+const cv=renderer.domElement;let ptr=null;
+const canAim=()=>mode==="level"&&phase==="aim";
+cv.addEventListener("pointerdown",e=>{
+  if(!canAim())return;try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  const p=A3.floorPoint(e,camera,cv,BR);if(!p)return;const c=L.balls[0],dc=Math.hypot(p.x-c.x,p.z-c.z);
+  if(dc<0.7){ptr={mode:"pull",px:p.x,pz:p.z};return;}
+  ptr={mode:"aim"};ang=Math.atan2(p.z-c.z,p.x-c.x);msg("");
+});
+cv.addEventListener("pointermove",e=>{
+  if(!ptr)return;const p=A3.floorPoint(e,camera,cv,BR);if(!p)return;const c=L.balls[0];
+  if(ptr.mode==="pull"){const dx=c.x-p.x,dz=c.z-p.z,d=Math.hypot(dx,dz);if(d>0.3){ang=Math.atan2(dz,dx);setPower(A3.clamp((d-0.3)/3.2,0,1));}return;}
+  ang=Math.atan2(p.z-c.z,p.x-c.x);
+});
+function endPtr(){if(!ptr)return;const P=ptr;ptr=null;if(P.mode==="pull"){if(power>0.05)shoot(power);else setPower(0);}}
+cv.addEventListener("pointerup",endPtr);cv.addEventListener("pointercancel",endPtr);
+const pw=$("power");let pwOn=null;
+function setPower(p){power=p;$("pFill").style.height=(p*100)+"%";$("pKnob").style.top="calc("+(p*100)+"% - "+(p*30-4)+"px)";}
+pw.addEventListener("pointerdown",e=>{if(!canAim())return;e.stopPropagation();try{pw.setPointerCapture(e.pointerId);}catch(_){}pwOn=true;const r=pw.getBoundingClientRect();setPower(A3.clamp((e.clientY-r.top)/r.height,0,1));});
+pw.addEventListener("pointermove",e=>{if(!pwOn)return;const r=pw.getBoundingClientRect();setPower(A3.clamp((e.clientY-r.top)/r.height,0,1));});
+pw.addEventListener("pointerup",()=>{if(!pwOn)return;pwOn=null;if(power>0.05)shoot(power);else setPower(0);});
+pw.addEventListener("pointercancel",()=>{pwOn=null;setPower(0);});
+let keyPow=0;
+window.addEventListener("keydown",e=>{if(!canAim())return;if(e.key===" "){e.preventDefault();keyPow=1;}});
+window.addEventListener("keyup",e=>{if(e.key===" "&&keyPow){keyPow=0;if(canAim()&&power>0.05)shoot(power);}});
+
+/* ---------- camera ---------- */
+const camPos=new THREE.Vector3(0,20,10),camLook=new THREE.Vector3();let camGoalP=new THREE.Vector3(0,20,10),camGoalL=new THREE.Vector3();
+let tb=[-7,7,-4,4];
+function fitCam(x0,x1,z0,z1){
+  if(x0!==undefined)tb=[x0,x1,z0,z1];[x0,x1,z0,z1]=tb;
+  const cx=(x0+x1)/2,cz=(z0+z1)/2,tilt=0.5,box=[[x0-0.7,z0-0.7],[x1+0.7,z0-0.7],[x0-0.7,z1+0.7],[x1+0.7,z1+0.7]];
+  const sp=camera.position.clone(),sq=camera.quaternion.clone();let lo=4,hi=80;
+  const narrow=(stage.clientWidth||1)<700;
+  for(let it=0;it<22;it++){const d=(lo+hi)/2;camera.position.set(cx,Math.cos(tilt)*d,cz+Math.sin(tilt)*d);camera.lookAt(cx,0,cz);camera.updateMatrixWorld();
+    let ok=true;for(const b of box){const v=new THREE.Vector3(b[0],0.3,b[1]).project(camera);if(Math.abs(v.x)>(narrow?0.84:0.88)||v.y>0.7||v.y<-0.86)ok=false;}if(ok)hi=d;else lo=d;}
+  camGoalP.set(cx,Math.cos(tilt)*hi,cz+Math.sin(tilt)*hi);camGoalL.set(cx,0,cz);camera.position.copy(sp);camera.quaternion.copy(sq);
+}
+new ResizeObserver(()=>fitCam()).observe(stage);
+
+/* ---------- loop ---------- */
+const STEP=1/240,qTmp=new THREE.Quaternion(),axis=new THREE.Vector3();let hitSnd=0,fpsN=60,fa=0,ff=0;
+A3.loop((dt,t)=>{
+  fa+=dt;ff++;if(fa>1){fpsN=ff/fa;fa=0;ff=0;}
+  const paused=!$("ovTitle").hidden||!$("ovShop").hidden||!$("ovBalls").hidden||!$("ovPets").hidden||!$("ovLevels").hidden;
+  if(L&&mode==="level"&&!paused){
+    if(phase==="roll"){
+      acc+=dt;let n=0;
+      while(acc>=STEP&&n<14){pzStep(L,STEP,ev);acc-=STEP;n++;
+        for(const b of L.balls){if(!b.on||!(b.vx||b.vz))continue;const s=Math.hypot(b.vx,b.vz);axis.set(b.vz/s,0,-b.vx/s);qTmp.setFromAxisAngle(axis,s*STEP/BR);ballMeshes[b.id].quaternion.premultiply(qTmp);}}
+      if(n>=14)acc=0;shotT+=dt;
+      if(ev.hits.length){if(hitSnd<=0){A3.sfx(Math.max(...ev.hits)>6?"hit":"tick");hitSnd=0.05;}ev.hits.length=0;}
+      if(ev.bump.length){A3.sfx("pop");ev.bump.forEach(u=>parts.burst(new THREE.Vector3(u.x,0.5,u.z),WT[L.w].bump,6,3,0.4));ev.bump.length=0;}
+      if(ev.tele.length){ev.tele.forEach(tp=>{parts.burst(new THREE.Vector3(tp.x,0.3,tp.z),"#ff8a3d",14,4,0.6);parts.burst(new THREE.Vector3(tp.qx,0.3,tp.qz),"#4aa8ff",14,4,0.6);});A3.sfx("whoosh");ev.tele.length=0;}
+      if(ev.jump.length){A3.sfx("jump");ev.jump.length=0;}
+      ev.cush.length=0;
+      while(ev.potted.length>ev.seen){const p=ev.potted[ev.seen++],b=L.balls[p.id],h=L.holes[p.hole];sinking.push({id:p.id,t:0,x:b.x,z:b.z,px:h.x,pz:h.z});A3.sfx(h.gold?"win":"pop");parts.burst(new THREE.Vector3(h.x,0.4,h.z),h.gold?"#ffd23f":(HCOL[b.kind]||"#ffffff"),14,4,0.7);
+        if(b.kind!=="c")coinPopAt(h.x,h.z);}
+      if((!pzMoving(L)&&!sinking.length)||shotT>20){L.balls.forEach(b=>{b.vx=b.vz=0;});endShot();}
+    }else{L.t+=dt;}
+    if(phase==="shoot"){cueAnim.t+=dt;if(cueAnim.t>0.12)strike(cueAnim.speed);}
+    if(canAim()&&!ptr){const ka=(A3.keys.arrowleft||A3.keys.a?1:0)-(A3.keys.arrowright||A3.keys.d?1:0);ang+=ka*dt*(A3.keys.shift?0.15:0.9);
+      if(keyPow)setPower(Math.min(1,power+dt*0.7));const kp=(A3.keys.arrowdown||A3.keys.s?1:0)-(A3.keys.arrowup||A3.keys.w?1:0);if(kp)setPower(A3.clamp(power+kp*dt*0.8,0,1));}
+  }
+  hitSnd-=dt;
+  for(let i=sinking.length-1;i>=0;i--){const s=sinking[i];s.t+=dt;const m=ballMeshes[s.id],k=Math.min(1,s.t/0.3);if(m){m.position.set(A3.lerp(s.x,s.px,k),BR-k*0.6,A3.lerp(s.z,s.pz,k));m.scale.setScalar(1-k*0.4);}if(k>=1){sinking.splice(i,1);if(m&&!L.balls[s.id].on)m.visible=false;}}
+  if(L){
+    for(const b of L.balls){const m=ballMeshes[b.id];if(!m||!b.on||sinking.some(s=>s.id===b.id))continue;m.visible=true;m.scale.setScalar(1);const air=b.air>0&&b.air0?Math.sin((1-b.air/b.air0)*Math.PI)*1.1:0;m.position.set(b.x,BR+air,b.z);}
+    for(const o of moverMeshes){const p=moverPos(o.m,L.t);if(o.m.t==="mill"){o.o.rotation.y=-p.a;}else o.o.position.set(p.x,0.3,p.z);}
+  }
+  tableG.traverse(o=>{if(o.userData.swirl)o.rotation.z+=dt*2*o.userData.swirl;if(o.userData.flag)o.rotation.y=Math.sin(t*3)*0.3;});
+  const show=L&&mode==="level"&&(phase==="aim"||phase==="shoot")&&L.balls[0].on;
+  cueG.visible=!!show;dotMesh.visible=ghost.visible=objDots.visible=!!show&&phase==="aim";
+  if(show){const c=L.balls[0];let pull=0.15+power*1.4;if(phase==="shoot"){const k=Math.min(1,cueAnim.t/0.12);pull=(0.15+cueAnim.pull*1.4)*(1-k);}
+    cueG.position.set(c.x,BR+0.02,c.z);cueG.rotation.y=-ang;cuePivot.position.set(-BR-pull,0,0);if(phase==="aim")preview();}
+  const kk=1-Math.exp(-dt*4);camPos.lerp(camGoalP,kk);camLook.lerp(camGoalL,kk);camera.position.copy(camPos);camera.lookAt(camLook);
+  for(let i=pops.length-1;i>=0;i--){const p=pops[i];p.t+=dt;p.s.position.y+=dt*1.2;p.s.material.opacity=Math.max(0,1-p.t);if(p.t>1){scene.remove(p.s);p.s.material.map.dispose();p.s.material.dispose();pops.splice(i,1);}}
+  parts.update(dt);V.render();
+});
+const pops=[];
+function coinPopAt(x,z){const s=A3.label("+coins",{size:0.45,color:"#ffd23f",stroke:"#3b2200",depthTest:false});s.material.fog=false;s.renderOrder=9;s.position.set(x,1,z);scene.add(s);pops.push({s,t:0});}
+
+/* ---------- menus ---------- */
+function hud(){$("hCoins").textContent=fmt(S.coins);$("hStars").textContent=totalStars();$("hWorld").textContent=(L?L.w:viewW)+1;$("hReb").textContent=fmt(S.reb);}
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();};
+function titleStats(){
+  $("tSum").innerHTML="<span>⭐ <b>"+totalStars()+"</b> / "+(NW*NLV*3)+"</span><span>Coins <b>"+fmt(S.coins)+"</b></span><span>Multi <b>x"+mf(mult())+"</b></span><span>Cue <b>"+cueNow().n+"</b></span><span>Rebirths <b>"+fmt(S.reb)+"</b></span>"+(S.converted?"<span>Welcome back bonus <b>"+fmt(S.converted)+"</b></span>":"");
+  $("bCont").hidden=!S.cur;$("bDaily").hidden=S.daily.day===today();hud();
+}
+let viewW=0;
+function idleTable(){const w=Math.min(maxWorld(),S.world||0);L=buildLevel(w,9);L.used=0;mode="title";phase="idle";buildTable(L);makeBallMeshes();cueG.visible=false;$("power").hidden=true;$("goal").hidden=true;msg("");}
+function toTitle(){
+  buckGift();if(mode==="level"&&L&&phase!=="roll"&&phase!=="over")saveCur();
+  ["ovWin","ovFail","ovLevels"].forEach(A3.hide);idleTable();titleStats();A3.show("ovTitle");
+}
+const GICON={reds:"🔴",portal:"🌀",order:"🔢",cuein:"⛳"};
+function drawLevels(){
+  const w=viewW,open=worldOpen(w);
+  $("lvTitle").textContent=PW[w].n.toUpperCase();
+  $("lvTabs").innerHTML=PW.map((x,i)=>'<button data-w="'+i+'" class="'+(i===w?"on":"")+'">'+(worldOpen(i)?"":"🔒 ")+x.n+'</button>').join("");
+  const need=[];if(w>0&&!worldDone(w-1))need.push("solve "+PW[w-1].n+" table 10");if(S.reb<WREB[w])need.push("get "+WREB[w]+" rebirth"+(WREB[w]>1?"s":""));
+  $("lvHelp").innerHTML=open?"Coins x"+fmt(worldMult(w))+" here."+(PW[w].fa<0.6?" Slippery tables: balls roll a long way!":""):"🔒 To open "+PW[w].n+": "+need.join(" and ")+".";
+  $("lvList").innerHTML=BLUE.map((B,l)=>{const ok=levelOpen(w,l),st=starsOf(w,l);
+    return '<div class="card'+(st?" done":"")+(ok?"":" lock")+'" data-l="'+l+'"><div class="face">'+(ok?GICON[B.goal]:"🔒")+'</div>'+(l+1)+". "+B.n+'<div class="p">'+(st?"⭐".repeat(st):ok?(S.cur&&S.cur.w===w&&S.cur.l===l?"In progress":"Play"):"Locked")+'</div><div class="m">par '+B.par+'</div></div>';}).join("");
+}
+$("lvTabs").addEventListener("click",e=>{const b=e.target.closest("[data-w]");if(!b)return;viewW=+b.dataset.w;A3.sfx("click");drawLevels();});
+$("lvList").addEventListener("click",e=>{const c=e.target.closest("[data-l]");if(!c)return;const l=+c.dataset.l;if(!levelOpen(viewW,l)){A3.sfx("lose");A3.toast(worldOpen(viewW)?"Solve the table before this one first":"This world is locked",1500);return;}
+  A3.sfx("click");A3.hide("ovLevels");S.world=viewW;S.converted=0;startLevel(viewW,l,true);});
+$("bPlay").onclick=()=>{A3.sfx("click");viewW=maxWorld();for(let w=0;w<NW;w++)if(worldOpen(w)&&!worldDone(w)){viewW=w;break;}drawLevels();A3.hide("ovTitle");A3.show("ovLevels");};
+$("lvBack").onclick=()=>{A3.sfx("click");A3.hide("ovLevels");titleStats();A3.show("ovTitle");};
+$("bCont").onclick=()=>{if(!S.cur)return;A3.sfx("click");A3.hide("ovTitle");startLevel(S.cur.w,S.cur.l,true);};
+$("bMenu").onclick=()=>{A3.sfx("click");if(mode==="title")return;toTitle();};
+$("bRetry").onclick=()=>{if(mode!=="level"||!L||phase==="roll")return;A3.sfx("click");["ovWin","ovFail"].forEach(A3.hide);S.cur=null;startLevel(L.w,L.l,false);};
+$("bDaily").onclick=()=>{if(S.daily.day===today())return;const y=new Date(Date.now()-864e5),yk=y.getFullYear()+"-"+(y.getMonth()+1)+"-"+y.getDate();
+  S.daily.streak=S.daily.day===yk?S.daily.streak+1:1;S.daily.day=today();const c=cap(150*worldMult(maxWorld())*(1+Math.min(6,S.daily.streak-1)*0.5)*(1+S.reb*0.5));
+  S.coins=cap(S.coins+c);persist();A3.sfx("win");A3.toast("Day "+S.daily.streak+" reward: "+fmt(c)+" coins!",2800);titleStats();};
+$("wNext").onclick=()=>{A3.sfx("click");A3.hide("ovWin");const {w,l}=lastLv;if(l+1<NLV)startLevel(w,l+1,false);else{viewW=w+1;S.world=w+1;toTitle();A3.hide("ovTitle");drawLevels();A3.show("ovLevels");}};
+$("wRetry").onclick=()=>{A3.sfx("click");A3.hide("ovWin");startLevel(lastLv.w,lastLv.l,false);};
+$("wMenu").onclick=()=>{A3.sfx("click");A3.hide("ovWin");const w=lastLv.w;toTitle();A3.hide("ovTitle");viewW=w;drawLevels();A3.show("ovLevels");};
+$("fRetry").onclick=()=>{A3.sfx("click");A3.hide("ovFail");startLevel(L.w,L.l,false);};
+$("fMenu").onclick=()=>{A3.sfx("click");A3.hide("ovFail");const w=L.w;toTitle();A3.hide("ovTitle");viewW=w;drawLevels();A3.show("ovLevels");};
+
+function drawShop(){
+  $("shCoins").textContent=fmt(S.coins);
+  let h=CUES.map((C,i)=>{const own=S.cues.indexOf(i)>=0,on=S.cue===i;
+    return '<div class="urow"><div><b>'+C.n+(on?' <span style="color:var(--green)">✔ using</span>':"")+'</b><small>power x'+C.pow+' · aim line '+C.aim+' m · '+(C.bn?C.bn+" bounce"+(C.bn>1?"s":""):"no bounces")+'</small></div>'+(own?'<button class="btn small alt" data-c="'+i+'"'+(on?" disabled":"")+'>'+(on?"Using":"Use")+'</button>':'<button class="btn small" data-c="'+i+'"'+(S.coins<C.price?" disabled":"")+'>🪙 '+fmt(C.price)+'</button>')+'</div>';}).join("");
+  const cp=chalkPrice(S.chalk);
+  h+='<h3 class="sec">Chalk</h3><div class="urow"><div><b>Lucky Chalk <span style="color:var(--gold)">Lv '+S.chalk+'</span></b><small>+25% coins from everything</small></div><button class="btn small" id="buyChalk"'+(S.coins<cp?" disabled":"")+'>🪙 '+fmt(cp)+'</button></div>';
+  $("shList").innerHTML=h;
+}
+$("shList").addEventListener("click",e=>{
+  if(e.target.closest("#buyChalk")){const p=chalkPrice(S.chalk);if(S.coins<p)return;S.coins-=p;S.chalk++;A3.sfx("coin");persist();drawShop();hud();return;}
+  const b=e.target.closest("[data-c]");if(!b||b.disabled)return;const i=+b.dataset.c,C=CUES[i];
+  if(S.cues.indexOf(i)<0){if(S.coins<C.price)return;S.coins-=C.price;S.cues.push(i);A3.sfx("win");A3.toast(C.n+"! Aim line "+C.aim+" m",1500);}else A3.sfx("click");
+  S.cue=i;buildCue();persist();drawShop();hud();});
+function drawBalls(){
+  $("bHelp").innerHTML="Coins: <b style='color:var(--gold)'>"+fmt(S.coins)+"</b>. Your cue ball gives a coin multi. Cue balls are kept when you rebirth.";
+  $("bList").innerHTML=BALLS.map(B=>{const own=S.balls.indexOf(B.k)>=0,on=S.ball===B.k;
+    return '<div class="card'+(on?" on":"")+(own?"":" lock")+'" data-k="'+B.k+'">'+(on?'<span class="tick">✅</span>':"")+'<img alt="" src="'+ballPreview(B.k)+'">'+B.n+'<div class="m">x'+B.mul+' coins</div><div class="p">'+(own?(on?"Using":"Tap to use"):"🪙 "+fmt(B.price))+'</div></div>';}).join("");
+}
+$("bList").addEventListener("click",e=>{const c=e.target.closest("[data-k]");if(!c)return;const k=+c.dataset.k,B=BALLS[k];
+  if(S.balls.indexOf(k)>=0){S.ball=k;A3.sfx("click");}else if(S.coins>=B.price){S.coins-=B.price;S.balls.push(k);S.ball=k;A3.sfx("win");A3.toast(B.n+"! x"+B.mul+" coins",1500);}
+  else{A3.sfx("lose");A3.toast("You need "+fmt(B.price)+" coins",1300);return;}
+  setCueBallSkin();persist();drawBalls();hud();});
+function rollPet(w){const tot=RAR.reduce((a,r)=>a+r.o,0);let x=Math.random()*tot,r=0;for(;r<RAR.length-1;r++){if(x<RAR[r].o)break;x-=RAR[r].o;}return [w,r];}
+let eggW=0;
+function drawPets(){
+  eggW=maxWorld();const pr=eggPrice(eggW),tot=RAR.reduce((a,r)=>a+r.o,0);
+  $("pHelp").innerHTML="<b>"+PW[eggW].n+" egg</b>: 🪙 "+fmt(pr)+". You have <b style='color:var(--gold)'>"+fmt(S.coins)+"</b>. Slots <b>"+S.eq.length+"/"+slots()+"</b>. Pet multi <b style='color:var(--green)'>x"+mf(petSum())+"</b>, aim <b style='color:var(--green)'>+"+petAimBonus()+" m</b>, shots <b style='color:var(--green)'>+"+petShotBonus()+"</b><br>"
+    +RAR.map(r=>'<span style="color:'+r.c+'">'+r.n+" "+(r.o/tot*100).toFixed(r.o/tot<0.01?1:0)+"%</span>").join(" · ")+"<br>Some pets make your aim line longer, others give extra shots (Rare and better).";
+  $("pOpen1").disabled=S.coins<pr;$("pOpen3").disabled=S.coins<pr*3;
+  const idx=S.pets.map((p,i)=>i).sort((a,b)=>petMul(S.pets[b])-petMul(S.pets[a]));
+  $("pList").innerHTML=idx.length?idx.map(i=>{const p=S.pets[i],R_=RAR[p[1]],on=S.eq.indexOf(i)>=0;
+    return '<div class="card'+(on?" on":"")+'" data-p="'+i+'">'+(on?'<span class="tick">✅</span>':"")+'<div class="petdot" style="background:'+R_.c+'">'+petEmo(p)+'</div>'+petName(p)+'<div class="r" style="color:'+R_.c+'">'+R_.n+'</div><div class="m">x'+mf(petMul(p))+' · '+petPerk(p)+'</div></div>';}).join(""):'<p class="help">No pets yet. Hatch an egg!</p>';
+}
+function equipBest(){S.eq=S.pets.map((p,i)=>i).sort((a,b)=>petMul(S.pets[b])-petMul(S.pets[a])).slice(0,slots());}
+function hatch(n){
+  const pr=eggPrice(eggW),got=[];
+  for(let i=0;i<n;i++){if(S.coins<pr)break;S.coins-=pr;S.eggs++;const p=rollPet(eggW);got.push(p);
+    if(S.pets.length<PETCAP)S.pets.push(p);else{let wi=-1;S.pets.forEach((q,j)=>{if(S.eq.indexOf(j)>=0)return;if(wi<0||petMul(q)<petMul(S.pets[wi]))wi=j;});if(wi>=0&&petMul(S.pets[wi])<petMul(p))S.pets[wi]=p;}}
+  if(!got.length){A3.sfx("lose");return;}
+  equipBest();persist();
+  A3.hide("ovPets");A3.show("ovHatch");$("hEgg").hidden=false;$("hRes").innerHTML="";$("hOk").hidden=true;
+  let k=0;const tk=setInterval(()=>{A3.sfx("tick");if(++k>5)clearInterval(tk);},180);
+  setTimeout(()=>{$("hEgg").hidden=true;const best=Math.max(...got.map(p=>p[1]));A3.sfx(best>=3?"win":"pop");
+    $("hRes").innerHTML=got.map((p,i)=>'<div style="--c:'+RAR[p[1]].c+';animation-delay:'+(i*0.15)+'s"><span class="e">'+petEmo(p)+'</span>'+petName(p)+'<br><span style="color:'+RAR[p[1]].c+'">'+RAR[p[1]].n+'</span> x'+mf(petMul(p))+'<br>'+petPerk(p)+'</div>').join("");
+    $("hOk").hidden=false;if(best>=4)A3.win(2,"hatching a "+RAR[best].n+" pet in Pocket Pool");hud();},1250);
+}
+$("pOpen1").onclick=()=>hatch(1);$("pOpen3").onclick=()=>hatch(3);
+$("hOk").onclick=()=>{A3.sfx("click");A3.hide("ovHatch");drawPets();A3.show("ovPets");};
+$("pBest").onclick=()=>{equipBest();A3.sfx("click");persist();drawPets();};
+$("pList").addEventListener("click",e=>{const c=e.target.closest("[data-p]");if(!c)return;const i=+c.dataset.p,k=S.eq.indexOf(i);
+  if(k>=0)S.eq.splice(k,1);else if(S.eq.length<slots())S.eq.push(i);else{A3.toast("All "+slots()+" pet slots are full. Take one off first",1600);return;}
+  A3.sfx("click");persist();drawPets();});
+function rebCan(){let n=0,c=S.coins;while(c>=rebCost(S.reb+n)&&n<1000){c-=rebCost(S.reb+n);n++;}return n;}
+function drawReb(){
+  const c=rebCost(),ok=S.coins>=c,n=rebCan();
+  $("rTitle").textContent="Rebirths: "+fmt(S.reb);$("rMul").textContent="x"+fmt(rebMul())+" → x"+fmt(rebMul()+Math.max(1,n));
+  $("rSlots").textContent=slots()+(slots()<6?" (+1 every 2 rebirths)":" (max)");$("rCost").textContent=fmt(c)+" coins";
+  $("rText").textContent=ok?"Rebirth resets your coins, cues and chalk. You keep your stars, worlds, cue balls and pets, and every coin is multiplied for ever. New worlds need rebirths!":"You need "+fmt(c)+" coins to rebirth. You have "+fmt(S.coins)+".";
+  $("rGo").disabled=!ok;$("rMax").disabled=n<1;$("rMax").textContent=n>1?"Max rebirth (x"+n+")":"Max rebirth";
+}
+function doReb(max){const n=max?rebCan():(S.coins>=rebCost()?1:0);if(n<1)return;
+  S.reb+=n;S.coins=0;S.cue=0;S.cues=[0];S.chalk=0;S.cur=null;persist();buildCue();
+  A3.sfx("win");A3.toast((n>1?n+" rebirths! ":"")+"Rebirth "+fmt(S.reb)+"! Coin multi x"+fmt(rebMul()),2600);
+  try{if(window.PhatCoin)PhatCoin.earn("rebirth",25,"rebirth "+S.reb+" in Pocket Pool");}catch(e){}
+  drawReb();titleStats();}
+$("rGo").onclick=()=>doReb(false);$("rMax").onclick=()=>doReb(true);
+[["bShop","ovShop",drawShop,"shBack"],["bBalls","ovBalls",drawBalls,"bBack"],["bPets","ovPets",drawPets,"pBack"],["bReb","ovReb",drawReb,"rBack"]].forEach(([b,ov,draw,back])=>{
+  $(b).onclick=()=>{A3.sfx("click");draw();A3.hide("ovTitle");A3.show(ov);};
+  $(back).onclick=()=>{A3.sfx("click");A3.hide(ov);titleStats();A3.show("ovTitle");};});
+A3.fullscreen($("bFs"),stage);
+$("bMute").onclick=()=>{A3.mute(!A3.mute());$("bMute").textContent=A3.mute()?"🔇":"🔊";};$("bMute").textContent=A3.mute()?"🔇":"🔊";
+window.addEventListener("pagehide",()=>{if(mode==="level")saveCur();else persist();});
+
+/* ---------- start ---------- */
+if(S.ball>=BALLS.length||S.balls.indexOf(S.ball)<0)S.ball=0;if(S.cue>=CUES.length||S.cues.indexOf(S.cue)<0)S.cue=0;
+S.eq=S.eq.filter(i=>S.pets[i]);
+setCueBallSkin();buildCue();toTitle();camPos.copy(camGoalP);camLook.copy(camGoalL);
+window.__ppTest={S:()=>S,L:()=>L,mode:()=>mode,phase:()=>phase,start:(w,l)=>{A3.hide("ovTitle");startLevel(w,l,false);},aim:a=>{ang=a;},shoot:p=>shoot(p),
+  settle:()=>{camPos.copy(camGoalP);camLook.copy(camGoalL);return 1;},coins:n=>{S.coins=cap(S.coins+n);hud();},fps:()=>fpsN,win:()=>{L.won=true;L.used=Math.max(1,L.used);winLevel();},fail:()=>{L.used=shotsMax();ev=pzEv();ev.seen=0;endShot();},
+  levels:w=>{viewW=w;drawLevels();A3.hide("ovTitle");A3.show("ovLevels");},hatch:n=>hatch(n),setCue:i=>{S.cues.push(i);S.cue=i;buildCue();}};
+if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"pocket-pool-v2",dir:"desc",unit:"stars",title:"Pocket Pool: most stars"});
+
+})();
+
 </script>
 </body>
 </html>

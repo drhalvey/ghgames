@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Turf Grab</title>
 <meta property="og:title" content="Turf Grab · GH Games">
-<meta property="og:description" content="Leave your patch, draw a loop and dash home to grab all the land inside. Cut through rival trails, never get caught out, and own half the 3D map to win.">
+<meta property="og:description" content="Draw loops to grab land and watch your 3D kingdom grow farms, houses and towers that earn coins every second. Steal rival kingdoms, upgrade your castle and own 60% of the map to win a crown.">
 <meta property="og:image" content="https://ghgames.au/og/turf-grab.png">
 <meta property="og:url" content="https://ghgames.au/turf-grab.html">
 <meta name="twitter:card" content="summary_large_image">
@@ -23,22 +23,56 @@
 <link rel="stylesheet" href="arcade3d.css">
 <style>
 .stage [hidden]{display:none!important}
-.board10{position:absolute;right:10px;top:10px;z-index:15;background:rgba(10,20,40,.55);border-radius:12px;padding:6px 10px;font-weight:900;font-size:12px;line-height:1.35;min-width:128px;pointer-events:none}
+.wide{width:min(820px,100%)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px;margin-top:8px;max-height:min(50vh,420px);overflow:auto;padding:2px}
+.card{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:7px;font-weight:900;font-size:12px;text-align:center;line-height:1.25;cursor:pointer;position:relative;color:var(--ink);font-family:var(--body)}
+.card .r{font-size:10px;text-transform:uppercase;letter-spacing:.05em}
+.card .m{color:var(--green)}
+.card .p{color:var(--gold)}
+.card.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold) inset}
+.card.lock{opacity:.55}
+.card .tick{position:absolute;right:5px;top:3px;font-size:14px}
+.card .sw{height:34px;border-radius:9px;margin-bottom:5px;border:2px solid rgba(255,255,255,.35)}
+.urow{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;background:var(--panel2);border-radius:10px;padding:7px 10px;margin:5px 0;font-weight:800;font-size:13px}
+.urow b{color:#fff;font-size:15px}
+.urow small{display:block;color:var(--muted);font-weight:700}
+.urow .btn{font-size:14px;padding:6px 10px;border-radius:10px;box-shadow:0 4px 0 #a86a00}
+.urow .btn.alt{box-shadow:0 4px 0 #2f78a8}
+.petdot{width:46px;height:46px;border-radius:50%;margin:0 auto 4px;border:3px solid rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:inset 0 -6px 0 rgba(0,0,0,.18)}
+.hatch{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0;min-height:4px}
+.hatch div{background:var(--panel2);border:2px solid var(--c);border-radius:10px;padding:5px 8px;font-weight:900;font-size:12px;animation:pgpop .35s ease-out both}
+@keyframes pgpop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+.eggfx{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,10,30,.94);gap:10px}
+.eggfx .egg{font-size:110px;line-height:1;animation:pgshake .18s ease-in-out infinite alternate;filter:drop-shadow(0 8px 0 rgba(0,0,0,.35))}
+.eggfx .egg.crack{animation:pgcrack .35s ease-out both}
+.eggfx .res{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:90%}
+.eggfx .res div{background:var(--panel2);border:3px solid var(--c);border-radius:14px;padding:8px 12px;font-weight:900;font-size:14px;animation:pgpop .4s ease-out both;box-shadow:0 0 18px var(--c)}
+.eggfx .res span{display:block;font-size:34px}
+.eggfx b{font-family:var(--display);font-weight:400;font-size:26px;color:var(--gold)}
+@keyframes pgshake{from{transform:rotate(-12deg) scale(1)}to{transform:rotate(12deg) scale(1.08)}}
+@keyframes pgcrack{0%{transform:scale(1.1)}60%{transform:scale(1.6);opacity:.6}100%{transform:scale(.2);opacity:0}}
+.tabsum{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;font-weight:900;font-size:13px;color:var(--muted)}
+.tabsum b{color:var(--gold)}
+.btn.glow{animation:pgglow 1s ease-in-out infinite alternate}
+@keyframes pgglow{from{filter:brightness(1)}to{filter:brightness(1.25) drop-shadow(0 0 8px #ffd23f)}}
+@media (max-width:600px){.cards{grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}.ov{gap:8px;padding:10px}.ov h2{font-size:clamp(28px,8vw,52px)}.btn{font-size:18px;padding:9px 18px}}
+
+.board10{position:absolute;right:10px;top:10px;z-index:15;background:rgba(10,20,40,.55);border-radius:12px;padding:6px 10px;font-weight:900;font-size:12px;line-height:1.35;min-width:140px;pointer-events:none}
 .board10 h4{margin:0 0 2px;font-family:var(--display);font-weight:400;font-size:14px;color:var(--gold)}
 .board10 div{display:flex;justify-content:space-between;gap:10px;color:#fff;align-items:center}
 .board10 i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .board10 div.me{color:#7dffb0}
-.pctbig{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:15;font-family:var(--display);font-size:clamp(22px,4vw,34px);color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.5);pointer-events:none;text-align:center;line-height:1}
-.pctbig small{display:block;font-family:var(--body);font-weight:900;font-size:12px;color:var(--gold)}
-.goalbar{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);width:min(260px,50%);height:10px;border-radius:6px;background:rgba(0,0,0,.35);z-index:15;pointer-events:none;overflow:hidden}
-.goalbar b{display:block;height:100%;width:0;background:linear-gradient(90deg,#5fd36a,#ffd23f);border-radius:6px;transition:width .3s}
-.skins{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;margin-top:6px}
-.skin{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:6px;font-weight:900;font-size:13px;text-align:center;cursor:pointer;color:var(--ink);font-family:var(--body)}
-.skin.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold) inset}
-.skin.locked{opacity:.6}
-.skin .sw{width:40px;height:40px;border-radius:10px;margin:2px auto 4px;box-shadow:inset 0 -6px 0 rgba(0,0,0,.2)}
-.skin .c{color:var(--gold);font-size:11px}
-@media (max-width:600px){.board10{font-size:10px;min-width:100px}}
+.kbar{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:15;width:min(420px,64%);text-align:center;pointer-events:none}
+.kbar .nm{font-family:var(--display);font-size:clamp(20px,3.6vw,30px);color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.55);line-height:1}
+.kbar .nm small{font-family:var(--body);font-weight:900;font-size:12px;color:var(--gold);margin-left:6px}
+.kbar .bar{position:relative;height:12px;border-radius:8px;background:rgba(0,0,0,.45);border:2px solid rgba(255,255,255,.6);overflow:hidden;margin-top:4px}
+.kbar .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#5fd36a,#ffd23f)}
+.kbar .bar u{position:absolute;top:0;bottom:0;left:100%;width:3px;background:#fff}
+.kbar .nx{font-weight:900;font-size:12px;color:#fff;margin-top:3px;text-shadow:0 1px 0 #000,0 0 4px #000}
+.income{position:absolute;left:10px;bottom:10px;z-index:15;background:rgba(10,20,40,.6);border-radius:12px;padding:6px 10px;font-weight:900;font-size:13px;pointer-events:none;line-height:1.35}
+.income b{color:var(--gold)}
+.income .sh{color:#7af0ff}
+@media (max-width:600px){.board10{font-size:10px;min-width:104px}.income{font-size:11px}}
 </style>
 </head>
 <body>
@@ -48,46 +82,85 @@
     <h1>Turf Grab<small>3D</small></h1>
     <div class="hud">
       <div class="chip"><span>Land</span><b id="hPct">0%</b></div>
-      <div class="chip"><span>Best</span><b id="hBest">0%</b></div>
-      <div class="chip"><span>Rivals left</span><b id="hLeft">-</b></div>
-      <div class="chip"><span>Wins</span><b id="hWins">0</b></div>
+      <div class="chip"><span>Coins</span><b id="hCoins">0</b></div>
+      <div class="chip"><span>Per second</span><b id="hInc">0</b></div>
+      <div class="chip"><span>Crowns</span><b id="hCrowns">0</b></div>
+      <div class="chip"><span>World</span><b id="hWorld">1</b></div>
     </div>
   </div>
 
   <div class="stage" id="stage">
-    <div class="ingame"><button id="bFs">⛶</button><button id="bMute">🔊</button></div>
+    <div class="ingame"><button id="bFs">⛶</button><button id="bMute">🔊</button><button id="bQuit" hidden>✕</button></div>
     <div class="toast" id="toast"></div>
     <div class="board10" id="board" hidden></div>
-    <div class="goalbar" id="goal" hidden><b id="goalB"></b></div>
-    <div class="pctbig" id="pctBig" hidden>0%<small>OF THE MAP</small></div>
+    <div class="income" id="income" hidden></div>
+    <div class="kbar" id="kbar" hidden><div class="nm" id="kNm">0%</div><div class="bar"><i id="kFill"></i></div><div class="nx" id="kNx">Own 60% of the land to win a crown</div></div>
 
     <div class="ov" id="ovTitle">
       <h2>TURF GRAB</h2>
-      <p>Swipe or use the arrow keys to steer. Leave your patch to draw a trail, then get back home to grab all the land your loop goes round. If anyone touches your trail while you're out, you're out! Run over a rival's trail to knock them out. Own half the map, or be the last one left, to win.</p>
-      <div class="seg" id="diffs"><button data-d="0">Easy (6 rivals)</button><button data-d="1">Normal (8)</button><button data-d="2">Tough (10)</button></div>
-      <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bShop">Colours</button></div>
+      <p>Leave your land, draw a loop and dash home to grab everything inside. Your kingdom then grows farms, houses and towers all by itself that earn coins every second; steal land from rival kingdoms and own 60% of the map to win a crown!</p>
+      <div class="tabsum" id="tSum"></div>
+      <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn green" id="bUp">Upgrades</button><button class="btn alt" id="bWorlds">Worlds</button></div>
+      <div class="row"><button class="btn alt" id="bSkins">Banners</button><button class="btn alt" id="bPets">Pets</button><button class="btn pink" id="bReb">Rebirth</button><button class="btn" id="bDaily" hidden>🎁 Daily</button></div>
       <div class="stats" id="tStats"></div>
     </div>
-
-    <div class="ov" id="ovShop" hidden>
-      <h2>COLOURS</h2>
-      <div class="shopbox">
-        <h3>Unlock by playing</h3>
-        <p class="help">New colours unlock as you grab more land in total, beat your best and win games.</p>
-        <div class="skins" id="skins"></div>
+    <div class="ov" id="ovUp" hidden>
+      <h2>UPGRADES</h2>
+      <div class="shopbox wide">
+        <p class="help" id="upHelp"></p>
+        <div id="upList"></div>
       </div>
-      <div class="row"><button class="btn green" id="shopBack">Done</button></div>
+      <div class="row"><button class="btn pink" id="upAll">Max everything</button><button class="btn green" id="upBack">Done</button></div>
     </div>
+
+    <div class="ov" id="ovWorlds" hidden>
+      <h2>WORLDS</h2>
+      <div class="shopbox wide">
+        <p class="help" id="wHelp"></p>
+        <div class="cards" id="wList"></div>
+      </div>
+      <div class="row"><button class="btn green" id="wBack">Done</button></div>
+    </div>
+
+    <div class="ov" id="ovSkins" hidden>
+      <h2>SKINS</h2>
+      <div class="shopbox wide">
+        <p class="help" id="sHelp"></p>
+        <div class="cards" id="sList"></div>
+      </div>
+      <div class="row"><button class="btn green" id="sBack">Done</button></div>
+    </div>
+
+    <div class="ov" id="ovPets" hidden>
+      <h2>PETS</h2>
+      <div class="shopbox wide">
+        <p class="help" id="pHelp"></p>
+        <div class="row"><button class="btn small" id="pOpen1">Open 1</button><button class="btn small pink" id="pOpen10">Open 10</button><button class="btn small green" id="pBest">Equip best</button></div>
+        <div class="cards" id="pList"></div>
+      </div>
+      <div class="row"><button class="btn green" id="pBack">Done</button></div>
+    </div>
+
+    <div class="ov" id="ovReb" hidden>
+      <h2>REBIRTH</h2>
+      <div class="shopbox">
+        <h3 id="rTitle">Rebirths: 0</h3>
+        <p class="help" id="rText"></p>
+        <div id="rInfo"></div>
+      </div>
+      <div class="row"><button class="btn pink" id="rGo">Rebirth</button><button class="btn" id="rMax">Max rebirth</button><button class="btn alt" id="rBack">Back</button></div>
+    </div>
+    <div class="eggfx" id="eggfx" hidden><div class="egg" id="eggEmo">🥚</div><b id="eggTxt">Hatching...</b><div class="res" id="eggRes"></div></div>
 
     <div class="ov" id="ovOver" hidden>
       <h2 id="oTitle">Out!</h2>
       <p id="oText"></p>
       <div class="stats" id="oStats"></div>
-      <div class="row"><button class="btn green" id="oAgain">Play again</button><button class="btn alt" id="oMenu">Menu</button></div>
+      <div class="row"><button class="btn green" id="oAgain">Play again</button><button class="btn" id="oUp">Upgrades</button><button class="btn alt" id="oMenu">Menu</button></div>
     </div>
   </div>
 
-  <p class="help">Keyboard: arrow keys or W A S D. iPad: swipe anywhere on the game in the direction you want to go. You can't turn straight back on yourself. Your best share of the map goes on the leaderboard. Winning a round earns PhatCoin, and grabbing land unlocks new colours.</p>
+  <p class="help">Keyboard: arrow keys or W A S D. iPad: swipe anywhere on the game in the direction you want to go. Step off your land to draw a trail, then get back home to claim everything inside the loop. If a rival touches your trail while you are out, or you cross your own trail, your round ends (a Trail Shield saves you once, and pets guard your trail too). Run over a rival's trail to knock them out and grab their kingdom. Your land grows farms, then houses, then towers, which earn coins every second, even while you are out drawing. Coins buy upgrades (speed, trail shield, faster building, bigger starting land, castle levels and coins), banners with multis and pet eggs. Own 60% of the land to win a crown and a big payout. Rebirth resets coins and upgrades for a bigger multi for ever, and later worlds need rebirths. The leaderboard is the most crowns won.</p>
   <div id="lb"></div>
 </div>
 
@@ -95,358 +168,677 @@
 <script src="vendor/three.min.js"></script>
 <script src="arcade3d.js"></script>
 <script>
+/* ---------- progression: upgrades, worlds, skins, pets, rebirths, daily reward ----------
+   (kept inside this file on purpose, the kit stays untouched) */
+function GHProg(c){
+  const S=c.S,$=id=>document.getElementById(id),fmt=A3.fmt;
+  const CAP=1e300,cap=n=>n>0?(isFinite(n)?Math.min(CAP,n):CAP):0;
+  S.coins=cap(+S.coins||0);if(!S.up||typeof S.up!=="object")S.up={};c.ups.forEach(u=>{if(!(S.up[u.k]>=0))S.up[u.k]=0;});
+  if(!Array.isArray(S.wOwn)||!S.wOwn.length)S.wOwn=[0];if(!(S.world>=0&&S.world<c.worlds.length&&S.wOwn.includes(S.world)))S.world=0;
+  if(!Array.isArray(S.skins)||!S.skins.length)S.skins=[0];if(!(S.skin>=0&&S.skin<c.skins.length&&S.skins.includes(S.skin)))S.skin=0;
+  if(!Array.isArray(S.pets))S.pets=[];if(!Array.isArray(S.eq))S.eq=[];
+  S.reb=S.reb|0;S.eggs=S.eggs|0;if(!S.daily||typeof S.daily!=="object")S.daily={d:"",s:0};
+  const RAR=[{n:"Common",c:"#cfd6e6",m:1.25,o:55},{n:"Uncommon",c:"#5fd36a",m:1.6,o:25},{n:"Rare",c:"#4aa8ff",m:2.2,o:12.5},{n:"Epic",c:"#b085ff",m:3.5,o:5.5},{n:"Legendary",c:"#ffd23f",m:6,o:1.6},{n:"Mythic",c:"#ff7ae0",m:12,o:0.36},{n:"Secret",c:"#ff5d5d",m:40,o:0.04}];
+  const ANIM=c.petAnimals||["Pup","Bunny","Kitty","Owl","Dragon","Unicorn","Phoenix"];
+  const AEMO=c.petEmoji||["🐶","🐰","🐱","🦉","🐲","🦄","🌟"];
+  const PETCAP=120;
+  const petMul=p=>RAR[p[1]].m*Math.pow(c.petGrow||2.2,p[0]);
+  const petName=p=>(c.worlds[p[0]].pn||c.worlds[p[0]].n)+" "+ANIM[p[1]];
+  const petCol=p=>p[1]>=3?RAR[p[1]].c:(c.worlds[p[0]].petc||c.worlds[p[0]].sw[0]);
+  const slots=()=>3+Math.min(3,Math.floor(S.reb/2));
+  function petSum(){let s=0;for(const k of S.eq){const p=S.pets[k];if(p)s+=petMul(p);}return Math.max(1,s);}
+  const skinMul=()=>c.skins[S.skin].m;
+  const rebMul=()=>1+S.reb*(c.rebStep||1);
+  const multi=()=>cap(rebMul()*petSum()*skinMul());
+  const upPrice=(u,l)=>cap(u.b*Math.pow(u.g,l));
+  const lv=k=>S.up[k]|0;
+  const persist=()=>c.persist();
+  function addCoins(n){S.coins=cap(S.coins+Math.max(0,n));}
+  function back(){A3.sfx("click");c.back();}
+
+  /* upgrades */
+  function drawUps(){
+    $("upHelp").innerHTML=(c.upNote||"Upgrades reset when you rebirth.")+" "+c.cur+": <b style='color:var(--gold)'>"+fmt(S.coins)+"</b>";
+    $("upList").innerHTML=c.ups.map(u=>{const l=lv(u.k),max=l>=u.max,pr=upPrice(u,l);
+      return '<div class="urow"><div><b>'+u.n+'</b> <span style="color:var(--gold)">'+l+"/"+u.max+"</span><small>"+u.d+(u.now?" (now "+u.now()+")":"")+"</small></div>"
+        +'<button class="btn" data-buy="'+u.k+'"'+(max||S.coins<pr?" disabled":"")+">"+(max?"MAX":fmt(pr))+"</button>"
+        +'<button class="btn alt" data-max="'+u.k+'"'+(max||S.coins<pr?" disabled":"")+">Max</button></div>";}).join("");
+  }
+  function buyUp(k,all){
+    const u=c.ups.find(x=>x.k===k);let n=0;
+    while(S.up[k]<u.max){const pr=upPrice(u,S.up[k]);if(S.coins<pr)break;S.coins-=pr;S.up[k]++;n++;if(!all||n>5000)break;}
+    if(n){A3.sfx("coin");persist();c.changed&&c.changed();}
+    return n;
+  }
+  $("upList").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.buy)buyUp(b.dataset.buy,false);else if(b.dataset.max)buyUp(b.dataset.max,true);drawUps();});
+  $("upAll").onclick=()=>{let n=0,go=true;while(go&&n<20000){go=false;let best=null,bp=Infinity;for(const u of c.ups){if(S.up[u.k]>=u.max)continue;const p=upPrice(u,S.up[u.k]);if(p<bp){bp=p;best=u;}}
+      if(best&&S.coins>=bp){S.coins-=bp;S.up[best.k]++;n++;go=true;}}
+    if(n){A3.sfx("coin");persist();c.changed&&c.changed();}else A3.toast("Not enough "+c.cur.toLowerCase(),1200);drawUps();};
+  $("upBack").onclick=back;
+
+  /* worlds */
+  function worldState(i){
+    const w=c.worlds[i];if(S.wOwn.includes(i))return {own:true};
+    if(i>0&&!S.wOwn.includes(i-1))return {why:"Unlock "+c.worlds[i-1].n+" first"};
+    if((w.reb||0)>S.reb)return {why:"Needs "+w.reb+" rebirth"+(w.reb>1?"s":"")};
+    const extra=c.worldNeed?c.worldNeed(i):null;if(extra)return {why:extra};
+    return {cost:w.cost||0};
+  }
+  function drawWorlds(){
+    $("wHelp").innerHTML=(c.worldNote||"")+" "+c.cur+": <b style='color:var(--gold)'>"+fmt(S.coins)+"</b>";
+    $("wList").innerHTML=c.worlds.map((w,i)=>{const st=worldState(i),on=i===S.world;
+      return '<div class="card'+(on?" on":"")+(st.own||st.cost!=null?"":" lock")+'" data-w="'+i+'">'+(on?'<span class="tick">✅</span>':"")+'<div class="sw" style="background:linear-gradient('+w.sw[0]+","+w.sw[1]+')"></div>'+(i+1)+". "+w.n
+        +'<div class="m">'+(c.worldPerk?c.worldPerk(i):"")+'</div><div class="p">'+(on?"Playing here":st.own?"Tap to go":st.cost!=null?"Unlock "+fmt(st.cost):"🔒 "+st.why)+"</div></div>";}).join("");
+  }
+  $("wList").addEventListener("click",e=>{const el=e.target.closest("[data-w]");if(!el)return;const i=+el.dataset.w,st=worldState(i);
+    if(st.own){S.world=i;A3.sfx("click");}
+    else if(st.cost!=null){if(S.coins>=st.cost){S.coins-=st.cost;S.wOwn.push(i);S.world=i;A3.sfx("win");A3.toast("🌍 "+c.worlds[i].n+" unlocked!",2000);A3.win(Math.min(5,2+Math.floor(i/2)),"unlocking "+c.worlds[i].n+" in "+c.name);}
+      else{A3.sfx("lose");A3.toast("You need "+fmt(st.cost)+" "+c.cur.toLowerCase(),1500);}}
+    else{A3.sfx("hit");A3.toast(st.why,1500);}
+    persist();drawWorlds();c.worldChanged&&c.worldChanged();});
+  $("wBack").onclick=back;
+
+  /* skins */
+  function drawSkins(){
+    $("sHelp").innerHTML=(c.skinNote||"Skins give a small multi. Wear one at a time.")+" "+c.cur+": <b style='color:var(--gold)'>"+fmt(S.coins)+"</b>";
+    $("sList").innerHTML=c.skins.map((s,k)=>{const own=S.skins.includes(k),on=S.skin===k;
+      return '<div class="card'+(on?" on":"")+(own?"":" lock")+'" data-s="'+k+'">'+(on?'<span class="tick">✅</span>':"")+'<div class="sw" style="background:'+(s.css||("linear-gradient(90deg,"+s.c.join(",")+")"))+'"></div>'+s.n
+        +'<div class="m">x'+s.m+" multi</div><div class=\"p\">"+(own?(on?"Wearing":"Tap to wear"):fmt(s.price))+"</div></div>";}).join("");
+  }
+  $("sList").addEventListener("click",e=>{const el=e.target.closest("[data-s]");if(!el)return;const k=+el.dataset.s,s=c.skins[k];
+    if(S.skins.includes(k)){S.skin=k;A3.sfx("click");}
+    else if(S.coins>=s.price){S.coins-=s.price;S.skins.push(k);S.skin=k;A3.sfx("win");A3.toast(s.n+" unlocked! x"+s.m+" multi",1800);}
+    else{A3.sfx("lose");A3.toast("You need "+fmt(s.price)+" "+c.cur.toLowerCase(),1400);}
+    persist();drawSkins();c.skinChanged&&c.skinChanged();});
+  $("sBack").onclick=back;
+
+  /* pets */
+  const eggPrice=w=>cap(c.eggPrice(w));
+  function luckW(){const L=1+(c.luck?c.luck():0);return RAR.map((r,i)=>r.o*(i>=2?Math.pow(L,i-1):1));}
+  function rollPet(w){const wt=luckW(),tot=wt.reduce((a,b)=>a+b,0);let x=Math.random()*tot,r=0;for(;r<wt.length-1;r++){if(x<wt[r])break;x-=wt[r];}return [w,r];}
+  function drawPets(){
+    const w=S.world,pr=eggPrice(w),wt=luckW(),tot=wt.reduce((a,b)=>a+b,0);
+    $("pHelp").innerHTML="<b>"+c.worlds[w].n+" Egg</b>: "+fmt(pr)+" "+c.cur.toLowerCase()+". You have <b style='color:var(--gold)'>"+fmt(S.coins)+"</b>. Slots <b>"+S.eq.length+"/"+slots()+"</b>. Pet multi <b style='color:var(--green)'>x"+fmt(petSum())+"</b><br>"
+      +RAR.map((r,i)=>'<span style="color:'+r.c+'">'+r.n+" "+(wt[i]/tot*100).toFixed(wt[i]/tot<0.01?2:1)+"%</span>").join(" · ")
+      +"<br>"+(c.petNote||"")+" Eggs from later worlds hatch stronger pets. Tap a pet to put it on or take it off.";
+    $("pOpen1").disabled=S.coins<pr;$("pOpen10").disabled=S.coins<pr*10;
+    const idx=S.pets.map((p,i)=>i).sort((a,b)=>petMul(S.pets[b])-petMul(S.pets[a]));
+    $("pList").innerHTML=idx.length?idx.map(i=>{const p=S.pets[i],R=RAR[p[1]],on=S.eq.includes(i);
+      return '<div class="card'+(on?" on":"")+'" data-p="'+i+'">'+(on?'<span class="tick">✅</span>':"")+'<div class="petdot" style="background:'+petCol(p)+'">'+AEMO[p[1]]+"</div>"+petName(p)+'<div class="r" style="color:'+R.c+'">'+R.n+'</div><div class="m">x'+fmt(petMul(p))+"</div></div>";}).join(""):'<p class="help">No pets yet. Open an egg!</p>';
+  }
+  let hatching=false;
+  function openEggs(n){
+    if(hatching)return;
+    const w=S.world,pr=eggPrice(w),got=[];
+    for(let i=0;i<n;i++){if(S.coins<pr)break;S.coins-=pr;S.eggs++;const p=rollPet(w);got.push(p);
+      if(S.pets.length<PETCAP)S.pets.push(p);
+      else{let wi=-1;S.pets.forEach((q,j)=>{if(S.eq.includes(j))return;if(wi<0||petMul(q)<petMul(S.pets[wi]))wi=j;});if(wi>=0&&petMul(S.pets[wi])<petMul(p))S.pets[wi]=p;}}
+    if(!got.length){A3.sfx("lose");A3.toast("Not enough "+c.cur.toLowerCase(),1200);return;}
+    const best=Math.max(...got.map(p=>p[1]));
+    if(best>=4)A3.win(best>=6?5:best>=5?3:2,"hatching a "+RAR[best].n+" pet in "+c.name);
+    equipBest(true);persist();c.petsChanged&&c.petsChanged();
+    // hatch animation
+    hatching=true;const fx=$("eggfx"),eg=$("eggEmo");fx.hidden=false;eg.className="egg";eg.textContent="🥚";$("eggTxt").textContent=got.length>1?"Hatching "+got.length+" eggs...":"Hatching...";$("eggRes").innerHTML="";
+    A3.sfx("tick");let k=0;const tk=setInterval(()=>{A3.sfx("tick");if(++k>5)clearInterval(tk);},170);
+    setTimeout(()=>{eg.className="egg crack";A3.sfx(best>=3?"win":"pop");
+      $("eggTxt").textContent=best>=4?"WOW! "+RAR[best].n+"!":"You got:";
+      $("eggRes").innerHTML=got.map((p,i)=>'<div style="--c:'+RAR[p[1]].c+';animation-delay:'+(i*0.06)+'s"><span>'+AEMO[p[1]]+"</span>"+petName(p)+'<br><small style="color:'+RAR[p[1]].c+'">'+RAR[p[1]].n+" x"+fmt(petMul(p))+"</small></div>").join("");
+      setTimeout(()=>{hatching=false;},500);
+    },1100);
+    drawPets();
+  }
+  $("eggfx").addEventListener("click",()=>{if(hatching)return;$("eggfx").hidden=true;drawPets();});
+  function equipBest(quiet){const idx=S.pets.map((p,i)=>i).sort((a,b)=>petMul(S.pets[b])-petMul(S.pets[a]));S.eq=idx.slice(0,slots());if(!quiet)A3.sfx("click");persist();c.petsChanged&&c.petsChanged();}
+  $("pOpen1").onclick=()=>openEggs(1);$("pOpen10").onclick=()=>openEggs(10);
+  $("pBest").onclick=()=>{equipBest(false);drawPets();};
+  $("pList").addEventListener("click",e=>{const el=e.target.closest("[data-p]");if(!el)return;const i=+el.dataset.p,k=S.eq.indexOf(i);
+    if(k>=0)S.eq.splice(k,1);else if(S.eq.length<slots())S.eq.push(i);else{A3.toast("All "+slots()+" pet slots are full. Take one off first",1600);return;}
+    A3.sfx("click");persist();c.petsChanged&&c.petsChanged();drawPets();});
+  $("pBack").onclick=back;
+
+  /* rebirth */
+  const rebCost=r=>cap(c.rebCost(r==null?S.reb:r));
+  function rebCan(){let n=0,sum=0;while(n<100000){const k=rebCost(S.reb+n);if(sum+k>S.coins)break;sum+=k;n++;}return n;}
+  function drawReb(){
+    const cost=rebCost(),n=rebCan(),ok=n>0;
+    $("rTitle").textContent="Rebirths: "+fmt(S.reb);
+    const after=1+(S.reb+Math.max(1,n))*(c.rebStep||1);
+    $("rInfo").innerHTML='<div class="item"><span>Rebirth multi</span><span class="c">x'+fmt(rebMul())+" → x"+fmt(after)+'</span></div><div class="item"><span>Pet slots</span><span class="c">'+slots()+(slots()<6?" (+1 every 2 rebirths)":" (max)")+'</span></div><div class="item"><span>Next rebirth costs</span><span class="c">'+fmt(cost)+" "+c.cur.toLowerCase()+"</span></div>"+(c.rebInfo?c.rebInfo():"");
+    $("rText").textContent=ok?"Rebirth resets your "+c.cur.toLowerCase()+" and upgrades"+(c.rebResets?", "+c.rebResets:"")+". You keep your worlds, skins and pets, and get a bigger multi for ever.":"You need "+fmt(cost)+" "+c.cur.toLowerCase()+" to rebirth. You have "+fmt(S.coins)+".";
+    $("rGo").disabled=!ok;$("rMax").disabled=n<1;$("rMax").textContent=n>1?"Max rebirth (x"+fmt(n)+")":"Max rebirth";
+  }
+  function doReb(max){
+    let n=max?rebCan():(S.coins>=rebCost()?1:0);if(!n)return;
+    S.reb+=n;S.coins=0;c.ups.forEach(u=>S.up[u.k]=0);c.onRebirth&&c.onRebirth(n);persist();
+    A3.sfx("win");A3.toast((n>1?n+" rebirths":"Rebirth "+S.reb)+"! Multi is now x"+fmt(rebMul()),2400);
+    try{if(window.PhatCoin)PhatCoin.earn("rebirth",25,"rebirth "+S.reb+" in "+c.name);}catch(e){}
+    drawReb();c.changed&&c.changed();
+  }
+  $("rGo").onclick=()=>doReb(false);$("rMax").onclick=()=>doReb(true);$("rBack").onclick=back;
+
+  /* daily reward */
+  const day=d=>{const x=d||new Date();return x.getFullYear()+"-"+(x.getMonth()+1)+"-"+x.getDate();};
+  const dailyReady=()=>S.daily.d!==day();
+  function claimDaily(){
+    if(!dailyReady())return 0;
+    const y=new Date();y.setDate(y.getDate()-1);
+    S.daily.s=S.daily.d===day(y)?Math.min(30,(S.daily.s|0)+1):1;S.daily.d=day();
+    const n=cap(c.dailyCoins(S.daily.s));addCoins(n);persist();A3.sfx("win");
+    A3.toast("🎁 Daily reward: +"+fmt(n)+" "+c.cur.toLowerCase()+" (day "+S.daily.s+" streak)",2600);
+    return n;
+  }
+
+  /* George: the player buckasnuncle gets a big head start once: 1 million coins and the best skin */
+  function buckGift(){
+    const isBuck=n=>(n||"").trim().toLowerCase()==="buckasnuncle";
+    let nick="",acct="";try{nick=(window.Leaderboard&&Leaderboard.getName())||localStorage.getItem("ghgames_nick")||"";acct=localStorage.getItem("ghacct_user")||"";}catch(e){}
+    if(!isBuck(nick)&&!isBuck(acct))return false;
+    if(S.buck)return false;
+    S.buck=1;addCoins(1e6);const top=c.skins.length-1;if(!S.skins.includes(top))S.skins.push(top);S.skin=top;persist();
+    setTimeout(()=>{A3.sfx("win");A3.toast("buckasnuncle: +1,000,000 "+c.cur.toLowerCase()+" and the "+c.skins[top].n+" skin!",3500);},900);
+    return true;
+  }
+
+  const MENUS=[["ovUp",drawUps],["ovWorlds",drawWorlds],["ovSkins",drawSkins],["ovPets",drawPets],["ovReb",drawReb]];
+  function open(id){const m=MENUS.find(x=>x[0]===id);if(m)m[1]();A3.show(id);}
+  function closeAll(){MENUS.forEach(m=>A3.hide(m[0]));$("eggfx").hidden=true;}
+  return {RAR,ANIM,AEMO,petMul,petName,petCol,petSum,skinMul,rebMul,multi,slots,lv,upPrice,addCoins,rebCost,rebCan,open,closeAll,dailyReady,claimDaily,buckGift,cap,equipBest};
+}
+
+/* little flying pet models, shared look */
+function GHPetModel(color,rar){
+  const g=new THREE.Group();
+  const glow=rar>=4?0.55:0.08;
+  const body=new THREE.Mesh(GHPetModel.geo.body,A3.mat(color,{rough:.4,emissive:color,glow}));body.castShadow=true;g.add(body);
+  const belly=new THREE.Mesh(GHPetModel.geo.belly,A3.mat("#ffffff",{rough:.5}));belly.position.set(0,-0.12,0.55);g.add(belly);
+  for(const sd of [-1,1]){
+    const e=new THREE.Mesh(GHPetModel.geo.eye,A3.mat("#ffffff",{rough:.3}));e.position.set(sd*0.3,0.22,0.72);g.add(e);
+    const p=new THREE.Mesh(GHPetModel.geo.pup,A3.mat("#1a1530",{rough:.2}));p.position.set(sd*0.3,0.24,0.86);g.add(p);
+    const ear=new THREE.Mesh(GHPetModel.geo.ear,A3.mat(color,{rough:.4,emissive:color,glow}));ear.position.set(sd*0.42,0.78,0);ear.rotation.z=-sd*0.35;g.add(ear);
+  }
+  const wings=[];for(const sd of [-1,1]){const w=new THREE.Mesh(GHPetModel.geo.wing,A3.mat(rar>=5?"#fff4b0":"#e8f4ff",{rough:.4,emissive:"#ffffff",glow:rar>=5?0.5:0.1}));w.position.set(sd*0.85,0.15,-0.2);w.userData.sd=sd;g.add(w);wings.push(w);}
+  if(rar>=4){const halo=new THREE.Mesh(GHPetModel.geo.halo,A3.mat("#ffd23f",{emissive:"#ffd23f",glow:1}));halo.position.y=1.15;halo.rotation.x=Math.PI/2;g.add(halo);}
+  g.userData.flap=t=>{for(const w of wings){w.rotation.z=w.userData.sd*(0.3+Math.sin(t*14)*0.5);}};
+  return g;
+}
+GHPetModel.geo=null;
+function GHPetInit(){
+  GHPetModel.geo={body:new THREE.SphereGeometry(0.8,16,12),belly:new THREE.SphereGeometry(0.42,12,8),eye:new THREE.SphereGeometry(0.17,10,8),pup:new THREE.SphereGeometry(0.09,8,6),
+    ear:new THREE.ConeGeometry(0.2,0.5,8),wing:new THREE.BoxGeometry(0.9,0.08,0.5),halo:new THREE.TorusGeometry(0.4,0.07,6,20)};
+}
+
 (function(){
 "use strict";
 const $=id=>document.getElementById(id);
 const SAVE="turfgrab-save";
-const S=A3.save(SAVE,{best:0,skin:0,diff:1,games:0,wins:0,tiles:0,kos:0});
+const fmt=n=>A3.fmt(n);
+let S=A3.save(SAVE,{});
+if(!(S.v>=2)){const old=S;S={v:2,coins:Math.min(20000,Math.floor((+old.tiles||0)+(+old.wins||0)*500)),oldBest:+old.best||0,oldWins:+old.wins||0};}
+const DEF={v:2,coins:0,up:{},world:0,wOwn:[0],skins:[0],skin:0,pets:[],eq:[],reb:0,crowns:0,games:0,kos:0,tiles:0,bestPct:0,daily:{d:"",s:0},eggs:0};
+for(const k in DEF)if(S[k]===undefined)S[k]=JSON.parse(JSON.stringify(DEF[k]));
 const stage=$("stage");
-const V=A3.view(stage,{fov:46,far:400,sky:["#6ec6ff","#e2f5ff"],fog:["#d6f0ff",60,150],shadowSize:22});
+const V=A3.view(stage,{fov:46,far:600,sky:["#6ec6ff","#e2f5ff"],fog:["#d6f0ff",70,170],shadowSize:24});
 if(!V){return;}
 const {scene,camera,renderer}=V;
 const parts=A3.particles(scene);
+GHPetInit();
 function lin(h){return new THREE.Color(h).convertSRGBToLinear();}
+function persist(){A3.store(SAVE,S);}
 
-/* ---------- colours ---------- */
-const SKINS=[
-  {n:"Sky blue",c:"#3fa8ff",need:null},
-  {n:"Mint",c:"#3fd6a0",need:["tiles",300]},
-  {n:"Tangerine",c:"#ff8a2a",need:["tiles",1000]},
-  {n:"Bubblegum",c:"#ff6fb0",need:["best",15]},
-  {n:"Grape",c:"#9b5cff",need:["tiles",3000]},
-  {n:"Lemon",c:"#ffd23f",need:["best",30]},
-  {n:"Cherry",c:"#ff3f55",need:["wins",1]},
-  {n:"Midnight",c:"#3a4bd8",need:["wins",3]},
-  {n:"Gold",c:"#ffb800",need:["wins",10]}
+/* ---------- worlds ---------- */
+const WORLDS=[
+ {n:"Green Hills",sky:["#6ec6ff","#e2f5ff"],g:["#7fd65a","#74cc50"],neu:["#eef2fa","#dde5f2"],blk:"rock",bc:"#8a929e",wall:"#f4ead8",deco:"tree",leaf:"#3fae4a",pn:"Hill",cost:0},
+ {n:"Snowy Peaks",sky:["#8ec9ff","#f2fbff"],g:["#f4f9ff","#e3eefa"],neu:["#ffffff","#eaf2fb"],blk:"rock",bc:"#7a8a9e",wall:"#c8d8e8",deco:"pine",leaf:"#2f7a4a",pn:"Snow",cost:3000},
+ {n:"Desert Dunes",sky:["#ffb35a","#fff0c8"],g:["#e8c27a","#dcb46c"],neu:["#fbe8c0","#f2dcae"],blk:"rock",bc:"#b8834a",wall:"#e8c890",deco:"cactus",leaf:"#3a9a4a",pn:"Desert",cost:250000,reb:1},
+ {n:"Island Bay",sky:["#3fb4ff","#d8f4ff"],g:["#3aa8e8","#3aa0e0"],neu:["#f8e8b8","#f0dca8"],blk:"water",bc:"#3aa8e8",wall:"#fff4d8",deco:"palm",leaf:"#2fae4a",pn:"Island",cost:4e7,reb:2},
+ {n:"Volcano",sky:["#3a0a0a","#ff7a2a"],g:["#3a2a2a","#2e2020"],neu:["#7a6a6a","#6a5a5a"],blk:"lava",bc:"#ff5a1a",wall:"#5a4a4a",deco:"rock",leaf:"#5a3a3a",pn:"Lava",dark:1,cost:8e9,reb:4},
+ {n:"Candy Land",sky:["#ff9ad8","#ffe3f4"],g:["#ffc2e2","#ffb2da"],neu:["#fff4fa","#ffe8f4"],blk:"candy",bc:"#ff5da8",wall:"#ffffff",deco:"lolly",leaf:"#ff3a8a",pn:"Candy",cost:2e12,reb:6}
 ];
-function unlocked(k){if(!k.need)return true;const [t,v]=k.need;return (t==="tiles"?S.tiles:t==="best"?S.best:S.wins)>=v;}
-function needText(k){const [t,v]=k.need;return t==="tiles"?"Grab "+A3.fmt(v)+" tiles":t==="best"?"Best of "+v+"%":"Win "+v+(v===1?" game":" games");}
-const BOTC=["#ff8a2a","#ff6fb0","#9b5cff","#3fd6a0","#ffd23f","#ff3f55","#3a4bd8","#8bd63f","#2fc8d8","#c86a3a","#ff9ad5","#3fa8ff"];
-const NAMES=["Patchy","Squarey","Blocko","Mapper","Corner","Tiler","Zippy","Doodle","Plotter","Kiwi","Waffle","Biscuit","Pickle","Nugget","Sprout","Pebble","Fizz","Rocket"];
+WORLDS.forEach(w=>{w.sw=[w.sky[0],w.g[0]];});
+const Wv=i=>Math.pow(8,i);
+
+/* ---------- banners (skins) ---------- */
+const SKN=[["Sky Blue","#3fa8ff"],["Mint","#3fd6a0"],["Tangerine","#ff8a2a"],["Bubblegum","#ff6fb0"],["Grape","#9b5cff"],["Lemon","#ffd23f"],["Cherry","#ff3f55"],["Ocean","#2fc8d8"],["Lime","#8bd63f"],["Midnight","#3a4bd8"],["Coral","#ff7a6a"],["Royal Purple","#7a3ad8"],["Ruby","#d8203a"],["Emerald","#20b860"],["Diamond","#9ae8ff"],["Royal Gold","#ffb800"]];
+const SKINS=SKN.map((s,k)=>({n:s[0],hex:s[1],c:[s[1],"#ffffff"],css:"linear-gradient(135deg,"+s[1]+" 60%,#ffffff 60%)",m:k===0?1:Math.round((1+0.13*Math.pow(k,1.45))*100)/100,price:k===0?0:Math.round(200*Math.pow(4.4,k-1))}));
+const BOTC=["#ff8a2a","#ff6fb0","#9b5cff","#3fd6a0","#ffd23f","#ff3f55","#3a4bd8","#8bd63f","#2fc8d8","#c86a3a","#ff9ad5","#7a3ad8"];
+const NAMES=["King Patch","Queen Tile","Sir Blocko","Lady Map","Duke Corner","Baron Zip","Prince Doodle","Lord Plot","Count Kiwi","Queen Waffle","King Biscuit","Earl Pickle","Dame Nugget","Sir Sprout","Lady Pebble","King Fizz"];
+
+/* ---------- upgrades ---------- */
+const UPS=[
+ {k:"speed",n:"Speed",d:"+3% walking speed",b:25,g:1.38,max:40},
+ {k:"shield",n:"Trail Shield",d:"saves your trail from one hit each round, per level",b:150,g:3.2,max:5},
+ {k:"build",n:"Builders",d:"farms, houses and towers grow 12% faster",b:40,g:1.35,max:80},
+ {k:"start",n:"Bigger Start",d:"start every round with more land",b:60,g:1.9,max:6},
+ {k:"castle",n:"Castle Level",d:"bigger castle, +50% coins from your buildings",b:100,g:1.55,max:60},
+ {k:"coin",n:"Coin Bonus",d:"+25% coins",b:80,g:1.34,max:250}
+];
+let P=null;
+P=GHProg({S,persist,name:"Turf Grab",cur:"Coins",ups:UPS,worlds:WORLDS,skins:SKINS,
+  eggPrice:w=>150*Math.pow(10,w)*(w>0?4:1),petGrow:2.6,petAnimals:["Pup","Bunny","Kitty","Owl","Dragon","Unicorn","Phoenix"],petEmoji:["🐶","🐰","🐱","🦉","🐲","🦄","🌟"],
+  petNote:"Pets follow you and guard your trail: when a rival is about to cut it, a ready pet knocks them out instead.",
+  skinNote:"Banners colour your kingdom and give a multi.",
+  rebCost:r=>60000*Math.pow(12,r),rebStep:1,
+  rebInfo:()=>'<div class="item"><span>Crowns</span><span class="c">kept ('+S.crowns+")</span></div>",
+  worldNote:"Every building earns 8 times more in each new world.",worldPerk:i=>"Coins x"+fmt(Wv(i)),
+  dailyCoins:s=>Math.max(200,incomeOf(40,10,3)*60*s),
+  back:()=>{P.closeAll();if(mode==="over")A3.show("ovOver");else toTitle();},changed:()=>hud(),skinChanged:()=>{}});
+UPS.forEach(u=>{if(u.k==="castle")u.now=()=>"Lv "+(S.up.castle||0)+", x"+castleMul().toFixed(1);if(u.k==="start")u.now=()=>(5+2*(S.up.start||0))+" by "+(5+2*(S.up.start||0));if(u.k==="shield")u.now=()=>(S.up.shield||0)+" per round";});
+const castleMul=()=>1+0.5*(S.up.castle||0);
+const coinMul=()=>P.multi()*(1+0.25*(S.up.coin||0))*Wv(S.world);
+const BVAL=[0,1,4,15];
+function incomeOf(f,h,t){return (f*BVAL[1]+h*BVAL[2]+t*BVAL[3])*castleMul()*coinMul();}
 
 /* ---------- grid ---------- */
-const G=56,GG=G*G,OFF=(G-1)/2;
-const owner=new Int8Array(GG).fill(-1),trail=new Int8Array(GG).fill(-1);
-const idx=(x,z)=>z*G+x, inb=(x,z)=>x>=0&&z>=0&&x<G&&z<G;
-const DX=[0,1,0,-1],DZ=[-1,0,1,0]; // 0 up(-z) 1 right 2 down 3 left
-
-// ground + border
-{
-  const out=A3.ground(400,"#7fd65a","#74cc50",100);out.position.y=-0.02;scene.add(out);
-  const base=A3.box(G+1.2,0.5,G+1.2,"#8a6a4a",{rough:.9});base.position.y=-0.25;base.castShadow=false;scene.add(base);
-  const wcol=["#ffffff","#ff6fa3"],wg=new THREE.BoxGeometry(2,0.9,0.9);
-  for(let s=0;s<4;s++)for(let i=0;i<G/2+1;i++){const m=new THREE.Mesh(wg,A3.mat(wcol[i&1],{rough:.5}));m.castShadow=true;m.receiveShadow=true;
-    const t=-G/2+i*2,o=G/2+0.45;
-    if(s<2)m.position.set(t,0.45,s?o:-o);else{m.rotation.y=Math.PI/2;m.position.set(s===2?-o:o,0.45,t);}scene.add(m);}
-  // trees round the outside
-  const trunkG=new THREE.CylinderGeometry(0.25,0.32,1.2,8),leafG=new THREE.IcosahedronGeometry(1.1,0);
-  for(let i=0;i<46;i++){const a=Math.random()*6.28,r=G*0.75+Math.random()*30;const x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x)<G/2+3&&Math.abs(z)<G/2+3)continue;
-    const tr=new THREE.Mesh(trunkG,A3.mat("#8a5a3a"));tr.position.set(x,0.6,z);tr.castShadow=true;scene.add(tr);
-    const lf=new THREE.Mesh(leafG,A3.mat(A3.pick(["#3fae4a","#4cc95a","#2f9a40"]),{flat:true}));lf.position.set(x,1.9,z);lf.scale.setScalar(0.8+Math.random()*0.6);lf.castShadow=true;scene.add(lf);}
+const G=50,GG=G*G,OFF=(G-1)/2;
+const owner=new Int8Array(GG).fill(-1),trail=new Int8Array(GG).fill(-1),blocked=new Uint8Array(GG),lvl=new Uint8Array(GG),grow=new Float32Array(GG);
+const idx=(x,z)=>z*G+x,inb=(x,z)=>x>=0&&z>=0&&x<G&&z<G;
+const DX=[0,1,0,-1],DZ=[-1,0,1,0];
+let claimable=GG;
+const mtx=new THREE.Matrix4(),q0=new THREE.Quaternion(),v3=new THREE.Vector3(),sc3=new THREE.Vector3(),qy=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI/4);
+const deco=new THREE.Group();scene.add(deco);
+let TH=WORLDS[0],NEU=[lin("#eef2fa"),lin("#dde5f2")],BLK=lin("#8a929e");
+function decoParts(type,leaf){
+  switch(type){
+    case "tree":return [[new THREE.CylinderGeometry(0.25,0.32,1.2,8),"#8a5a3a",.6],[new THREE.IcosahedronGeometry(1.1,0),leaf,1.9,{flat:true}]];
+    case "pine":return [[new THREE.CylinderGeometry(0.2,0.25,1,6),"#6a4a2a",.5],[new THREE.ConeGeometry(1,2.4,8),leaf,1.9,{flat:true}],[new THREE.ConeGeometry(0.6,1,8),"#ffffff",3,{flat:true}]];
+    case "cactus":return [[new THREE.CylinderGeometry(0.35,0.4,2.4,8),leaf,1.2],[new THREE.SphereGeometry(0.36,8,6),leaf,2.4]];
+    case "palm":return [[new THREE.CylinderGeometry(0.15,0.22,3,7),"#a8743a",1.5],[new THREE.ConeGeometry(1.5,0.6,7),leaf,3.1,{flat:true}]];
+    case "rock":return [[new THREE.DodecahedronGeometry(1,0),leaf,.6,{flat:true}],[new THREE.ConeGeometry(0.3,.6,6),"#ff7a1a",1.3,{emissive:"#ff5a1a",glow:1}]];
+    case "lolly":return [[new THREE.CylinderGeometry(0.1,0.1,2.5,6),"#ffffff",1.25],[new THREE.SphereGeometry(0.9,14,10),leaf,2.7]];
+  }
+  return [];
 }
+function buildWorld(wi){
+  const W=WORLDS[wi];TH=W;
+  while(deco.children.length)deco.remove(deco.children[0]);
+  scene.background=A3.skyTexture(W.sky[0],W.sky[1]);scene.fog=new THREE.Fog(W.sky[1],70,170);
+  V.lights.hemi.intensity=W.dark?0.75:0.95;V.lights.sun.intensity=W.dark?0.85:1.1;
+  NEU=W.neu.map(lin);BLK=lin(W.bc);
+  const out=A3.ground(500,W.g[0],W.g[1],125);out.position.y=-0.02;deco.add(out);
+  const base=A3.box(G+1.2,0.5,G+1.2,W.dark?"#2a1a1a":"#8a6a4a",{rough:.9});base.position.y=-0.25;base.castShadow=false;deco.add(base);
+  const wg=new THREE.BoxGeometry(2,0.9,0.9),wm=[A3.mat(W.wall,{rough:.5}),A3.mat("#ff6fa3",{rough:.5})];
+  const walls=[new THREE.InstancedMesh(wg,wm[0],60),new THREE.InstancedMesh(wg,wm[1],60)];const wc=[0,0];
+  const qr=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI/2);
+  for(let s=0;s<4;s++)for(let i=0;i<G/2+1;i++){const t=-G/2+i*2,o=G/2+0.45,k=i&1;
+    if(s<2)mtx.compose(v3.set(t,0.45,s?o:-o),q0,sc3.set(1,1,1));else mtx.compose(v3.set(s===2?-o:o,0.45,t),qr,sc3.set(1,1,1));walls[k].setMatrixAt(wc[k]++,mtx);}
+  walls.forEach((w,k)=>{w.count=wc[k];w.castShadow=true;deco.add(w);});
+  const pl=decoParts(W.deco,W.leaf),N=70,rr=A3.seeded(wi*13+5);
+  const meshes=pl.map(p=>{const m=new THREE.InstancedMesh(p[0],A3.mat(p[1],p[3]||{}),N);m.castShadow=true;deco.add(m);return m;});
+  let n=0;for(let i=0;i<400&&n<N;i++){const a=rr()*6.28,r=G*0.75+rr()*40;const x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x)<G/2+3&&Math.abs(z)<G/2+3)continue;const s=0.8+rr()*0.7;
+    pl.forEach((p,j)=>{mtx.compose(v3.set(x,p[2]*s,z),q0,sc3.set(s,s,s));meshes[j].setMatrixAt(n,mtx);});n++;}
+  meshes.forEach(m=>m.count=n);
+  // blocked tiles: rocks, water, lava or candy
+  blocked.fill(0);const rb=A3.seeded(wi*101+9);
+  if(W.blk==="water"){ // islands: water between round islands
+    const isl=[];for(let k=0;k<7;k++)isl.push([6+rb()*(G-12),6+rb()*(G-12),7+rb()*6]);isl.push([G/2,G/2,10]);
+    for(let z=0;z<G;z++)for(let x=0;x<G;x++){let land=false;for(const c of isl)if(Math.hypot(x-c[0],z-c[1])<c[2])land=true;if(!land)blocked[idx(x,z)]=1;}
+    // bridges so every island is reachable
+    for(const c of isl){const sx=Math.sign(G/2-c[0]),sz=Math.sign(G/2-c[1]);let x=Math.round(c[0]),z=Math.round(c[1]);for(let k=0;k<G;k++){blocked[idx(A3.clamp(x,0,G-1),A3.clamp(z,0,G-1))]=0;if(Math.abs(x-G/2)>1)x+=sx;else if(Math.abs(z-G/2)>1)z+=sz;else break;}}
+  }else{
+    const blobs=W.blk==="lava"?9:W.blk==="candy"?10:7,maxR=W.blk==="lava"?3.6:2.2;
+    for(let k=0;k<blobs;k++){const cx=4+rb()*(G-8),cz=4+rb()*(G-8),r=1+rb()*maxR;for(let z=0;z<G;z++)for(let x=0;x<G;x++)if(Math.hypot(x-cx,z-cz)<r)blocked[idx(x,z)]=1;}
+  }
+  claimable=0;for(let i=0;i<GG;i++)if(!blocked[i])claimable++;
+}
+
+/* ---------- tiles, trail and buildings (instanced) ---------- */
 const tileGeo=new THREE.BoxGeometry(0.98,1,0.98);tileGeo.translate(0,0.5,0);
 const tileMesh=new THREE.InstancedMesh(tileGeo,new THREE.MeshStandardMaterial({roughness:.6}),GG);
-tileMesh.receiveShadow=true;tileMesh.castShadow=false;scene.add(tileMesh);
-const NEU=[lin("#eef2fa"),lin("#dde5f2")];
-const mtx=new THREE.Matrix4(),q0=new THREE.Quaternion(),v3=new THREE.Vector3(),sc3=new THREE.Vector3();
-const tileAnim=new Float32Array(GG); // 0..1 rise animation
-const animList=[];
-function setTile(i,h){
-  const x=i%G,z=(i/G)|0,o=owner[i];
-  v3.set(x-OFF,0,z-OFF);sc3.set(1,h,1);mtx.compose(v3,q0,sc3);tileMesh.setMatrixAt(i,mtx);
-  tileMesh.setColorAt(i,o<0?NEU[(x+z)&1]:players[o].tc[(x+z)&1]);
-}
-function refreshTile(i,anim){
-  if(anim&&owner[i]>=0){if(tileAnim[i]<=0)animList.push(i);tileAnim[i]=1;}
-  setTile(i,owner[i]<0?0.12:0.36);dirty=true;
-}
-let dirty=true;
-
-/* trail blocks */
+tileMesh.receiveShadow=true;scene.add(tileMesh);
+const tileAnim=new Float32Array(GG),animList=[];
+let tilesDirty=true;
+function tileColor(i){const x=i%G,z=(i/G)|0,o=owner[i];if(blocked[i])return BLK;return o<0?NEU[(x+z)&1]:players[o].tc[(x+z)&1];}
+function tileH(i){if(blocked[i])return TH.blk==="water"||TH.blk==="lava"?0.05:0.9;return owner[i]<0?0.12:0.32;}
+function setTile(i,h){const x=i%G,z=(i/G)|0;v3.set(x-OFF,0,z-OFF);sc3.set(1,h,1);mtx.compose(v3,q0,sc3);tileMesh.setMatrixAt(i,mtx);tileMesh.setColorAt(i,tileColor(i));}
+function refreshTile(i,anim){if(anim&&owner[i]>=0){if(tileAnim[i]<=0)animList.push(i);tileAnim[i]=1;}setTile(i,tileH(i));tilesDirty=true;bDirty=true;}
 const TMAX=1600;
 const trailMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(0.62,0.62,0.62),new THREE.MeshStandardMaterial({roughness:.3,emissive:0xffffff,emissiveIntensity:0.08}),TMAX);
 for(let i=0;i<TMAX;i++)trailMesh.setColorAt(i,new THREE.Color(1,1,1));
 trailMesh.castShadow=true;trailMesh.frustumCulled=false;trailMesh.count=0;scene.add(trailMesh);
+// buildings: field, house (walls + roof), tower (body + roof)
+const B={};
+function bMesh(geo,mat,shadow){const m=new THREE.InstancedMesh(geo,mat,GG);m.castShadow=!!shadow;m.receiveShadow=true;m.frustumCulled=false;for(let i=0;i<8;i++)m.setColorAt(i,new THREE.Color(1,1,1));m.count=0;scene.add(m);return m;}
+{const fg=new THREE.BoxGeometry(0.8,0.12,0.8);fg.translate(0,0.06,0);
+ const rows=new THREE.BoxGeometry(0.6,0.16,0.6);rows.translate(0,0.13,0);
+ const hw=new THREE.BoxGeometry(0.6,0.5,0.55);hw.translate(0,0.25,0);
+ const hr=new THREE.ConeGeometry(0.52,0.42,4);hr.rotateY(Math.PI/4);hr.translate(0,0.71,0);
+ const tb=new THREE.CylinderGeometry(0.26,0.3,1.3,10);tb.translate(0,0.65,0);
+ const tr=new THREE.ConeGeometry(0.36,0.55,10);tr.translate(0,1.57,0);
+ const tf=new THREE.BoxGeometry(0.06,0.3,0.24);tf.translate(0.03,2.0,0.12);
+ B.field=bMesh(fg,new THREE.MeshStandardMaterial({roughness:.8}),false);
+ B.crop=bMesh(rows,new THREE.MeshStandardMaterial({roughness:.8}),false);
+ B.wall=bMesh(hw,new THREE.MeshStandardMaterial({roughness:.6}),true);
+ B.roof=bMesh(hr,new THREE.MeshStandardMaterial({roughness:.5}),true);
+ B.tower=bMesh(tb,new THREE.MeshStandardMaterial({roughness:.6}),true);
+ B.troof=bMesh(tr,new THREE.MeshStandardMaterial({roughness:.5}),true);
+ B.flag=bMesh(tf,new THREE.MeshStandardMaterial({roughness:.5,emissive:0xffffff,emissiveIntensity:.15}),false);}
+let bDirty=true;
+const C_FIELD=[lin("#c8a05a"),lin("#b8904a")],C_CROP=[lin("#5fd36a"),lin("#ffd23f")],C_WALL=lin("#fff4e0"),C_STONE=lin("#d8d0c8"),C_RUIN=lin("#9a9aa8");
+const rotT=new Float32Array(GG);for(let i=0;i<GG;i++)rotT[i]=((i*7919)%4)*Math.PI/2;
+function drawBuildings(){
+  const n={field:0,crop:0,wall:0,roof:0,tower:0,troof:0,flag:0};const qa=new THREE.Quaternion(),ax=new THREE.Vector3(0,1,0);
+  const put=(m,k,i,y,s,col)=>{const x=i%G,z=(i/G)|0;qa.setFromAxisAngle(ax,rotT[i]);mtx.compose(v3.set(x-OFF,y,z-OFF),qa,sc3.set(s,s,s));B[k].setMatrixAt(n[k],mtx);B[k].setColorAt(n[k],col);n[k]++;};
+  for(let i=0;i<GG;i++){const L=lvl[i];if(!L||blocked[i])continue;
+    const o=owner[i],roof=o>=0?players[o].c:C_RUIN,y=tileH(i);const a=tileAnim[i]>0?1-tileAnim[i]*0.7:1;const g=grow[i]>0?Math.min(1,1-grow[i]):1;const s=Math.max(0.05,g*a);
+    if(L===1){put(null,"field",i,y,s,C_FIELD[i&1]);put(null,"crop",i,y,s,C_CROP[(i>>1)&1]);}
+    else if(L===2){put(null,"wall",i,y,s,C_WALL);put(null,"roof",i,y,s,roof);}
+    else{put(null,"tower",i,y,s,C_STONE);put(null,"troof",i,y,s,roof);put(null,"flag",i,y,s,roof);}
+  }
+  for(const k in B){B[k].count=n[k];B[k].instanceMatrix.needsUpdate=true;if(B[k].instanceColor)B[k].instanceColor.needsUpdate=true;}
+}
 
 /* ---------- players ---------- */
 let players=[],me=null;
 const bodyGeo=A3.rbox(0.92,0.92,0.92,0.22,"#fff").geometry;
 const eyeG=new THREE.BoxGeometry(0.18,0.24,0.06),pupG=new THREE.BoxGeometry(0.1,0.14,0.04);
-function makePlayer(isMe,name,col,x,z,skill){
+const crownGeo=(()=>{const g=new THREE.CylinderGeometry(0.34,0.3,0.24,8,1,true);return g;})(),crownPt=new THREE.ConeGeometry(0.08,0.18,4);
+function makeCastle(col,lv){
+  const g=new THREE.Group(),stone=A3.mat("#e0d8cc",{rough:.7}),roof=A3.mat(col,{rough:.5});
+  const s=1+Math.min(1.5,lv*0.06);
+  const keep=new THREE.Mesh(new THREE.BoxGeometry(1.4,1.6,1.4),stone);keep.position.y=0.8;keep.castShadow=true;g.add(keep);
+  const kr=new THREE.Mesh(new THREE.ConeGeometry(1.1,0.9,4),roof);kr.rotation.y=Math.PI/4;kr.position.y=2.05;kr.castShadow=true;g.add(kr);
+  const n=lv>=3?4:2;for(let k=0;k<n;k++){const a=k/n*6.283+Math.PI/4;const t=new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.36,2.1,10),stone);t.position.set(Math.cos(a)*1.0,1.05,Math.sin(a)*1.0);t.castShadow=true;g.add(t);
+    const r=new THREE.Mesh(new THREE.ConeGeometry(0.42,0.6,10),roof);r.position.set(t.position.x,2.4,t.position.z);g.add(r);}
+  const fl=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.4,0.36),roof);fl.position.set(0.18,2.85,0.18);g.add(fl);const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.7,6),A3.mat("#ffffff"));pole.position.set(0,2.75,0);g.add(pole);
+  g.scale.setScalar(s);scene.add(g);return g;
+}
+function makePlayer(isMe,name,col,x,z,skill,startR){
   const id=players.length;
   const g=new THREE.Group();
   const body=new THREE.Mesh(bodyGeo,A3.mat(col,{rough:.35}));body.position.y=0.46;body.castShadow=true;g.add(body);
   for(const sd of [-1,1]){const e=new THREE.Mesh(eyeG,A3.mat("#ffffff"));e.position.set(sd*0.2,0.62,-0.47);g.add(e);const p=new THREE.Mesh(pupG,A3.mat("#1a1530"));p.position.set(sd*0.2,0.6,-0.5);g.add(p);}
+  const cr=new THREE.Group(),cm=A3.mat("#ffcf3f",{metal:.5,rough:.3,emissive:"#ffb300",glow:.3});const band=new THREE.Mesh(crownGeo,cm);band.material.side=THREE.DoubleSide;cr.add(band);
+  for(let k=0;k<5;k++){const a=k/5*6.283,pt=new THREE.Mesh(crownPt,cm);pt.position.set(Math.cos(a)*0.3,0.2,Math.sin(a)*0.3);cr.add(pt);}cr.position.y=1.06;cr.visible=isMe||Math.random()<0.4;g.add(cr);
   scene.add(g);
   const c=lin(col),hsl={};new THREE.Color(col).getHSL(hsl);
   const light=new THREE.Color().setHSL(hsl.h,Math.min(1,hsl.s*0.95),Math.min(0.76,hsl.l+0.1)).convertSRGBToLinear();
   const p={id,me:isMe,name,col,c,tc:[light,light.clone().lerp(c,0.35)],trc:c.clone(),x,z,px:x,pz:z,dir:Math.floor(Math.random()*4),t:0,
-    q:[],trail:[],area:0,alive:true,mesh:g,body,skill:skill||0.5,plan:[],speed:isMe?6.8:A3.rand(5.6,6.8),face:0,kos:0,deathT:0};
+    q:[],trail:[],area:0,alive:true,mesh:g,body,skill:skill||0.5,plan:[],speed:isMe?6.6*(1+0.03*(S.up.speed||0)):A3.rand(5.4,6.6),face:0,kos:0,deathT:0,hx:x,hz:z,respawn:0,shield:isMe?(S.up.shield||0):0};
   p.face=-p.dir*Math.PI/2;
-  p.tag=A3.label(isMe?"You":name,{size:0.7,color:isMe?"#1b8a3a":"#1d2a4a",stroke:"rgba(255,255,255,.95)",px:56});
-  p.tag.material.depthTest=false;p.tag.renderOrder=5;scene.add(p.tag);
+  p.tag=A3.label(isMe?"You":name,{size:0.7,color:isMe?"#1b8a3a":"#1d2a4a",stroke:"rgba(255,255,255,.95)",px:56});p.tag.material.depthTest=false;p.tag.renderOrder=5;scene.add(p.tag);
   players.push(p);
-  for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,zz=z+dz;if(!inb(xx,zz))continue;const i=idx(xx,zz);const o=owner[i];if(o>=0&&o!==id)players[o].area--;if(o!==id){owner[i]=id;p.area++;}refreshTile(i,true);}
+  const R=startR||2;
+  for(let dz=-R;dz<=R;dz++)for(let dx=-R;dx<=R;dx++){const xx=x+dx,zz=z+dz;if(!inb(xx,zz))continue;const i=idx(xx,zz);if(blocked[i])continue;const o=owner[i];if(o>=0&&o!==id)players[o].area--;if(o!==id){owner[i]=id;p.area++;}refreshTile(i,true);}
+  p.castle=makeCastle(col,isMe?(S.up.castle||0):Math.floor(Math.random()*6));p.castle.position.set(x-OFF,0.32,z-OFF);
+  const ci=idx(x,z);lvl[ci]=0;
   return p;
 }
 function clearAll(){
-  players.forEach(p=>{scene.remove(p.mesh);scene.remove(p.tag);});players=[];
-  owner.fill(-1);trail.fill(-1);animList.length=0;tileAnim.fill(0);
-  for(let i=0;i<GG;i++)setTile(i,0.12);dirty=true;
+  players.forEach(p=>{scene.remove(p.mesh);scene.remove(p.tag);if(p.castle)scene.remove(p.castle);});players=[];
+  owner.fill(-1);trail.fill(-1);lvl.fill(0);grow.fill(0);animList.length=0;tileAnim.fill(0);
+  for(let i=0;i<GG;i++)setTile(i,tileH(i));tilesDirty=true;bDirty=true;
 }
-function spawnSpots(n){
-  const spots=[],m=6;
-  for(let t=0;spots.length<n&&t<4000;t++){const x=m+Math.floor(Math.random()*(G-2*m)),z=m+Math.floor(Math.random()*(G-2*m));
-    if(spots.every(s=>Math.abs(s.x-x)+Math.abs(s.z-z)>14))spots.push({x,z});}
-  while(spots.length<n)spots.push({x:m+Math.floor(Math.random()*(G-2*m)),z:m+Math.floor(Math.random()*(G-2*m))});
-  return spots;
+function spotFree(R){
+  for(let t=0;t<600;t++){const x=R+2+Math.floor(Math.random()*(G-2*R-4)),z=R+2+Math.floor(Math.random()*(G-2*R-4));let ok=true;
+    for(let dz=-R;dz<=R&&ok;dz++)for(let dx=-R;dx<=R;dx++){const i=idx(x+dx,z+dz);if(blocked[i]||owner[i]>=0||trail[i]>=0){ok=false;break;}}
+    if(ok&&players.every(p=>!p.alive||Math.abs(p.x-x)+Math.abs(p.z-z)>10))return {x,z};}
+  return null;
 }
 
 /* ---------- rules ---------- */
 function kill(p,by,why){
-  if(!p.alive)return;p.alive=false;p.deathT=0;
+  if(!p.alive)return;
+  if(p.me&&p.shield>0&&why!=="squashed"){ // trail shield: lose the trail, keep going
+    p.shield--;for(const i of p.trail)if(trail[i]===p.id)trail[i]=-1;p.trail.length=0;
+    A3.sfx("hit");A3.toast("🛡️ Trail Shield saved you! ("+p.shield+" left)",1700);parts.burst(new THREE.Vector3(p.px-OFF,1,p.pz-OFF),"#7af0ff",22,6,0.8);
+    if(by&&!by.me&&why==="cut"){}
+    return;
+  }
+  p.alive=false;p.deathT=0;
   for(const i of p.trail)if(trail[i]===p.id)trail[i]=-1;p.trail.length=0;
   for(let i=0;i<GG;i++)if(owner[i]===p.id){owner[i]=-1;refreshTile(i);}
   p.area=0;
-  const wp=new THREE.Vector3(p.px-OFF,0.6,p.pz-OFF);
-  parts.burst(wp,p.col,p.me?26:18,6,0.9);
-  p.mesh.visible=false;p.tag.visible=false;
-  if(by&&by.me&&!p.me){by.kos++;S.kos++;A3.sfx("boom");A3.toast("You knocked out "+p.name+"!",1500);}
+  parts.burst(new THREE.Vector3(p.px-OFF,0.6,p.pz-OFF),p.col,p.me?26:18,6,0.9);
+  p.mesh.visible=false;p.tag.visible=false;if(p.castle){scene.remove(p.castle);p.castle=null;}
+  if(by&&by.me&&!p.me){by.kos++;S.kos++;A3.sfx("boom");const c=200*coinMul();P.addCoins(c);if(round)round.coins+=c;A3.toast("You knocked out "+p.name+"! Their kingdom is up for grabs (+"+fmt(c)+")",1900);}
   else if(!p.me&&me&&Math.abs(p.px-me.px)+Math.abs(p.pz-me.pz)<18)A3.sfx("pop");
-  if(p.me)endGame(false,by,why);
+  if(p.me)endGame(false,by,why);else p.respawn=A3.rand(7,12);
 }
+function setOwner(i,p){const o=owner[i];if(o===p.id)return;if(o>=0)players[o].area--;owner[i]=p.id;p.area++;
+  if(p.me&&round){round.claimed++;S.tiles++;if(lvl[i])round.stolen++;const c=2*coinMul()*(1+lvl[i]*2);P.addCoins(c);round.coins+=c;}refreshTile(i,true);}
 function claim(p){
   for(const i of p.trail){trail[i]=-1;setOwner(i,p);}
   p.trail.length=0;
-  // flood fill from the edges through everything that isn't p's
   const seen=new Uint8Array(GG),st=[];
   for(let k=0;k<G;k++){for(const i of [idx(k,0),idx(k,G-1),idx(0,k),idx(G-1,k)])if(owner[i]!==p.id&&!seen[i]){seen[i]=1;st.push(i);}}
   while(st.length){const i=st.pop(),x=i%G,z=(i/G)|0;
     for(let d=0;d<4;d++){const nx=x+DX[d],nz=z+DZ[d];if(!inb(nx,nz))continue;const j=idx(nx,nz);if(seen[j]||owner[j]===p.id)continue;seen[j]=1;st.push(j);}}
   let got=0;
-  for(let i=0;i<GG;i++)if(!seen[i]&&owner[i]!==p.id){setOwner(i,p);got++;}
-  // anyone left with no land is squashed
+  for(let i=0;i<GG;i++)if(!seen[i]&&owner[i]!==p.id&&!blocked[i]){setOwner(i,p);got++;}
   for(const q of players)if(q!==p&&q.alive&&q.area<=0)kill(q,p,"squashed");
   if(p.me){A3.sfx(got>20?"win":"coin");if(got>20)parts.burst(new THREE.Vector3(p.px-OFF,1,p.pz-OFF),p.col,20,6,0.8);}
 }
-function setOwner(i,p){const o=owner[i];if(o===p.id)return;if(o>=0)players[o].area--;owner[i]=p.id;p.area++;if(p.me)round.claimed++;refreshTile(i,true);}
-
-/* arrive at the next cell */
 function arrive(p){
-  p.x+=DX[p.dir];p.z+=DZ[p.dir];
-  if(!inb(p.x,p.z)){p.x-=DX[p.dir];p.z-=DZ[p.dir];kill(p,null,"wall");return;}
+  const nx=p.x+DX[p.dir],nz=p.z+DZ[p.dir];
+  if(!inb(nx,nz)||blocked[idx(nx,nz)]){p.t=0;return turnAway(p);}
+  p.x=nx;p.z=nz;
   const i=idx(p.x,p.z),tr=trail[i];
-  if(tr>=0){const q=players[tr];if(q===p){kill(p,null,"self");return;}kill(q,p,"cut");}
+  if(tr>=0){const q=players[tr];if(q===p){kill(p,null,"self");return;}
+    if(q.me&&!p.me&&guardTrail(p))return;
+    kill(q,p,"cut");}
   if(owner[i]===p.id){if(p.trail.length)claim(p);}
   else{trail[i]=p.id;p.trail.push(i);}
 }
-function canGo(p,d){
-  if(p.trail.length||true){if((d+2)%4===p.dir)return false;}
-  return true;
+function freeDir(p,d){if((d+2)%4===p.dir)return false;const nx=p.x+DX[d],nz=p.z+DZ[d];return inb(nx,nz)&&!blocked[idx(nx,nz)]&&trail[idx(nx,nz)]!==p.id;}
+function turnAway(p){
+  if(p.me){while(p.q.length){const d=p.q.shift();if(freeDir(p,d)){p.dir=d;return;}}}
+  const opts=[(p.dir+1)%4,(p.dir+3)%4].filter(d=>freeDir(p,d));if(opts.length)p.dir=A3.pick(opts);else{const back=(p.dir+2)%4;p.dir=back;}
+}
+// pets guard your trail: a ready pet knocks the rival out instead
+let guardCd=0;
+function guardTrail(rival){
+  if(!petObjs.length||guardCd>0)return false;
+  guardCd=Math.max(4,22-petObjs.length*3);
+  const pet=petObjs[(Math.random()*petObjs.length)|0];pet.dash=1;pet.tx=rival.px-OFF;pet.tz=rival.pz-OFF;
+  A3.sfx("boom");A3.toast("🐾 Your pet guarded your trail and bonked "+rival.name+"!",1900);
+  kill(rival,me,"guard");return true;
 }
 
 /* ---------- bot brain ---------- */
-const Q=new Int32Array(GG),PREV=new Int32Array(GG),FD=new Int8Array(GG),SEEN=new Uint8Array(GG);
+const Q=new Int32Array(GG),FD=new Int8Array(GG),SEEN=new Uint8Array(GG);
 function bfs(p,goal,maxN){
-  // returns first dir of the shortest safe path to a cell where goal(i) is true
   SEEN.fill(0);let h=0,t=0;
-  for(let d=0;d<4;d++){if((d+2)%4===p.dir)continue;const nx=p.x+DX[d],nz=p.z+DZ[d];if(!inb(nx,nz))continue;const j=idx(nx,nz);if(trail[j]===p.id)continue;SEEN[j]=1;FD[j]=d;Q[t++]=j;}
+  for(let d=0;d<4;d++){if((d+2)%4===p.dir)continue;const nx=p.x+DX[d],nz=p.z+DZ[d];if(!inb(nx,nz))continue;const j=idx(nx,nz);if(trail[j]===p.id||blocked[j])continue;SEEN[j]=1;FD[j]=d;Q[t++]=j;}
   while(h<t&&h<(maxN||GG)){const i=Q[h++];if(goal(i))return FD[i];const x=i%G,z=(i/G)|0;
-    for(let d=0;d<4;d++){const nx=x+DX[d],nz=z+DZ[d];if(!inb(nx,nz))continue;const j=idx(nx,nz);if(SEEN[j]||trail[j]===p.id)continue;SEEN[j]=1;FD[j]=FD[i];Q[t++]=j;}}
+    for(let d=0;d<4;d++){const nx=x+DX[d],nz=z+DZ[d];if(!inb(nx,nz))continue;const j=idx(nx,nz);if(SEEN[j]||trail[j]===p.id||blocked[j])continue;SEEN[j]=1;FD[j]=FD[i];Q[t++]=j;}}
   return -1;
 }
-function safeDirs(p){const r=[];for(let d=0;d<4;d++){if((d+2)%4===p.dir)continue;const nx=p.x+DX[d],nz=p.z+DZ[d];if(!inb(nx,nz))continue;if(trail[idx(nx,nz)]===p.id)continue;r.push(d);}return r;}
+function safeDirs(p){const r=[];for(let d=0;d<4;d++)if(freeDir(p,d))r.push(d);return r;}
 function nearestEnemy(p){let best=1e9;for(const q of players){if(q===p||!q.alive)continue;
   for(let k=0;k<p.trail.length;k+=2){const i=p.trail[k],d=Math.abs(i%G-q.x)+Math.abs(((i/G)|0)-q.z);if(d<best)best=d;}
   const d=Math.abs(p.x-q.x)+Math.abs(p.z-q.z);if(d<best&&p.trail.length)best=d;}
   return best;}
 function botDecide(p){
   const home=owner[idx(p.x,p.z)]===p.id;
-  if(home){p.returning=false;}
-  // hunt: a rival's trail close by
-  if(Math.random()<p.skill*0.9){
-    let tgt=-1;
+  if(home)p.returning=false;
+  if(Math.random()<p.skill*0.9){let tgt=-1;
     for(const q of players){if(q===p||!q.alive||!q.trail.length)continue;for(const i of q.trail){const d=Math.abs(i%G-p.x)+Math.abs(((i/G)|0)-p.z);if(d<5+p.skill*5){tgt=q.id;break;}}if(tgt>=0)break;}
-    if(tgt>=0&&p.trail.length<12){const d=bfs(p,i=>trail[i]===tgt,500);if(d>=0){p.plan.length=0;return d;}}
-  }
-  if(!home){
-    const danger=nearestEnemy(p);
-    const risk=p.trail.length;
-    if(p.returning||danger<risk*0.45+2+(1-p.skill)*-1||risk>8+p.skill*26||(!p.plan.length)){
-      p.returning=true;p.plan.length=0;
-      const d=bfs(p,i=>owner[i]===p.id);if(d>=0)return d;
-    }
-  }
-  if(!p.plan.length&&home){
-    // plan a loop outward
-    const d0=Math.floor(Math.random()*4),side=Math.random()<0.5?1:3,a=2+Math.floor(Math.random()*(3+p.skill*7)),b=2+Math.floor(Math.random()*(3+p.skill*8));
-    // walk a little first to reach the edge of home
-    for(let k=0;k<a+4;k++)p.plan.push(d0);
-    for(let k=0;k<b;k++)p.plan.push((d0+side)%4);
-    for(let k=0;k<a+4;k++)p.plan.push((d0+2)%4);
-  }
-  while(p.plan.length){
-    const d=p.plan[0];
-    if((d+2)%4===p.dir){p.plan.length=0;break;}
-    const nx=p.x+DX[d],nz=p.z+DZ[d];
-    if(!inb(nx,nz)||trail[idx(nx,nz)]===p.id){p.plan.length=0;break;}
-    p.plan.shift();return d;
-  }
+    if(tgt>=0&&p.trail.length<12){const d=bfs(p,i=>trail[i]===tgt,500);if(d>=0){p.plan.length=0;return d;}}}
+  if(!home){const danger=nearestEnemy(p),risk=p.trail.length;
+    if(p.returning||danger<risk*0.45+2||risk>8+p.skill*24||(!p.plan.length)){p.returning=true;p.plan.length=0;const d=bfs(p,i=>owner[i]===p.id);if(d>=0)return d;}}
+  if(!p.plan.length&&home){const d0=Math.floor(Math.random()*4),side=Math.random()<0.5?1:3,a=2+Math.floor(Math.random()*(3+p.skill*7)),b=2+Math.floor(Math.random()*(3+p.skill*8));
+    for(let k=0;k<a+4;k++)p.plan.push(d0);for(let k=0;k<b;k++)p.plan.push((d0+side)%4);for(let k=0;k<a+4;k++)p.plan.push((d0+2)%4);}
+  while(p.plan.length){const d=p.plan[0];if(!freeDir(p,d)){p.plan.length=0;break;}p.plan.shift();return d;}
   if(!home){const d=bfs(p,i=>owner[i]===p.id);if(d>=0)return d;}
   const sd=safeDirs(p);return sd.length?(sd.includes(p.dir)&&Math.random()<0.7?p.dir:A3.pick(sd)):p.dir;
 }
 
+/* ---------- buildings grow on owned land ---------- */
+let growT=0;
+function growTick(dt){
+  growT+=dt;if(growT<0.25)return;const step=growT;growT=0;
+  // each kingdom: a share of its tiles step up one level
+  const rate=0.035*(1+0.12*(S.up.build||0)),botRate=0.035*(1+0.1*S.world);
+  for(let i=0;i<GG;i++){const o=owner[i];if(o<0||blocked[i]||lvl[i]>=3)continue;const p=players[o];
+    if(p.castle&&Math.abs(i%G-p.hx)<=0&&Math.abs(((i/G)|0)-p.hz)<=0)continue;
+    const r=(p.me?rate:botRate)*(lvl[i]===0?1:lvl[i]===1?0.45:0.18)*step;
+    if(Math.random()<r){lvl[i]++;grow[i]=1;bDirty=true;if(p.me&&mode==="play"&&lvl[i]===3&&Math.random()<0.15)A3.sfx("tick");}}
+}
+function myBuildings(){let f=0,h=0,t=0;if(!me)return [0,0,0];for(let i=0;i<GG;i++)if(owner[i]===me.id){const L=lvl[i];if(L===1)f++;else if(L===2)h++;else if(L===3)t++;}return [f,h,t];}
+
+/* ---------- pets ---------- */
+let petObjs=[];
+function buildPets(){petObjs.forEach(p=>scene.remove(p.g));petObjs=[];
+  S.eq.forEach((k,j)=>{const p=S.pets[k];if(!p)return;const g=GHPetModel(P.petCol(p),p[1]);g.scale.setScalar(0.32);scene.add(g);petObjs.push({g,j,x:0,z:0,dash:0,tx:0,tz:0});});}
+function petsTick(dt,t){
+  if(!me||!me.alive||mode!=="play"){petObjs.forEach(p=>p.g.visible=false);return;}
+  petObjs.forEach((p,j)=>{let tx,tz;
+    if(p.dash>0){p.dash-=dt;tx=p.tx;tz=p.tz;}
+    else{const tr=me.trail,k=tr.length?tr[Math.max(0,tr.length-1-Math.floor((j+1)*tr.length/(petObjs.length+1)))]:-1;
+      if(k>=0){tx=k%G-OFF;tz=((k/G)|0)-OFF;}else{const a=t*1.5+j/petObjs.length*6.283;tx=me.px-OFF+Math.cos(a)*1.4;tz=me.pz-OFF+Math.sin(a)*1.4;}}
+    p.x+=(tx-p.x)*Math.min(1,dt*(p.dash>0?12:4));p.z+=(tz-p.z)*Math.min(1,dt*(p.dash>0?12:4));
+    p.g.visible=true;p.g.position.set(p.x,1.4+Math.sin(t*3+j)*0.2,p.z);p.g.rotation.y=Math.atan2(tx-p.x,tz-p.z);p.g.userData.flap(t+j);});
+}
+
 /* ---------- game state ---------- */
-let mode="title",round=null,titleT=0;
+let mode="title",round=null,titleT=0,built=-1;
+function rivalsFor(){return 6+Math.min(3,Math.floor(S.world/2));}
 function setupRound(withMe){
+  if(built!==S.world){buildWorld(S.world);built=S.world;}
   clearAll();
-  const n=[6,8,10][S.diff];
-  const spots=spawnSpots(n+1);
-  const myCol=(SKINS[S.skin]||SKINS[0]).c;
-  const pal=BOTC.filter(c=>c!==myCol);
+  const n=rivalsFor();
+  const myCol=SKINS[S.skin].hex,pal=BOTC.filter(c=>c!==myCol);
+  const sr=2+(withMe?(S.up.start||0):0);
+  if(withMe){const sp=spotFree(sr)||spotFree(2)||{x:G/2,z:G/2};me=makePlayer(true,"You",myCol,sp.x,sp.z,1,sr);me.hx=sp.x;me.hz=sp.z;
+    // a head start: some farms already growing
+    for(let i=0;i<GG;i++)if(owner[i]===me.id&&Math.random()<0.25)lvl[i]=1;}else me=null;
   const used=new Set();
-  if(withMe){me=makePlayer(true,"You",myCol,spots[0].x,spots[0].z,1);}else me=null;
-  const sk=[[0.15,0.5],[0.3,0.8],[0.5,1]][S.diff];
-  for(let i=0;i<n;i++){let nm;do{nm=A3.pick(NAMES);}while(used.has(nm));used.add(nm);makePlayer(false,nm,pal[i%pal.length],spots[i+1].x,spots[i+1].z,A3.rand(sk[0],sk[1]));}
+  for(let i=0;i<n;i++){const sp=spotFree(2);if(!sp)break;let nm;do{nm=A3.pick(NAMES);}while(used.has(nm));used.add(nm);
+    const p=makePlayer(false,nm,pal[i%pal.length],sp.x,sp.z,A3.rand(0.35,0.95),2);p.hx=sp.x;p.hz=sp.z;
+    for(let k=0;k<GG;k++)if(owner[k]===p.id&&Math.random()<0.3)lvl[k]=1+(Math.random()<0.3?1:0);}
+  bDirty=true;
+}
+function respawnBot(p){
+  const sp=spotFree(2);if(!sp){p.respawn=5;return;}
+  scene.remove(p.mesh);scene.remove(p.tag);
+  const np=makePlayer(false,p.name,p.col,sp.x,sp.z,A3.rand(0.35,0.95),2);np.hx=sp.x;np.hz=sp.z;
+  // reuse the slot so ids stay stable
+  players.pop();np.id=p.id;players[p.id]=np;
+  for(let i=0;i<GG;i++)if(owner[i]===players.length){owner[i]=p.id;}
+  for(let i=0;i<GG;i++)if(owner[i]===p.id)refreshTile(i,true);
 }
 function startGame(){
   setupRound(true);
-  round={t:0,claimed:0,peak:0,ended:false};
+  round={t:0,claimed:0,stolen:0,peak:0,ended:false,coins:0,incT:0};
   mode="play";S.games++;persist();
-  ["board","goal","pctBig"].forEach(id=>$(id).hidden=false);
-  A3.sfx("jump");A3.toast("Go out, loop round, come home!",1800);hud();
+  ["board","kbar","income"].forEach(id=>$(id).hidden=false);$("bQuit").hidden=false;
+  buildPets();guardCd=0;
+  A3.sfx("jump");A3.toast("Go out, loop round, come home to grab land!",1900);hud();
 }
-function pct(p){return p.area/GG*100;}
+const pct=p=>p.area/claimable*100;
 function endGame(won,by,why){
-  if(round.ended)return;round.ended=true;mode="over";
-  const peak=Math.max(round.peak,me.alive?pct(me):0);
-  const pk=Math.round(peak*10)/10;
-  const newBest=pk>S.best&&round.claimed>0;
-  if(newBest){S.best=pk;A3.best(Math.round(pk));}
-  S.tiles+=round.claimed;
-  const before=SKINS.filter(unlocked).length;
-  if(won){S.wins++;A3.sfx("win");A3.win([3,4,5][S.diff],"winning a round of Turf Grab");}
-  else{A3.sfx("lose");if(newBest&&pk>=25)A3.win(1,"a new Turf Grab best");}
-  const after=SKINS.filter(unlocked).length;
-  $("oTitle").textContent=won?"You win!":newBest?"New best!":"Out!";
-  $("oText").textContent=won?(why==="last"?"You're the last one standing!":"You own half the map!"):
-    why==="self"?"Oops, you ran into your own trail.":why==="wall"?"You bumped into the fence.":why==="squashed"?"Your land got swallowed up!":by?(by.name+" ran over your trail!"):"You were caught out!";
-  if(after>before)$("oText").textContent+=" New colour unlocked!";
-  $("oStats").innerHTML="<div>Biggest share <b>"+pk.toFixed(1)+"%</b></div><div>Tiles grabbed <b>"+A3.fmt(round.claimed)+"</b></div><div>Knockouts <b>"+me.kos+"</b></div><div>Time <b>"+Math.floor(round.t/60)+":"+String(Math.floor(round.t%60)).padStart(2,"0")+"</b></div>";
+  if(!round||round.ended)return;round.ended=true;mode="over";
+  const peak=Math.max(round.peak,me.alive?pct(me):0),pk=Math.round(peak*10)/10;
+  const landBonus=Math.floor(pk*pk*2)*coinMul()*castleMul();P.addCoins(landBonus);round.coins+=landBonus;
+  let crownPay=0;
+  if(won){S.crowns++;crownPay=incNow*60+10000*coinMul()*castleMul();P.addCoins(crownPay);round.coins+=crownPay;A3.best(S.crowns);A3.sfx("win");A3.win(Math.min(5,3+Math.floor(S.world/2)),"winning a crown in Turf Grab");}
+  else A3.sfx("lose");
+  if(pk>S.bestPct)S.bestPct=pk;
+  $("oTitle").textContent=won?"👑 You win a crown!":why==="quit"?"Round over":"Out!";
+  $("oText").textContent=won?"You own "+pk.toFixed(1)+"% of the land. The whole map bows to you!":why==="quit"?"You headed back to your castle.":
+    why==="self"?"Oops, you crossed your own trail.":why==="squashed"?"Your land got swallowed up!":by?(by.name+" ran over your trail!"):"You were caught out!";
+  $("oStats").innerHTML="<div>Biggest share <b>"+pk.toFixed(1)+"%</b></div><div>Coins earned <b>"+fmt(round.coins)+"</b></div><div>Land bonus <b>"+fmt(landBonus)+"</b></div>"+(won?"<div>Crown payout <b>"+fmt(crownPay)+"</b></div>":"")+"<div>Tiles grabbed <b>"+fmt(round.claimed)+"</b></div><div>Buildings stolen <b>"+fmt(round.stolen)+"</b></div><div>Knockouts <b>"+me.kos+"</b></div><div>Crowns <b>"+S.crowns+"</b></div>";
   persist();hud();
-  setTimeout(()=>{["board","goal","pctBig"].forEach(id=>$(id).hidden=true);A3.show("ovOver");},won?600:1100);
+  setTimeout(()=>{["board","kbar","income"].forEach(id=>$(id).hidden=true);$("bQuit").hidden=true;petObjs.forEach(p=>p.g.visible=false);A3.show("ovOver");},won?700:why==="quit"?50:1100);
 }
 
 /* ---------- input ---------- */
 function queue(d){if(!me||!me.alive||mode!=="play")return;const last=me.q.length?me.q[me.q.length-1]:me.dir;if(d===last||(d+2)%4===last)return;if(me.q.length<2)me.q.push(d);}
-window.addEventListener("keydown",e=>{const k=e.key.toLowerCase();const m={arrowup:0,w:0,arrowright:1,d:1,arrowdown:2,s:2,arrowleft:3,a:3}[k];if(m!==undefined){e.preventDefault();queue(m);}});
-// swipe that fires as soon as the finger has moved far enough (feels snappier than waiting for lift)
+window.addEventListener("keydown",e=>{const k=e.key.toLowerCase();const m={arrowup:0,w:0,arrowright:1,d:1,arrowdown:2,s:2,arrowleft:3,a:3}[k];if(m!==undefined&&mode==="play"){e.preventDefault();queue(m);}});
 {const cv=renderer.domElement;let sx=0,sy=0,on=false;
   cv.addEventListener("pointerdown",e=>{on=true;sx=e.clientX;sy=e.clientY;});
-  cv.addEventListener("pointermove",e=>{if(!on)return;const dx=e.clientX-sx,dy=e.clientY-sy;if(Math.max(Math.abs(dx),Math.abs(dy))<22)return;
-    queue(Math.abs(dx)>Math.abs(dy)?(dx>0?1:3):(dy>0?2:0));sx=e.clientX;sy=e.clientY;});
+  cv.addEventListener("pointermove",e=>{if(!on)return;const dx=e.clientX-sx,dy=e.clientY-sy;if(Math.max(Math.abs(dx),Math.abs(dy))<22)return;queue(Math.abs(dx)>Math.abs(dy)?(dx>0?1:3):(dy>0?2:0));sx=e.clientX;sy=e.clientY;});
   window.addEventListener("pointerup",()=>{on=false;});}
 
 /* ---------- HUD ---------- */
-let boardT=0;
+let incNow=0;
 function hud(){
-  $("hBest").textContent=S.best.toFixed(1).replace(/\.0$/,"")+"%";$("hWins").textContent=S.wins;
-  if(me){const v=pct(me);$("hPct").textContent=v.toFixed(1)+"%";$("pctBig").innerHTML=v.toFixed(1)+"%<small>OF THE MAP</small>";$("goalB").style.width=Math.min(100,v/50*100)+"%";
-    $("hLeft").textContent=players.filter(p=>!p.me&&p.alive).length;}
+  $("hCoins").textContent=fmt(S.coins);$("hCrowns").textContent=S.crowns;$("hWorld").textContent=S.world+1;$("hInc").textContent=fmt(incNow);
+  if(me){const v=pct(me);$("hPct").textContent=v.toFixed(1)+"%";$("kNm").innerHTML=v.toFixed(1)+"%<small>OF THE LAND</small>";$("kFill").style.width=Math.min(100,v/60*100)+"%";
+    $("kNx").textContent=v>=45?"Nearly there! "+(60-v).toFixed(1)+"% more for a crown":"Own 60% of the land to win a crown";}
 }
 function drawBoard(){
   const list=players.filter(p=>p.alive).sort((a,b)=>b.area-a.area);
-  let html="<h4>Biggest land</h4>";
+  let html="<h4>Biggest kingdoms</h4>";
   list.slice(0,8).forEach((p,i)=>{html+='<div class="'+(p.me?"me":"")+'"><span><i style="background:'+p.col+'"></i>'+(i+1)+". "+p.name+"</span><span>"+pct(p).toFixed(1)+"%</span></div>";});
   if(me&&me.alive){const r=list.indexOf(me)+1;if(r>8)html+='<div class="me"><span><i style="background:'+me.col+'"></i>'+r+". You</span><span>"+pct(me).toFixed(1)+"%</span></div>";}
   $("board").innerHTML=html;
+  if(me){const [f,h,t]=myBuildings();$("income").innerHTML="🌾 "+f+" &nbsp;🏠 "+h+" &nbsp;🏰 "+t+"<br><b>+"+fmt(incNow)+"</b> coins a second"+(me.shield?'<br><span class="sh">🛡️ '+me.shield+" shield"+(me.shield>1?"s":"")+"</span>":"")+(petObjs.length?'<br><span class="sh">🐾 guard '+(guardCd>0?Math.ceil(guardCd)+"s":"ready")+"</span>":"");}
 }
 
 /* ---------- loop ---------- */
 const camPos=new THREE.Vector3(0,40,40),camLook=new THREE.Vector3();
-let simT=0;
+let simT=0,boardT=0,saveT=8;
 function update(dt){
   simT+=dt;const t=simT;
-  // move everyone
   for(const p of players){
-    if(!p.alive||(p.me&&mode!=="play"))continue;
-    p.t+=dt*p.speed;
-    let guard=0;
-    while(p.t>=1&&p.alive&&guard++<3){
-      p.t-=1;arrive(p);if(!p.alive)break;
-      // choose the next direction
-      if(p.me){while(p.q.length){const d=p.q.shift();if((d+2)%4!==p.dir){p.dir=d;break;}}}
-      else p.dir=botDecide(p);
-    }
+    if(!p.alive){if(!p.me){p.respawn-=dt;if(p.respawn<=0&&(mode==="play"||mode==="title"))respawnBot(p);}continue;}
+    if(p.me&&mode!=="play")continue;
+    p.t+=dt*p.speed;let guard=0;
+    while(p.t>=1&&p.alive&&guard++<3){p.t-=1;
+      if(p.me){while(p.q.length){const d=p.q.shift();if((d+2)%4!==p.dir){p.dir=d;break;}}}else p.dir=botDecide(p);
+      arrive(p);}
   }
-  // heads meeting on the same cell outside home
   for(let a=0;a<players.length;a++)for(let b=a+1;b<players.length;b++){const p=players[a],q=players[b];if(!p.alive||!q.alive)continue;
-    if(p.x===q.x&&p.z===q.z&&p.t<0.5&&q.t<0.5){const pi=owner[idx(p.x,p.z)];if(pi===p.id&&!p.trail.length)kill(q,p,"cut");else if(pi===q.id&&!q.trail.length)kill(p,q,"cut");else if(p.area<q.area)kill(p,q,"cut");else kill(q,p,"cut");}}
-  if(mode==="play"&&me.alive){
+    if(p.x===q.x&&p.z===q.z){const pi=owner[idx(p.x,p.z)];if(pi===p.id&&!p.trail.length)kill(q,p,"cut");else if(pi===q.id&&!q.trail.length)kill(p,q,"cut");else if(p.trail.length&&!q.trail.length)kill(p,q,"cut");else if(q.trail.length&&!p.trail.length)kill(q,p,"cut");}}
+  growTick(dt);
+  if(mode==="play"&&me&&me.alive){
     round.t+=dt;const v=pct(me);round.peak=Math.max(round.peak,v);
-    if(v>=50)endGame(true,null,"half");
-    else if(!players.some(p=>!p.me&&p.alive))endGame(true,null,"last");
-  }
-  if(mode==="title"){
-    // demo: keep bots coming back
-    for(const p of players)if(!p.alive){p.deathT+=dt;}
-    if(players.filter(p=>p.alive).length<3)setupRound(false);
+    const [f,h,tw]=myBuildings.cache&&round.t-myBuildings.cacheT<0.5?myBuildings.cache:(myBuildings.cacheT=round.t,myBuildings.cache=myBuildings());
+    incNow=incomeOf(f,h,tw);const c=incNow*dt;P.addCoins(c);round.coins+=c;
+    if(guardCd>0)guardCd-=dt;
+    if(v>=60)endGame(true,null,"crown");
   }
   // visuals
   for(const p of players){if(!p.alive)continue;
-    const k=Math.min(1,p.t);p.px=p.x+DX[p.dir]*k;p.pz=p.z+DZ[p.dir]*k;
+    const k=Math.min(1,p.t);const moving=!(p.me&&mode!=="play");p.px=p.x+(moving?DX[p.dir]*k:0);p.pz=p.z+(moving?DZ[p.dir]*k:0);
+    const nx=p.x+DX[p.dir],nz=p.z+DZ[p.dir];if(!inb(nx,nz)||blocked[idx(nx,nz)]){p.px=p.x;p.pz=p.z;}
     const want=-p.dir*Math.PI/2;let d=want-p.face;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;p.face+=d*Math.min(1,dt*14);
-    const hop=Math.abs(Math.sin(k*Math.PI));
-    p.mesh.position.set(p.px-OFF,(owner[idx(p.x,p.z)]>=0?0.36:0.12)+hop*0.12,p.pz-OFF);p.mesh.rotation.y=p.face;
-    p.body.scale.set(1+hop*0.06,1-hop*0.08,1+hop*0.06);
-    p.tag.position.set(p.px-OFF,1.75+hop*0.12,p.pz-OFF);p.tag.visible=true;
-  }
-  // tile rise animation
+    const hop=Math.abs(Math.sin(k*Math.PI));const ci=idx(p.x,p.z);
+    p.mesh.position.set(p.px-OFF,tileH(ci)+hop*0.12,p.pz-OFF);p.mesh.rotation.y=p.face;p.body.scale.set(1+hop*0.06,1-hop*0.08,1+hop*0.06);
+    p.tag.position.set(p.px-OFF,1.95+hop*0.12,p.pz-OFF);p.tag.visible=true;}
   for(let k=animList.length-1;k>=0;k--){const i=animList[k];tileAnim[i]-=dt*4;
-    if(tileAnim[i]<=0||owner[i]<0){tileAnim[i]=0;animList.splice(k,1);setTile(i,owner[i]<0?0.12:0.36);}
-    else{const a=tileAnim[i];setTile(i,0.36+Math.sin(a*Math.PI)*0.35);}dirty=true;}
-  if(dirty){dirty=false;tileMesh.instanceMatrix.needsUpdate=true;if(tileMesh.instanceColor)tileMesh.instanceColor.needsUpdate=true;}
-  // trails
+    if(tileAnim[i]<=0||owner[i]<0){tileAnim[i]=0;animList.splice(k,1);setTile(i,tileH(i));}else{setTile(i,tileH(i)+Math.sin(tileAnim[i]*Math.PI)*0.3);}tilesDirty=true;bDirty=true;}
+  let growing=false;for(let i=0;i<GG;i++)if(grow[i]>0){grow[i]=Math.max(0,grow[i]-dt*3);growing=true;}
+  if(tilesDirty){tilesDirty=false;tileMesh.instanceMatrix.needsUpdate=true;if(tileMesh.instanceColor)tileMesh.instanceColor.needsUpdate=true;}
+  if(bDirty||growing){bDirty=false;drawBuildings();}
   let n=0;
-  for(const p of players){if(!p.alive)continue;for(let k=0;k<p.trail.length&&n<TMAX;k++){const i=p.trail[k];const x=i%G,z=(i/G)|0;
+  for(const p of players){if(!p.alive)continue;for(let k=0;k<p.trail.length&&n<TMAX;k++){const i=p.trail[k],x=i%G,z=(i/G)|0;
     const bob=Math.sin(t*6+k*0.6)*0.06;v3.set(x-OFF,0.45+bob,z-OFF);sc3.set(1,1,1);mtx.compose(v3,q0,sc3);trailMesh.setMatrixAt(n,mtx);trailMesh.setColorAt(n,p.trc);n++;}}
   trailMesh.count=n;trailMesh.instanceMatrix.needsUpdate=true;if(trailMesh.instanceColor)trailMesh.instanceColor.needsUpdate=true;
-  // camera
-  if(mode==="title"){titleT+=dt*0.1;camLook.set(0,0,0);camera.position.set(Math.cos(titleT)*52,44,Math.sin(titleT)*52);camera.lookAt(camLook);
-    V.lights.sun.position.set(20,40,15);V.lights.sun.target.position.set(0,0,0);}
-  else{const f=me;const tx=f.px-OFF,tz=f.pz-OFF;camLook.x+=(tx-camLook.x)*Math.min(1,dt*6);camLook.z+=(tz-camLook.z)*Math.min(1,dt*6);
-    const h=17+Math.min(10,Math.sqrt(me.area)*0.25);camPos.lerp(v3.set(camLook.x,h,camLook.z+h*0.72),Math.min(1,dt*5));camera.position.copy(camPos);camera.lookAt(camLook);
+  petsTick(dt,t);
+  if(mode==="title"||!me){titleT+=dt*0.1;camLook.set(0,0,0);camera.position.set(Math.cos(titleT)*50,42,Math.sin(titleT)*50);camera.lookAt(camLook);V.lights.sun.position.set(20,40,15);V.lights.sun.target.position.set(0,0,0);}
+  else{const tx=me.px-OFF,tz=me.pz-OFF;camLook.x+=(tx-camLook.x)*Math.min(1,dt*6);camLook.z+=(tz-camLook.z)*Math.min(1,dt*6);
+    const h=17+Math.min(12,Math.sqrt(me.area)*0.3);camPos.lerp(v3.set(camLook.x,h,camLook.z+h*0.72),Math.min(1,dt*5));camera.position.copy(camPos);camera.lookAt(camLook);
     V.lights.sun.position.set(camLook.x+10,26,camLook.z+8);V.lights.sun.target.position.copy(camLook);}
   parts.update(dt);
   boardT-=dt;if(boardT<=0&&mode!=="title"){boardT=0.3;drawBoard();hud();}
+  saveT-=dt;if(saveT<=0){saveT=8;persist();}
 }
 A3.loop(dt=>{update(dt);V.render();});
 
 /* ---------- menus ---------- */
-function persist(){A3.store(SAVE,S);}
 function titleStats(){
-  $("tStats").innerHTML="<div>Best share <b>"+S.best.toFixed(1).replace(/\.0$/,"")+"%</b></div><div>Wins <b>"+S.wins+"</b></div><div>Tiles grabbed <b>"+A3.fmt(S.tiles)+"</b></div><div>Knockouts <b>"+A3.fmt(S.kos)+"</b></div>";
-  [...$("diffs").children].forEach(b=>b.classList.toggle("on",+b.dataset.d===S.diff));
+  $("tSum").innerHTML="<span>World <b>"+(S.world+1)+" "+WORLDS[S.world].n+"</b></span><span>Coins <b>"+fmt(S.coins)+"</b></span><span>Multi <b>x"+fmt(P.multi())+"</b></span><span>Castle <b>Lv "+(S.up.castle||0)+"</b></span>";
+  $("tStats").innerHTML="<div>Crowns <b>"+S.crowns+"</b></div><div>Best share <b>"+(S.bestPct||0).toFixed(1).replace(/\.0$/,"")+"%</b></div><div>Tiles grabbed <b>"+fmt(S.tiles)+"</b></div><div>Knockouts <b>"+fmt(S.kos)+"</b></div><div>Rebirths <b>"+fmt(S.reb)+"</b></div>";
+  $("bPlay").textContent=S.games>0?"Continue":"Play";$("bReb").classList.toggle("glow",P.rebCan()>0);
+  $("bDaily").hidden=!P.dailyReady();$("bDaily").classList.add("glow");hud();
 }
-function drawShop(){
-  $("skins").innerHTML=SKINS.map((k,i)=>{const u=unlocked(k),on=S.skin===i;
-    return '<button class="skin'+(on?" on":"")+(u?"":" locked")+'" data-i="'+i+'"><div class="sw" style="background:'+k.c+'"></div>'+k.n+'<br><span class="c">'+(on?"Using":u?"Use":"🔒 "+needText(k))+"</span></button>";}).join("");
-}
-$("skins").addEventListener("click",e=>{const b=e.target.closest(".skin");if(!b)return;const i=+b.dataset.i,k=SKINS[i];
-  if(unlocked(k)){S.skin=i;A3.sfx("click");persist();drawShop();}else{A3.sfx("hit");A3.toast(needText(k)+" to unlock");}});
-$("diffs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;S.diff=+b.dataset.d;A3.sfx("click");persist();titleStats();});
+function toTitle(){mode="title";setupRound(false);["board","kbar","income"].forEach(id=>$(id).hidden=true);$("bQuit").hidden=true;petObjs.forEach(p=>p.g.visible=false);
+  P.closeAll();A3.hide("ovOver");titleStats();A3.show("ovTitle");}
+[["bUp","ovUp"],["bWorlds","ovWorlds"],["bSkins","ovSkins"],["bPets","ovPets"],["bReb","ovReb"]].forEach(([b,ov])=>{$(b).onclick=()=>{A3.sfx("click");A3.hide("ovTitle");P.open(ov);};});
+$("bDaily").onclick=()=>{P.claimDaily();titleStats();};
 $("bPlay").onclick=()=>{A3.sfx("click");A3.hide("ovTitle");startGame();};
-$("bShop").onclick=()=>{A3.sfx("click");drawShop();A3.hide("ovTitle");A3.show("ovShop");};
-$("shopBack").onclick=()=>{A3.sfx("click");A3.hide("ovShop");titleStats();A3.show("ovTitle");};
 $("oAgain").onclick=()=>{A3.sfx("click");A3.hide("ovOver");startGame();};
-$("oMenu").onclick=()=>{A3.sfx("click");A3.hide("ovOver");toTitle();};
-function toTitle(){mode="title";setupRound(false);["board","goal","pctBig"].forEach(id=>$(id).hidden=true);titleStats();hud();A3.show("ovTitle");}
+$("oUp").onclick=()=>{A3.sfx("click");A3.hide("ovOver");P.open("ovUp");};
+$("oMenu").onclick=()=>{A3.sfx("click");toTitle();};
+$("bQuit").onclick=()=>{A3.sfx("click");if(mode==="play")endGame(false,null,"quit");};
 A3.fullscreen($("bFs"),stage);
 $("bMute").onclick=()=>{A3.mute(!A3.mute());$("bMute").textContent=A3.mute()?"🔇":"🔊";};$("bMute").textContent=A3.mute()?"🔇":"🔊";
+P.buckGift();
 toTitle();
 window.addEventListener("pagehide",persist);
-window.__turfTest={sim:sec=>{for(let k=0;k<sec*30;k++)update(1/30);return mode;},grab:()=>{if(!me)return;for(let z=0;z<G;z++)for(let x=0;x<G/2+2;x++){const i=idx(x,z);if(owner[i]!==me.id)setOwner(i,me);}},die:()=>{if(me&&me.alive)kill(me,players.find(p=>!p.me&&p.alive),"cut");},state:()=>players.map(p=>p.name+":"+p.area+(p.alive?"":"x")).join(" ")};
-if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"turf-grab",dir:"desc",unit:"%",title:"Turf Grab: biggest share of the map"});
+if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"turf-grab-v2",dir:"desc",unit:"crowns",title:"Turf Grab: most crowns won"});
 })();
 </script>
 </body>

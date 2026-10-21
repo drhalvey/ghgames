@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Balloon Defence</title>
 <meta property="og:title" content="Balloon Defence · GH Games">
-<meta property="og:description" content="Build frogs, robots, cannons and wizards to pop waves of balloons before they float off the map. 6 towers with 2 upgrade paths, 4 maps, 40 rounds and a boss blimp every 10.">
+<meta property="og:description" content="Run around the map as a balloon-popping hero while you build and upgrade towers! Level up your hero, unlock spin, freeze and meteor powers, hatch pets that pop balloons with you, unlock 8 maps and rebirth.">
 <meta property="og:image" content="https://ghgames.au/og/balloon-defence.png">
 <meta property="og:url" content="https://ghgames.au/balloon-defence.html">
 <meta name="twitter:card" content="summary_large_image">
@@ -61,6 +61,24 @@
 .mapc .st{color:#ffd23f;font-size:18px;letter-spacing:2px}
 .mapc.on{border-color:var(--gold)}
 .mapc:disabled{opacity:.45;cursor:default}
+.mapc.lock{opacity:.7}
+.mapc .cost{display:block;color:var(--gold);font-weight:900;font-size:13px}
+.maps{grid-template-columns:repeat(4,minmax(0,1fr));width:min(820px,100%)}
+@media (max-width:700px){.maps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#joy{position:absolute;left:14px;bottom:14px;width:112px;height:112px;border-radius:50%;border:3px solid rgba(255,255,255,.55);background:rgba(255,255,255,.12);z-index:16;touch-action:none;display:none}
+#joy i{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:rgba(255,255,255,.75);pointer-events:none}
+.coarse #joy{display:block}
+.abil{position:absolute;right:12px;bottom:112px;z-index:16;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.abil button{position:relative;width:58px;height:58px;border-radius:50%;border:3px solid rgba(255,255,255,.6);background:rgba(20,30,60,.82);color:#fff;font-size:24px;cursor:pointer;padding:0;overflow:hidden}
+.abil button small{position:absolute;left:0;right:0;bottom:2px;font-family:var(--body);font-weight:900;font-size:10px;color:var(--gold)}
+.abil button i{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);pointer-events:none;font-style:normal}
+.abil button:disabled{opacity:.45;cursor:default}
+.abil button.ready{border-color:var(--gold);box-shadow:0 0 12px var(--gold)}
+.herobar{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:15;pointer-events:none;text-align:center;font-weight:900;font-size:13px;background:rgba(10,8,30,.55);border-radius:12px;padding:4px 10px;min-width:150px}
+.herobar .bar{height:7px;border-radius:5px;background:rgba(255,255,255,.18);overflow:hidden;margin-top:3px}
+.herobar .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#4fc3ff,#b07bff)}
+.narrow .abil{bottom:62px}.narrow .abil button{width:48px;height:48px;font-size:19px}
+.narrow #joy{width:92px;height:92px}
 </style>
 </head>
 <body>
@@ -72,6 +90,7 @@
       <div class="chip"><span>Round</span><b id="hRound">0</b></div>
       <div class="chip"><span>Lives</span><b id="hLives">150</b></div>
       <div class="chip"><span>Money</span><b id="hMoney">650</b></div>
+      <div class="chip"><span>Coins</span><b id="hCoins">0</b></div>
       <div class="chip"><span>Best</span><b id="hBest">0</b></div>
     </div>
   </div>
@@ -84,18 +103,22 @@
     <button class="gobtn" id="bGo">GO!</button>
     <div class="bar" id="shop"></div>
     <div class="tpanel" id="tpanel" hidden></div>
+    <div class="herobar" id="herobar" hidden>🦸 Hero level <span id="hLv">1</span><div class="bar"><i id="hXp"></i></div></div>
+    <div class="abil" id="abil" hidden><button id="ab0" data-ab="0">🌀<small>Q</small><i></i></button><button id="ab1" data-ab="1">❄️<small>E</small><i></i></button><button id="ab2" data-ab="2">☄️<small>R</small><i></i></button></div>
+    <div id="joy"><i id="knob"></i></div>
     <div class="toast" id="toast"></div>
 
     <div class="ov" id="ovTitle">
       <h2>BALLOON DEFENCE</h2>
-      <p>Waves of balloons are floating along the path. Build towers next to it to pop them before they escape! Popping balloons earns money for more towers and upgrades. Survive 40 rounds to win the map.</p>
+      <p>You are the hero on the map! Run around popping balloons with your own darts and super powers, and build towers to help. Level up your hero, earn coins and power up for the next map.</p>
       <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn green" id="bCont" hidden>Continue</button></div>
+      <div class="row" id="metaBtns"></div>
       <div class="stats" id="tStats"></div>
     </div>
 
     <div class="ov" id="ovMaps" hidden>
       <h2>PICK A MAP</h2>
-      <p>Survive 40 rounds to unlock the next map. Win on Easy for 1 star, Normal for 2 and Hard for 3.</p>
+      <p>Survive 40 rounds to win a map: Easy for 1 star, Normal for 2 and Hard for 3. Unlock new maps with coins. Each map pays more coins.</p>
       <div class="maps" id="maps"></div>
       <div class="seg" id="diffs"><button data-d="0">Easy</button><button data-d="1" class="on">Normal</button><button data-d="2">Hard</button></div>
       <div class="row"><button class="btn" id="mGo">Start</button><button class="btn alt" id="mBack">Back</button></div>
@@ -105,11 +128,11 @@
       <h2 id="oTitle">Game over</h2>
       <p id="oText"></p>
       <div class="stats" id="oStats"></div>
-      <div class="row"><button class="btn green" id="oKeep" hidden>Keep going</button><button class="btn" id="oAgain">Try again</button><button class="btn alt" id="oMenu">Menu</button></div>
+      <div class="row"><button class="btn green" id="oKeep" hidden>Keep going</button><button class="btn" id="oAgain">Try again</button><button class="btn green" data-mopen="up">Hero upgrades</button><button class="btn alt" id="oMenu">Menu</button></div>
     </div>
   </div>
 
-  <p class="help">Pick a tower from the left side, then tap a grass square to build it. Tap a tower to upgrade it, change who it aims at, or sell it. Each tower has two upgrade paths, and only one can go all the way to tier 3. <b>Metal</b> balloons shrug off sharp darts, so use bombs, zaps or a powered-up Owl. <b>Camo</b> balloons can only be seen by the Owl Scout, a Frog with Frog Eyes or a Zapbot with Crystal Eye. A boss blimp arrives every 10 rounds! Your run saves between rounds. Your highest round goes on the leaderboard.</p>
+  <p class="help">You are the hero! Move with WASD or the arrow keys, or the joystick on an iPad. Your hero throws darts at the closest balloon all by itself (even metal and camo ones). Popping balloons gives your hero XP: at level 3 you unlock Spin (Q), at level 6 Freeze (E) and at level 10 Meteor (R). Pick a tower from the left side, then tap a grass square to build it. Tap a tower to upgrade it, change who it aims at, or sell it. Each tower has two upgrade paths, and only one can go all the way to tier 3. <b>Metal</b> balloons shrug off sharp darts, so use bombs, zaps or a powered-up Owl. <b>Camo</b> balloons can only be seen by the Owl Scout, a Frog with Frog Eyes or a Zapbot with Crystal Eye. A boss blimp arrives every 10 rounds! Your run saves between rounds. Every round you survive pays coins (better maps pay more). Coins buy hero upgrades, new maps (later maps need rebirths), hero outfits with multis and pet eggs. Pets follow your hero and pop balloons too. Rebirth resets coins and hero upgrades but keeps maps, outfits and pets, and adds +1x hero damage and coins for ever. Your highest round goes on the leaderboard.</p>
   <div id="lb"></div>
 </div>
 
@@ -121,12 +144,260 @@
 "use strict";
 const $=id=>document.getElementById(id);
 const SAVE="balloondefence-save";
-const S=A3.save(SAVE,{stars:[0,0,0,0],bestRound:0,diff:1,map:0,run:null,pops:0,auto:false});
 const stage=$("stage");
 const V=A3.view(stage,{fov:42,sky:["#6cc4ff","#e3f6ff"],shadowSize:16});
 if(!V){return;}
 const {scene,camera,renderer}=V;
 V.lights.sun.position.set(-8,22,12);V.lights.sun.intensity=1.15;
+/* ===================================================================
+   GH progression kit (v2 reworks): coins, upgrades, worlds, rebirths,
+   pets (eggs + hatching), skins, daily reward and the buckasnuncle gift.
+   Inlined in each game so the shared repo kit stays untouched.
+   =================================================================== */
+function GHMeta(cfg){
+  const $=id=>document.getElementById(id);
+  const CAP=1e300,cap=n=>(n>0&&isFinite(n))?Math.min(CAP,n):(n>0?CAP:0);
+  const fmt=n=>A3.fmt(n);
+  const fm=n=>n<10?String(+n.toFixed(2)):n<100?String(+n.toFixed(1)):A3.fmt(n); // multis keep their decimals
+  const RAR=[{n:"Common",c:"#cfd6e6",m:1.15,w:52},{n:"Uncommon",c:"#5fd36a",m:1.3,w:26},{n:"Rare",c:"#4aa8ff",m:1.6,w:13},{n:"Epic",c:"#b085ff",m:2.2,w:6},{n:"Legendary",c:"#ffd23f",m:3.5,w:2.3},{n:"Mythic",c:"#ff7ae0",m:6,w:0.6},{n:"Secret",c:"#ff5d5d",m:15,w:0.1}];
+  const SPEC=cfg.species||[{n:"Pup",e:"🐶",c:"#d8a26a"},{n:"Kitty",e:"🐱",c:"#ffb0d0"},{n:"Bunny",e:"🐰",c:"#ffffff"},{n:"Fox",e:"🦊",c:"#ff8a3d"},{n:"Owl",e:"🦉",c:"#b0773a"},{n:"Dragon",e:"🐲",c:"#5fd36a"},{n:"Unicorn",e:"🦄",c:"#e8dcff"}];
+  const W=cfg.worlds,UPS=cfg.ups,SK=cfg.skins,PW=cfg.petWord||"Pets";
+  const base={v:2,coins:0,run:0,ever:0,up:{},world:0,wopen:[0],reb:0,skins:[0],skin:0,pets:{},eq:[],hatched:0,daily:{d:"",s:0},bk:0,played:0};
+  /* ---------- load + migrate ---------- */
+  let raw=null;try{raw=JSON.parse(localStorage.getItem(cfg.save)||"null");}catch(e){raw=null;}
+  const S=JSON.parse(JSON.stringify(Object.assign({},base,cfg.defaults||{})));
+  let migrated=false;
+  if(raw&&typeof raw==="object"){
+    if(raw.v>=2){for(const k in raw)S[k]=raw[k];}
+    else{migrated=true;try{const m=cfg.migrate?cfg.migrate(raw)||{}:{};for(const k in m)S[k]=m[k];}catch(e){}}
+  }
+  S.v=2;
+  if(!S.up||typeof S.up!=="object")S.up={};
+  if(!Array.isArray(S.wopen)||!S.wopen.length)S.wopen=[0];
+  if(!Array.isArray(S.skins)||!S.skins.length)S.skins=[0];
+  if(!S.pets||typeof S.pets!=="object"||Array.isArray(S.pets))S.pets={};
+  if(!Array.isArray(S.eq))S.eq=[];
+  if(!S.daily||typeof S.daily!=="object")S.daily={d:"",s:0};
+  ["coins","run","ever","reb","hatched","played"].forEach(k=>{if(!(S[k]>=0)||!isFinite(S[k]))S[k]=0;});
+  if(!(S.world>=0&&S.world<W.length)||!S.wopen.includes(S.world))S.world=0;
+  if(!(S.skin>=0&&S.skin<SK.length)||!S.skins.includes(S.skin))S.skin=0;
+  const M={S,fmt,fm,cap,RAR,SPEC,migrated};
+  let dirty=true;
+  M.persist=()=>{try{localStorage.setItem(cfg.save,JSON.stringify(S));}catch(e){}dirty=false;};
+  if(migrated)M.persist();
+  const changed=()=>{dirty=true;if(cfg.onChange)cfg.onChange();};
+  M.changed=changed;
+
+  /* ---------- multis ---------- */
+  const petBoost=id=>{const w=Math.floor(id/7),r=id%7;return RAR[r].m*Math.pow(cfg.petWorld||1.6,w);};
+  M.petBoost=petBoost;
+  M.rebMul=(r)=>1+(r==null?S.reb:r)*(cfg.rebStep||1);
+  M.petMul=()=>{let s=1;for(const id of S.eq)if(S.pets[id])s+=petBoost(id)-1;return s;};
+  M.skinMul=()=>SK[S.skin].m;
+  M.mul=()=>cap(M.rebMul()*M.petMul()*M.skinMul());
+  M.skin=()=>SK[S.skin];
+  M.world=()=>W[S.world];
+  /* ---------- coins ---------- */
+  M.add=n=>{n=cap(n);if(!(n>0))return 0;S.coins=cap(S.coins+n);S.run=cap(S.run+n);S.ever=cap(S.ever+n);dirty=true;return n;};
+  M.spend=n=>{if(S.coins<n)return false;S.coins=Math.max(0,S.coins-n);changed();return true;};
+  /* ---------- upgrades ---------- */
+  M.lv=k=>S.up[k]||0;
+  const upOf=k=>UPS.find(u=>u.k===k);
+  M.upPrice=(k,l)=>{const u=upOf(k);return cap(u.b*Math.pow(u.g,l==null?M.lv(k):l));};
+  M.buy=k=>{const u=upOf(k),l=M.lv(k);if(l>=u.max)return false;const p=M.upPrice(k);if(S.coins<p)return false;S.coins-=p;S.up[k]=l+1;changed();if(cfg.onBuy)cfg.onBuy(k);return true;};
+  M.buyMax=()=>{let n=0;for(let i=0;i<3000;i++){let best=null,bp=Infinity;for(const u of UPS){if(M.lv(u.k)>=u.max)continue;const p=M.upPrice(u.k);if(p<bp){bp=p;best=u;}}if(!best||S.coins<bp)break;M.buy(best.k);n++;}return n;};
+  /* ---------- worlds ---------- */
+  M.open_=i=>S.wopen.includes(i);
+  M.maxOpen=()=>Math.max.apply(null,S.wopen);
+  M.goWorld=i=>{if(!M.open_(i))return false;S.world=i;changed();if(cfg.onWorld)cfg.onWorld(i);return true;};
+  M.unlock=i=>{const w=W[i];if(M.open_(i))return M.goWorld(i);if(i!==M.maxOpen()+1){A3.toast("Unlock "+W[i-1].n+" first",1500);return false;}
+    if(S.reb<(w.reb||0)){A3.sfx("hit");A3.toast(w.n+" needs "+w.reb+" rebirth"+(w.reb>1?"s":""),1700);return false;}
+    if(S.coins<w.cost){A3.sfx("hit");A3.toast("You need "+fmt(w.cost)+" "+(cfg.cur||"coins"),1500);return false;}
+    S.coins-=w.cost;S.wopen.push(i);A3.sfx("win");A3.toast("🌍 "+w.n+" unlocked!",2000);A3.win(Math.min(5,1+Math.floor(i/2)),"unlocking "+w.n+" in "+cfg.name);M.goWorld(i);return true;};
+  /* ---------- rebirth ---------- */
+  M.rebCost=r=>cap((cfg.rebBase||1e4)*Math.pow(cfg.rebGrow||5,r==null?S.reb:r));
+  M.rebCan=()=>{let c=S.coins,n=0,r=S.reb;while(n<100000){const p=M.rebCost(r);if(c<p)break;c-=p;r++;n++;}return n;};
+  M.rebirth=max=>{const can=M.rebCan(),n=max?can:Math.min(1,can);if(n<1){A3.sfx("hit");A3.toast("You need "+fmt(M.rebCost())+" "+(cfg.cur||"coins")+" to rebirth",1600);return 0;}
+    S.reb+=n;S.coins=0;S.run=0;S.up={};A3.sfx("win");
+    A3.toast((n>1?n+" rebirths! ":"")+"Rebirth "+fmt(S.reb)+"! Multi x"+fm(M.rebMul()),2600);
+    try{if(window.PhatCoin)PhatCoin.earn("rebirth",25,"rebirth "+S.reb+" in "+cfg.name);}catch(e){}
+    if(cfg.onRebirth)cfg.onRebirth(n);changed();M.persist();drawReb();return n;};
+  /* ---------- pets ---------- */
+  M.slots=()=>3+Math.min(5,Math.floor(S.reb/2));
+  M.eggPrice=w=>cap((cfg.eggBase||500)*Math.pow(cfg.eggGrow||20,w));
+  M.petName=id=>(W[Math.floor(id/7)].pn||W[Math.floor(id/7)].n)+" "+SPEC[id%7].n;
+  M.petInfo=id=>({id,w:Math.floor(id/7),r:id%7,n:M.petName(id),e:SPEC[id%7].e,c:SPEC[id%7].c,rc:RAR[id%7].c,rn:RAR[id%7].n,m:petBoost(id)});
+  M.equipped=()=>S.eq.filter(id=>S.pets[id]).map(M.petInfo);
+  function roll(){let x=Math.random()*100,r=0;while(r<6&&x>=RAR[r].w){x-=RAR[r].w;r++;}return r;}
+  M.hatch=(w,n)=>{const pr=M.eggPrice(w)*n;if(!M.open_(w)||S.coins<pr){A3.sfx("hit");A3.toast("You need "+fmt(pr)+" "+(cfg.cur||"coins"),1400);return null;}
+    S.coins-=pr;const got=[];
+    for(let k=0;k<n;k++){const id=w*7+roll();S.pets[id]=(S.pets[id]||0)+1;got.push(id);S.hatched++;}
+    M.equipBest(true);
+    const best=Math.max.apply(null,got.map(id=>id%7));
+    if(best>=4)A3.win(best>=6?5:best>=5?3:2,"hatching a "+RAR[best].n+" pet in "+cfg.name);
+    changed();M.persist();if(cfg.onPets)cfg.onPets();return got;};
+  M.equipBest=quiet=>{const all=[];for(const k in S.pets)for(let i=0;i<S.pets[k];i++)all.push(+k);all.sort((a,b)=>petBoost(b)-petBoost(a));S.eq=all.slice(0,M.slots());if(!quiet){A3.sfx("coin");changed();if(cfg.onPets)cfg.onPets();}};
+  /* ---------- skins ---------- */
+  M.useSkin=k=>{if(!S.skins.includes(k)){if(S.coins<SK[k].price){A3.sfx("hit");A3.toast("You need "+fmt(SK[k].price)+" "+(cfg.cur||"coins"),1400);return false;}S.coins-=SK[k].price;S.skins.push(k);A3.sfx("win");A3.toast("New look: "+SK[k].n+"!",1600);if(k===SK.length-1)A3.win(3,"getting the best skin in "+cfg.name);}else A3.sfx("click");
+    S.skin=k;changed();if(cfg.onSkin)cfg.onSkin(k);return true;};
+  /* ---------- George's head start ---------- */
+  // George: the player buckasnuncle (game nickname or account username) gets 1 million coins and the best skin, once only
+  M.buck=()=>{if(S.bk)return;let a="",b="";try{a=(window.Leaderboard&&Leaderboard.getName())||localStorage.getItem("ghgames_nick")||"";b=localStorage.getItem("ghacct_user")||"";}catch(e){}
+    const is=n=>(n||"").trim().toLowerCase()==="buckasnuncle";if(!is(a)&&!is(b))return;
+    S.bk=1;M.add(1e6);const top=SK.length-1;if(!S.skins.includes(top))S.skins.push(top);S.skin=top;changed();M.persist();if(cfg.onSkin)cfg.onSkin(top);
+    setTimeout(()=>{A3.sfx("win");A3.toast("Hi buckasnuncle! +1M "+(cfg.cur||"coins")+" and the "+SK[top].n+" skin!",3500);},700);};
+  /* ---------- daily reward ---------- */
+  const dstr=d=>d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();
+  M.dailyReady=()=>S.daily.d!==dstr(new Date());
+  M.daily=()=>{if(!M.dailyReady())return;const y=new Date();y.setDate(y.getDate()-1);const s=S.daily.d===dstr(y)?S.daily.s+1:1;
+    const amt=cap(cfg.dailyAmt?cfg.dailyAmt(s):100*s);$("mDayText").innerHTML="Day <b>"+s+"</b> in a row! Come back tomorrow for even more.";$("mDayAmt").textContent="+"+fmt(amt)+" "+(cfg.cur||"coins");
+    $("mDayGo").onclick=()=>{S.daily={d:dstr(new Date()),s:s};M.add(amt);A3.sfx("coin");A3.toast("Daily reward: +"+fmt(amt)+"!",1800);if(s%7===0)A3.win(2,"a 7 day streak in "+cfg.name);changed();M.persist();A3.hide("mDay");};
+    A3.show("mDay");};
+
+  /* ---------- UI ---------- */
+  const st=document.createElement("style");st.textContent=
+   ".mov{justify-content:flex-start;padding-top:12px;gap:8px;overflow:hidden}.mov h2{font-size:clamp(24px,5vw,40px)}.wide{width:min(820px,100%)}.mov>.shopbox{flex:0 1 auto;min-height:0;display:flex;flex-direction:column}.mov .mlist,.mov .cards{flex:1 1 auto;min-height:70px;max-height:none!important}.mov #mEggs{flex:0 0 auto;max-height:34%!important;min-height:0}.mov>.row{flex:0 0 auto}"
+  +".cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px;margin-top:8px;overflow:auto;padding:2px;align-content:start}"
+  +".card{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:7px;font-weight:900;font-size:12px;text-align:center;line-height:1.25;cursor:pointer;position:relative;color:var(--ink);font-family:var(--body)}"
+  +".card .r{font-size:10px;text-transform:uppercase;letter-spacing:.05em}.card .m{color:var(--green)}.card .p{color:var(--gold)}.card.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold) inset}.card.lock{opacity:.55}"
+  +".card .sw{height:28px;border-radius:8px;margin:4px 0;border:2px solid rgba(255,255,255,.35)}.card .em{font-size:28px;line-height:1.1}.card button{font-family:var(--body);font-weight:900;font-size:12px;border:none;border-radius:8px;padding:4px 8px;margin:3px 2px 0;background:var(--gold);color:#3b2200;cursor:pointer}.card button:disabled{opacity:.4}"
+  +".urow{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;background:var(--panel2);border-radius:10px;padding:6px 10px;margin:5px 0;font-weight:800;font-size:13px}"
+  +".urow .ic{font-size:24px}.urow b{color:#fff;font-size:15px}.urow small{display:block;color:var(--muted);font-weight:700}.urow .btn{font-size:14px;padding:6px 10px;border-radius:10px;box-shadow:0 4px 0 #a86a00;min-width:92px}"
+  +".mlist{overflow:auto}.tabsum{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;font-weight:900;font-size:13px;color:var(--muted)}.tabsum b{color:var(--gold)}"
+  +".hatchfx{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:radial-gradient(circle,rgba(60,40,120,.92),rgba(8,10,30,.96));cursor:pointer}"
+  +".hatchfx .egg{font-size:110px;animation:mwob .22s ease-in-out infinite alternate;filter:drop-shadow(0 8px 0 rgba(0,0,0,.35))}.hatchfx .egg.crack{animation:mcrack .35s ease-out forwards}"
+  +"@keyframes mwob{from{transform:rotate(-14deg) scale(1)}to{transform:rotate(14deg) scale(1.08)}}@keyframes mcrack{to{transform:scale(1.8);opacity:0}}"
+  +".hres{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:620px}.hres div{background:var(--panel2);border:3px solid var(--c);border-radius:14px;padding:8px 10px;font-weight:900;font-size:13px;min-width:96px;animation:mpop .45s cubic-bezier(.3,1.7,.5,1) both;box-shadow:0 0 18px var(--c)}"
+  +".hres div .em{font-size:40px;display:block}@keyframes mpop{from{transform:scale(.4)}to{transform:scale(1)}}"
+  +".mdock{position:absolute;right:10px;bottom:10px;z-index:16;display:flex;gap:6px}.mdock button{font-family:var(--body);font-weight:900;font-size:13px;border:none;border-radius:12px;padding:7px 9px;background:rgba(10,16,40,.72);color:#fff;cursor:pointer;border:2px solid rgba(255,255,255,.25);display:flex;flex-direction:column;align-items:center;line-height:1.05;min-width:50px}.mdock button i{font-style:normal;font-size:20px}"
+  +".mdock button.glow{border-color:var(--gold);box-shadow:0 0 10px var(--gold)}"
+  +"@media (max-width:600px){.cards{grid-template-columns:repeat(auto-fill,minmax(108px,1fr))}.mdock button{min-width:42px;padding:5px 6px;font-size:11px}.mdock button i{font-size:17px}}";
+  document.head.appendChild(st);
+  const cur=cfg.cur||"coins";
+  const html=
+   '<div class="ov mov" id="mUp" hidden><h2>UPGRADES</h2><div class="shopbox wide"><p class="help" id="mUpHelp"></p><div class="mlist" id="mUpList"></div></div><div class="row"><button class="btn pink" id="mUpMax">Buy max</button><button class="btn green" data-mback>Done</button></div></div>'
+  +'<div class="ov mov" id="mWorlds" hidden><h2>'+(cfg.worldWord||"WORLDS")+'</h2><div class="shopbox wide"><p class="help" id="mWHelp"></p><div class="cards" id="mWList"></div></div><div class="row"><button class="btn green" data-mback>Done</button></div></div>'
+  +'<div class="ov mov" id="mPets" hidden><h2>'+PW.toUpperCase()+'</h2><div class="shopbox wide"><p class="help" id="mPHelp"></p><div class="cards" id="mEggs" style="max-height:none;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div><div class="row" style="margin-top:6px"><button class="btn small green" id="mPBest">Equip best</button></div><div class="cards" id="mPList"></div></div><div class="row"><button class="btn green" data-mback>Done</button></div>'
+  +'<div class="hatchfx" id="mHatch" hidden><div class="egg" id="mEgg">🥚</div><div class="hres" id="mHres"></div><p id="mHtap" style="font-weight:900;color:#dfe7ff">Hatching...</p></div></div>'
+  +'<div class="ov mov" id="mSkins" hidden><h2>'+(cfg.skinWord||"SKINS")+'</h2><div class="shopbox wide"><p class="help" id="mSHelp"></p><div class="cards" id="mSList"></div></div><div class="row"><button class="btn green" data-mback>Done</button></div></div>'
+  +'<div class="ov mov" id="mReb" hidden><h2>REBIRTH</h2><div class="shopbox"><h3 id="mRTitle">Rebirths: 0</h3><p class="help" id="mRText"></p>'
+  +'<div class="item"><span>Rebirth multi</span><span class="c" id="mRMul">x1</span></div><div class="item"><span>'+PW+' slots</span><span class="c" id="mRSlots">3</span></div><div class="item"><span>Cost</span><span class="c" id="mRCost">0</span></div><div class="item"><span>You have</span><span class="c" id="mRHave">0</span></div></div>'
+  +'<div class="row"><button class="btn pink" id="mRGo">Rebirth</button><button class="btn" id="mRMax">Max rebirth</button><button class="btn alt" data-mback>Back</button></div></div>'
+  +'<div class="ov" id="mDay" hidden style="background:rgba(8,14,32,.93);z-index:35"><h2>DAILY REWARD</h2><div style="font-size:72px">🎁</div><p id="mDayText"></p><h3 id="mDayAmt" style="font-family:var(--display);font-weight:400;font-size:34px;color:var(--gold);margin:0"></h3><div class="row"><button class="btn green" id="mDayGo">Claim!</button></div></div>';
+  cfg.stage.insertAdjacentHTML("beforeend",html);
+  const PANELS={up:"mUp",worlds:"mWorlds",pets:"mPets",skins:"mSkins",reb:"mReb"};
+  let openP=null,from=null;
+  M.isOpen=()=>!!openP;
+  M.open=(name,fromId)=>{
+    if(openP)A3.hide(openP);
+    from=fromId||null;if(from)A3.hide(from);
+    openP=PANELS[name];draw(name);A3.show(openP);A3.sfx("click");
+    if(!from&&cfg.pause)cfg.pause(true);
+  };
+  M.close=()=>{if(!openP)return;A3.hide(openP);openP=null;A3.sfx("click");if(from){A3.show(from);if(cfg.onBack)cfg.onBack(from);}else if(cfg.pause)cfg.pause(false);from=null;changed();};
+  document.addEventListener("click",e=>{
+    const o=e.target.closest("[data-mopen]");if(o){const ov=o.closest(".ov");M.open(o.dataset.mopen,ov?ov.id:null);return;}
+    if(e.target.closest("[data-mback]"))M.close();
+  });
+  M.buttons=()=>'<button class="btn green" data-mopen="up">Upgrades</button><button class="btn alt" data-mopen="worlds">'+(cfg.worldBtn||"Worlds")+'</button><button class="btn alt" data-mopen="pets">'+PW+'</button><button class="btn alt" data-mopen="skins">'+(cfg.skinBtn||"Skins")+'</button><button class="btn pink" data-mopen="reb">Rebirth</button>';
+  M.dock=()=>'<button data-mopen="up" id="mdUp"><i>⬆️</i>Upgrade</button><button data-mopen="pets"><i>🥚</i>'+(cfg.petShort||"Pets")+'</button><button data-mopen="worlds"><i>🌍</i>'+(cfg.worldShort||"Worlds")+'</button><button data-mopen="skins"><i>🎨</i>'+(cfg.skinShort||"Skins")+'</button><button data-mopen="reb" id="mdReb"><i>✨</i>Rebirth</button>';
+  function draw(name){if(name==="up")drawUp();else if(name==="worlds")drawW();else if(name==="pets")drawPets();else if(name==="skins")drawSkins();else drawReb();}
+  /* upgrades: built once, then updated in place so taps never miss */
+  function drawUp(){
+    $("mUpList").innerHTML=UPS.map(u=>'<div class="urow"><span class="ic">'+(u.ic||"⬆️")+'</span><div><b>'+u.n+' <span style="color:var(--gold)" data-ul="'+u.k+'"></span></b><small>'+u.d+' · now <span data-uf="'+u.k+'"></span></small></div><button class="btn" data-ub="'+u.k+'"></button></div>').join("");
+    refreshUp();
+  }
+  function refreshUp(){
+    $("mUpHelp").innerHTML=cur[0].toUpperCase()+cur.slice(1)+": <b style='color:var(--gold)'>"+fmt(S.coins)+"</b>. Upgrades reset when you rebirth.";
+    for(const u of UPS){const l=M.lv(u.k),b=document.querySelector('[data-ub="'+u.k+'"]');if(!b)continue;
+      document.querySelector('[data-ul="'+u.k+'"]').textContent="Lv "+l+(u.max<1e6?" / "+u.max:"");
+      document.querySelector('[data-uf="'+u.k+'"]').textContent=u.fx(l);
+      if(l>=u.max){b.textContent="MAX";b.disabled=true;}else{const p=M.upPrice(u.k);b.textContent=fmt(p);b.disabled=S.coins<p;}}
+  }
+  $("mUpList").addEventListener("click",e=>{const b=e.target.closest("[data-ub]");if(!b||b.disabled)return;if(M.buy(b.dataset.ub)){A3.sfx("coin");refreshUp();}});
+  $("mUpMax").onclick=()=>{const n=M.buyMax();A3.sfx(n?"coin":"hit");if(n)A3.toast("Bought "+n+" upgrade"+(n>1?"s":"")+"!",1200);refreshUp();};
+  function drawW(){
+    $("mWHelp").innerHTML="You are in <b style='color:var(--gold)'>"+W[S.world].n+"</b>. "+(cfg.worldHelp||"Each world is worth much more. Worlds stay unlocked when you rebirth.");
+    $("mWList").innerHTML=W.map((w,i)=>{const op=M.open_(i),on=S.world===i,next=i===M.maxOpen()+1;
+      let s;if(on)s="You are here";else if(op)s="Tap to go";else if(!next)s="🔒 Locked";else if(S.reb<(w.reb||0))s="Needs "+w.reb+" rebirth"+(w.reb>1?"s":"");else s=fmt(w.cost)+" "+cur;
+      return '<div class="card'+(on?" on":"")+(op||next?"":" lock")+'" data-w="'+i+'"><b>'+(i+1)+". "+w.n+'</b><div class="sw" style="background:linear-gradient(90deg,'+w.col[0]+','+w.col[1]+')"></div><span class="m">'+(w.tag||"")+'</span><br><span class="p">'+s+'</span></div>';}).join("");
+  }
+  $("mWList").addEventListener("click",e=>{const c=e.target.closest("[data-w]");if(!c)return;const i=+c.dataset.w;if(M.open_(i)){M.goWorld(i);A3.sfx("coin");A3.toast("Welcome to "+W[i].n+"!",1500);}else M.unlock(i);drawW();});
+  function drawPets(){
+    $("mPHelp").innerHTML=cur[0].toUpperCase()+cur.slice(1)+": <b style='color:var(--gold)'>"+fmt(S.coins)+"</b> · "+PW+" multi <b style='color:var(--green)'>x"+fm(M.petMul())+"</b> · out "+S.eq.length+"/"+M.slots()+". "+(cfg.petHelp||"");
+    $("mEggs").innerHTML=W.map((w,i)=>{if(!M.open_(i))return"";const p=M.eggPrice(i);return '<div class="card"><b>'+w.n+' egg</b><div class="em">🥚</div><span class="p">'+fmt(p)+'</span><br><button data-egg="'+i+'" data-n="1"'+(S.coins>=p?"":" disabled")+'>Hatch 1</button><button data-egg="'+i+'" data-n="5"'+(S.coins>=p*5?"":" disabled")+'>Hatch 5</button></div>';}).join("");
+    const own=Object.keys(S.pets).map(Number).filter(id=>S.pets[id]>0).sort((a,b)=>petBoost(b)-petBoost(a));
+    $("mPList").innerHTML=own.length?own.map(id=>{const P=M.petInfo(id),k=S.eq.filter(x=>x===id).length;return '<div class="card'+(k?" on":"")+'" data-p="'+id+'"><span class="r" style="color:'+P.rc+'">'+P.rn+'</span><div class="em">'+P.e+'</div>'+P.n+'<br><span class="m">x'+fm(P.m)+'</span><br><span style="color:var(--muted)">'+(k?"Out "+k+" / ":"Own ")+S.pets[id]+'</span></div>';}).join(""):'<p class="help" style="grid-column:1/-1">No '+PW.toLowerCase()+' yet. Hatch an egg!</p>';
+  }
+  $("mEggs").addEventListener("click",e=>{const b=e.target.closest("[data-egg]");if(!b||b.disabled)return;const got=M.hatch(+b.dataset.egg,+b.dataset.n);if(got)hatchFx(got);});
+  $("mPList").addEventListener("click",e=>{const c=e.target.closest("[data-p]");if(!c)return;const id=+c.dataset.p,k=S.eq.filter(x=>x===id).length;
+    if(k<S.pets[id]&&S.eq.length<M.slots())S.eq.push(id);else if(k>0)S.eq.splice(S.eq.indexOf(id),1);else{A3.sfx("hit");A3.toast("All "+M.slots()+" slots are full. Tap a pet that is out to put it away.",1800);return;}
+    A3.sfx("click");changed();if(cfg.onPets)cfg.onPets();drawPets();});
+  $("mPBest").onclick=()=>{M.equipBest();drawPets();};
+  let hatchT=0;
+  function hatchFx(got){
+    const eg=$("mEgg"),res=$("mHres");eg.className="egg";eg.hidden=false;res.innerHTML="";$("mHtap").textContent="Hatching...";A3.show("mHatch");A3.sfx("tick");
+    clearTimeout(hatchT);hatchT=setTimeout(()=>{eg.className="egg crack";A3.sfx("pop");
+      setTimeout(()=>{eg.hidden=true;const best=Math.max.apply(null,got.map(id=>id%7));A3.sfx(best>=4?"win":"coin");
+        res.innerHTML=got.map((id,i)=>{const P=M.petInfo(id);return '<div style="--c:'+P.rc+';animation-delay:'+(i*0.12)+'s"><span class="em">'+P.e+'</span><span style="color:'+P.rc+'">'+P.rn+'</span><br>'+P.n+'<br><span style="color:var(--green)">x'+fm(P.m)+'</span></div>';}).join("");
+        $("mHtap").textContent="Tap to carry on";},330);},900);
+  }
+  $("mHatch").addEventListener("click",()=>{if($("mEgg").hidden||$("mHres").innerHTML){A3.hide("mHatch");drawPets();}});
+  function drawSkins(){
+    $("mSHelp").innerHTML=cur[0].toUpperCase()+cur.slice(1)+": <b style='color:var(--gold)'>"+fmt(S.coins)+"</b>. "+(cfg.skinHelp||"Every look gives a small multi.");
+    $("mSList").innerHTML=SK.map((s,k)=>{const own=S.skins.includes(k),on=S.skin===k;return '<div class="card'+(on?" on":"")+(own?"":" lock")+'" data-s="'+k+'"><b>'+s.n+'</b><div class="sw" style="background:linear-gradient(90deg,'+s.c[0]+','+s.c[1]+')"></div><span class="m">x'+fm(s.m)+'</span><br><span class="p">'+(on?"Using":own?"Tap to use":fmt(s.price))+'</span></div>';}).join("");
+  }
+  $("mSList").addEventListener("click",e=>{const c=e.target.closest("[data-s]");if(!c)return;M.useSkin(+c.dataset.s);drawSkins();});
+  function drawReb(){
+    if(!$("mRTitle"))return;
+    $("mRTitle").textContent="Rebirths: "+fmt(S.reb);
+    const n=M.rebCan();
+    $("mRText").textContent=(cfg.rebText||"Rebirth resets your "+cur+" and upgrades, but keeps worlds, skins and "+PW.toLowerCase()+", and gives a bigger multi for ever.")+(n>1?" You can rebirth "+n+" times right now!":"");
+    $("mRMul").textContent="x"+fm(M.rebMul())+" → x"+fm(M.rebMul(S.reb+Math.max(1,n)));
+    $("mRSlots").textContent=M.slots()+" → "+(3+Math.min(5,Math.floor((S.reb+Math.max(1,n))/2)));
+    $("mRCost").textContent=fmt(M.rebCost())+" "+cur;$("mRHave").textContent=fmt(S.coins)+" "+cur;
+    $("mRGo").disabled=n<1;$("mRMax").disabled=n<1;$("mRMax").textContent=n>1?"Max rebirth (x"+n+")":"Max rebirth";
+  }
+  $("mRGo").onclick=()=>M.rebirth(false);
+  $("mRMax").onclick=()=>M.rebirth(true);
+  /* ---------- tick: live panels + autosave ---------- */
+  let tk=0,sv=0;
+  M.tick=dt=>{tk+=dt;sv+=dt;
+    if(tk>0.3){tk=0;if(openP==="mUp")refreshUp();else if(openP==="mReb")drawReb();
+      const d=$("mdUp");if(d){let can=false;for(const u of UPS)if(M.lv(u.k)<u.max&&S.coins>=M.upPrice(u.k)){can=true;break;}d.classList.toggle("glow",can);}
+      const r=$("mdReb");if(r)r.classList.toggle("glow",S.coins>=M.rebCost());}
+    if(sv>5){sv=0;if(dirty)M.persist();}};
+  window.addEventListener("pagehide",()=>M.persist());
+  document.addEventListener("visibilitychange",()=>{if(document.hidden)M.persist();});
+
+  /* ---------- a toy 3D pet (shared look) ---------- */
+  const PG={body:new THREE.SphereGeometry(0.5,18,14),head:new THREE.SphereGeometry(0.38,18,14),eye:new THREE.SphereGeometry(0.075,10,8),pup:new THREE.SphereGeometry(0.04,8,6),
+    cone:new THREE.ConeGeometry(0.12,0.3,8),wing:new THREE.BoxGeometry(0.42,0.06,0.26),ring:new THREE.TorusGeometry(0.62,0.04,8,32),horn:new THREE.ConeGeometry(0.06,0.34,8)};
+  M.petMesh=id=>{
+    const P=M.petInfo(id),g=new THREE.Group(),inner=new THREE.Group();g.add(inner);
+    const acc=W[P.w].col[0];
+    const bm=A3.mat(P.c,{rough:0.5}),am=A3.mat(acc,{rough:0.5});
+    const b=new THREE.Mesh(PG.body,bm);b.scale.set(1,0.85,0.95);b.castShadow=true;inner.add(b);
+    const h=new THREE.Mesh(PG.head,bm);h.position.set(0,0.52,0.12);h.castShadow=true;inner.add(h);
+    const belly=new THREE.Mesh(PG.head,am);belly.scale.set(0.7,0.55,0.4);belly.position.set(0,-0.05,0.36);inner.add(belly);
+    [-1,1].forEach(s=>{const e=new THREE.Mesh(PG.eye,A3.mat("#ffffff"));e.position.set(s*0.14,0.58,0.44);inner.add(e);const p=new THREE.Mesh(PG.pup,A3.mat("#141428"));p.position.set(s*0.14,0.58,0.51);inner.add(p);
+      const sp=P.r;let ear;
+      if(sp===2){ear=new THREE.Mesh(PG.head,bm);ear.scale.set(0.18,0.7,0.14);ear.position.set(s*0.14,0.95,0.05);}
+      else if(sp===0){ear=new THREE.Mesh(PG.head,am);ear.scale.set(0.2,0.42,0.12);ear.position.set(s*0.36,0.5,0.08);ear.rotation.z=s*0.3;}
+      else if(sp===4||sp===5){ear=new THREE.Mesh(PG.wing,sp===5?am:bm);ear.position.set(s*0.55,0.1,-0.05);ear.rotation.z=s*0.5;inner.userData["w"+s]=ear;}
+      else{ear=new THREE.Mesh(PG.cone,sp===3?am:bm);ear.position.set(s*0.2,0.86,0.08);ear.rotation.z=-s*0.25;}
+      inner.add(ear);
+      if(sp===5){const ho=new THREE.Mesh(PG.horn,A3.mat("#fff4b0"));ho.position.set(s*0.14,0.88,0.05);inner.add(ho);}});
+    if(P.r===6){const ho=new THREE.Mesh(PG.horn,A3.mat("#ffd23f",{emissive:"#ffb000",glow:0.5}));ho.scale.set(1.2,1.5,1.2);ho.position.set(0,1,0.25);ho.rotation.x=0.4;inner.add(ho);}
+    if(P.r===3){const t=new THREE.Mesh(PG.head,am);t.scale.set(0.25,0.25,0.55);t.position.set(0,0,-0.55);inner.add(t);}
+    if(P.r>=4){const rg=new THREE.Mesh(PG.ring,A3.mat(P.rc,{emissive:P.rc,glow:0.9}));rg.rotation.x=Math.PI/2;rg.position.y=-0.35;g.add(rg);g.userData.ring=rg;}
+    g.userData.inner=inner;g.userData.info=P;return g;
+  };
+  /* ---------- small helpers ---------- */
+  M.statsHtml=extra=>(extra||"")+"<div>"+cur[0].toUpperCase()+cur.slice(1)+" <b>"+fmt(S.coins)+"</b></div><div>Rebirths <b>"+fmt(S.reb)+"</b></div><div>Multi <b>x"+fm(M.mul())+"</b></div><div>World <b>"+(S.world+1)+" "+W[S.world].n+"</b></div>";
+  return M;
+}
+
 
 /* ---------- maps ---------- */
 const COLS=20,ROWS=12,FINAL=40;
@@ -134,8 +405,46 @@ const MAPS=[
   {name:"Sunny Meadow",note:"A long, gentle path",grass:["#6ccf4a","#62c442"],path:[[-1,2],[4,2],[4,8],[9,8],[9,3],[14,3],[14,9],[20,9]],spd:1,seed:3},
   {name:"Riverbend",note:"Twisty path round a pond",grass:["#5fc25a","#56b552"],path:[[-1,9],[3,9],[3,2],[7,2],[7,6],[11,6],[11,1],[16,1],[16,10],[20,10]],spd:1.05,seed:7,pond:[[13,7],[14,4],[12,8],[13,5]]},
   {name:"Twisty Peaks",note:"A short path, be quick",grass:["#8fd36a","#84c75f"],path:[[10,-1],[10,3],[4,3],[4,8],[15,8],[15,3],[20,3]],spd:1.1,seed:11,rocky:true},
-  {name:"Candy Spiral",note:"Spirals into the middle",grass:["#ffb3d4","#ffa6cb"],path:[[-1,1],[18,1],[18,10],[2,10],[2,4],[14,4],[14,7],[6,7]],spd:1.2,seed:5,candy:true}
+  {name:"Candy Spiral",note:"Spirals into the middle",grass:["#ffb3d4","#ffa6cb"],path:[[-1,1],[18,1],[18,10],[2,10],[2,4],[14,4],[14,7],[6,7]],spd:1.2,seed:5,candy:true},
+  {name:"Snowy Pass",note:"Icy hills and pine trees",grass:["#eef6ff","#e2edfa"],path:[[-1,5],[6,5],[6,1],[12,1],[12,10],[16,10],[16,4],[20,4]],spd:1.15,seed:13,snow:true},
+  {name:"Desert Canyon",note:"Down and up the canyon",grass:["#f0d08a","#e6c47c"],path:[[3,-1],[3,9],[8,9],[8,2],[13,2],[13,9],[17,9],[17,-1]],spd:1.2,seed:17,sand:true},
+  {name:"Lava Bridge",note:"Hot rocks, fast balloons",grass:["#5a4a4a","#504040"],path:[[-1,10],[5,10],[5,1],[10,1],[10,10],[15,10],[15,1],[20,1]],spd:1.3,seed:19,lava:true},
+  {name:"Moon Base",note:"Low gravity, quick finish",grass:["#9aa0aa","#8e949e"],path:[[10,-1],[10,5],[2,5],[2,10],[18,10],[18,2],[14,2]],spd:1.35,seed:23,moon:true}
 ];
+const MSTYLE=m=>m.candy?{slab:"#c96b9a",lip:"#ff8fc0",path:"#fff1c9",water:"#4f9fd8",peb:"#ff6fa3",col:["#ff6fa3","#fff1c9"]}:m.snow?{slab:"#7a8aa8",lip:"#ffffff",path:"#bfd8f0",water:"#2a6ab0",peb:"#9ab8d8",col:["#eef6ff","#7ad8ff"]}:m.sand?{slab:"#b07a3a",lip:"#e8b860",path:"#c88a4a",water:"#3fb4d8",peb:"#a8743a",col:["#f0d08a","#c88a4a"]}:m.lava?{slab:"#2a1a1a",lip:"#ff5a1a",path:"#2a2020",water:"#ff5a1a",peb:"#ff8a3d",col:["#5a4a4a","#ff5a1a"]}:m.moon?{slab:"#4a5060",lip:"#3fe0ff",path:"#c8ccd6",water:"#0a0a2a",peb:"#6a707a",col:["#9aa0aa","#3fe0ff"]}:m.rocky?{slab:"#8a5a32",lip:"#4fae35",path:"#c9b48a",water:"#4f9fd8",peb:"#b39a68",col:["#8fd36a","#c9b48a"]}:{slab:"#8a5a32",lip:"#4fae35",path:"#e8cf8f",water:"#4f9fd8",peb:"#b39a68",col:[m.grass[0],"#e8cf8f"]};
+MAPS.forEach((m,i)=>{m.n=m.name;m.col=MSTYLE(m).col;m.pn=["Meadow","River","Peak","Candy","Snowy","Canyon","Lava","Moon"][i];m.cm=Math.pow(2.5,i);m.tag="x"+A3.fmt(m.cm)+" coins";
+  m.cost=[0,400,2500,1.2e4,6e4,3e5,1.5e6,8e6][i];m.reb=[0,0,1,1,2,3,5,7][i];});
+const OUTFITS=[
+  {n:"Rookie",c:["#3fa9ff","#ffd23f"],m:1,price:0},{n:"Ninja",c:["#2a2a3a","#ff5d5d"],m:1.1,price:150},{n:"Knight",c:["#c0c8d0","#4aa8ff"],m:1.25,price:1500},
+  {n:"Pirate",c:["#d83a3a","#2a2a3a"],m:1.5,price:1.2e4},{n:"Wizard",c:["#7a3ad8","#ffd23f"],m:1.8,price:1e5},{n:"Astronaut",c:["#ffffff","#ff8a3d"],m:2.2,price:9e5},
+  {n:"Dino Suit",c:["#5fd36a","#ffd23f"],m:3,price:8e6},{n:"Robot",c:["#9aa5b3","#3afff0"],m:4.5,price:7e7},{n:"Golden Hero",c:["#ffcf3f","#ff6fa3"],m:7,price:6e8}
+];
+const HUPS=[
+  {k:"hdmg",n:"Hero Power",ic:"💥",d:"x1.25 hero dart damage",b:10,g:1.5,max:200,fx:l=>"x"+M.fm(Math.pow(1.25,l))},
+  {k:"hrate",n:"Throw Speed",ic:"🎯",d:"+8% darts a second",b:18,g:1.55,max:25,fx:l=>(1.6*(1+0.08*l)).toFixed(1)+" a second"},
+  {k:"hspd",n:"Run Speed",ic:"👟",d:"+6% running speed",b:25,g:1.6,max:15,fx:l=>"+"+l*6+"%"},
+  {k:"hrange",n:"Hero Range",ic:"🔭",d:"throw darts further",b:40,g:1.7,max:12,fx:l=>(2.4+0.18*l).toFixed(1)+" tiles"},
+  {k:"cash",n:"Starting Cash",ic:"💵",d:"+$60 when a map starts",b:30,g:1.5,max:30,fx:l=>"+$"+(l*60)},
+  {k:"ab",n:"Super Powers",ic:"🌟",d:"stronger powers that come back faster",b:60,g:1.8,max:15,fx:l=>"x"+(1+0.2*l).toFixed(1)+" power, "+Math.round(100-100*Math.pow(0.94,l))+"% faster"},
+  {k:"coin",n:"Coin Bonus",ic:"🪙",d:"+20% coins from every round",b:50,g:1.6,max:50,fx:l=>"x"+(1+0.2*l).toFixed(1)}
+];
+const M=GHMeta({save:SAVE,name:"Balloon Defence",cur:"coins",stage:stage,
+  defaults:{stars:[0,0,0,0,0,0,0,0],bestRound:0,diff:1,run:null,pops:0,auto:false},
+  ups:HUPS,worlds:MAPS,skins:OUTFITS,worldWord:"MAPS",worldBtn:"Maps",skinWord:"OUTFITS",skinBtn:"Outfits",
+  worldHelp:"Each map pays more coins for every round you survive. Maps stay unlocked when you rebirth.",
+  petHelp:"Pets follow your hero and pop balloons, and every pet multiplies your hero's damage and coins.",skinHelp:"Every outfit gives your hero a damage and coin multi.",
+  rebBase:2500,rebGrow:4,eggBase:120,eggGrow:9,petWorld:1.5,
+  dailyAmt:s=>40*s*MAPS[M.maxOpen()].cm*(1+M.S.reb),
+  rebText:"Rebirth resets your coins and hero upgrades, but keeps maps, outfits and pets, and adds +1x hero damage and coins for ever.",
+  migrate:o=>{const st=Array.isArray(o.stars)?o.stars.slice(0,4):[];while(st.length<8)st.push(0);const w=[0];for(let i=1;i<4;i++)if((st[i-1]||0)>0)w.push(i);
+    return {stars:st,bestRound:o.bestRound||0,pops:o.pops||0,diff:o.diff||1,auto:!!o.auto,wopen:w,world:0,run:o.run||null,coins:Math.floor((o.bestRound||0)*25+st.reduce((a,b)=>a+(b||0),0)*150)};},
+  onChange:()=>{},onSkin:()=>{if(hero)dressHero();},onPets:()=>buildPets(),onWorld:()=>{},
+  onRebirth:()=>{A3.win(3,"a rebirth in Balloon Defence");},onBack:id=>{if(id==="ovTitle")titleStats();if(id==="ovMaps")mapsScreen();}
+});
+const S=M.S;
+while(S.stars.length<8)S.stars.push(0);
+if(M.migrated&&S.coins>0)setTimeout(()=>A3.toast("Welcome to the new Balloon Defence! You are a hero now, and your old progress became "+A3.fmt(S.coins)+" coins.",4500),1200);
+$("metaBtns").innerHTML=M.buttons();
 const DIFFS=[{name:"Easy",lives:200,cost:0.85,spd:0.92,cash:750},{name:"Normal",lives:150,cost:1,spd:1,cash:650},{name:"Hard",lives:100,cost:1.08,spd:1.1,cash:600}];
 
 /* ---------- balloons ---------- */
@@ -278,20 +587,22 @@ function buildMap(mi){
   for(let i=0;i<P.length-1;i++){let [c0,r0]=P[i],[c1,r1]=P[i+1];const dc=Math.sign(c1-c0),dr=Math.sign(r1-r0);let c=c0,r=r0;while(true){if(r>=0&&r<ROWS&&c>=0&&c<COLS)grid[r][c]=1;if(c===c1&&r===r1)break;c+=dc;r+=dr;}}
   // board
   const g=A3.ground(COLS,mapDef.grass[0],mapDef.grass[1],COLS);g.scale.set(1,ROWS/COLS,1);g.material.map.repeat.set(COLS/2,ROWS/2);g.position.y=0.001;world.add(g);
-  const slab=A3.box(COLS+0.4,1.2,ROWS+0.4,mapDef.candy?"#c96b9a":"#8a5a32");slab.position.y=-0.6;world.add(slab);
-  const lip=A3.box(COLS+0.5,0.12,ROWS+0.5,mapDef.candy?"#ff8fc0":"#4fae35");lip.position.y=-0.05;world.add(lip);
-  const under=A3.ground(140,"#4f9fd8","#4a96cd",70);under.position.y=-1.4;world.add(under);
+  const MS=MSTYLE(mapDef);
+  const slab=A3.box(COLS+0.4,1.2,ROWS+0.4,MS.slab);slab.position.y=-0.6;world.add(slab);
+  const lip=A3.box(COLS+0.5,0.12,ROWS+0.5,MS.lip);lip.position.y=-0.05;world.add(lip);
+  const under=A3.ground(140,MS.water,MS.water,70);under.position.y=-1.4;world.add(under);
+  scene.background=A3.skyTexture(mapDef.moon?"#05061a":mapDef.lava?"#3a0a0a":"#6cc4ff",mapDef.moon?"#1b1450":mapDef.lava?"#ff7a2a":mapDef.snow?"#f2fbff":"#e3f6ff");
   // path tiles
-  const pathCol=mapDef.candy?"#fff1c9":mapDef.rocky?"#c9b48a":"#e8cf8f";
+  const pathCol=MS.path;
   const pt=new THREE.InstancedMesh(new THREE.BoxGeometry(0.98,0.08,0.98),A3.mat(pathCol,{rough:0.95}),COLS*ROWS);pt.receiveShadow=true;let n=0;const dm=new THREE.Object3D();
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===1){dm.position.set(tileX(c),0.02,tileZ(r));dm.updateMatrix();pt.setMatrixAt(n++,dm.matrix);}
   pt.count=n;world.add(pt);
   // pebbles on path edges
-  const peb=new THREE.InstancedMesh(new THREE.SphereGeometry(0.06,6,4),A3.mat(mapDef.candy?"#ff6fa3":"#b39a68"),300);let pn=0;const rnd=A3.seeded(mapDef.seed*99);
+  const peb=new THREE.InstancedMesh(new THREE.SphereGeometry(0.06,6,4),A3.mat(MS.peb),300);let pn=0;const rnd=A3.seeded(mapDef.seed*99);
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===1)for(let k=0;k<2;k++){dm.position.set(tileX(c)+(rnd()-0.5)*0.8,0.07,tileZ(r)+(rnd()-0.5)*0.8);dm.scale.setScalar(0.6+rnd());dm.updateMatrix();if(pn<300)peb.setMatrixAt(pn++,dm.matrix);}
   peb.count=pn;world.add(peb);
   // pond
-  if(mapDef.pond){const W=A3.mat("#4fb4ff",{rough:0.15,metal:0.1});mapDef.pond.forEach(p=>{const [c,r]=p;grid[r][c]=2;const w=A3.box(0.98,0.06,0.98,W);w.position.set(tileX(c),0.03,tileZ(r));w.castShadow=false;world.add(w);});
+  if(mapDef.pond){const W=A3.mat(MS.water,{rough:0.15,metal:0.1});mapDef.pond.forEach(p=>{const [c,r]=p;grid[r][c]=2;const w=A3.box(0.98,0.06,0.98,W);w.position.set(tileX(c),0.03,tileZ(r));w.castShadow=false;world.add(w);});
     const lily=A3.cyl(0.18,0.18,0.03,"#3fae4a",10);lily.position.set(tileX(13)+0.2,0.08,tileZ(5));world.add(lily);}
   // decorations
   const rand=A3.seeded(mapDef.seed);
@@ -299,7 +610,7 @@ function buildMap(mi){
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
     if(grid[r][c]!==0)continue;const v=rand();
     if(v<0.09&&!near(c,r)){grid[r][c]=2;world.add(deco(tileX(c),tileZ(r),rand));}
-    else if(v<0.22){const f=A3.ball(0.06,A3.pick(mapDef.candy?["#ffffff","#7ad3ff","#ffd23f"]:["#ffffff","#ffd23f","#ff6fa3","#b07bff"]));f.castShadow=false;f.position.set(tileX(c)+(rand()-0.5)*0.7,0.05,tileZ(r)+(rand()-0.5)*0.7);world.add(f);}
+    else if(v<0.22&&!mapDef.moon&&!mapDef.lava){const f=A3.ball(0.06,A3.pick(mapDef.candy?["#ffffff","#7ad3ff","#ffd23f"]:mapDef.snow?["#ffffff","#bfe8ff"]:["#ffffff","#ffd23f","#ff6fa3","#b07bff"]));f.castShadow=false;f.position.set(tileX(c)+(rand()-0.5)*0.7,0.05,tileZ(r)+(rand()-0.5)*0.7);world.add(f);}
   }
   // start portal and end house
   const s0=pathPts[0].clone().lerp(pathPts[1],0.02),e0=pathPts[pathPts.length-1];
@@ -317,6 +628,10 @@ function clampBoard(v){v.x=A3.clamp(v.x,-COLS/2+0.4,COLS/2-0.4);v.z=A3.clamp(v.z
 function deco(x,z,rand){
   const g=new THREE.Group();
   if(mapDef.candy){const st=A3.cyl(0.04,0.04,0.7,"#ffffff",6);st.position.y=0.35;g.add(st);const lp=A3.cyl(0.3,0.3,0.08,A3.pick(["#ff6fa3","#7ad3ff","#ffd23f","#b07bff"]),20);lp.rotation.x=Math.PI/2;lp.position.y=0.8;g.add(lp);}
+  else if(mapDef.snow){const t=A3.cyl(0.07,0.09,0.3,"#6a4a2a",6);t.position.y=0.15;g.add(t);const c1=new THREE.Mesh(new THREE.ConeGeometry(0.38,0.7,8),A3.mat("#2f7a4a",{flat:true}));c1.position.y=0.6;c1.castShadow=true;g.add(c1);const c2=new THREE.Mesh(new THREE.ConeGeometry(0.24,0.45,8),A3.mat("#f4f9ff",{flat:true}));c2.position.y=0.95;g.add(c2);}
+  else if(mapDef.sand){const c=A3.cyl(0.14,0.16,0.8,"#3a9a4a",8);c.position.y=0.4;g.add(c);const a=A3.cyl(0.08,0.08,0.35,"#3a9a4a",8);a.rotation.z=1.2;a.position.set(0.2,0.45,0);g.add(a);const f=A3.ball(0.08,"#ff6fa3");f.position.y=0.84;g.add(f);}
+  else if(mapDef.lava){const r=new THREE.Mesh(new THREE.DodecahedronGeometry(0.33,0),A3.mat("#3a2a2a",{flat:true}));r.position.y=0.22;r.castShadow=true;g.add(r);const glow=A3.ball(0.1,"#ff8a3d",{emissive:"#ff5a1a",glow:1});glow.position.set(0.15,0.42,0.1);g.add(glow);}
+  else if(mapDef.moon){const r=new THREE.Mesh(new THREE.OctahedronGeometry(0.28,0),A3.mat("#3fe0ff",{emissive:"#3fa0ff",glow:0.7,flat:true}));r.position.y=0.35;r.scale.y=1.6;r.castShadow=true;g.add(r);}
   else if(mapDef.rocky&&rand()<0.6){const r=new THREE.Mesh(new THREE.DodecahedronGeometry(0.35,0),A3.mat("#9aa3b0",{flat:true}));r.position.y=0.22;r.scale.set(1,0.75,1);r.rotation.y=rand()*6;r.castShadow=true;g.add(r);}
   else{const t=A3.cyl(0.08,0.1,0.4,"#8a5a32",6);t.position.y=0.2;g.add(t);const l=A3.ball(0.36,rand()<0.5?"#3fae4a":"#56c25a");l.position.y=0.65;l.scale.set(1,1.15,1);g.add(l);const l2=A3.ball(0.24,"#6ccf5a");l2.position.set(0.12,0.92,0.05);g.add(l2);}
   g.position.set(x,0,z);g.rotation.y=rand()*6;return g;
@@ -368,16 +683,18 @@ function buildQueue(r){
 }
 
 /* ---------- state ---------- */
-let mapI=S.map,diff=S.diff,round=0,lives=150,money=650,balloons=[],towers=[],projs=[],fx=[],queue=[],qT=0,inRound=false,speed=1,placing=null,selected=null,over=false,playing=false,freeplay=false,popsRun=0,lastPop=0;
+let coinsRun=0;
+let mapI=S.world,diff=S.diff,round=0,lives=150,money=650,balloons=[],towers=[],projs=[],fx=[],queue=[],qT=0,inRound=false,speed=1,placing=null,selected=null,over=false,playing=false,freeplay=false,popsRun=0,lastPop=0;
 const range=new THREE.Mesh(new THREE.RingGeometry(0.96,1,48),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.8,depthWrite:false}));range.rotation.x=-Math.PI/2;range.position.y=0.06;range.visible=false;scene.add(range);
 const rangeFill=new THREE.Mesh(new THREE.CircleGeometry(1,48),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.15,depthWrite:false}));rangeFill.rotation.x=-Math.PI/2;rangeFill.position.y=0.05;rangeFill.visible=false;scene.add(rangeFill);
 let ghost=null,ghostOk=false,ghostTile=null;
 const parts=A3.particles(scene);
 
 function newRun(mi,d){
-  mapI=mi;diff=d;S.map=mi;S.diff=d;
+  mapI=mi;diff=d;S.world=mi;S.diff=d;
   clearRun();buildMap(mi);
-  round=0;lives=DIFFS[d].lives;money=DIFFS[d].cash;over=false;playing=true;freeplay=false;popsRun=0;
+  round=0;lives=DIFFS[d].lives;money=DIFFS[d].cash+60*M.lv("cash");over=false;playing=true;freeplay=false;popsRun=0;coinsRun=0;
+  spawnHero(null);
   persistRun();hud();shop();
 }
 function clearRun(){
@@ -386,14 +703,15 @@ function clearRun(){
 function loadRun(){
   const R=S.run;if(!R)return;
   mapI=R.map;diff=R.diff;clearRun();buildMap(mapI);
-  round=R.round;lives=R.lives;money=R.money;freeplay=!!R.free;popsRun=R.pops||0;over=false;playing=true;
+  round=R.round;lives=R.lives;money=R.money;freeplay=!!R.free;popsRun=R.pops||0;over=false;playing=true;coinsRun=R.coins||0;S.world=mapI;
+  spawnHero(R.hero||null);
   R.towers.forEach(o=>{const t=addTower(o.type,o.c,o.r,true);t.up=o.up.slice();t.spent=o.spent;t.target=o.target;calcStats(t);refreshPips(t);});
   hud();shop();
 }
 function persistRun(){
   if(!playing||over){S.run=null;}
-  else S.run={map:mapI,diff:diff,round:round,lives:lives,money:Math.floor(money),free:freeplay,pops:popsRun,towers:towers.map(t=>({type:t.type,c:t.c,r:t.r,up:t.up,spent:t.spent,target:t.target}))};
-  A3.store(SAVE,S);
+  else S.run={map:mapI,diff:diff,round:round,lives:lives,money:Math.floor(money),free:freeplay,pops:popsRun,coins:coinsRun,hero:hero?{lv:hero.lv,xp:hero.xp,x:hero.x,z:hero.z}:null,towers:towers.map(t=>({type:t.type,c:t.c,r:t.r,up:t.up,spent:t.spent,target:t.target}))};
+  M.persist();
 }
 function startRound(){
   if(inRound||over||!playing)return;
@@ -402,7 +720,9 @@ function startRound(){
   A3.sfx(round%10===0?"boom":"whoosh");hud();
 }
 function endRound(){
-  inRound=false;const bonus=100+round*4;money+=bonus;A3.toast("Round "+round+" cleared! +$"+bonus,1400);A3.sfx("coin");
+  inRound=false;const bonus=100+round*4;money+=bonus;A3.sfx("coin");
+  const cg=M.add((8+2*round)*MAPS[mapI].cm*(1+0.2*M.lv("coin"))*M.mul());coinsRun+=cg;
+  A3.toast("Round "+round+" cleared! +$"+bonus+" and +"+A3.fmt(cg)+" coins",1600);
   if(round>S.bestRound){S.bestRound=round;A3.best(S.bestRound);}
   if(round===10||round===20||round===30)A3.win(round/10,"surviving round "+round+" in Balloon Defence");
   if(round===FINAL&&!freeplay){winMap();}
@@ -412,11 +732,12 @@ function endRound(){
 function winMap(){
   const prev=S.stars[mapI]||0,got=diff+1;
   if(got>prev)S.stars[mapI]=got;
+  const wc=M.add(400*MAPS[mapI].cm*(diff+1)*M.mul());coinsRun+=wc;
   A3.win(3+diff,"beating "+MAPS[mapI].name+" on "+DIFFS[diff].name);
   A3.sfx("win");
   $("oTitle").textContent="Map cleared!";
-  $("oText").textContent="You survived all "+FINAL+" rounds of "+MAPS[mapI].name+" on "+DIFFS[diff].name+"!"+(mapI<MAPS.length-1&&prev===0?" The next map is now open.":"");
-  $("oStats").innerHTML="<div>Stars on this map <b>"+"★".repeat(S.stars[mapI])+"</b></div><div>Lives left <b>"+lives+"</b></div><div>Balloons popped <b>"+A3.fmt(popsRun)+"</b></div>";
+  $("oText").textContent="You survived all "+FINAL+" rounds of "+MAPS[mapI].name+" on "+DIFFS[diff].name+"! Map bonus: +"+A3.fmt(wc)+" coins.";
+  $("oStats").innerHTML="<div>Stars on this map <b>"+"★".repeat(S.stars[mapI])+"</b></div><div>Lives left <b>"+lives+"</b></div><div>Balloons popped <b>"+A3.fmt(popsRun)+"</b></div><div>Coins this run <b>"+A3.fmt(coinsRun)+"</b></div>";
   $("oKeep").hidden=false;$("oAgain").textContent="New run";
   A3.show("ovOver");
 }
@@ -425,9 +746,9 @@ function gameOver(){
   if(round-1>S.bestRound){S.bestRound=round-1;A3.best(S.bestRound);}
   $("oTitle").textContent="Game over";
   $("oText").textContent="The balloons got through on round "+round+" of "+MAPS[mapI].name+".";
-  $("oStats").innerHTML="<div>Rounds survived <b>"+(round-1)+"</b></div><div>Best <b>"+S.bestRound+"</b></div><div>Balloons popped <b>"+A3.fmt(popsRun)+"</b></div>";
+  $("oStats").innerHTML="<div>Rounds survived <b>"+(round-1)+"</b></div><div>Best <b>"+S.bestRound+"</b></div><div>Hero level <b>"+(hero?hero.lv:1)+"</b></div><div>Balloons popped <b>"+A3.fmt(popsRun)+"</b></div><div>Coins this run <b>"+A3.fmt(coinsRun)+"</b></div>";
   $("oKeep").hidden=true;$("oAgain").textContent="Try again";
-  S.run=null;A3.store(SAVE,S);A3.show("ovOver");hud();
+  S.run=null;M.persist();A3.show("ovOver");hud();
 }
 
 /* ---------- balloons logic ---------- */
@@ -523,7 +844,7 @@ const dartGeo=new THREE.ConeGeometry(0.05,0.3,6);dartGeo.rotateX(Math.PI/2);
 const tackGeo=new THREE.ConeGeometry(0.05,0.18,5);tackGeo.rotateX(Math.PI/2);
 const bombGeo=new THREE.SphereGeometry(0.13,10,8);
 function proj(kind,from,dir,spd,life,s){
-  const m=new THREE.Mesh(kind==="dart"?dartGeo:tackGeo,A3.mat(kind==="dart"?"#8a5a32":(s.dmg>1?"#c0c8d0":"#ffd23f")));m.position.copy(from).setY(0.55);m.lookAt(m.position.clone().add(dir));scene.add(m);
+  const m=new THREE.Mesh(kind==="tack"?tackGeo:dartGeo,A3.mat(kind==="hero"?"#ffd23f":kind==="pet"?"#ff8ad8":kind==="dart"?"#8a5a32":(s.dmg>1?"#c0c8d0":"#ffd23f"),kind==="hero"||kind==="pet"?{emissive:"#ff9a00",glow:0.4}:{}));if(kind==="hero"||kind==="pet")m.scale.setScalar(1.3);m.position.copy(from).setY(0.55);m.lookAt(m.position.clone().add(dir));scene.add(m);
   projs.push({kind:kind,mesh:m,v:dir.clone().multiplyScalar(spd),life:life,pierce:s.pierce,dmg:s.dmg,dkind:s.kind,hit:new Set()});
 }
 function bomb(from,to,flight,s){const m=new THREE.Mesh(bombGeo,A3.mat("#2b2d3a",{metal:0.3}));m.castShadow=true;scene.add(m);projs.push({kind:"bomb",mesh:m,from:from.clone().setY(0.6),to:to,t:0,T:flight,s:s});}
@@ -570,6 +891,7 @@ function step(dt){
       if(dx*dx+dz*dz<r*r){p.hit.add(b.id);damage(b,p.dmg,p.dkind);p.pierce--;if(p.pierce<=0)break;}}
     if(p.life<=0||p.pierce<=0){scene.remove(p.mesh);projs.splice(i,1);}
   }
+  heroStep(dt);
   if(inRound&&!queue.length&&!balloons.some(b=>b.alive))endRound();
 }
 function visuals(dt,t){fxBudget=Math.min(60,fxBudget+12);
@@ -598,12 +920,115 @@ function visuals(dt,t){fxBudget=Math.min(60,fxBudget+12);
 }
 let T=0,hudT=0;
 A3.loop(dt=>{
-  T+=dt;
+  T+=dt;M.tick(dt);
+  heroMove(dt);
   for(let k=0;k<speed;k++)step(dt);
-  visuals(dt,T);
+  visuals(dt,T);heroVisuals(dt,T);
   hudT-=dt;if(hudT<=0){hudT=0.15;hud();}
   V.render();
 });
+
+/* ---------- the hero ---------- */
+let hero=null,pets=[];
+const heroDmg=()=>1.5*Math.pow(1.25,M.lv("hdmg"))*M.mul()*(1+0.12*((hero?hero.lv:1)-1));
+const heroRate=()=>1.6*(1+0.08*M.lv("hrate"))*(1+0.04*((hero?hero.lv:1)-1));
+const heroRange=()=>2.4+0.18*M.lv("hrange");
+const abPow=()=>1+0.2*M.lv("ab"),abCd=()=>Math.pow(0.94,M.lv("ab"));
+const AB=[{n:"Spin",lv:3,cd:8},{n:"Freeze",lv:6,cd:20},{n:"Meteor",lv:10,cd:30}];
+const xpNeed=l=>Math.round(15*Math.pow(1.32,l-1));
+const heroFace=A3.canvasTex(128,128,(g)=>{g.fillStyle="#ffffff";g.fillRect(0,0,128,128);g.fillStyle="#1a1530";g.beginPath();g.arc(40,54,10,0,7);g.arc(88,54,10,0,7);g.fill();g.fillStyle="#ffffff";g.beginPath();g.arc(43,50,3.5,0,7);g.arc(91,50,3.5,0,7);g.fill();g.strokeStyle="#1a1530";g.lineWidth=7;g.lineCap="round";g.beginPath();g.arc(64,74,24,0.2*Math.PI,0.8*Math.PI);g.stroke();});
+function buildHeroMesh(){
+  const g=new THREE.Group(),body=new THREE.Group();g.add(body);
+  const o=M.skin(),skinC="#ffd23f";
+  const legs=[-1,1].map(s=>{const l=A3.box(0.13,0.3,0.14,"#2a3a7a");l.geometry.translate(0,-0.15,0);l.position.set(s*0.08,0.3,0);body.add(l);return l;});
+  const torso=A3.rbox(0.34,0.36,0.2,0.05,o.c[0]);torso.position.y=0.48;body.add(torso);
+  const arms=[-1,1].map(s=>{const a=A3.box(0.1,0.32,0.11,skinC);a.geometry.translate(0,-0.14,0);a.position.set(s*0.23,0.64,0);body.add(a);return a;});
+  const head=A3.rbox(0.28,0.27,0.27,0.07,skinC);head.position.y=0.81;body.add(head);
+  const face=new THREE.Mesh(new THREE.PlaneGeometry(0.22,0.22),new THREE.MeshStandardMaterial({map:heroFace,color:new THREE.Color(skinC).convertSRGBToLinear(),roughness:0.8}));face.position.set(0,0.81,0.141);body.add(face);
+  const hat=A3.rbox(0.31,0.08,0.31,0.04,o.c[1]);hat.position.y=0.97;body.add(hat);const brim=A3.box(0.18,0.025,0.14,o.c[1]);brim.position.set(0,0.94,0.2);body.add(brim);
+  const cape=A3.box(0.32,0.42,0.03,o.c[1]);cape.geometry.translate(0,-0.21,0);cape.position.set(0,0.64,-0.13);cape.rotation.x=0.15;body.add(cape);
+  const dart=new THREE.Mesh(dartGeo,A3.mat("#ffd23f",{emissive:"#ff9a00",glow:0.4}));dart.position.set(0.24,0.4,0.1);dart.scale.setScalar(0.8);body.add(dart);
+  const ringM=new THREE.Mesh(new THREE.RingGeometry(0.34,0.42,32),new THREE.MeshBasicMaterial({color:0xffd23f,transparent:true,opacity:0.75,depthWrite:false}));ringM.rotation.x=-Math.PI/2;ringM.position.y=0.03;g.add(ringM);
+  const rng=new THREE.Mesh(new THREE.RingGeometry(0.97,1,64),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.22,depthWrite:false}));rng.rotation.x=-Math.PI/2;rng.position.y=0.04;g.add(rng);
+  g.userData={body,legs,arms,torso,hat,brim,cape,rng};g.scale.setScalar(1.6);
+  return g;
+}
+function dressHero(){if(!hero)return;const o=M.skin(),u=hero.g.userData;u.torso.material=A3.mat(o.c[0]);[u.hat,u.brim,u.cape].forEach(m=>m.material=A3.mat(o.c[1]));}
+function spawnHero(saved){
+  removeHero();
+  const g=buildHeroMesh();scene.add(g);
+  let x=0,z=0;if(saved&&isFinite(saved.x)){x=saved.x;z=saved.z;}else{const mid=pathPts[Math.floor(pathPts.length/2)];x=mid.x;z=mid.z+0.01;}
+  hero={g,x,z,lv:saved?saved.lv||1:1,xp:saved?saved.xp||0:0,cd:0.6,abT:[0,0,0],walk:0,face:0,popsSeen:popsRun,spin:0};
+  g.position.set(x,0.08,z);buildPets();
+  $("herobar").hidden=false;$("abil").hidden=false;heroUI();
+}
+function removeHero(){if(hero){scene.remove(hero.g);hero=null;}pets.forEach(p=>scene.remove(p.g));pets=[];$("herobar").hidden=true;$("abil").hidden=true;}
+function buildPets(){pets.forEach(p=>scene.remove(p.g));pets=[];if(!hero)return;
+  M.equipped().forEach((P,i)=>{const g=M.petMesh(P.id);g.scale.setScalar(0.42);scene.add(g);pets.push({g,P,cd:0.5+i*0.2,x:hero.x,z:hero.z});});}
+const joy={on:false,x:0,y:0,id:null};
+function heroMove(dt){
+  if(!hero||!playing||over)return;
+  let mx=0,mz=0;const K=A3.keys;if(K.a||K.arrowleft)mx-=1;if(K.d||K.arrowright)mx+=1;if(K.w||K.arrowup)mz-=1;if(K.s||K.arrowdown)mz+=1;
+  if(joy.on){mx+=joy.x;mz+=joy.y;}const L=Math.hypot(mx,mz);if(L>1){mx/=L;mz/=L;}
+  const sp=3.6*(1+0.06*M.lv("hspd"));
+  hero.x=A3.clamp(hero.x+mx*sp*dt,-COLS/2+0.3,COLS/2-0.3);hero.z=A3.clamp(hero.z+mz*sp*dt,-ROWS/2+0.3,ROWS/2-0.3);
+  if(L>0.1){hero.walk+=dt*12;hero.face=Math.atan2(mx,mz);}else hero.walk=0;
+  // pets trail behind the hero
+  let lx=hero.x,lz=hero.z;pets.forEach((p,i)=>{const dx=lx-p.x,dz=lz-p.z,d=Math.hypot(dx,dz),keep=0.55;if(d>keep){p.x+=dx/d*(d-keep)*Math.min(1,dt*6);p.z+=dz/d*(d-keep)*Math.min(1,dt*6);}lx=p.x;lz=p.z;});
+}
+function nearestBalloon(x,z,r){let best=null,bd=r*r;for(const b of balloons){if(!b.alive)continue;const dx=b.pos.x-x,dz=b.pos.z-z,d=dx*dx+dz*dz;if(d<bd){bd=d;best=b;}}return best;}
+function heroStep(dt){
+  if(!hero)return;
+  const gain=popsRun-hero.popsSeen;if(gain>0){hero.popsSeen=popsRun;hero.xp+=gain;
+    while(hero.lv<30&&hero.xp>=xpNeed(hero.lv)){hero.xp-=xpNeed(hero.lv);hero.lv++;A3.sfx("win");parts.burst(new THREE.Vector3(hero.x,0.8,hero.z),"#ffd23f",16,4,0.6);
+      const ab=AB.find(a=>a.lv===hero.lv);A3.toast(ab?"Hero level "+hero.lv+"! New power: "+ab.n+"!":"Hero level "+hero.lv+"!",1800);if(hero.lv===10)A3.win(2,"hero level 10 in Balloon Defence");}}
+  for(let i=0;i<3;i++)hero.abT[i]=Math.max(0,hero.abT[i]-dt);
+  hero.cd-=dt;
+  if(hero.cd<=0){const tg=nearestBalloon(hero.x,hero.z,heroRange());
+    if(tg){hero.cd=1/heroRate();const from=new THREE.Vector3(hero.x,0,hero.z),dir=lead(tg,0.12).sub(from).setY(0).normalize();
+      proj("hero",from,dir,14,(heroRange()+0.6)/14,{pierce:1+Math.floor(hero.lv/4),dmg:heroDmg(),kind:"pierce"});hero.face=Math.atan2(dir.x,dir.z);hero.throwT=0.15;}else hero.cd=0.05;}
+  pets.forEach(p=>{p.cd-=dt;if(p.cd>0)return;const tg=nearestBalloon(p.x,p.z,2.2);if(!tg){p.cd=0.1;return;}p.cd=Math.max(0.35,1.2-0.12*p.P.r);
+    const from=new THREE.Vector3(p.x,0,p.z),dir=lead(tg,0.1).sub(from).setY(0).normalize();proj("pet",from,dir,13,0.25,{pierce:1,dmg:heroDmg()*0.35*(1+0.3*p.P.r),kind:"pierce"});});
+}
+function useAbility(i){
+  if(!hero||!playing||over)return;const a=AB[i];
+  if(hero.lv<a.lv){A3.sfx("hit");A3.toast(a.n+" unlocks at hero level "+a.lv,1400);return;}
+  if(hero.abT[i]>0){A3.sfx("tick");return;}
+  hero.abT[i]=a.cd*abCd();const hp=new THREE.Vector3(hero.x,0,hero.z);
+  if(i===0){hero.spin=0.5;ring(hp,2.6,"#ffd23f",0.4);A3.sfx("whoosh");let n=0;for(const b of balloons.slice()){if(!b.alive)continue;if(b.pos.distanceToSquared(hp)<2.6*2.6&&n<40){damage(b,heroDmg()*4*abPow(),"boom");n++;}}}
+  else if(i===1){A3.sfx("whoosh");ring(hp,8,"#bfefff",0.6);ring(hp,4,"#ffffff",0.4);for(const b of balloons){if(!b.alive)continue;if(b.type==="B")b.slowT=3*abPow();else b.frozen=Math.max(b.frozen,2.5*abPow());}}
+  else{meteors.push({x:hero.x,z:hero.z,t:0});A3.sfx("jump");}
+  heroUI();
+}
+const meteors=[];const metGeo=new THREE.DodecahedronGeometry(0.45,0);
+function heroVisuals(dt,t){
+  for(let i=meteors.length-1;i>=0;i--){const m=meteors[i];if(!m.mesh){m.mesh=new THREE.Mesh(metGeo,A3.mat("#ff5a1a",{emissive:"#ff3a00",glow:1,flat:true}));scene.add(m.mesh);}
+    m.t+=dt;const k=Math.min(1,m.t/0.55);m.mesh.position.set(m.x-3*(1-k),0.3+7*(1-k),m.z-2*(1-k));m.mesh.rotation.x+=dt*8;
+    if(k>=1){scene.remove(m.mesh);meteors.splice(i,1);const p=new THREE.Vector3(m.x,0,m.z);explode(p,3,heroDmg()*25*abPow());ring(p,3,"#ff8a3d",0.5);parts.burst(p.clone().setY(0.5),"#ff5a1a",24,7,0.8);
+      for(const b of balloons)if(b.alive&&b.type==="B"&&b.pos.distanceToSquared(p)<9)damage(b,heroDmg()*25*abPow(),"boom");}}
+  if(!hero)return;
+  const g=hero.g,u=g.userData;g.position.set(hero.x,0.08+Math.abs(Math.sin(hero.walk))*0.05,hero.z);
+  let d=hero.face-g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));g.rotation.y+=d*Math.min(1,dt*12);
+  if(hero.spin>0){hero.spin-=dt;u.body.rotation.y=(0.5-hero.spin)*4*Math.PI;}else u.body.rotation.y=0;
+  const s=Math.sin(hero.walk)*0.7;u.legs[0].rotation.x=s;u.legs[1].rotation.x=-s;u.arms[0].rotation.x=-s;u.arms[1].rotation.x=hero.throwT>0?-2.2:s;if(hero.throwT>0)hero.throwT-=dt;
+  u.cape.rotation.x=0.15+Math.abs(s)*0.4;u.rng.scale.setScalar(heroRange()/1.6);
+  pets.forEach((p,i)=>{p.g.position.set(p.x,0.3+Math.abs(Math.sin(t*5+i))*0.12,p.z);p.g.rotation.y=Math.atan2(hero.x-p.x,hero.z-p.z);if(p.g.userData.ring)p.g.userData.ring.rotation.z+=dt*2;});
+  heroUIT-=dt;if(heroUIT<=0){heroUIT=0.2;heroUI();}
+}
+let heroUIT=0;
+function heroUI(){
+  if(!hero)return;$("hLv").textContent=hero.lv;$("hXp").style.width=Math.min(100,hero.xp/xpNeed(hero.lv)*100)+"%";
+  AB.forEach((a,i)=>{const b=$("ab"+i),lock=hero.lv<a.lv,cd=hero.abT[i];b.disabled=lock;b.classList.toggle("ready",!lock&&cd<=0);
+    const ii=b.querySelector("i");ii.style.top=lock?"0":(cd>0?(100-cd/(a.cd*abCd())*100)+"%":"100%");ii.textContent="";b.title=a.n+(lock?" (hero level "+a.lv+")":"");
+    b.querySelector("small").textContent=lock?"Lv "+a.lv:["Q","E","R"][i];});
+}
+$("abil").addEventListener("click",e=>{const b=e.target.closest("[data-ab]");if(b)useAbility(+b.dataset.ab);});
+window.addEventListener("keydown",e=>{const k=(e.key||"").toLowerCase();if(k==="q")useAbility(0);else if(k==="e")useAbility(1);else if(k==="r")useAbility(2);});
+(function(){const j=$("joy"),kn=$("knob");let cx=0,cy=0;
+  j.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();joy.on=true;joy.id=e.pointerId;const r=j.getBoundingClientRect();cx=r.left+r.width/2;cy=r.top+r.height/2;try{j.setPointerCapture(e.pointerId);}catch(_){}mv(e);});
+  function mv(e){if(!joy.on||e.pointerId!==joy.id)return;let dx=e.clientX-cx,dy=e.clientY-cy;const L=Math.hypot(dx,dy),mx=j.clientWidth*0.4;if(L>mx){dx*=mx/L;dy*=mx/L;}joy.x=dx/mx;joy.y=dy/mx;kn.style.transform="translate("+dx+"px,"+dy+"px)";}
+  j.addEventListener("pointermove",mv);
+  const up=()=>{joy.on=false;joy.x=joy.y=0;kn.style.transform="";};j.addEventListener("pointerup",up);j.addEventListener("pointercancel",up);})();
 
 /* ---------- input ---------- */
 const cv=renderer.domElement;
@@ -683,6 +1108,7 @@ $("bGo").onclick=goPressed;
 $("bAuto").onclick=()=>{S.auto=!S.auto;A3.store(SAVE,S);hud();A3.sfx("click");};
 let lastMoney=-1;
 function hud(){
+  $("hCoins").textContent=A3.fmt(S.coins);
   $("hRound").textContent=round+(freeplay?"":" / "+FINAL);$("hLives").textContent=lives;$("hMoney").textContent="$"+A3.fmt(Math.floor(money));$("hBest").textContent=S.bestRound;
   $("sc").firstChild.textContent="$"+A3.fmt(Math.floor(money));$("scSub").textContent="♥ "+lives+" · Round "+round+(freeplay?"":" / "+FINAL);
   const go=$("bGo");go.hidden=!playing||over;go.textContent=inRound?"Speed x"+speed:"GO!";go.classList.toggle("ff",inRound);
@@ -691,21 +1117,22 @@ function hud(){
 }
 function mapsScreen(){
   A3.hide("ovTitle");A3.show("ovMaps");
-  $("maps").innerHTML=MAPS.map((m,i)=>{const open=i===0||(S.stars[i-1]||0)>0;return '<button class="mapc'+(i===mapI?" on":"")+'" data-i="'+i+'"'+(open?"":" disabled")+'><b>'+(open?"":"🔒 ")+m.name+'</b><small>'+m.note+'</small><span class="st">'+"★".repeat(S.stars[i]||0)+'<span style="opacity:.25">'+"★".repeat(3-(S.stars[i]||0))+'</span></span></button>';}).join("");
+  $("maps").innerHTML=MAPS.map((m,i)=>{const open=M.open_(i),next=i===M.maxOpen()+1;let lock="";if(!open)lock=!next?"🔒 Unlock the map before":S.reb<m.reb?"🔒 Needs "+m.reb+" rebirth"+(m.reb>1?"s":""):"🔒 "+A3.fmt(m.cost)+" coins";
+    return '<button class="mapc'+(i===mapI?" on":"")+(open?"":" lock")+'" data-i="'+i+'"><b>'+m.name+'</b><small>'+m.note+' · '+m.tag+'</small>'+(open?'<span class="st">'+"★".repeat(S.stars[i]||0)+'<span style="opacity:.25">'+"★".repeat(3-(S.stars[i]||0))+'</span></span>':'<span class="cost">'+lock+'</span>')+'</button>';}).join("");
   [...$("diffs").children].forEach(x=>x.classList.toggle("on",+x.dataset.d===diff));
 }
-$("maps").addEventListener("click",e=>{const b=e.target.closest("button");if(!b||b.disabled)return;mapI=+b.dataset.i;A3.sfx("click");mapsScreen();buildMap(mapI);});
+$("maps").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const i=+b.dataset.i;if(!M.open_(i)){if(!M.unlock(i))return;}mapI=i;S.world=i;A3.sfx("click");mapsScreen();buildMap(mapI);});
 $("diffs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;diff=+b.dataset.d;A3.sfx("click");[...$("diffs").children].forEach(x=>x.classList.toggle("on",x===b));});
 $("bPlay").onclick=()=>{A3.sfx("click");mapsScreen();};
 $("mBack").onclick=()=>{A3.sfx("click");A3.hide("ovMaps");titleStats();A3.show("ovTitle");};
 $("mGo").onclick=()=>{A3.sfx("click");A3.hide("ovMaps");speed=1;newRun(mapI,diff);};
 $("bCont").onclick=()=>{A3.sfx("click");A3.hide("ovTitle");speed=1;loadRun();};
-$("bMenu").onclick=()=>{A3.sfx("click");if(playing&&!over)persistRun();playing=false;clearRun();A3.hide("ovOver");titleStats();A3.show("ovTitle");hud();shop();};
+$("bMenu").onclick=()=>{A3.sfx("click");if(playing&&!over)persistRun();playing=false;clearRun();removeHero();A3.hide("ovOver");M.buck();titleStats();A3.show("ovTitle");hud();shop();if(M.dailyReady())setTimeout(()=>M.daily(),400);};
 $("oMenu").onclick=$("bMenu").onclick;
 $("oAgain").onclick=()=>{A3.sfx("click");A3.hide("ovOver");speed=1;newRun(mapI,diff);};
 $("oKeep").onclick=()=>{A3.sfx("click");A3.hide("ovOver");freeplay=true;persistRun();hud();};
 function titleStats(){
-  $("tStats").innerHTML="<div>Best round <b>"+S.bestRound+"</b></div><div>Stars <b>"+S.stars.reduce((a,b)=>a+b,0)+" / "+MAPS.length*3+"</b></div><div>Balloons popped <b>"+A3.fmt(S.pops)+"</b></div>";
+  $("tStats").innerHTML=M.statsHtml("<div>Best round <b>"+S.bestRound+"</b></div><div>Stars <b>"+S.stars.reduce((a,b)=>a+b,0)+" / "+MAPS.length*3+"</b></div><div>Balloons popped <b>"+A3.fmt(S.pops)+"</b></div>").replace("World <b>","Map <b>");
   $("bCont").hidden=!S.run;
   if(S.run)$("bCont").textContent="Continue "+MAPS[S.run.map].name+" (round "+S.run.round+")";
 }
@@ -714,7 +1141,7 @@ $("bMute").onclick=()=>{A3.mute(!A3.mute());$("bMute").textContent=A3.mute()?"�
 const ro=()=>{stage.classList.toggle("narrow",stage.clientWidth<900);frame();};ro();window.addEventListener("resize",ro);if(window.ResizeObserver)new ResizeObserver(ro).observe(stage);
 
 /* ---------- start ---------- */
-buildMap(Math.min(mapI,MAPS.length-1));
+buildMap(Math.min(mapI,MAPS.length-1));buildPets();
 (function prewarm(){
   const g=new THREE.Group();scene.add(g);let x=-8;
   ["L:0:0","L:1:0","L:2:0","L:3:0","L:4:0","L:0:1","L:1:1","L:2:1","L:3:1","L:4:1","M:0:0","M:0:1","T:0:0","T:0:1"].forEach(k=>{const m=new THREE.Mesh(balloonGeo,balMat(k));m.position.set(x+=0.5,0.5,0);g.add(m);});
@@ -728,18 +1155,11 @@ buildMap(Math.min(mapI,MAPS.length-1));
   scene.remove(g);
 })();
 // decorative balloons drifting on the title screen
-titleStats();hud();shop();
-window.addEventListener("pagehide",()=>{if(playing&&!over&&!inRound)persistRun();else A3.store(SAVE,S);});
-window.__bd={prio:()=>{for(let i=0;i<towers.length;i++){const t=towers[i];const want=t.type==="sniper"&&t.up[0]<2?0:t.type==="laser"&&t.up[1]<1?1:t.type==="cannon"&&t.up[0]<2?0:-1;if(want>=0){const nx=TOWERS[t.type].paths[want][t.up[want]];return{i:i,p:want,c:price(nx.c)};}}return null;},plan:r=>JSON.stringify(roundPlan(r).map(g=>(g.camo?"c":"")+g.type+(g.layer||0)+"x"+g.count)),price:k=>price(TOWERS[k].cost),cheap:()=>{let best=null;towers.forEach((t,i)=>{for(let p=0;p<2;p++){const nx=TOWERS[t.type].paths[p][t.up[p]];if(!nx||(t.up[p]>=2&&t.up[1-p]>=3))continue;const c=price(nx.c);if(!best||c<best.c)best={i:i,p:p,c:c};}});return best;},R:renderer,SC:scene,CAM:camera,info:()=>{V.render();return JSON.stringify(renderer.info.render)+" objs "+scene.children.length},
-  sim:sec=>{for(let i=0;i<Math.round(sec*30);i++)step(1/30);return JSON.stringify(window.__bd.state());},
-  state:()=>({round:round,lives:lives,money:Math.floor(money),inRound:inRound,balloons:balloons.filter(b=>b.alive).length,towers:towers.length,over:over,playing:playing}),
-  newRun:(m,d)=>{A3.hide("ovTitle");newRun(m,d);},
-  place:(type,c,r)=>{if(c<0||r<0||c>=COLS||r>=ROWS||grid[r][c]!==0)return false;const cost=price(TOWERS[type].cost);if(money<cost)return false;money-=cost;addTower(type,c,r);return true;},
-  upgrade:(i,p)=>towers[i]?upgrade(towers[i],p):false,start:startRound,select:i=>select(towers[i]),
-  spots:(rad)=>{const out=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){if(grid[r][c]!==0)continue;let n=0;for(let rr=0;rr<ROWS;rr++)for(let cc=0;cc<COLS;cc++)if(grid[rr][cc]===1&&Math.hypot(rr-r,cc-c)<=rad)n++;out.push([n,c,r]);}out.sort((a,b)=>b[0]-a[0]);return out;},
-  spawn:(t,l,camo,d,k)=>{spawnBalloon(t,l,camo,d,k);}
-};
-if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"balloon-defence",dir:"desc",unit:"rounds",title:"Balloon Defence: highest round"});
+M.buck();titleStats();hud();shop();if(M.dailyReady())setTimeout(()=>M.daily(),500);
+stage.classList.toggle("coarse",matchMedia("(pointer:coarse)").matches);
+window.addEventListener("pagehide",()=>{if(playing&&!over&&!inRound)persistRun();else M.persist();});
+window.__bd={S:()=>S,M:()=>M,newRun:(m,d)=>{A3.hide("ovTitle");newRun(m,d);},start:()=>startRound(),hero:()=>hero,sim:sec=>{for(let i=0;i<sec*30;i++){heroMove(1/30);step(1/30);}return JSON.stringify({round,lives,money:Math.floor(money),inRound,balloons:balloons.filter(b=>b.alive).length,hero:hero&&hero.lv,over});},place:(type,c,r)=>{if(grid[r][c]!==0)return false;money-=price(TOWERS[type].cost);addTower(type,c,r);return true;},key:(k,v)=>{A3.keys[k]=v;}};
+if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"balloon-defence-v2",dir:"desc",unit:"rounds",title:"Balloon Defence: highest round"});
 })();
 </script>
 </body>

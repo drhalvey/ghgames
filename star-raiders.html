@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Star Raiders</title>
 <meta property="og:title" content="Star Raiders · GH Games">
-<meta property="og:description" content="Slide your ship, blast the marching alien fleets and hide behind crumbly cube shields. Boss waves, a bonus mothership, power-ups and new ships to buy.">
+<meta property="og:description" content="Fly anywhere in a 3D space arena while aliens swarm from every side! Pick 1 of 3 power-ups after each wave, beat a boss every 5 waves, buy ship upgrades, hatch drone buddies and rebirth across 8 galaxies.">
 <meta property="og:image" content="https://ghgames.au/og/star-raiders.png">
 <meta property="og:url" content="https://ghgames.au/star-raiders.html">
 <meta name="twitter:card" content="summary_large_image">
@@ -22,20 +22,28 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
 <link rel="stylesheet" href="arcade3d.css">
 <style>
-.lifebar{position:absolute;left:50%;transform:translateX(-50%);top:12px;z-index:15;display:flex;gap:6px;pointer-events:none;font-size:22px}
-.powers{position:absolute;right:12px;bottom:12px;z-index:15;display:flex;gap:6px;pointer-events:none}
-.powers span{font-weight:900;font-size:13px;border-radius:10px;padding:4px 9px;color:#fff;background:rgba(0,0,0,.45)}
-.wavebig{position:absolute;left:0;right:0;top:38%;text-align:center;z-index:14;font-family:var(--display);font-size:clamp(34px,7vw,64px);color:#fff;text-shadow:0 4px 0 #5b2bff,0 8px 16px rgba(0,0,0,.6);pointer-events:none;opacity:0;transition:opacity .3s}
+.hearts{position:absolute;left:50%;transform:translateX(-50%);top:12px;z-index:15;display:flex;gap:3px;pointer-events:none;font-size:20px;flex-wrap:wrap;justify-content:center;max-width:50%}
+.hearts i{font-style:normal}.hearts i.x{filter:grayscale(1);opacity:.35}
+.wavebig{position:absolute;left:0;right:0;top:34%;text-align:center;z-index:14;font-family:var(--display);font-size:clamp(34px,7vw,64px);color:#fff;text-shadow:0 4px 0 #5b2bff,0 8px 16px rgba(0,0,0,.6);pointer-events:none;opacity:0;transition:opacity .3s}
 .wavebig.on{opacity:1}
-#tFire{right:16px;bottom:56px;display:none}
-@media (pointer:coarse){#tFire{display:flex}}
-.ships{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:min(620px,100%)}
-@media (max-width:560px){.ships{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.ship{background:var(--panel2);border:2px solid var(--line);border-radius:14px;padding:8px;text-align:center;font-weight:900;cursor:pointer;color:var(--ink);font-family:var(--body);font-size:15px}
-.ship small{display:block;font-weight:700;font-size:12px;color:var(--muted)}
-.ship.on{border-color:var(--gold);background:#3a3010}
-.ship .dot{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:5px}
-.seg button small{font-weight:700;color:inherit;opacity:.8}
+.perkrow{position:absolute;left:10px;bottom:10px;z-index:15;display:flex;gap:4px;flex-wrap:wrap;max-width:60%;pointer-events:none}
+.perkrow span{background:rgba(10,8,30,.65);border:2px solid rgba(255,255,255,.25);border-radius:10px;padding:2px 6px;font-weight:900;font-size:12px}
+.bossbar{position:absolute;left:50%;top:44px;transform:translateX(-50%);z-index:15;width:min(360px,60%);text-align:center;pointer-events:none}
+.bossbar b{font-family:var(--display);font-weight:400;font-size:17px;color:#ff8a8a;text-shadow:0 2px 0 #000}
+.bossbar .bar{height:12px;border-radius:8px;background:rgba(0,0,0,.55);border:2px solid #ff5d5d;overflow:hidden;margin-top:3px}
+.bossbar .bar i{display:block;height:100%;background:linear-gradient(90deg,#ff5d5d,#ffb33a);transition:width .2s}
+#bDash{right:18px;bottom:18px;width:92px;height:92px}
+#joy{position:absolute;width:120px;height:120px;border-radius:50%;border:3px solid rgba(255,255,255,.5);background:rgba(255,255,255,.1);display:none;transform:translate(-50%,-50%);pointer-events:none;z-index:16}
+#knob{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(255,255,255,.7)}
+.picks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:min(700px,100%)}
+.pick{font-family:var(--body);background:linear-gradient(#2a3a72,#1c2852);border:3px solid var(--line);border-radius:18px;padding:12px 8px;cursor:pointer;color:var(--ink);text-align:center;animation:mpop2 .35s ease-out}
+@keyframes mpop2{from{transform:scale(.75)}to{transform:scale(1)}}
+.pick:hover{border-color:var(--gold)}
+.pick .ic{font-size:40px;display:block}
+.pick b{display:block;font-family:var(--display);font-weight:400;font-size:21px;color:var(--gold)}
+.pick small{display:block;font-weight:800;font-size:13px;color:#dfe7ff;margin-top:3px}
+.pick em{font-style:normal;font-size:11px;font-weight:900;color:var(--green)}
+@media (max-width:600px){.picks{grid-template-columns:1fr}.pick{padding:7px}.pick .ic{font-size:28px}}
 </style>
 </head>
 <body>
@@ -44,51 +52,55 @@
   <div class="top">
     <h1>Star Raiders<small>3D</small></h1>
     <div class="hud">
-      <div class="chip"><span>Score</span><b id="hScore">0</b></div>
-      <div class="chip"><span>Wave</span><b id="hWave">1</b></div>
-      <div class="chip"><span>Best</span><b id="hBest">0</b></div>
+      <div class="chip"><span>Wave</span><b id="hWave">0</b></div>
+      <div class="chip"><span>Best wave</span><b id="hBest">0</b></div>
       <div class="chip"><span>Coins</span><b id="hCoins">0</b></div>
+      <div class="chip"><span>Rebirths</span><b id="hReb">0</b></div>
+      <div class="chip"><span>Galaxy</span><b id="hWorld">1</b></div>
     </div>
   </div>
 
   <div class="stage" id="stage">
     <div class="ingame"><button id="bPause">❚❚</button><button id="bFs">⛶</button><button id="bMute">🔊</button></div>
-    <div class="score3d" id="sc">0<small id="scSub">Wave 1</small></div>
-    <div class="lifebar" id="lifebar"></div>
-    <div class="powers" id="powers"></div>
+    <div class="score3d" id="sc">0<small id="scSub">coins this run</small></div>
+    <div class="hearts" id="hearts"></div>
+    <div class="bossbar" id="bossbar" hidden><b id="bossName">Boss</b><div class="bar"><i id="bossFill"></i></div></div>
     <div class="wavebig" id="waveBig">Wave 1</div>
-    <div class="tbtn" id="tFire">FIRE</div>
+    <div class="perkrow" id="perkrow"></div>
+    <div class="tbtn" id="bDash" hidden>DASH</div>
+    <div id="joy"><div id="knob"></div></div>
     <div class="toast" id="toast"></div>
 
     <div class="ov" id="ovTitle">
       <h2>STAR RAIDERS</h2>
-      <p>The Blorp fleet is marching down from space! Slide left and right, blast every ship, and duck behind your cube shields. Grab falling power-ups and shoot the mothership for big points.</p>
-      <div class="seg" id="diffs"><button data-d="0">Easy</button><button data-d="1" class="on">Normal</button><button data-d="2">Hard</button></div>
-      <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bHangar">Hangar</button></div>
+      <p>Fly anywhere around the space arena while alien waves swarm in from every side. Your blasters fire by themselves, and after every wave you pick 1 of 3 power-ups to build a super ship!</p>
+      <div class="row"><button class="btn" id="bPlay">Launch!</button></div>
+      <div class="row" id="metaBtns"></div>
       <div class="stats" id="tStats"></div>
     </div>
 
-    <div class="ov" id="ovHangar" hidden>
-      <h2>HANGAR</h2>
-      <p>Coins: <b id="hgCoins" style="color:var(--gold)">0</b>. Earn coins by blasting aliens. Better ships move faster and start with more lives.</p>
-      <div class="ships" id="ships"></div>
-      <div class="row"><button class="btn" id="hgBack">Back</button></div>
+    <div class="ov" id="ovPick" hidden>
+      <h2 id="pkTitle">Wave cleared!</h2>
+      <p>Pick a power-up for this run:</p>
+      <div class="picks" id="picks"></div>
+      <div class="row"><button class="btn small alt" id="pkReroll">Reroll</button><button class="btn small green" data-mopen="up">Ship upgrades</button></div>
     </div>
 
     <div class="ov" id="ovPause" hidden>
       <h2>Paused</h2>
-      <div class="row"><button class="btn green" id="pResume">Resume</button><button class="btn alt" id="pQuit">Quit</button></div>
+      <div class="stats" id="pzStats"></div>
+      <div class="row"><button class="btn green" id="pzGo">Resume</button><button class="btn" data-mopen="up">Upgrades</button><button class="btn alt" id="pzQuit">End run</button></div>
     </div>
 
     <div class="ov" id="ovOver" hidden>
-      <h2 id="oTitle">Game over</h2>
+      <h2 id="oTitle">Ship down!</h2>
       <p id="oText"></p>
       <div class="stats" id="oStats"></div>
-      <div class="row"><button class="btn green" id="oAgain">Play again</button><button class="btn alt" id="oMenu">Menu</button></div>
+      <div class="row"><button class="btn green" id="oAgain">Fly again</button><button class="btn" data-mopen="up">Upgrades</button><button class="btn alt" id="oMenu">Menu</button></div>
     </div>
   </div>
 
-  <p class="help">Keyboard: arrow keys or A and D to move, Space to fire. Touch: drag anywhere to slide your ship and it fires by itself, or hold the FIRE button. The fleet speeds up as it shrinks, and every fifth wave brings a boss. Power-ups: <b style="color:#ffd23f">2</b> double shot, <b style="color:#ff6fa3">R</b> rapid fire, <b style="color:#4fc3ff">S</b> shield. Coins buy new ships in the Hangar. Your best score goes on the leaderboard.</p>
+  <p class="help">Keyboard: WASD or the arrow keys to fly, Space to dash. Mouse or iPad: drag anywhere on the game to steer with the joystick, and tap DASH to zoom out of trouble. Your ship shoots the closest alien all by itself. Grab the gold coins the aliens drop. After each wave pick 1 of 3 power-ups for this run: Spread Shot, Rapid Fire, Homing Missiles, Orbiting Shields, Drones, Laser, Nova Pulse, Piercing Shots and more. Every 5th wave a boss arrives! Coins are yours as soon as you grab them. They buy ship upgrades that last (open Upgrades between waves or from the pause menu), new galaxies (aliens are tougher but drop far more coins, and later galaxies need rebirths), new ships with multis and drone buddy eggs (drone buddies fly with you and shoot too). Rebirth resets coins and ship upgrades but keeps galaxies, ships and drone buddies, and adds +1x damage and coins for ever. The leaderboard is the highest wave you reach.</p>
   <div id="lb"></div>
 </div>
 
@@ -99,442 +111,696 @@
 (function(){
 "use strict";
 const $=id=>document.getElementById(id);
-const SAVE="starraiders-save";
-const S=A3.save(SAVE,{best:0,coins:0,ships:["comet"],ship:"comet",diff:1,bestWave:0,played:0,kills:0});
 const stage=$("stage");
-const V=A3.view(stage,{fov:50,sky:["#05061a","#1b1450"],shadowSize:22});
+const V=A3.view(stage,{fov:50,sky:["#05061a","#1b1450"],shadowSize:30,far:600});
 if(!V){return;}
 const {scene,camera,renderer}=V;
-V.lights.hemi.intensity=0.7;V.lights.hemi.color.set("#b8c4ff");V.lights.hemi.groundColor.set("#2a1850");
-V.lights.sun.position.set(6,20,14);V.lights.sun.intensity=1.2;
-const rim=new THREE.DirectionalLight(0x8a7bff,0.6);rim.position.set(-10,6,-12);scene.add(rim);
+V.lights.hemi.intensity=0.75;V.lights.hemi.color.set("#c8d0ff");V.lights.hemi.groundColor.set("#2a1850");
+V.lights.sun.intensity=1.2;
+const rim=new THREE.DirectionalLight(0x8a7bff,0.5);rim.position.set(-10,6,-12);scene.add(rim);
 
-/* ---------- field ---------- */
-const FW=22,TOP=-27,BOT=0; // play field: x in [-FW/2,FW/2], z from TOP (far) to BOT (near)
-const SHIPZ=-1.2;
-camera.position.set(0,13,9.5);camera.lookAt(0,0,-12);
-function frameCam(){
-  const a=camera.aspect;
-  if(a<1){camera.fov=66;camera.position.set(0,26,8);camera.lookAt(0,0,-12);} else {camera.fov=50;camera.position.set(0,19,7.5);camera.lookAt(0,0,-11.5);}
-  camera.updateProjectionMatrix();
-}
-// starfield
-const starGeo=new THREE.BufferGeometry(),NST=900,sp=new Float32Array(NST*3);
-for(let i=0;i<NST;i++){sp[i*3]=A3.rand(-80,80);sp[i*3+1]=A3.rand(-40,-4);sp[i*3+2]=A3.rand(-120,20);}
-starGeo.setAttribute("position",new THREE.BufferAttribute(sp,3));
-const stars=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,size:0.35,sizeAttenuation:true,transparent:true,opacity:0.9}));scene.add(stars);
-// floor glass grid
-const floorTex=A3.canvasTex(256,256,(g,w,h)=>{g.fillStyle="#120c33";g.fillRect(0,0,w,h);g.strokeStyle="rgba(120,100,255,.55)";g.lineWidth=3;g.strokeRect(0,0,w,h);g.fillStyle="rgba(90,70,220,.25)";g.fillRect(8,8,w-16,h-16);});
-floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping;floorTex.repeat.set(12,16);
-const floor=new THREE.Mesh(new THREE.PlaneGeometry(FW+8,40),new THREE.MeshStandardMaterial({map:floorTex,roughness:0.4,metalness:0.3,transparent:true,opacity:0.85}));
-floor.rotation.x=-Math.PI/2;floor.position.set(0,-1.2,-12);floor.receiveShadow=true;scene.add(floor);
-// side rails
-[-1,1].forEach(s=>{const r=A3.box(0.4,0.5,40,"#3b2a8f",{emissive:"#5b3bff",glow:0.6});r.position.set(s*(FW/2+1.6),-0.9,-12);scene.add(r);});
-// planet
-const planet=new THREE.Mesh(new THREE.SphereGeometry(14,32,24),new THREE.MeshStandardMaterial({map:A3.canvasTex(256,128,(g,w,h)=>{for(let y=0;y<h;y+=4){g.fillStyle=["#ff8a5c","#ffb36b","#e2665a","#ffc98a"][Math.floor(y/12)%4];g.fillRect(0,y,w,4);}}),roughness:0.9}));
-planet.position.set(-30,-16,-78);scene.add(planet);
-const ring=new THREE.Mesh(new THREE.RingGeometry(17,22,48),new THREE.MeshBasicMaterial({color:0xffd6a0,side:THREE.DoubleSide,transparent:true,opacity:0.45}));ring.position.copy(planet.position);ring.rotation.x=1.2;ring.rotation.y=0.3;scene.add(ring);
+/* ===================================================================
+   GH progression kit (v2 reworks): coins, upgrades, worlds, rebirths,
+   pets (eggs + hatching), skins, daily reward and the buckasnuncle gift.
+   Inlined in each game so the shared repo kit stays untouched.
+   =================================================================== */
+function GHMeta(cfg){
+  const $=id=>document.getElementById(id);
+  const CAP=1e300,cap=n=>(n>0&&isFinite(n))?Math.min(CAP,n):(n>0?CAP:0);
+  const fmt=n=>A3.fmt(n);
+  const fm=n=>n<10?String(+n.toFixed(2)):n<100?String(+n.toFixed(1)):A3.fmt(n); // multis keep their decimals
+  const RAR=[{n:"Common",c:"#cfd6e6",m:1.15,w:52},{n:"Uncommon",c:"#5fd36a",m:1.3,w:26},{n:"Rare",c:"#4aa8ff",m:1.6,w:13},{n:"Epic",c:"#b085ff",m:2.2,w:6},{n:"Legendary",c:"#ffd23f",m:3.5,w:2.3},{n:"Mythic",c:"#ff7ae0",m:6,w:0.6},{n:"Secret",c:"#ff5d5d",m:15,w:0.1}];
+  const SPEC=cfg.species||[{n:"Pup",e:"🐶",c:"#d8a26a"},{n:"Kitty",e:"🐱",c:"#ffb0d0"},{n:"Bunny",e:"🐰",c:"#ffffff"},{n:"Fox",e:"🦊",c:"#ff8a3d"},{n:"Owl",e:"🦉",c:"#b0773a"},{n:"Dragon",e:"🐲",c:"#5fd36a"},{n:"Unicorn",e:"🦄",c:"#e8dcff"}];
+  const W=cfg.worlds,UPS=cfg.ups,SK=cfg.skins,PW=cfg.petWord||"Pets";
+  const base={v:2,coins:0,run:0,ever:0,up:{},world:0,wopen:[0],reb:0,skins:[0],skin:0,pets:{},eq:[],hatched:0,daily:{d:"",s:0},bk:0,played:0};
+  /* ---------- load + migrate ---------- */
+  let raw=null;try{raw=JSON.parse(localStorage.getItem(cfg.save)||"null");}catch(e){raw=null;}
+  const S=JSON.parse(JSON.stringify(Object.assign({},base,cfg.defaults||{})));
+  let migrated=false;
+  if(raw&&typeof raw==="object"){
+    if(raw.v>=2){for(const k in raw)S[k]=raw[k];}
+    else{migrated=true;try{const m=cfg.migrate?cfg.migrate(raw)||{}:{};for(const k in m)S[k]=m[k];}catch(e){}}
+  }
+  S.v=2;
+  if(!S.up||typeof S.up!=="object")S.up={};
+  if(!Array.isArray(S.wopen)||!S.wopen.length)S.wopen=[0];
+  if(!Array.isArray(S.skins)||!S.skins.length)S.skins=[0];
+  if(!S.pets||typeof S.pets!=="object"||Array.isArray(S.pets))S.pets={};
+  if(!Array.isArray(S.eq))S.eq=[];
+  if(!S.daily||typeof S.daily!=="object")S.daily={d:"",s:0};
+  ["coins","run","ever","reb","hatched","played"].forEach(k=>{if(!(S[k]>=0)||!isFinite(S[k]))S[k]=0;});
+  if(!(S.world>=0&&S.world<W.length)||!S.wopen.includes(S.world))S.world=0;
+  if(!(S.skin>=0&&S.skin<SK.length)||!S.skins.includes(S.skin))S.skin=0;
+  const M={S,fmt,fm,cap,RAR,SPEC,migrated};
+  let dirty=true;
+  M.persist=()=>{try{localStorage.setItem(cfg.save,JSON.stringify(S));}catch(e){}dirty=false;};
+  if(migrated)M.persist();
+  const changed=()=>{dirty=true;if(cfg.onChange)cfg.onChange();};
+  M.changed=changed;
 
-/* ---------- ships (player) ---------- */
-const SHIPS=[
-  {id:"comet",name:"Comet",price:0,col:"#3fa9ff",acc:"#ffd23f",speed:13,lives:3,cool:0.42,desc:"Trusty starter"},
-  {id:"zippy",name:"Zippy",price:250,col:"#5fd36a",acc:"#ffffff",speed:17,lives:3,cool:0.38,desc:"Extra quick"},
-  {id:"blaze",name:"Blaze",price:600,col:"#ff5d5d",acc:"#ffc93c",speed:15,lives:3,cool:0.3,desc:"Fast blaster"},
-  {id:"tank",name:"Turtle",price:900,col:"#2bb5a0",acc:"#ffe27a",speed:12,lives:5,cool:0.4,desc:"Tough shell"},
-  {id:"nova",name:"Nova",price:1500,col:"#b07bff",acc:"#7cf3ff",speed:16,lives:4,cool:0.28,desc:"All-rounder"},
-  {id:"gold",name:"Golden Star",price:3000,col:"#ffc93c",acc:"#ff6fa3",speed:18,lives:5,cool:0.24,desc:"The best"}
-];
-function shipDef(){return SHIPS.find(s=>s.id===S.ship)||SHIPS[0];}
-function buildShip(d){
-  const g=new THREE.Group();
-  const body=A3.cyl(0.25,0.75,2.2,d.col,16);body.rotation.x=-Math.PI/2;g.add(body);
-  const nose=A3.cyl(0,0.25,0.6,d.acc,16);nose.rotation.x=-Math.PI/2;nose.position.z=-1.4;g.add(nose);
-  const cockpit=A3.ball(0.42,"#9fe7ff",{rough:0.1,metal:0.2});cockpit.scale.set(1,0.8,1.5);cockpit.position.set(0,0.4,-0.2);g.add(cockpit);
-  [-1,1].forEach(s=>{
-    const w=A3.box(1.5,0.16,1,d.col);w.position.set(s*1.05,-0.05,0.35);w.rotation.z=s*-0.15;g.add(w);
-    const tip=A3.cyl(0.18,0.18,0.9,d.acc,10);tip.rotation.x=-Math.PI/2;tip.position.set(s*1.75,0,0.25);g.add(tip);
-    const f=A3.box(0.12,0.6,0.6,d.acc);f.position.set(s*0.35,0.35,0.85);f.rotation.z=s*0.3;g.add(f);
+  /* ---------- multis ---------- */
+  const petBoost=id=>{const w=Math.floor(id/7),r=id%7;return RAR[r].m*Math.pow(cfg.petWorld||1.6,w);};
+  M.petBoost=petBoost;
+  M.rebMul=(r)=>1+(r==null?S.reb:r)*(cfg.rebStep||1);
+  M.petMul=()=>{let s=1;for(const id of S.eq)if(S.pets[id])s+=petBoost(id)-1;return s;};
+  M.skinMul=()=>SK[S.skin].m;
+  M.mul=()=>cap(M.rebMul()*M.petMul()*M.skinMul());
+  M.skin=()=>SK[S.skin];
+  M.world=()=>W[S.world];
+  /* ---------- coins ---------- */
+  M.add=n=>{n=cap(n);if(!(n>0))return 0;S.coins=cap(S.coins+n);S.run=cap(S.run+n);S.ever=cap(S.ever+n);dirty=true;return n;};
+  M.spend=n=>{if(S.coins<n)return false;S.coins=Math.max(0,S.coins-n);changed();return true;};
+  /* ---------- upgrades ---------- */
+  M.lv=k=>S.up[k]||0;
+  const upOf=k=>UPS.find(u=>u.k===k);
+  M.upPrice=(k,l)=>{const u=upOf(k);return cap(u.b*Math.pow(u.g,l==null?M.lv(k):l));};
+  M.buy=k=>{const u=upOf(k),l=M.lv(k);if(l>=u.max)return false;const p=M.upPrice(k);if(S.coins<p)return false;S.coins-=p;S.up[k]=l+1;changed();if(cfg.onBuy)cfg.onBuy(k);return true;};
+  M.buyMax=()=>{let n=0;for(let i=0;i<3000;i++){let best=null,bp=Infinity;for(const u of UPS){if(M.lv(u.k)>=u.max)continue;const p=M.upPrice(u.k);if(p<bp){bp=p;best=u;}}if(!best||S.coins<bp)break;M.buy(best.k);n++;}return n;};
+  /* ---------- worlds ---------- */
+  M.open_=i=>S.wopen.includes(i);
+  M.maxOpen=()=>Math.max.apply(null,S.wopen);
+  M.goWorld=i=>{if(!M.open_(i))return false;S.world=i;changed();if(cfg.onWorld)cfg.onWorld(i);return true;};
+  M.unlock=i=>{const w=W[i];if(M.open_(i))return M.goWorld(i);if(i!==M.maxOpen()+1){A3.toast("Unlock "+W[i-1].n+" first",1500);return false;}
+    if(S.reb<(w.reb||0)){A3.sfx("hit");A3.toast(w.n+" needs "+w.reb+" rebirth"+(w.reb>1?"s":""),1700);return false;}
+    if(S.coins<w.cost){A3.sfx("hit");A3.toast("You need "+fmt(w.cost)+" "+(cfg.cur||"coins"),1500);return false;}
+    S.coins-=w.cost;S.wopen.push(i);A3.sfx("win");A3.toast("🌍 "+w.n+" unlocked!",2000);A3.win(Math.min(5,1+Math.floor(i/2)),"unlocking "+w.n+" in "+cfg.name);M.goWorld(i);return true;};
+  /* ---------- rebirth ---------- */
+  M.rebCost=r=>cap((cfg.rebBase||1e4)*Math.pow(cfg.rebGrow||5,r==null?S.reb:r));
+  M.rebCan=()=>{let c=S.coins,n=0,r=S.reb;while(n<100000){const p=M.rebCost(r);if(c<p)break;c-=p;r++;n++;}return n;};
+  M.rebirth=max=>{const can=M.rebCan(),n=max?can:Math.min(1,can);if(n<1){A3.sfx("hit");A3.toast("You need "+fmt(M.rebCost())+" "+(cfg.cur||"coins")+" to rebirth",1600);return 0;}
+    S.reb+=n;S.coins=0;S.run=0;S.up={};A3.sfx("win");
+    A3.toast((n>1?n+" rebirths! ":"")+"Rebirth "+fmt(S.reb)+"! Multi x"+fm(M.rebMul()),2600);
+    try{if(window.PhatCoin)PhatCoin.earn("rebirth",25,"rebirth "+S.reb+" in "+cfg.name);}catch(e){}
+    if(cfg.onRebirth)cfg.onRebirth(n);changed();M.persist();drawReb();return n;};
+  /* ---------- pets ---------- */
+  M.slots=()=>3+Math.min(5,Math.floor(S.reb/2));
+  M.eggPrice=w=>cap((cfg.eggBase||500)*Math.pow(cfg.eggGrow||20,w));
+  M.petName=id=>(W[Math.floor(id/7)].pn||W[Math.floor(id/7)].n)+" "+SPEC[id%7].n;
+  M.petInfo=id=>({id,w:Math.floor(id/7),r:id%7,n:M.petName(id),e:SPEC[id%7].e,c:SPEC[id%7].c,rc:RAR[id%7].c,rn:RAR[id%7].n,m:petBoost(id)});
+  M.equipped=()=>S.eq.filter(id=>S.pets[id]).map(M.petInfo);
+  function roll(){let x=Math.random()*100,r=0;while(r<6&&x>=RAR[r].w){x-=RAR[r].w;r++;}return r;}
+  M.hatch=(w,n)=>{const pr=M.eggPrice(w)*n;if(!M.open_(w)||S.coins<pr){A3.sfx("hit");A3.toast("You need "+fmt(pr)+" "+(cfg.cur||"coins"),1400);return null;}
+    S.coins-=pr;const got=[];
+    for(let k=0;k<n;k++){const id=w*7+roll();S.pets[id]=(S.pets[id]||0)+1;got.push(id);S.hatched++;}
+    M.equipBest(true);
+    const best=Math.max.apply(null,got.map(id=>id%7));
+    if(best>=4)A3.win(best>=6?5:best>=5?3:2,"hatching a "+RAR[best].n+" pet in "+cfg.name);
+    changed();M.persist();if(cfg.onPets)cfg.onPets();return got;};
+  M.equipBest=quiet=>{const all=[];for(const k in S.pets)for(let i=0;i<S.pets[k];i++)all.push(+k);all.sort((a,b)=>petBoost(b)-petBoost(a));S.eq=all.slice(0,M.slots());if(!quiet){A3.sfx("coin");changed();if(cfg.onPets)cfg.onPets();}};
+  /* ---------- skins ---------- */
+  M.useSkin=k=>{if(!S.skins.includes(k)){if(S.coins<SK[k].price){A3.sfx("hit");A3.toast("You need "+fmt(SK[k].price)+" "+(cfg.cur||"coins"),1400);return false;}S.coins-=SK[k].price;S.skins.push(k);A3.sfx("win");A3.toast("New look: "+SK[k].n+"!",1600);if(k===SK.length-1)A3.win(3,"getting the best skin in "+cfg.name);}else A3.sfx("click");
+    S.skin=k;changed();if(cfg.onSkin)cfg.onSkin(k);return true;};
+  /* ---------- George's head start ---------- */
+  // George: the player buckasnuncle (game nickname or account username) gets 1 million coins and the best skin, once only
+  M.buck=()=>{if(S.bk)return;let a="",b="";try{a=(window.Leaderboard&&Leaderboard.getName())||localStorage.getItem("ghgames_nick")||"";b=localStorage.getItem("ghacct_user")||"";}catch(e){}
+    const is=n=>(n||"").trim().toLowerCase()==="buckasnuncle";if(!is(a)&&!is(b))return;
+    S.bk=1;M.add(1e6);const top=SK.length-1;if(!S.skins.includes(top))S.skins.push(top);S.skin=top;changed();M.persist();if(cfg.onSkin)cfg.onSkin(top);
+    setTimeout(()=>{A3.sfx("win");A3.toast("Hi buckasnuncle! +1M "+(cfg.cur||"coins")+" and the "+SK[top].n+" skin!",3500);},700);};
+  /* ---------- daily reward ---------- */
+  const dstr=d=>d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();
+  M.dailyReady=()=>S.daily.d!==dstr(new Date());
+  M.daily=()=>{if(!M.dailyReady())return;const y=new Date();y.setDate(y.getDate()-1);const s=S.daily.d===dstr(y)?S.daily.s+1:1;
+    const amt=cap(cfg.dailyAmt?cfg.dailyAmt(s):100*s);$("mDayText").innerHTML="Day <b>"+s+"</b> in a row! Come back tomorrow for even more.";$("mDayAmt").textContent="+"+fmt(amt)+" "+(cfg.cur||"coins");
+    $("mDayGo").onclick=()=>{S.daily={d:dstr(new Date()),s:s};M.add(amt);A3.sfx("coin");A3.toast("Daily reward: +"+fmt(amt)+"!",1800);if(s%7===0)A3.win(2,"a 7 day streak in "+cfg.name);changed();M.persist();A3.hide("mDay");};
+    A3.show("mDay");};
+
+  /* ---------- UI ---------- */
+  const st=document.createElement("style");st.textContent=
+   ".mov{justify-content:flex-start;padding-top:12px;gap:8px;overflow:hidden}.mov h2{font-size:clamp(24px,5vw,40px)}.wide{width:min(820px,100%)}.mov>.shopbox{flex:0 1 auto;min-height:0;display:flex;flex-direction:column}.mov .mlist,.mov .cards{flex:1 1 auto;min-height:70px;max-height:none!important}.mov #mEggs{flex:0 0 auto;max-height:34%!important;min-height:0}.mov>.row{flex:0 0 auto}"
+  +".cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px;margin-top:8px;overflow:auto;padding:2px;align-content:start}"
+  +".card{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:7px;font-weight:900;font-size:12px;text-align:center;line-height:1.25;cursor:pointer;position:relative;color:var(--ink);font-family:var(--body)}"
+  +".card .r{font-size:10px;text-transform:uppercase;letter-spacing:.05em}.card .m{color:var(--green)}.card .p{color:var(--gold)}.card.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold) inset}.card.lock{opacity:.55}"
+  +".card .sw{height:28px;border-radius:8px;margin:4px 0;border:2px solid rgba(255,255,255,.35)}.card .em{font-size:28px;line-height:1.1}.card button{font-family:var(--body);font-weight:900;font-size:12px;border:none;border-radius:8px;padding:4px 8px;margin:3px 2px 0;background:var(--gold);color:#3b2200;cursor:pointer}.card button:disabled{opacity:.4}"
+  +".urow{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;background:var(--panel2);border-radius:10px;padding:6px 10px;margin:5px 0;font-weight:800;font-size:13px}"
+  +".urow .ic{font-size:24px}.urow b{color:#fff;font-size:15px}.urow small{display:block;color:var(--muted);font-weight:700}.urow .btn{font-size:14px;padding:6px 10px;border-radius:10px;box-shadow:0 4px 0 #a86a00;min-width:92px}"
+  +".mlist{overflow:auto}.tabsum{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;font-weight:900;font-size:13px;color:var(--muted)}.tabsum b{color:var(--gold)}"
+  +".hatchfx{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:radial-gradient(circle,rgba(60,40,120,.92),rgba(8,10,30,.96));cursor:pointer}"
+  +".hatchfx .egg{font-size:110px;animation:mwob .22s ease-in-out infinite alternate;filter:drop-shadow(0 8px 0 rgba(0,0,0,.35))}.hatchfx .egg.crack{animation:mcrack .35s ease-out forwards}"
+  +"@keyframes mwob{from{transform:rotate(-14deg) scale(1)}to{transform:rotate(14deg) scale(1.08)}}@keyframes mcrack{to{transform:scale(1.8);opacity:0}}"
+  +".hres{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:620px}.hres div{background:var(--panel2);border:3px solid var(--c);border-radius:14px;padding:8px 10px;font-weight:900;font-size:13px;min-width:96px;animation:mpop .45s cubic-bezier(.3,1.7,.5,1) both;box-shadow:0 0 18px var(--c)}"
+  +".hres div .em{font-size:40px;display:block}@keyframes mpop{from{transform:scale(.4)}to{transform:scale(1)}}"
+  +".mdock{position:absolute;right:10px;bottom:10px;z-index:16;display:flex;gap:6px}.mdock button{font-family:var(--body);font-weight:900;font-size:13px;border:none;border-radius:12px;padding:7px 9px;background:rgba(10,16,40,.72);color:#fff;cursor:pointer;border:2px solid rgba(255,255,255,.25);display:flex;flex-direction:column;align-items:center;line-height:1.05;min-width:50px}.mdock button i{font-style:normal;font-size:20px}"
+  +".mdock button.glow{border-color:var(--gold);box-shadow:0 0 10px var(--gold)}"
+  +"@media (max-width:600px){.cards{grid-template-columns:repeat(auto-fill,minmax(108px,1fr))}.mdock button{min-width:42px;padding:5px 6px;font-size:11px}.mdock button i{font-size:17px}}";
+  document.head.appendChild(st);
+  const cur=cfg.cur||"coins";
+  const html=
+   '<div class="ov mov" id="mUp" hidden><h2>UPGRADES</h2><div class="shopbox wide"><p class="help" id="mUpHelp"></p><div class="mlist" id="mUpList"></div></div><div class="row"><button class="btn pink" id="mUpMax">Buy max</button><button class="btn green" data-mback>Done</button></div></div>'
+  +'<div class="ov mov" id="mWorlds" hidden><h2>'+(cfg.worldWord||"WORLDS")+'</h2><div class="shopbox wide"><p class="help" id="mWHelp"></p><div class="cards" id="mWList"></div></div><div class="row"><button class="btn green" data-mback>Done</button></div></div>'
+  +'<div class="ov mov" id="mPets" hidden><h2>'+PW.toUpperCase()+'</h2><div class="shopbox wide"><p class="help" id="mPHelp"></p><div class="cards" id="mEggs" style="max-height:none;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div><div class="row" style="margin-top:6px"><button class="btn small green" id="mPBest">Equip best</button></div><div class="cards" id="mPList"></div></div><div class="row"><button class="btn green" data-mback>Done</button></div>'
+  +'<div class="hatchfx" id="mHatch" hidden><div class="egg" id="mEgg">🥚</div><div class="hres" id="mHres"></div><p id="mHtap" style="font-weight:900;color:#dfe7ff">Hatching...</p></div></div>'
+  +'<div class="ov mov" id="mSkins" hidden><h2>'+(cfg.skinWord||"SKINS")+'</h2><div class="shopbox wide"><p class="help" id="mSHelp"></p><div class="cards" id="mSList"></div></div><div class="row"><button class="btn green" data-mback>Done</button></div></div>'
+  +'<div class="ov mov" id="mReb" hidden><h2>REBIRTH</h2><div class="shopbox"><h3 id="mRTitle">Rebirths: 0</h3><p class="help" id="mRText"></p>'
+  +'<div class="item"><span>Rebirth multi</span><span class="c" id="mRMul">x1</span></div><div class="item"><span>'+PW+' slots</span><span class="c" id="mRSlots">3</span></div><div class="item"><span>Cost</span><span class="c" id="mRCost">0</span></div><div class="item"><span>You have</span><span class="c" id="mRHave">0</span></div></div>'
+  +'<div class="row"><button class="btn pink" id="mRGo">Rebirth</button><button class="btn" id="mRMax">Max rebirth</button><button class="btn alt" data-mback>Back</button></div></div>'
+  +'<div class="ov" id="mDay" hidden style="background:rgba(8,14,32,.93);z-index:35"><h2>DAILY REWARD</h2><div style="font-size:72px">🎁</div><p id="mDayText"></p><h3 id="mDayAmt" style="font-family:var(--display);font-weight:400;font-size:34px;color:var(--gold);margin:0"></h3><div class="row"><button class="btn green" id="mDayGo">Claim!</button></div></div>';
+  cfg.stage.insertAdjacentHTML("beforeend",html);
+  const PANELS={up:"mUp",worlds:"mWorlds",pets:"mPets",skins:"mSkins",reb:"mReb"};
+  let openP=null,from=null;
+  M.isOpen=()=>!!openP;
+  M.open=(name,fromId)=>{
+    if(openP)A3.hide(openP);
+    from=fromId||null;if(from)A3.hide(from);
+    openP=PANELS[name];draw(name);A3.show(openP);A3.sfx("click");
+    if(!from&&cfg.pause)cfg.pause(true);
+  };
+  M.close=()=>{if(!openP)return;A3.hide(openP);openP=null;A3.sfx("click");if(from){A3.show(from);if(cfg.onBack)cfg.onBack(from);}else if(cfg.pause)cfg.pause(false);from=null;changed();};
+  document.addEventListener("click",e=>{
+    const o=e.target.closest("[data-mopen]");if(o){const ov=o.closest(".ov");M.open(o.dataset.mopen,ov?ov.id:null);return;}
+    if(e.target.closest("[data-mback]"))M.close();
   });
+  M.buttons=()=>'<button class="btn green" data-mopen="up">Upgrades</button><button class="btn alt" data-mopen="worlds">'+(cfg.worldBtn||"Worlds")+'</button><button class="btn alt" data-mopen="pets">'+PW+'</button><button class="btn alt" data-mopen="skins">'+(cfg.skinBtn||"Skins")+'</button><button class="btn pink" data-mopen="reb">Rebirth</button>';
+  M.dock=()=>'<button data-mopen="up" id="mdUp"><i>⬆️</i>Upgrade</button><button data-mopen="pets"><i>🥚</i>'+(cfg.petShort||"Pets")+'</button><button data-mopen="worlds"><i>🌍</i>'+(cfg.worldShort||"Worlds")+'</button><button data-mopen="skins"><i>🎨</i>'+(cfg.skinShort||"Skins")+'</button><button data-mopen="reb" id="mdReb"><i>✨</i>Rebirth</button>';
+  function draw(name){if(name==="up")drawUp();else if(name==="worlds")drawW();else if(name==="pets")drawPets();else if(name==="skins")drawSkins();else drawReb();}
+  /* upgrades: built once, then updated in place so taps never miss */
+  function drawUp(){
+    $("mUpList").innerHTML=UPS.map(u=>'<div class="urow"><span class="ic">'+(u.ic||"⬆️")+'</span><div><b>'+u.n+' <span style="color:var(--gold)" data-ul="'+u.k+'"></span></b><small>'+u.d+' · now <span data-uf="'+u.k+'"></span></small></div><button class="btn" data-ub="'+u.k+'"></button></div>').join("");
+    refreshUp();
+  }
+  function refreshUp(){
+    $("mUpHelp").innerHTML=cur[0].toUpperCase()+cur.slice(1)+": <b style='color:var(--gold)'>"+fmt(S.coins)+"</b>. Upgrades reset when you rebirth.";
+    for(const u of UPS){const l=M.lv(u.k),b=document.querySelector('[data-ub="'+u.k+'"]');if(!b)continue;
+      document.querySelector('[data-ul="'+u.k+'"]').textContent="Lv "+l+(u.max<1e6?" / "+u.max:"");
+      document.querySelector('[data-uf="'+u.k+'"]').textContent=u.fx(l);
+      if(l>=u.max){b.textContent="MAX";b.disabled=true;}else{const p=M.upPrice(u.k);b.textContent=fmt(p);b.disabled=S.coins<p;}}
+  }
+  $("mUpList").addEventListener("click",e=>{const b=e.target.closest("[data-ub]");if(!b||b.disabled)return;if(M.buy(b.dataset.ub)){A3.sfx("coin");refreshUp();}});
+  $("mUpMax").onclick=()=>{const n=M.buyMax();A3.sfx(n?"coin":"hit");if(n)A3.toast("Bought "+n+" upgrade"+(n>1?"s":"")+"!",1200);refreshUp();};
+  function drawW(){
+    $("mWHelp").innerHTML="You are in <b style='color:var(--gold)'>"+W[S.world].n+"</b>. "+(cfg.worldHelp||"Each world is worth much more. Worlds stay unlocked when you rebirth.");
+    $("mWList").innerHTML=W.map((w,i)=>{const op=M.open_(i),on=S.world===i,next=i===M.maxOpen()+1;
+      let s;if(on)s="You are here";else if(op)s="Tap to go";else if(!next)s="🔒 Locked";else if(S.reb<(w.reb||0))s="Needs "+w.reb+" rebirth"+(w.reb>1?"s":"");else s=fmt(w.cost)+" "+cur;
+      return '<div class="card'+(on?" on":"")+(op||next?"":" lock")+'" data-w="'+i+'"><b>'+(i+1)+". "+w.n+'</b><div class="sw" style="background:linear-gradient(90deg,'+w.col[0]+','+w.col[1]+')"></div><span class="m">'+(w.tag||"")+'</span><br><span class="p">'+s+'</span></div>';}).join("");
+  }
+  $("mWList").addEventListener("click",e=>{const c=e.target.closest("[data-w]");if(!c)return;const i=+c.dataset.w;if(M.open_(i)){M.goWorld(i);A3.sfx("coin");A3.toast("Welcome to "+W[i].n+"!",1500);}else M.unlock(i);drawW();});
+  function drawPets(){
+    $("mPHelp").innerHTML=cur[0].toUpperCase()+cur.slice(1)+": <b style='color:var(--gold)'>"+fmt(S.coins)+"</b> · "+PW+" multi <b style='color:var(--green)'>x"+fm(M.petMul())+"</b> · out "+S.eq.length+"/"+M.slots()+". "+(cfg.petHelp||"");
+    $("mEggs").innerHTML=W.map((w,i)=>{if(!M.open_(i))return"";const p=M.eggPrice(i);return '<div class="card"><b>'+w.n+' egg</b><div class="em">🥚</div><span class="p">'+fmt(p)+'</span><br><button data-egg="'+i+'" data-n="1"'+(S.coins>=p?"":" disabled")+'>Hatch 1</button><button data-egg="'+i+'" data-n="5"'+(S.coins>=p*5?"":" disabled")+'>Hatch 5</button></div>';}).join("");
+    const own=Object.keys(S.pets).map(Number).filter(id=>S.pets[id]>0).sort((a,b)=>petBoost(b)-petBoost(a));
+    $("mPList").innerHTML=own.length?own.map(id=>{const P=M.petInfo(id),k=S.eq.filter(x=>x===id).length;return '<div class="card'+(k?" on":"")+'" data-p="'+id+'"><span class="r" style="color:'+P.rc+'">'+P.rn+'</span><div class="em">'+P.e+'</div>'+P.n+'<br><span class="m">x'+fm(P.m)+'</span><br><span style="color:var(--muted)">'+(k?"Out "+k+" / ":"Own ")+S.pets[id]+'</span></div>';}).join(""):'<p class="help" style="grid-column:1/-1">No '+PW.toLowerCase()+' yet. Hatch an egg!</p>';
+  }
+  $("mEggs").addEventListener("click",e=>{const b=e.target.closest("[data-egg]");if(!b||b.disabled)return;const got=M.hatch(+b.dataset.egg,+b.dataset.n);if(got)hatchFx(got);});
+  $("mPList").addEventListener("click",e=>{const c=e.target.closest("[data-p]");if(!c)return;const id=+c.dataset.p,k=S.eq.filter(x=>x===id).length;
+    if(k<S.pets[id]&&S.eq.length<M.slots())S.eq.push(id);else if(k>0)S.eq.splice(S.eq.indexOf(id),1);else{A3.sfx("hit");A3.toast("All "+M.slots()+" slots are full. Tap a pet that is out to put it away.",1800);return;}
+    A3.sfx("click");changed();if(cfg.onPets)cfg.onPets();drawPets();});
+  $("mPBest").onclick=()=>{M.equipBest();drawPets();};
+  let hatchT=0;
+  function hatchFx(got){
+    const eg=$("mEgg"),res=$("mHres");eg.className="egg";eg.hidden=false;res.innerHTML="";$("mHtap").textContent="Hatching...";A3.show("mHatch");A3.sfx("tick");
+    clearTimeout(hatchT);hatchT=setTimeout(()=>{eg.className="egg crack";A3.sfx("pop");
+      setTimeout(()=>{eg.hidden=true;const best=Math.max.apply(null,got.map(id=>id%7));A3.sfx(best>=4?"win":"coin");
+        res.innerHTML=got.map((id,i)=>{const P=M.petInfo(id);return '<div style="--c:'+P.rc+';animation-delay:'+(i*0.12)+'s"><span class="em">'+P.e+'</span><span style="color:'+P.rc+'">'+P.rn+'</span><br>'+P.n+'<br><span style="color:var(--green)">x'+fm(P.m)+'</span></div>';}).join("");
+        $("mHtap").textContent="Tap to carry on";},330);},900);
+  }
+  $("mHatch").addEventListener("click",()=>{if($("mEgg").hidden||$("mHres").innerHTML){A3.hide("mHatch");drawPets();}});
+  function drawSkins(){
+    $("mSHelp").innerHTML=cur[0].toUpperCase()+cur.slice(1)+": <b style='color:var(--gold)'>"+fmt(S.coins)+"</b>. "+(cfg.skinHelp||"Every look gives a small multi.");
+    $("mSList").innerHTML=SK.map((s,k)=>{const own=S.skins.includes(k),on=S.skin===k;return '<div class="card'+(on?" on":"")+(own?"":" lock")+'" data-s="'+k+'"><b>'+s.n+'</b><div class="sw" style="background:linear-gradient(90deg,'+s.c[0]+','+s.c[1]+')"></div><span class="m">x'+fm(s.m)+'</span><br><span class="p">'+(on?"Using":own?"Tap to use":fmt(s.price))+'</span></div>';}).join("");
+  }
+  $("mSList").addEventListener("click",e=>{const c=e.target.closest("[data-s]");if(!c)return;M.useSkin(+c.dataset.s);drawSkins();});
+  function drawReb(){
+    if(!$("mRTitle"))return;
+    $("mRTitle").textContent="Rebirths: "+fmt(S.reb);
+    const n=M.rebCan();
+    $("mRText").textContent=(cfg.rebText||"Rebirth resets your "+cur+" and upgrades, but keeps worlds, skins and "+PW.toLowerCase()+", and gives a bigger multi for ever.")+(n>1?" You can rebirth "+n+" times right now!":"");
+    $("mRMul").textContent="x"+fm(M.rebMul())+" → x"+fm(M.rebMul(S.reb+Math.max(1,n)));
+    $("mRSlots").textContent=M.slots()+" → "+(3+Math.min(5,Math.floor((S.reb+Math.max(1,n))/2)));
+    $("mRCost").textContent=fmt(M.rebCost())+" "+cur;$("mRHave").textContent=fmt(S.coins)+" "+cur;
+    $("mRGo").disabled=n<1;$("mRMax").disabled=n<1;$("mRMax").textContent=n>1?"Max rebirth (x"+n+")":"Max rebirth";
+  }
+  $("mRGo").onclick=()=>M.rebirth(false);
+  $("mRMax").onclick=()=>M.rebirth(true);
+  /* ---------- tick: live panels + autosave ---------- */
+  let tk=0,sv=0;
+  M.tick=dt=>{tk+=dt;sv+=dt;
+    if(tk>0.3){tk=0;if(openP==="mUp")refreshUp();else if(openP==="mReb")drawReb();
+      const d=$("mdUp");if(d){let can=false;for(const u of UPS)if(M.lv(u.k)<u.max&&S.coins>=M.upPrice(u.k)){can=true;break;}d.classList.toggle("glow",can);}
+      const r=$("mdReb");if(r)r.classList.toggle("glow",S.coins>=M.rebCost());}
+    if(sv>5){sv=0;if(dirty)M.persist();}};
+  window.addEventListener("pagehide",()=>M.persist());
+  document.addEventListener("visibilitychange",()=>{if(document.hidden)M.persist();});
+
+  /* ---------- a toy 3D pet (shared look) ---------- */
+  const PG={body:new THREE.SphereGeometry(0.5,18,14),head:new THREE.SphereGeometry(0.38,18,14),eye:new THREE.SphereGeometry(0.075,10,8),pup:new THREE.SphereGeometry(0.04,8,6),
+    cone:new THREE.ConeGeometry(0.12,0.3,8),wing:new THREE.BoxGeometry(0.42,0.06,0.26),ring:new THREE.TorusGeometry(0.62,0.04,8,32),horn:new THREE.ConeGeometry(0.06,0.34,8)};
+  M.petMesh=id=>{
+    const P=M.petInfo(id),g=new THREE.Group(),inner=new THREE.Group();g.add(inner);
+    const acc=W[P.w].col[0];
+    const bm=A3.mat(P.c,{rough:0.5}),am=A3.mat(acc,{rough:0.5});
+    const b=new THREE.Mesh(PG.body,bm);b.scale.set(1,0.85,0.95);b.castShadow=true;inner.add(b);
+    const h=new THREE.Mesh(PG.head,bm);h.position.set(0,0.52,0.12);h.castShadow=true;inner.add(h);
+    const belly=new THREE.Mesh(PG.head,am);belly.scale.set(0.7,0.55,0.4);belly.position.set(0,-0.05,0.36);inner.add(belly);
+    [-1,1].forEach(s=>{const e=new THREE.Mesh(PG.eye,A3.mat("#ffffff"));e.position.set(s*0.14,0.58,0.44);inner.add(e);const p=new THREE.Mesh(PG.pup,A3.mat("#141428"));p.position.set(s*0.14,0.58,0.51);inner.add(p);
+      const sp=P.r;let ear;
+      if(sp===2){ear=new THREE.Mesh(PG.head,bm);ear.scale.set(0.18,0.7,0.14);ear.position.set(s*0.14,0.95,0.05);}
+      else if(sp===0){ear=new THREE.Mesh(PG.head,am);ear.scale.set(0.2,0.42,0.12);ear.position.set(s*0.36,0.5,0.08);ear.rotation.z=s*0.3;}
+      else if(sp===4||sp===5){ear=new THREE.Mesh(PG.wing,sp===5?am:bm);ear.position.set(s*0.55,0.1,-0.05);ear.rotation.z=s*0.5;inner.userData["w"+s]=ear;}
+      else{ear=new THREE.Mesh(PG.cone,sp===3?am:bm);ear.position.set(s*0.2,0.86,0.08);ear.rotation.z=-s*0.25;}
+      inner.add(ear);
+      if(sp===5){const ho=new THREE.Mesh(PG.horn,A3.mat("#fff4b0"));ho.position.set(s*0.14,0.88,0.05);inner.add(ho);}});
+    if(P.r===6){const ho=new THREE.Mesh(PG.horn,A3.mat("#ffd23f",{emissive:"#ffb000",glow:0.5}));ho.scale.set(1.2,1.5,1.2);ho.position.set(0,1,0.25);ho.rotation.x=0.4;inner.add(ho);}
+    if(P.r===3){const t=new THREE.Mesh(PG.head,am);t.scale.set(0.25,0.25,0.55);t.position.set(0,0,-0.55);inner.add(t);}
+    if(P.r>=4){const rg=new THREE.Mesh(PG.ring,A3.mat(P.rc,{emissive:P.rc,glow:0.9}));rg.rotation.x=Math.PI/2;rg.position.y=-0.35;g.add(rg);g.userData.ring=rg;}
+    g.userData.inner=inner;g.userData.info=P;return g;
+  };
+  /* ---------- small helpers ---------- */
+  M.statsHtml=extra=>(extra||"")+"<div>"+cur[0].toUpperCase()+cur.slice(1)+" <b>"+fmt(S.coins)+"</b></div><div>Rebirths <b>"+fmt(S.reb)+"</b></div><div>Multi <b>x"+fm(M.mul())+"</b></div><div>World <b>"+(S.world+1)+" "+W[S.world].n+"</b></div>";
+  return M;
+}
+
+
+/* ---------- galaxies ---------- */
+const GAL=[
+  {n:"Milky Lane",col:["#3a2a8f","#7a5aff"],pn:"Milky",sky:["#05061a","#1b1450"],floor:"#1a1450",line:"#7a64ff",planet:["#ff8a5c","#ffc98a"],cost:0},
+  {n:"Candy Nebula",col:["#ff6fa3","#ffd0e8"],pn:"Candy",sky:["#2a0a3a","#8a2a6a"],floor:"#3a1040",line:"#ff6fd0",planet:["#ffd23f","#ff9ad8"],cost:1500,reb:0},
+  {n:"Emerald Belt",col:["#2fd3a0","#0a5a4a"],pn:"Emerald",sky:["#021a1a","#0a4a3a"],floor:"#06302a",line:"#3affb0",planet:["#7ad83a","#c8ff9a"],cost:2.5e4,reb:1},
+  {n:"Solar Storm",col:["#ff8a3d","#ffd23f"],pn:"Solar",sky:["#2a0a00","#8a3a0a"],floor:"#3a1a08",line:"#ffb33a",planet:["#ffd23f","#ff5a1a"],cost:5e5,reb:2},
+  {n:"Ice Comet Cloud",col:["#7ad8ff","#ffffff"],pn:"Comet",sky:["#020a2a","#2a5a9a"],floor:"#0a2a4a",line:"#9ae6ff",planet:["#bfe8ff","#ffffff"],cost:1e7,reb:3},
+  {n:"Ruby Rift",col:["#ff3a5a","#5a0a1a"],pn:"Ruby",sky:["#1a0008","#6a0a2a"],floor:"#2a0410",line:"#ff3a6a",planet:["#ff5d5d","#ffb0b0"],cost:3e8,reb:5},
+  {n:"Rainbow Quasar",col:["#ff4a4a","#4aa8ff"],pn:"Rainbow",sky:["#0a0028","#3a0a6a"],floor:"#14083a",line:"#ffd23f",planet:["#5fd36a","#4aa8ff"],cost:1e10,reb:7},
+  {n:"Black Hole Edge",col:["#000000","#b085ff"],pn:"Void",sky:["#000000","#1a0a2a"],floor:"#06020e",line:"#b085ff",planet:["#3a0a5a","#ff3aff"],cost:5e11,reb:10}
+];
+GAL.forEach((g,i)=>{g.hm=Math.pow(4,i);g.tag="x"+A3.fmt(g.hm)+" coins";});
+const SHIPS=[
+  {n:"Comet",c:["#3fa9ff","#ffd23f"],m:1,price:0},{n:"Zippy",c:["#5fd36a","#ffffff"],m:1.1,price:300},{n:"Blaze",c:["#ff5d5d","#ffc93c"],m:1.25,price:3000},
+  {n:"Turtle",c:["#2bb5a0","#ffe27a"],m:1.5,price:3e4},{n:"Nova",c:["#b07bff","#7cf3ff"],m:1.8,price:4e5},{n:"Bubblegum",c:["#ff6fa3","#ffffff"],m:2.2,price:6e6},
+  {n:"Golden Star",c:["#ffc93c","#ff6fa3"],m:3,price:1e8},{n:"Midnight",c:["#1a1a3a","#3afff0"],m:4.5,price:3e9},{n:"Cosmic King",c:["#ffffff","#ff7ae0"],m:7,price:1.5e11}
+];
+const UPS=[
+  {k:"dmg",n:"Blaster Power",ic:"💥",d:"x1.2 damage",b:10,g:1.5,max:200,fx:l=>"x"+M.fm(Math.pow(1.2,l))+" damage"},
+  {k:"rate",n:"Fire Rate",ic:"🔫",d:"+6% shots a second",b:15,g:1.45,max:40,fx:l=>(3*(1+0.06*l)).toFixed(1)+" shots/s"},
+  {k:"hull",n:"Hull",ic:"❤️",d:"+1 heart",b:25,g:1.7,max:15,fx:l=>(5+l)+" hearts"},
+  {k:"speed",n:"Engines",ic:"🚀",d:"+4% speed",b:20,g:1.5,max:20,fx:l=>"+"+l*4+"% speed"},
+  {k:"coin",n:"Coin Magnet",ic:"🧲",d:"+25% coins and a bigger pull",b:30,g:1.55,max:60,fx:l=>"x"+(1+0.25*l).toFixed(2)+" coins"},
+  {k:"start",n:"Head Start",ic:"🎁",d:"start each run with a free power-up",b:200,g:3,max:5,fx:l=>l+" free power-up"+(l===1?"":"s")}
+];
+const M=GHMeta({save:"starraiders-save",name:"Star Raiders",cur:"coins",stage:stage,
+  defaults:{bestWave:0,kills:0,bosses:0,runs:0},
+  ups:UPS,worlds:GAL,skins:SHIPS,worldWord:"GALAXIES",worldBtn:"Galaxies",worldShort:"Galaxy",skinWord:"SHIPS",skinBtn:"Ships",skinShort:"Ships",petWord:"Drone buddies",petShort:"Buddies",
+  species:[{n:"Pup Pod",e:"🐶",c:"#d8a26a"},{n:"Kitty Drone",e:"🐱",c:"#ffb0d0"},{n:"Bunny Bot",e:"🐰",c:"#ffffff"},{n:"Fox Fighter",e:"🦊",c:"#ff8a3d"},{n:"Owl Orbiter",e:"🦉",c:"#b0773a"},{n:"Dragon Drone",e:"🐲",c:"#5fd36a"},{n:"Unicorn UFO",e:"🦄",c:"#e8dcff"}],
+  worldHelp:"Aliens in each galaxy are 4 times tougher but drop 4 times more coins. Galaxies stay unlocked when you rebirth.",
+  petHelp:"Drone buddies fly next to your ship and shoot aliens, and each one multiplies your damage and coins.",skinHelp:"Every ship gives a damage and coin multi.",
+  rebBase:5000,rebGrow:4,eggBase:250,eggGrow:28,petWorld:1.7,
+  dailyAmt:s=>80*s*GAL[M.maxOpen()].hm*(1+M.S.reb),
+  rebText:"Rebirth resets your coins and ship upgrades, but keeps galaxies, ships and drone buddies, and adds +1x damage and coins for ever.",
+  migrate:o=>{const map={comet:0,zippy:1,blaze:2,tank:3,nova:4,gold:6},sk=[0];(Array.isArray(o.ships)?o.ships:[]).forEach(id=>{if(map[id]!=null&&!sk.includes(map[id]))sk.push(map[id]);});
+    return {coins:Math.floor((o.coins||0)*2+(o.bestWave||0)*40),skins:sk,skin:map[o.ship]!=null&&sk.includes(map[o.ship])?map[o.ship]:0,kills:o.kills||0};},
+  pause:on=>{if(run&&!run.over){if(on)pauseOn(true);}},
+  onBuy:k=>{if(k==="hull"&&run&&!run.over){run.maxHp++;run.hp++;hearts();}},
+  onChange:()=>hud(),onWorld:()=>buildGalaxy(),onSkin:()=>rebuildShip(),onPets:()=>buildBuddies(),
+  onRebirth:()=>{A3.win(3,"a rebirth in Star Raiders");},onBack:id=>{if(id==="ovTitle")titleStats();if(id==="ovOver")overStats();}
+});
+const S=M.S;
+if(M.migrated&&S.coins>0)setTimeout(()=>A3.toast("Welcome to the new Star Raiders! Your old coins became a "+A3.fmt(S.coins)+" coin head start.",4000),1200);
+$("metaBtns").innerHTML=M.buttons();
+
+/* ---------- arena ---------- */
+const R=34;
+const arena=new THREE.Group();scene.add(arena);
+const starGeo=new THREE.BufferGeometry(),NST=1200,sp=new Float32Array(NST*3);
+for(let i=0;i<NST;i++){const a=Math.random()*6.28,b=Math.acos(2*Math.random()-1),r=A3.rand(160,260);sp[i*3]=Math.cos(a)*Math.sin(b)*r;sp[i*3+1]=Math.abs(Math.cos(b))*r*0.8-30;sp[i*3+2]=Math.sin(a)*Math.sin(b)*r;}
+starGeo.setAttribute("position",new THREE.BufferAttribute(sp,3));
+scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,size:1.1,sizeAttenuation:true})));
+let floor=null,ringMesh=null,planets=[];
+function buildGalaxy(){
+  while(arena.children.length){const c=arena.children.pop();if(c.geometry)c.geometry.dispose();}
+  const G=GAL[S.world];
+  scene.background=A3.skyTexture(G.sky[0],G.sky[1]);
+  const tex=A3.canvasTex(256,256,(g,w,h)=>{g.fillStyle=G.floor;g.fillRect(0,0,w,h);g.strokeStyle=G.line;g.globalAlpha=0.55;g.lineWidth=4;g.strokeRect(2,2,w-4,h-4);g.globalAlpha=0.18;g.fillStyle=G.line;g.fillRect(12,12,w-24,h-24);});
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(17,17);
+  floor=new THREE.Mesh(new THREE.CircleGeometry(R+1,96),new THREE.MeshStandardMaterial({map:tex,roughness:0.45,metalness:0.3}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;arena.add(floor);
+  const under=new THREE.Mesh(new THREE.CylinderGeometry(R+1,R-6,6,96),A3.mat("#2a2a44",{metal:0.4,rough:0.4}));under.position.y=-3.02;arena.add(under);
+  ringMesh=new THREE.Mesh(new THREE.TorusGeometry(R+0.6,0.45,10,140),A3.mat(G.line,{emissive:G.line,glow:1}));ringMesh.rotation.x=Math.PI/2;ringMesh.position.y=0.3;arena.add(ringMesh);
+  const wall=new THREE.Mesh(new THREE.CylinderGeometry(R+0.6,R+0.6,3,140,1,true),new THREE.MeshBasicMaterial({color:new THREE.Color(G.line),transparent:true,opacity:0.12,side:THREE.DoubleSide,depthWrite:false}));wall.position.y=1.5;arena.add(wall);
+  // lights on the rim
+  const lm=new THREE.InstancedMesh(new THREE.SphereGeometry(0.5,10,8),A3.mat("#ffffff",{emissive:G.line,glow:1.4}),36);const d=new THREE.Object3D();for(let i=0;i<36;i++){const a=i/36*6.283;d.position.set(Math.cos(a)*(R+0.6),0.9,Math.sin(a)*(R+0.6));d.updateMatrix();lm.setMatrixAt(i,d.matrix);}arena.add(lm);
+  // asteroid belt outside the rim
+  const am=new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1,0),A3.mat("#6a6480",{flat:true,rough:0.9}),90),rr=A3.seeded(9+S.world);
+  for(let i=0;i<90;i++){const a=rr()*6.283,r=R+5+rr()*16,s=0.6+rr()*2.2;d.position.set(Math.cos(a)*r,-1.5+rr()*4,Math.sin(a)*r);d.rotation.set(rr()*6,rr()*6,rr()*6);d.scale.setScalar(s);d.updateMatrix();am.setMatrixAt(i,d.matrix);}
+  am.castShadow=true;arena.add(am);d.rotation.set(0,0,0);d.scale.setScalar(1);
+  // glowing centre badge
+  const badge=new THREE.Mesh(new THREE.RingGeometry(5,5.6,64),new THREE.MeshBasicMaterial({color:new THREE.Color(G.line),transparent:true,opacity:0.5}));badge.rotation.x=-Math.PI/2;badge.position.y=0.02;arena.add(badge);
+  const badge2=new THREE.Mesh(new THREE.RingGeometry(16,16.4,96),new THREE.MeshBasicMaterial({color:new THREE.Color(G.line),transparent:true,opacity:0.35}));badge2.rotation.x=-Math.PI/2;badge2.position.y=0.02;arena.add(badge2);
+  // planets
+  const pt=A3.canvasTex(256,128,(g,w,h)=>{for(let y=0;y<h;y+=4){g.fillStyle=[G.planet[0],G.planet[1]][Math.floor(y/14)%2];g.fillRect(0,y,w,4);}});
+  const p1=new THREE.Mesh(new THREE.SphereGeometry(30,32,24),new THREE.MeshStandardMaterial({map:pt,roughness:0.9}));p1.position.set(-110,-30,-150);arena.add(p1);
+  const rg=new THREE.Mesh(new THREE.RingGeometry(38,50,48),new THREE.MeshBasicMaterial({color:new THREE.Color(G.planet[1]),side:THREE.DoubleSide,transparent:true,opacity:0.4}));rg.position.copy(p1.position);rg.rotation.set(1.2,0.3,0);arena.add(rg);
+  const p2=new THREE.Mesh(new THREE.SphereGeometry(12,24,16),A3.mat(G.planet[1],{rough:0.8}));p2.position.set(120,-10,-120);arena.add(p2);
+  hud();
+}
+
+/* ---------- ship ---------- */
+function buildShip(d){
+  const g=new THREE.Group(),c=d.c[0],a=d.c[1];
+  const body=A3.cyl(0.25,0.75,2.2,c,16);body.rotation.x=-Math.PI/2;g.add(body);
+  const nose=A3.cyl(0,0.25,0.6,a,16);nose.rotation.x=-Math.PI/2;nose.position.z=-1.4;g.add(nose);
+  const cockpit=A3.ball(0.42,"#9fe7ff",{rough:0.1,metal:0.2});cockpit.scale.set(1,0.8,1.5);cockpit.position.set(0,0.4,-0.2);g.add(cockpit);
+  [-1,1].forEach(s=>{const w=A3.box(1.5,0.16,1,c);w.position.set(s*1.05,-0.05,0.35);w.rotation.z=s*-0.15;g.add(w);
+    const tip=A3.cyl(0.18,0.18,0.9,a,10);tip.rotation.x=-Math.PI/2;tip.position.set(s*1.75,0,0.25);g.add(tip);
+    const f=A3.box(0.12,0.6,0.6,a);f.position.set(s*0.35,0.35,0.85);f.rotation.z=s*0.3;g.add(f);});
   const jet=new THREE.Mesh(new THREE.ConeGeometry(0.42,1.2,12),new THREE.MeshBasicMaterial({color:0x66e0ff,transparent:true,opacity:0.8}));jet.rotation.x=-Math.PI/2;jet.position.z=1.6;g.add(jet);g.userData.jet=jet;
-  const sh=new THREE.Mesh(new THREE.SphereGeometry(2,24,16),new THREE.MeshBasicMaterial({color:0x4fc3ff,transparent:true,opacity:0.25,depthWrite:false}));sh.scale.set(1.1,0.7,1);sh.visible=false;g.add(sh);g.userData.shield=sh;
+  const sh=new THREE.Mesh(new THREE.SphereGeometry(2,24,16),new THREE.MeshBasicMaterial({color:0x4fc3ff,transparent:true,opacity:0.22,depthWrite:false}));sh.scale.set(1.1,0.7,1.1);sh.visible=false;g.add(sh);g.userData.shield=sh;
   return g;
 }
-let player=buildShip(shipDef());scene.add(player);player.position.set(0,0,SHIPZ);
+let ship=buildShip(M.skin());scene.add(ship);ship.position.set(0,1.2,0);
+function rebuildShip(){const p=ship.position.clone(),r=ship.rotation.y;scene.remove(ship);ship=buildShip(M.skin());ship.position.copy(p);ship.rotation.y=r;scene.add(ship);}
 
 /* ---------- aliens ---------- */
-const ALIENS=[
-  {col:"#ff6fa3",acc:"#ffd1e3",pts:30,kind:"squid"},
-  {col:"#5fd36a",acc:"#d9ffd0",pts:20,kind:"crab"},
-  {col:"#4aa8ff",acc:"#d4ecff",pts:10,kind:"blob"},
-  {col:"#ffb13b",acc:"#fff1c9",pts:20,kind:"saucer"},
-  {col:"#b07bff",acc:"#eadbff",pts:40,kind:"squid"}
-];
-const geo={
-  dome:new THREE.SphereGeometry(0.8,20,14,0,Math.PI*2,0,Math.PI/2),
-  disk:new THREE.CylinderGeometry(1.15,0.9,0.35,20),
-  ball:new THREE.SphereGeometry(0.75,20,14),
-  eye:new THREE.SphereGeometry(0.2,12,8),pup:new THREE.SphereGeometry(0.1,10,6),
-  leg:new THREE.CylinderGeometry(0.08,0.12,0.6,8),
-  ant:new THREE.CylinderGeometry(0.04,0.04,0.5,6),antb:new THREE.SphereGeometry(0.12,10,8),
-  claw:new THREE.BoxGeometry(0.3,0.3,0.5),
-  shot:new THREE.CylinderGeometry(0.12,0.12,1.1,8),
-  ebolt:new THREE.OctahedronGeometry(0.4,0),
-  cube:new THREE.BoxGeometry(0.42,0.42,0.42)
-};
+const AG={dome:new THREE.SphereGeometry(0.8,18,12,0,Math.PI*2,0,Math.PI/2),disk:new THREE.CylinderGeometry(1.15,0.9,0.35,18),ball:new THREE.SphereGeometry(0.75,18,14),eye:new THREE.SphereGeometry(0.2,12,8),pup:new THREE.SphereGeometry(0.1,8,6),leg:new THREE.CylinderGeometry(0.08,0.12,0.6,6),claw:new THREE.BoxGeometry(0.3,0.3,0.5),antb:new THREE.SphereGeometry(0.12,8,6),spike:new THREE.ConeGeometry(0.18,0.6,6)};
 const wht=A3.mat("#ffffff",{rough:0.3}),blk=A3.mat("#141428",{rough:0.3});
-function addEyes(g,y,z,n,spread){for(let i=0;i<n;i++){const x=(n===1?0:(i/(n-1)-0.5)*spread);const e=new THREE.Mesh(geo.eye,wht);e.position.set(x,y,z);g.add(e);const p=new THREE.Mesh(geo.pup,blk);p.position.set(x,y-0.02,z+0.15);g.add(p);}}
-function buildAlien(t){
-  const g=new THREE.Group(),m=A3.mat(t.col,{rough:0.4}),a=A3.mat(t.acc,{rough:0.5});
-  const inner=new THREE.Group();g.add(inner);
-  if(t.kind==="saucer"){
-    const d=new THREE.Mesh(geo.disk,m);d.castShadow=true;inner.add(d);
-    const dm=new THREE.Mesh(geo.dome,A3.mat("#9fe7ff",{rough:0.1}));dm.scale.setScalar(0.7);dm.position.y=0.15;inner.add(dm);
-    for(let i=0;i<6;i++){const l=new THREE.Mesh(geo.antb,a);const an=i/6*6.28;l.position.set(Math.cos(an)*1.05,-0.05,Math.sin(an)*1.05);inner.add(l);}
-    addEyes(inner,0.45,0.35,2,0.4);
-  }else if(t.kind==="crab"){
-    const b=new THREE.Mesh(geo.ball,m);b.scale.set(1.25,0.8,0.9);b.castShadow=true;inner.add(b);
-    [-1,1].forEach(s=>{const c=new THREE.Mesh(geo.claw,a);c.position.set(s*1.1,0.1,-0.2);c.rotation.y=s*0.4;inner.add(c);const c2=c.clone();c2.position.set(s*1.25,0.1,-0.5);c2.scale.setScalar(0.7);inner.add(c2);
-      for(let k=0;k<2;k++){const l=new THREE.Mesh(geo.leg,m);l.position.set(s*(0.45+k*0.3),-0.55,0.1);l.rotation.z=s*0.5;inner.add(l);}});
-    addEyes(inner,0.45,0.45,2,0.55);
-  }else if(t.kind==="squid"){
-    const b=new THREE.Mesh(geo.ball,m);b.scale.set(1,1.05,0.95);b.position.y=0.15;b.castShadow=true;inner.add(b);
-    for(let i=0;i<5;i++){const l=new THREE.Mesh(geo.leg,a);l.position.set((i-2)*0.28,-0.6,0.15);l.rotation.z=(i-2)*0.25;inner.add(l);}
-    [-1,1].forEach(s=>{const an=new THREE.Mesh(geo.ant,a);an.position.set(s*0.3,0.95,0);an.rotation.z=-s*0.4;inner.add(an);const ab=new THREE.Mesh(geo.antb,a);ab.position.set(s*0.42,1.2,0);inner.add(ab);});
-    addEyes(inner,0.3,0.55,1,0);inner.children[inner.children.length-2].scale.setScalar(1.7);inner.children[inner.children.length-1].scale.setScalar(1.7);inner.children[inner.children.length-1].position.z+=0.12;
-  }else{
-    const b=new THREE.Mesh(geo.ball,m);b.scale.set(1.1,0.9,1);b.castShadow=true;inner.add(b);
-    const top=new THREE.Mesh(geo.dome,a);top.scale.set(0.6,0.5,0.6);top.position.y=0.55;inner.add(top);
-    addEyes(inner,0.15,0.6,3,0.8);
-  }
-  inner.rotation.x=0.35;
-  g.userData.inner=inner;
+function eyes(g,y,z,n,spread,sc){for(let i=0;i<n;i++){const x=n===1?0:(i/(n-1)-0.5)*spread;const e=new THREE.Mesh(AG.eye,wht);e.position.set(x,y,z);e.scale.setScalar(sc||1);g.add(e);const p=new THREE.Mesh(AG.pup,blk);p.position.set(x,y,z+0.15*(sc||1));p.scale.setScalar(sc||1);g.add(p);}}
+const KINDS={
+  blob:{hp:1,spd:6.5,col:"#4aa8ff",acc:"#d4ecff",r:1.1,coin:1},
+  crab:{hp:3,spd:4.2,col:"#5fd36a",acc:"#d9ffd0",r:1.4,coin:2},
+  squid:{hp:1.6,spd:5,col:"#ff6fa3",acc:"#ffd1e3",r:0.95,coin:2,shoot:2.6,keep:12},
+  saucer:{hp:1.3,spd:8,col:"#ffb13b",acc:"#fff1c9",r:1.1,coin:2,shoot:3.4,orbit:1},
+  zoomer:{hp:0.8,spd:11,col:"#b07bff",acc:"#eadbff",r:0.8,coin:1.5,zoom:1}
+};
+function buildAlien(k){
+  const t=KINDS[k],g=new THREE.Group(),inner=new THREE.Group();g.add(inner);const m=A3.mat(t.col,{rough:0.4}),a=A3.mat(t.acc,{rough:0.5});
+  if(k==="saucer"){const d=new THREE.Mesh(AG.disk,m);d.castShadow=true;inner.add(d);const dm=new THREE.Mesh(AG.dome,A3.mat("#9fe7ff",{rough:0.1}));dm.scale.setScalar(0.7);dm.position.y=0.15;inner.add(dm);eyes(inner,0.42,0.3,2,0.4);}
+  else if(k==="crab"){const b=new THREE.Mesh(AG.ball,m);b.scale.set(1.25,0.8,1);b.castShadow=true;inner.add(b);[-1,1].forEach(s=>{const c=new THREE.Mesh(AG.claw,a);c.position.set(s*1.05,0.1,-0.5);c.rotation.y=s*0.4;inner.add(c);});eyes(inner,0.45,-0.45,2,0.55);inner.rotation.y=Math.PI;}
+  else if(k==="squid"){const b=new THREE.Mesh(AG.ball,m);b.scale.set(1,1.05,0.95);b.position.y=0.15;b.castShadow=true;inner.add(b);for(let i=0;i<4;i++){const l=new THREE.Mesh(AG.leg,a);const an=i/4*6.28;l.position.set(Math.cos(an)*0.4,-0.6,Math.sin(an)*0.4);inner.add(l);}eyes(inner,0.3,0.55,1,0,1.6);}
+  else if(k==="zoomer"){const b=new THREE.Mesh(AG.ball,m);b.scale.set(0.8,0.7,1.3);b.castShadow=true;inner.add(b);[-1,1].forEach(s=>{const f=new THREE.Mesh(AG.spike,a);f.position.set(s*0.6,0,0.5);f.rotation.x=Math.PI/2;inner.add(f);});eyes(inner,0.25,-0.85,2,0.4,0.8);inner.rotation.y=Math.PI;}
+  else{const b=new THREE.Mesh(AG.ball,m);b.scale.set(1.1,0.9,1);b.castShadow=true;inner.add(b);const top=new THREE.Mesh(AG.dome,a);top.scale.set(0.6,0.5,0.6);top.position.y=0.55;inner.add(top);eyes(inner,0.15,0.6,3,0.8);}
   return g;
 }
-const alienProto=ALIENS.map(buildAlien);
-function cloneAlien(i){const g=alienProto[i].clone();g.userData.inner=g.children[0];return g;}
-
-/* boss and mothership */
+const proto={};Object.keys(KINDS).forEach(k=>proto[k]=buildAlien(k));
 function buildBoss(lv){
   const g=new THREE.Group(),inner=new THREE.Group();g.add(inner);
-  const col=["#ff5d5d","#b07bff","#ff8a3d","#2bb5a0"][lv%4];
-  const b=new THREE.Mesh(geo.ball,A3.mat(col,{rough:0.35}));b.scale.set(3.2,2,2.4);b.castShadow=true;inner.add(b);
-  const d=new THREE.Mesh(geo.disk,A3.mat("#2b2d55",{metal:0.4,rough:0.3}));d.scale.set(3.4,1.2,3.4);d.position.y=-0.3;inner.add(d);
-  const crown=new THREE.Mesh(geo.dome,A3.mat("#9fe7ff",{rough:0.1}));crown.scale.setScalar(1.6);crown.position.y=1.1;inner.add(crown);
-  for(let i=0;i<8;i++){const l=new THREE.Mesh(geo.antb,A3.mat("#ffd23f",{emissive:"#ffd23f",glow:0.8}));const an=i/8*6.28;l.position.set(Math.cos(an)*3.5,-0.3,Math.sin(an)*3.5);l.scale.setScalar(1.6);inner.add(l);}
-  addEyes(inner,0.4,1.9,2,1.6);inner.children.slice(-4).forEach(c=>c.scale.multiplyScalar(2.2));
-  const brow=A3.box(1.2,0.18,0.2,"#141428");brow.position.set(-0.8,1.15,2);brow.rotation.z=-0.35;inner.add(brow);const b2=brow.clone();b2.position.x=0.8;b2.rotation.z=0.35;inner.add(b2);
-  inner.rotation.x=0.3;g.userData.inner=inner;return g;
-}
-function buildMother(){
-  const g=new THREE.Group();
-  const d=new THREE.Mesh(geo.disk,A3.mat("#ff6fa3",{rough:0.3}));d.scale.set(1.8,1,1.3);d.castShadow=true;g.add(d);
-  const dm=new THREE.Mesh(geo.dome,A3.mat("#ffe27a",{rough:0.1}));dm.scale.set(1,0.9,0.9);dm.position.y=0.15;g.add(dm);
-  for(let i=0;i<8;i++){const l=new THREE.Mesh(geo.antb,A3.mat("#7cf3ff",{emissive:"#7cf3ff",glow:1}));const an=i/8*6.28;l.position.set(Math.cos(an)*1.9,-0.05,Math.sin(an)*1.4);g.add(l);}
-  addEyes(g,0.5,0.6,2,0.5);return g;
+  const col=["#ff5d5d","#b07bff","#ff8a3d","#2bb5a0","#ffd23f"][lv%5];
+  const b=new THREE.Mesh(AG.ball,A3.mat(col,{rough:0.35}));b.scale.set(3.4,2.1,3.4);b.castShadow=true;inner.add(b);
+  const d=new THREE.Mesh(AG.disk,A3.mat("#2b2d55",{metal:0.4,rough:0.3}));d.scale.set(3.6,1.2,3.6);d.position.y=-0.3;inner.add(d);
+  const cr=new THREE.Mesh(AG.dome,A3.mat("#9fe7ff",{rough:0.1}));cr.scale.setScalar(1.6);cr.position.y=1.15;inner.add(cr);
+  for(let i=0;i<8;i++){const l=new THREE.Mesh(AG.antb,A3.mat("#ffd23f",{emissive:"#ffd23f",glow:0.8}));const an=i/8*6.28;l.position.set(Math.cos(an)*3.7,-0.3,Math.sin(an)*3.7);l.scale.setScalar(1.8);inner.add(l);}
+  eyes(inner,0.6,2.3,2,1.8,2.2);
+  return g;
 }
 
-/* ---------- shields ---------- */
-const shieldMats=["#5fd36a","#8be36a","#b8f06a"].map(c=>A3.mat(c,{rough:0.5}));
-const shieldMesh=new THREE.InstancedMesh(geo.cube,A3.mat("#7be06a",{rough:0.5}),600);shieldMesh.castShadow=true;shieldMesh.receiveShadow=true;scene.add(shieldMesh);
-let cubes=[];
-const SHIELD_Z=-5;
-function buildShields(){
-  cubes=[];const n=4,pat=["..####..",".######.","########","########","###..###","##....##"];
-  for(let s=0;s<n;s++){
-    const cx=(s-(n-1)/2)*(FW/n);
-    pat.forEach((row,r)=>{for(let c=0;c<row.length;c++)if(row[c]==="#")for(let l=0;l<2;l++)cubes.push({x:cx+(c-3.5)*0.44,y:-0.5+l*0.44,z:SHIELD_Z+(r-2.5)*0.44,alive:true});});
-  }
-  refreshShields();
-}
-const dummy=new THREE.Object3D();
-function refreshShields(){
-  let i=0;cubes.forEach(c=>{if(!c.alive)return;dummy.position.set(c.x,c.y,c.z);dummy.rotation.set(0,0,0);dummy.updateMatrix();shieldMesh.setMatrixAt(i++,dummy.matrix);});
-  shieldMesh.count=i;shieldMesh.instanceMatrix.needsUpdate=true;
-}
-function hitShield(x,z,r){
-  let hit=false;
-  for(const c of cubes){if(!c.alive)continue;if(Math.abs(c.x-x)<0.3+r&&Math.abs(c.z-z)<0.3+r){hit=true;break;}}
-  if(!hit)return false;
-  let n=0;
-  for(const c of cubes){if(!c.alive)continue;const d=Math.hypot(c.x-x,c.z-z);if(d<0.55+r*0.5&&Math.random()<0.85-d*0.6){c.alive=false;n++;debris(c);}}
-  if(!n){for(const c of cubes)if(c.alive&&Math.hypot(c.x-x,c.z-z)<0.8){c.alive=false;debris(c);break;}}
-  refreshShields();return true;
-}
-const parts=A3.particles(scene);
-function debris(c){parts.burst(new THREE.Vector3(c.x,c.y,c.z),"#7be06a",2,3,0.4);}
-
-/* ---------- glow sprites ---------- */
+/* ---------- pools ---------- */
 const glowTex=A3.canvasTex(64,64,(g)=>{const gr=g.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,"rgba(255,255,255,1)");gr.addColorStop(0.35,"rgba(255,255,255,.5)");gr.addColorStop(1,"rgba(255,255,255,0)");g.fillStyle=gr;g.fillRect(0,0,64,64);});
-function glow(col,size){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:new THREE.Color(col),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));s.scale.setScalar(size);return s;}
-const shotMat=new THREE.MeshBasicMaterial({color:0x7cf3ff}),eshotMat=new THREE.MeshBasicMaterial({color:0xff5d9e});
-const flashes=[];
-function flash(pos,col,size){const s=glow(col,size);s.position.copy(pos);scene.add(s);flashes.push({s:s,life:0.35,max:0.35,size:size});}
+function pool(n,make){const a=[];for(let i=0;i<n;i++){const m=make();m.visible=false;scene.add(m);a.push({m,on:false});}return a;}
+function grab(p){for(const o of p)if(!o.on){o.on=true;o.m.visible=true;return o;}return null;}
+function drop(o){o.on=false;o.m.visible=false;}
+const shotGeo=new THREE.CylinderGeometry(0.14,0.14,1.2,8);shotGeo.rotateX(Math.PI/2);
+const shots=pool(160,()=>{const m=new THREE.Mesh(shotGeo,new THREE.MeshBasicMaterial({color:0x7cf3ff}));const g=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0x7cf3ff,blending:THREE.AdditiveBlending,depthWrite:false}));g.scale.setScalar(1.6);m.add(g);return m;});
+const ebGeo=new THREE.OctahedronGeometry(0.42,0);
+const ebolts=pool(140,()=>{const m=new THREE.Mesh(ebGeo,new THREE.MeshBasicMaterial({color:0xff5d9e}));const g=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xff5d9e,blending:THREE.AdditiveBlending,depthWrite:false}));g.scale.setScalar(2.2);m.add(g);return m;});
+const misGeo=new THREE.ConeGeometry(0.22,0.9,8);misGeo.rotateX(-Math.PI/2);
+const missiles=pool(40,()=>{const m=new THREE.Mesh(misGeo,A3.mat("#ffd23f",{emissive:"#ff8a00",glow:0.7}));const g=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xff8a3d,blending:THREE.AdditiveBlending,depthWrite:false}));g.scale.setScalar(1.4);g.position.z=0.6;m.add(g);return m;});
+const coinGeo=new THREE.CylinderGeometry(0.42,0.42,0.12,14);coinGeo.rotateX(Math.PI/2);
+const COINMAX=220,coinMesh=new THREE.InstancedMesh(coinGeo,A3.mat("#ffcf3f",{metal:0.6,rough:0.3,emissive:"#b08000",glow:0.5}),COINMAX);coinMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);coinMesh.frustumCulled=false;coinMesh.count=0;scene.add(coinMesh);
+const flashes=pool(24,()=>new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true})));
+function flash(p,col,size){const f=grab(flashes);if(!f)return;f.m.position.copy(p);f.m.material.color.set(col);f.m.scale.setScalar(size);f.life=0.35;f.size=size;}
+const beamGeo=new THREE.BoxGeometry(1,1,1);beamGeo.translate(0,0,0.5);
+const beams=pool(8,()=>new THREE.Mesh(beamGeo,new THREE.MeshBasicMaterial({color:0xff7ae0,transparent:true,opacity:0.9,blending:THREE.AdditiveBlending,depthWrite:false})));
+const ringGeo=new THREE.RingGeometry(0.85,1,48);ringGeo.rotateX(-Math.PI/2);
+const rings=pool(6,()=>new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:0x7cf3ff,transparent:true,opacity:0.8,side:THREE.DoubleSide,depthWrite:false})));
+const parts=A3.particles(scene);
+const orbGeo=new THREE.SphereGeometry(0.5,16,12),orbMat=A3.mat("#7cf3ff",{emissive:"#3ac0ff",glow:1,rough:0.2});
+const droneGeo=new THREE.OctahedronGeometry(0.45,0),droneMat=A3.mat("#c0c8d0",{metal:0.6,rough:0.3,emissive:"#3a4a6a",glow:0.4});
 
-/* ---------- power-ups ---------- */
-const POW={double:{c:"#ffd23f",l:"2"},rapid:{c:"#ff6fa3",l:"R"},shield:{c:"#4fc3ff",l:"S"}};
-const powLabel={};Object.keys(POW).forEach(k=>{powLabel[k]=A3.label(POW[k].l,{size:0.9,color:"#fff",stroke:"rgba(0,0,0,.5)"}).material.map;});
-function buildPow(k){const g=new THREE.Group();const b=new THREE.Mesh(new THREE.OctahedronGeometry(0.6,0),A3.mat(POW[k].c,{emissive:POW[k].c,glow:0.5,rough:0.2}));b.castShadow=true;g.add(b);const l=new THREE.Sprite(new THREE.SpriteMaterial({map:powLabel[k],depthTest:false}));l.scale.set(0.8,0.8,1);l.position.y=1.1;g.add(l);const gl=glow(POW[k].c,2.6);g.add(gl);g.userData.b=b;return g;}
-
-/* ---------- game state ---------- */
-let playing=false,paused=false,score=0,wave=1,lives=3,fleet=[],fleetG=new THREE.Group(),dirX=1,stepT=0,stepping=0,shots=[],eshots=[],pows=[],mother=null,motherT=0,boss=null,cool=0,inv=0;
-let powT={double:0,rapid:0,shield:0},waveIntro=0,coinsRun=0,kills=0,diff=S.diff,over=false,overT=0,descend=0,fleetZ=0;
-scene.add(fleetG);
-const DIFF=[{step:1.25,fire:0.55,es:7},{step:1,fire:1,es:9},{step:0.8,fire:1.5,es:11}];
-const FORMS=[
-  ["#########","#########","#########","#########","#########"],
-  ["..#####..",".#######.","#########",".#######.","..#####.."],
-  ["#.#.#.#.#",".#.#.#.#.","#.#.#.#.#",".#.#.#.#.","#.#.#.#.#"],
-  ["##.###.##","##.###.##","#########","##.###.##","##.###.##"],
-  ["#########","#.......#","#.#####.#","#.......#","#########"],
-  ["....#....","...###...","..#####..",".#######.","#########"]
+/* ---------- run perks ---------- */
+const PERKS=[
+  {k:"spread",n:"Spread Shot",ic:"🔱",d:"+1 extra bullet",max:6},
+  {k:"rapid",n:"Rapid Fire",ic:"⚡",d:"+22% fire rate",max:10},
+  {k:"power",n:"Power Shot",ic:"💪",d:"+30% damage",max:12},
+  {k:"pierce",n:"Piercing Shots",ic:"🗡️",d:"bullets go through +1 alien",max:5},
+  {k:"missile",n:"Homing Missiles",ic:"🚀",d:"+1 homing missile every 2 seconds",max:6},
+  {k:"shield",n:"Orbiting Shields",ic:"🛡️",d:"+1 glowing orb that circles your ship",max:6},
+  {k:"drone",n:"Drones",ic:"🛸",d:"+1 drone that shoots with you",max:5},
+  {k:"laser",n:"Laser",ic:"🔦",d:"a big laser beam every few seconds",max:6},
+  {k:"nova",n:"Nova Pulse",ic:"💫",d:"a blast ring hits everything near you",max:6},
+  {k:"crit",n:"Lucky Crits",ic:"🎯",d:"+10% chance of triple damage",max:5},
+  {k:"engine",n:"Turbo Engines",ic:"💨",d:"+12% speed",max:5},
+  {k:"hull",n:"Extra Heart",ic:"💖",d:"+1 heart and heal 2",max:10},
+  {k:"heal",n:"Repair Kit",ic:"🔧",d:"heal all your hearts",max:99}
 ];
-function startWave(){
-  fleetG.clear();fleet=[];eshots.forEach(e=>scene.remove(e.m));eshots=[];
-  if(boss){scene.remove(boss.g);boss=null;}
-  const d=DIFF[diff];
-  fleetZ=0;fleetG.position.set(0,0,0);dirX=1;
-  if(wave%5===0){
-    const lv=wave/5;const g=buildBoss(lv);g.position.set(0,1,TOP+6);scene.add(g);
-    boss={g:g,hp:25+lv*15,max:25+lv*15,t:0,fireT:1.5,lv:lv,hitT:0};
-    for(let i=0;i<6;i++)addAlien(i%ALIENS.length,(i-2.5)*2.6,TOP+11);
-    bossBar.visible=true;
-  }else{
-    bossBar.visible=false;
-    const f=FORMS[(wave-1)%FORMS.length],rows=Math.min(f.length,3+Math.floor((wave+1)/3));
-    for(let r=0;r<rows;r++)for(let c=0;c<9;c++)if(f[r][c]==="#")addAlien((r+Math.floor(wave/2))%ALIENS.length,(c-4)*2.1,TOP+1.5+r*3.1);
-  }
-  fleet.forEach(a=>{a.base=a.g.position.clone();});
-  waveIntro=1.6;const wb=$("waveBig");wb.textContent=wave%5===0?"Boss wave "+wave+"!":"Wave "+wave;wb.classList.add("on");setTimeout(()=>wb.classList.remove("on"),1500);
-  stepT=0.6;
-  if(wave>1&&(wave-1)%3===0&&cubes.filter(c=>c.alive).length<cubes.length*0.6)buildShields();
-  hud();
-}
-function addAlien(type,x,z){const g=cloneAlien(type);g.position.set(x,0,z);fleetG.add(g);fleet.push({g:g,t:ALIENS[type],alive:true,ph:Math.random()*6});}
-function newGame(){
-  const sd=shipDef();scene.remove(player);player=buildShip(sd);scene.add(player);player.position.set(0,0,SHIPZ);
-  score=0;wave=1;lives=sd.lives;coinsRun=0;kills=0;over=false;overT=0;inv=0;powT={double:0,rapid:0,shield:0};
-  shots.forEach(s=>scene.remove(s.m));shots=[];pows.forEach(p=>scene.remove(p.g));pows=[];if(mother){scene.remove(mother.g);mother=null;}motherT=A3.rand(15,25);
-  buildShields();startWave();playing=true;paused=false;player.visible=true;S.played++;persist();lifebar();hud();
-}
-function fire(){
-  if(!playing||paused||over||cool>0||waveIntro>1.2)return;
-  const sd=shipDef();cool=sd.cool*(powT.rapid>0?0.45:1);
-  const xs=powT.double>0?[-0.7,0.7]:[0];
-  xs.forEach(dx=>{const m=new THREE.Mesh(geo.shot,shotMat);m.rotation.x=Math.PI/2;m.position.set(player.position.x+dx,0.1,SHIPZ-1.6);const gl=glow("#7cf3ff",1.4);m.add(gl);scene.add(m);shots.push({m:m});});
-  A3.sfx("tick");
-}
-function enemyFire(from,aim){
-  const m=new THREE.Mesh(geo.ebolt,eshotMat);m.position.copy(from);m.position.y=0;const gl=glow("#ff5d9e",2.4);m.add(gl);scene.add(m);
-  const d=DIFF[diff],sp=d.es+wave*0.15;
-  let vx=0;if(aim){vx=A3.clamp((player.position.x-from.x)/((SHIPZ-from.z)/sp),-4,4);}
-  eshots.push({m:m,vx:vx,vz:sp});
-}
-function killAlien(a){
-  a.alive=false;const wp=new THREE.Vector3();a.g.getWorldPosition(wp);fleetG.remove(a.g);
-  parts.burst(wp,a.t.col,12,6,0.6);flash(wp,a.t.col,3);A3.sfx("pop");
-  addScore(a.t.pts*(1+Math.floor(wave/4)),wp);kills++;S.kills++;
-  if(Math.random()<0.07)dropPow(wp);
-}
-function dropPow(wp){const k=A3.pick(Object.keys(POW));const g=buildPow(k);g.position.copy(wp);g.position.y=0.3;scene.add(g);pows.push({g:g,k:k});}
-const pops=[];
-function addScore(n,wp){score+=n;coinsRun+=n/20;hud();if(wp&&n>=50){const l=A3.label("+"+n,{size:1.1,color:"#ffd23f",stroke:"rgba(0,0,0,.6)"});l.position.copy(wp);l.position.y=1.5;scene.add(l);pops.push({s:l,life:1.2});}}
-function hurt(){
-  if(inv>0||over)return;
-  if(powT.shield>0){powT.shield=0;A3.sfx("hit");inv=0.6;return;}
-  lives--;inv=2;A3.sfx("boom");parts.burst(player.position.clone(),"#ff8a3d",22,7,0.8);flash(player.position.clone(),"#ffb340",5);shakeT=0.4;lifebar();
-  if(lives<=0){over=true;overT=1.4;player.visible=false;}
-}
-let shakeT=0;
-function finish(){
-  playing=false;
-  const isBest=score>S.best;if(isBest)S.best=score;
-  if(wave>S.bestWave)S.bestWave=wave;
-  const c=Math.floor(coinsRun)+(wave-1)*5;S.coins+=c;persist();
-  $("oTitle").textContent=isBest?"New best!":"Game over";
-  $("oText").textContent="The fleet got you on wave "+wave+".";
-  $("oStats").innerHTML="<div>Score <b>"+A3.fmt(score)+"</b></div><div>Best <b>"+A3.fmt(S.best)+"</b></div><div>Wave <b>"+wave+"</b></div><div>Aliens <b>"+kills+"</b></div><div>Coins <b>+"+c+"</b></div>";
-  A3.sfx(isBest?"win":"lose");A3.show("ovOver");
-  if(isBest){A3.best(S.best);if(score>=3000)A3.win(2,"a new Star Raiders best");}
-  hud();
-}
-function waveCleared(){
-  const bonus=wave*100;addScore(bonus,null);A3.sfx("win");A3.toast("Wave "+wave+" cleared! +"+bonus);
-  if(wave%5===0)A3.win(Math.min(5,1+wave/5),"beating a Star Raiders boss");
-  wave++;if(wave>S.bestWave)S.bestWave=wave;
-  if(lives<shipDef().lives+2&&wave%5===1){lives++;lifebar();A3.toast("Extra life!");}
-  persist();setTimeout(()=>{if(playing&&!over)startWave();},900);waveIntro=99;
-}
-function persist(){A3.store(SAVE,S);}
-function hud(){
-  $("hScore").textContent=A3.fmt(score);$("hWave").textContent=wave;$("hBest").textContent=A3.fmt(S.best);$("hCoins").textContent=A3.fmt(S.coins);
-  $("sc").firstChild.textContent=A3.fmt(score);$("scSub").textContent="Wave "+wave;
-}
-function lifebar(){const c=shipDef().col;let h="";if(!playing){$("lifebar").innerHTML="";return;}for(let i=0;i<lives;i++)h+='<span style="color:'+c+';text-shadow:0 2px 0 rgba(0,0,0,.5)">▲</span>';$("lifebar").innerHTML=h;}
 
-/* boss health bar */
-const bossBar=new THREE.Group();const bbBack=new THREE.Mesh(new THREE.PlaneGeometry(8,0.5),new THREE.MeshBasicMaterial({color:0x220a2a}));const bbFill=new THREE.Mesh(new THREE.PlaneGeometry(8,0.5),new THREE.MeshBasicMaterial({color:0xff5d5d}));bbFill.position.z=0.01;bossBar.add(bbBack,bbFill);bossBar.visible=false;scene.add(bossBar);
+/* ---------- state ---------- */
+let run=null,paused=false,pickOpen=false,TT=0;
+let aliens=[],boss=null,coins=[],orbs=[],drones=[],buddies=[];
+const joy={on:false,x:0,y:0,sx:0,sy:0,id:null};
+function newRun(){
+  clearField();
+  run={wave:0,hp:5+M.lv("hull"),maxHp:5+M.lv("hull"),perks:{},coins:0,kills:0,inv:1,cool:0,dashCd:0,dashT:0,misT:1,lasT:2,novT:3,over:false,overT:0,spawnLeft:0,spawnT:0,between:0,rerolls:1,vx:0,vz:0};
+  ship.position.set(0,1.2,0);ship.visible=true;ship.rotation.set(0,0,0);
+  for(let i=0;i<M.lv("start");i++){const p=A3.pick(PERKS.filter(q=>q.k!=="heal"&&q.k!=="hull"));givePerk(p.k);}
+  S.runs++;S.played++;M.persist();
+  $("bDash").hidden=!matchMedia("(pointer:coarse)").matches;
+  paused=false;nextWave();hearts();perkRow();hud();
+}
+function clearField(){
+  aliens.forEach(a=>scene.remove(a.g));aliens=[];if(boss){scene.remove(boss.g);boss=null;}$("bossbar").hidden=true;
+  [shots,ebolts,missiles,flashes,beams,rings].forEach(p=>p.forEach(drop));coins=[];parts.clear();
+  orbs.forEach(o=>scene.remove(o));orbs=[];drones.forEach(d=>scene.remove(d.m));drones=[];
+}
+const gm=()=>GAL[S.world].hm;
+const dmgBase=()=>Math.pow(1.2,M.lv("dmg"))*M.mul()*(1+0.3*(run?run.perks.power||0:0));
+const alienHp=w=>3*Math.pow(1.17,w-1)*gm();
+function nextWave(){
+  run.wave++;const w=run.wave;
+  run.spawnLeft=w%5===0?Math.min(12,4+Math.floor(w/2)):Math.min(46,6+Math.floor(w*2.6));run.spawnT=1.2;
+  if(w%5===0)spawnBoss();
+  const wb=$("waveBig");wb.textContent=w%5===0?"Boss wave "+w+"!":"Wave "+w;wb.classList.add("on");setTimeout(()=>wb.classList.remove("on"),1500);
+  A3.sfx(w%5===0?"boom":"whoosh");hud();
+}
+function pickKind(w){const r=Math.random();if(w>=8&&r<0.15)return "zoomer";if(w>=6&&r<0.3)return "saucer";if(w>=3&&r<0.5)return "squid";if(w>=2&&r<0.68)return "crab";return "blob";}
+function spawnAlien(kind,x,z){
+  const t=KINDS[kind],g=proto[kind].clone();g.userData.s=1.35;const a=Math.random()*6.283;
+  if(x==null){x=Math.cos(a)*(R-1);z=Math.sin(a)*(R-1);}
+  g.position.set(x,6,z);scene.add(g);
+  const hp=alienHp(run.wave)*t.hp;
+  aliens.push({g,k:kind,t,x,z,hp,max:hp,shootT:A3.rand(1,3),ph:Math.random()*6,drop:6,hitT:0,orbA:a,zoomT:A3.rand(1.5,3)});
+}
+function spawnBoss(){
+  const lv=run.wave/5,g=buildBoss(lv);g.position.set(0,8,-R+6);scene.add(g);
+  const hp=alienHp(run.wave)*45*(1+lv*0.15);
+  boss={g,lv,x:0,z:-R+6,hp,max:hp,fireT:2,spawnT:5,hitT:0,drop:8};
+  $("bossName").textContent="Boss: "+["Mega Blorp","Queen Squidge","Captain Crabtron","Saucer Supreme","The Big Wobble"][lv%5];$("bossbar").hidden=false;
+}
+
+/* ---------- combat ---------- */
+function crit(){return Math.random()<0.1*(run.perks.crit||0)?3:1;}
+function hitAlien(a,d,p){
+  a.hp-=d;a.hitT=0.08;
+  if(a.hp<=0){
+    const pos=new THREE.Vector3(a.x,1.2,a.z);parts.burst(pos,a.t.col,8,6,0.5);flash(pos,a.t.col,4);A3.sfx("pop");
+    scene.remove(a.g);aliens.splice(aliens.indexOf(a),1);run.kills++;S.kills++;
+    dropCoins(a.x,a.z,a.t.coin);
+    return true;
+  }
+  return false;
+}
+function hitBoss(d){
+  if(!boss)return;boss.hp-=d;boss.hitT=0.08;
+  if(boss.hp<=0){const p=new THREE.Vector3(boss.x,2,boss.z);parts.burst(p,"#ffd23f",30,10,1);parts.burst(p,"#ff5d5d",20,8,0.8);flash(p,"#ffd23f",14);A3.sfx("boom");shake=0.6;
+    for(let i=0;i<14;i++)dropCoins(boss.x+A3.rand(-3,3),boss.z+A3.rand(-3,3),3);
+    scene.remove(boss.g);boss=null;$("bossbar").hidden=true;S.bosses++;A3.win(3,"beating a Star Raiders boss on wave "+run.wave);A3.toast("Boss beaten! Grab the coins!",1800);}
+}
+const coinVal=()=>(1+0.25*M.lv("coin"))*gm()*M.mul();
+function dropCoins(x,z,n){const c=Math.max(1,Math.round(n));for(let i=0;i<c;i++){if(coins.length>=COINMAX)break;coins.push({x:x+A3.rand(-0.8,0.8),z:z+A3.rand(-0.8,0.8),y:2,vy:A3.rand(4,7),v:2*(1+run.wave*0.2)*coinVal()*(n/c),ph:Math.random()*6});}}
+function shootFrom(o,dir,dmg,col){const s=grab(shots);if(!s)return;s.m.position.set(o.x,1.2,o.z);s.vx=dir.x*42;s.vz=dir.z*42;s.life=0.75;s.dmg=dmg;s.pierce=run.perks.pierce||0;s.hit=null;s.m.rotation.y=Math.atan2(dir.x,dir.z);if(col)s.m.material.color.set(col);else s.m.material.color.set("#7cf3ff");}
+function nearest(x,z,max){let best=null,bd=max*max;for(const a of aliens){const d=(a.x-x)*(a.x-x)+(a.z-z)*(a.z-z);if(d<bd){bd=d;best=a;}}if(boss){const d=(boss.x-x)*(boss.x-x)+(boss.z-z)*(boss.z-z)-9;if(d<bd)best=boss;}return best;}
+function enemyShot(x,z,dx,dz,spd){const b=grab(ebolts);if(!b)return;b.m.position.set(x,1.2,z);const L=Math.hypot(dx,dz)||1;b.vx=dx/L*spd;b.vz=dz/L*spd;b.life=4;}
+function hurtMe(){
+  if(run.inv>0||run.over)return;run.hp--;run.inv=1.2;A3.sfx("hit");shake=0.35;parts.burst(ship.position.clone(),"#ff8a3d",14,6,0.6);flash(ship.position.clone(),"#ffb340",5);hearts();
+  if(run.hp<=0){run.over=true;run.overT=1.5;ship.visible=false;A3.sfx("boom");parts.burst(ship.position.clone(),"#ffd23f",30,10,1);}
+}
+let shake=0;
+
+/* ---------- perks ---------- */
+function givePerk(k){run.perks[k]=(run.perks[k]||0)+1;
+  if(k==="hull"){run.maxHp++;run.hp=Math.min(run.maxHp,run.hp+2);}
+  if(k==="heal"){run.hp=run.maxHp;run.perks.heal=0;}
+  if(k==="shield")syncOrbs();if(k==="drone")syncDrones();
+  hearts();perkRow();}
+function syncOrbs(){while(orbs.length<(run.perks.shield||0)){const o=new THREE.Mesh(orbGeo,orbMat);const g=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0x7cf3ff,blending:THREE.AdditiveBlending,depthWrite:false}));g.scale.setScalar(2.4);o.add(g);scene.add(o);orbs.push(o);}}
+function syncDrones(){while(drones.length<(run.perks.drone||0)){const m=new THREE.Mesh(droneGeo,droneMat);m.castShadow=true;scene.add(m);drones.push({m,cd:Math.random()});}}
+function buildBuddies(){buddies.forEach(b=>scene.remove(b.g));buddies=[];M.equipped().forEach((P,i)=>{const g=M.petMesh(P.id);g.scale.setScalar(0.85);const bub=new THREE.Mesh(new THREE.SphereGeometry(0.95,18,12),new THREE.MeshStandardMaterial({color:0xbfefff,transparent:true,opacity:0.22,roughness:0.05,depthWrite:false}));bub.position.y=0.25;g.add(bub);scene.add(g);buddies.push({g,P,cd:i*0.2,i});});}
+function offerPicks(){
+  pickOpen=true;const pool=PERKS.filter(p=>(run.perks[p.k]||0)<p.max&&!(p.k==="heal"&&run.hp>=run.maxHp));const ch=[];
+  while(ch.length<3&&pool.length){const i=(Math.random()*pool.length)|0;ch.push(pool.splice(i,1)[0]);}
+  $("pkTitle").textContent=run.wave%5===0?"Boss beaten!":"Wave "+run.wave+" cleared!";
+  $("picks").innerHTML=ch.map((p,i)=>'<button class="pick" data-k="'+p.k+'" style="animation-delay:'+(i*0.08)+'s"><span class="ic">'+p.ic+'</span><b>'+p.n+'</b><small>'+p.d+'</small><em>'+(run.perks[p.k]?"Level "+(run.perks[p.k]+1):"New!")+'</em></button>').join("");
+  $("pkReroll").hidden=run.rerolls<1;$("pkReroll").textContent="Reroll ("+run.rerolls+")";
+  A3.show("ovPick");A3.sfx("win");
+}
+$("picks").addEventListener("click",e=>{const b=e.target.closest("[data-k]");if(!b||!pickOpen)return;givePerk(b.dataset.k);A3.sfx("coin");pickOpen=false;A3.hide("ovPick");nextWave();});
+$("pkReroll").onclick=()=>{if(run.rerolls<1)return;run.rerolls--;A3.sfx("click");offerPicks();};
+function perkRow(){if(!run){$("perkrow").innerHTML="";return;}$("perkrow").innerHTML=PERKS.filter(p=>run.perks[p.k]).map(p=>"<span>"+p.ic+" "+run.perks[p.k]+"</span>").join("");}
+function hearts(){if(!run){$("hearts").innerHTML="";return;}let h="";for(let i=0;i<run.maxHp;i++)h+='<i'+(i<run.hp?"":' class="x"')+'>❤️</i>';$("hearts").innerHTML=h;}
 
 /* ---------- input ---------- */
-let touchX=null,autoFire=false,fireHeld=false;
 const cv=renderer.domElement;
-cv.addEventListener("pointerdown",e=>{if(e.pointerType!=="mouse"){autoFire=true;}const p=A3.floorPoint(e,camera,cv,0);if(p)touchX=p.x;try{cv.setPointerCapture(e.pointerId);}catch(_){} if(e.pointerType==="mouse")fireHeld=true;});
-cv.addEventListener("pointermove",e=>{if(e.pointerType==="mouse"||touchX!==null){const p=A3.floorPoint(e,camera,cv,0);if(p)touchX=p.x;}});
-const endP=e=>{if(e.pointerType!=="mouse"){touchX=null;autoFire=false;}fireHeld=false;};
-cv.addEventListener("pointerup",endP);cv.addEventListener("pointercancel",endP);
-cv.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse")touchX=null;});
-const tf=$("tFire");
-tf.addEventListener("pointerdown",e=>{e.preventDefault();fireHeld=true;tf.classList.add("down");});
-["pointerup","pointercancel","pointerleave"].forEach(ev=>tf.addEventListener(ev,()=>{fireHeld=false;tf.classList.remove("down");}));
-window.addEventListener("keydown",e=>{if(e.key==="p"||e.key==="Escape"){if(playing&&!over)togglePause();}});
+cv.addEventListener("pointerdown",e=>{if(!run||run.over||paused)return;joy.on=true;joy.id=e.pointerId;joy.sx=e.clientX;joy.sy=e.clientY;joy.x=joy.y=0;try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  const r=stage.getBoundingClientRect(),j=$("joy");j.style.left=(e.clientX-r.left)+"px";j.style.top=(e.clientY-r.top)+"px";j.style.display="block";$("knob").style.transform="";});
+cv.addEventListener("pointermove",e=>{if(!joy.on||e.pointerId!==joy.id)return;let dx=e.clientX-joy.sx,dy=e.clientY-joy.sy;const L=Math.hypot(dx,dy),mx=50;if(L>mx){dx*=mx/L;dy*=mx/L;}joy.x=dx/mx;joy.y=dy/mx;$("knob").style.transform="translate("+dx+"px,"+dy+"px)";});
+function joyEnd(){joy.on=false;joy.x=joy.y=0;$("joy").style.display="none";}
+cv.addEventListener("pointerup",joyEnd);cv.addEventListener("pointercancel",joyEnd);
+function dash(){if(!run||run.over||paused||run.dashCd>0)return;run.dashCd=2.2;run.dashT=0.25;run.inv=Math.max(run.inv,0.45);A3.sfx("whoosh");parts.burst(ship.position.clone(),"#7cf3ff",10,4,0.4);}
+$("bDash").addEventListener("pointerdown",e=>{e.stopPropagation();e.preventDefault();$("bDash").classList.add("down");dash();});
+$("bDash").addEventListener("pointerup",()=>$("bDash").classList.remove("down"));
+window.addEventListener("keydown",e=>{if(e.key===" "){dash();}if(e.key==="Escape"||e.key==="p")pauseOn(!paused);});
 
-/* ---------- loop ---------- */
-const wp=new THREE.Vector3();
-let T=0;
-function step(dt){T+=dt;const t=T;
-  stars.rotation.y=t*0.005;planet.rotation.y=t*0.05;
-  floorTex.offset.y=-t*0.15;
-  if(playing&&!paused){
-    const sd=shipDef();
-    // move
-    if(!over){
-      let mv=0;if(A3.keys.arrowleft||A3.keys.a)mv-=1;if(A3.keys.arrowright||A3.keys.d)mv+=1;
-      const lim=FW/2-0.5;
-      if(mv){player.position.x=A3.clamp(player.position.x+mv*sd.speed*dt,-lim,lim);touchX=null;}
-      else if(touchX!==null){const dx=touchX-player.position.x;player.position.x=A3.clamp(player.position.x+A3.clamp(dx,-sd.speed*dt*1.3,sd.speed*dt*1.3),-lim,lim);mv=Math.sign(dx)*Math.min(1,Math.abs(dx));}
-      player.rotation.z=A3.lerp(player.rotation.z,-mv*0.45,0.15);
-      player.userData.jet.scale.y=0.8+Math.random()*0.5;
-      player.visible=inv>0?(Math.floor(t*12)%2===0):true;
-      player.userData.shield.visible=powT.shield>0;
-      if(A3.keys[" "]||fireHeld||autoFire)fire();
-    }
-    cool-=dt;inv=Math.max(0,inv-dt);
-    for(const k in powT)powT[k]=Math.max(0,powT[k]-dt);
-    let ph="";for(const k in powT)if(powT[k]>0&&k!=="shield")ph+='<span style="background:'+POW[k].c+'">'+(k==="double"?"Double":"Rapid")+" "+Math.ceil(powT[k])+'</span>';if(powT.shield>0)ph+='<span style="background:#2a8fd8">Shield</span>';
-    if($("powers").innerHTML!==ph)$("powers").innerHTML=ph;
-    if(waveIntro>0&&waveIntro<50)waveIntro-=dt;
-    // fleet stepping
-    const alive=fleet.filter(a=>a.alive);
-    const d=DIFF[diff];
-    if(alive.length&&waveIntro<1.2){
-      const frac=alive.length/Math.max(1,fleet.length);
-      const interval=Math.max(0.07,(0.15+0.75*frac)*d.step*Math.pow(0.97,wave-1));
-      stepT-=dt;
-      if(stepT<=0){
-        stepT=interval;
-        let minX=1e9,maxX=-1e9;alive.forEach(a=>{const x=a.g.position.x+fleetG.position.x;minX=Math.min(minX,x);maxX=Math.max(maxX,x);});
-        if((dirX>0&&maxX+0.8>FW/2-0.2)||(dirX<0&&minX-0.8<-FW/2+0.2)){dirX=-dirX;fleetZ+=0.9;}
-        else fleetG.position.x+=dirX*0.5;
-        A3.sfx("tick");
-        alive.forEach(a=>{a.g.userData.inner.rotation.z=(a.g.userData.inner.rotation.z>0?-0.12:0.12);});
-      }
-      fleetG.position.z=A3.lerp(fleetG.position.z,fleetZ,0.2);
-      // enemy fire
-      const rate=(0.6+wave*0.08)*d.fire;
-      if(Math.random()<rate*dt&&!over){
-        // pick bottom-most alien in a random column
-        const a=A3.pick(alive);let low=a;alive.forEach(b=>{if(Math.abs(b.g.position.x-a.g.position.x)<0.5&&b.g.position.z>low.g.position.z)low=b;});
-        low.g.getWorldPosition(wp);enemyFire(wp,Math.random()<0.25+wave*0.02);
-      }
-      // reach bottom?
-      let maxZ=-1e9;alive.forEach(a=>{maxZ=Math.max(maxZ,a.g.position.z+fleetG.position.z);});
-      if(maxZ>SHIELD_Z-1.4){ // squash shields as they arrive
-        alive.forEach(a=>{a.g.getWorldPosition(wp);for(const c of cubes)if(c.alive&&Math.abs(c.x-wp.x)<1&&Math.abs(c.z-wp.z)<1)c.alive=false;});refreshShields();
-      }
-      if(maxZ>SHIPZ-1&&!over){lives=1;inv=0;powT.shield=0;hurt();}
-    }
-    alive.forEach(a=>{a.g.position.y=Math.sin(t*3+a.ph)*0.15;});
-    // boss
-    if(boss){
-      boss.t+=dt;const bg=boss.g;bg.position.x=Math.sin(boss.t*(0.5+boss.lv*0.1))*(FW/2-4);bg.position.z=TOP+6+Math.sin(boss.t*0.3)*2+Math.min(6,boss.t*0.05);
-      bg.userData.inner.rotation.y=Math.sin(boss.t*2)*0.15;
-      boss.fireT-=dt;if(boss.fireT<=0&&!over&&waveIntro<1.2){boss.fireT=Math.max(0.5,1.6-boss.lv*0.2)*DIFF[diff].step;
-        const pat=Math.floor(boss.t)%3;
-        if(pat===0){for(let i=-2;i<=2;i++){enemyFire(bg.position.clone().add(new THREE.Vector3(i*1.2,0,2)),false);eshots[eshots.length-1].vx=i*1.6;}}
-        else enemyFire(bg.position.clone().add(new THREE.Vector3(0,0,2)),true);
-      }
-      boss.hitT=Math.max(0,boss.hitT-dt);bg.scale.setScalar(1+boss.hitT*0.4);
-      bossBar.visible=true;bossBar.position.set(bg.position.x,3.6,bg.position.z);bossBar.quaternion.copy(camera.quaternion);bbFill.scale.x=Math.max(0.001,boss.hp/boss.max);bbFill.position.x=-4*(1-boss.hp/boss.max);
-    }
-    if(!alive.length&&!boss&&waveIntro<50&&!over)waveCleared();
-    // shots
-    for(let i=shots.length-1;i>=0;i--){
-      const s=shots[i];s.m.position.z-=30*dt;let gone=s.m.position.z<TOP-4;
-      if(!gone&&hitShield(s.m.position.x,s.m.position.z,0.12))gone=true;
-      if(!gone)for(const a of alive){if(!a.alive)continue;a.g.getWorldPosition(wp);if(Math.abs(wp.x-s.m.position.x)<1&&Math.abs(wp.z-s.m.position.z)<0.9){killAlien(a);gone=true;break;}}
-      if(!gone&&boss){const bp=boss.g.position;if(Math.abs(bp.x-s.m.position.x)<3.2&&Math.abs(bp.z-s.m.position.z)<2.2){gone=true;boss.hp--;boss.hitT=0.15;A3.sfx("hit");parts.burst(s.m.position.clone(),"#ffd23f",5,4,0.4);
-        if(boss.hp<=0){const p=bp.clone();for(let k=0;k<5;k++)setTimeout(()=>{parts.burst(p.clone().add(new THREE.Vector3(A3.rand(-3,3),0,A3.rand(-2,2))),A3.pick(["#ff5d5d","#ffd23f","#b07bff"]),18,8,0.8);flash(p,"#ffb340",8);A3.sfx("boom");},k*120);
-          addScore(1000*boss.lv,p);scene.remove(boss.g);boss=null;bossBar.visible=false;shakeT=0.6;dropPow(p);}}}
-      if(!gone&&mother){const mp=mother.g.position;if(Math.abs(mp.x-s.m.position.x)<2&&Math.abs(mp.z-s.m.position.z)<1.4){gone=true;const pts=A3.pick([100,150,200,300]);parts.burst(mp.clone(),"#ff6fa3",24,8,0.8);flash(mp.clone(),"#ff6fa3",6);A3.sfx("coin");addScore(pts,mp.clone());dropPow(mp.clone());scene.remove(mother.g);mother=null;}}
-      if(gone){scene.remove(s.m);shots.splice(i,1);}
-    }
-    // enemy shots
-    for(let i=eshots.length-1;i>=0;i--){
-      const e=eshots[i];e.m.position.z+=e.vz*dt;e.m.position.x+=e.vx*dt;e.m.rotation.y+=dt*8;e.m.rotation.x+=dt*5;
-      let gone=e.m.position.z>SHIPZ+3;
-      if(!gone&&hitShield(e.m.position.x,e.m.position.z,0.2))gone=true;
-      if(!gone&&!over&&Math.abs(e.m.position.x-player.position.x)<(powT.shield>0?1.9:1.2)&&Math.abs(e.m.position.z-SHIPZ)<0.9){gone=true;hurt();}
-      if(gone){scene.remove(e.m);eshots.splice(i,1);}
-    }
-    // power-ups
-    for(let i=pows.length-1;i>=0;i--){
-      const p=pows[i];p.g.position.z+=4*dt;p.g.userData.b.rotation.y+=dt*3;
-      let gone=p.g.position.z>SHIPZ+3;
-      if(!gone&&!over&&Math.abs(p.g.position.x-player.position.x)<1.6&&Math.abs(p.g.position.z-SHIPZ)<1.3){gone=true;powT[p.k]=p.k==="shield"?999:8;A3.sfx("coin");A3.toast(p.k==="double"?"Double shot!":p.k==="rapid"?"Rapid fire!":"Shield up!",1200);}
-      if(gone){scene.remove(p.g);pows.splice(i,1);}
-    }
-    // mothership
-    motherT-=dt;
-    if(motherT<=0&&!mother&&!boss&&!over&&waveIntro<1){motherT=A3.rand(18,30);const g=buildMother();const side=Math.random()<0.5?-1:1;g.position.set(side*(FW/2+4),1.2,TOP-1);scene.add(g);mother={g:g,v:-side*5};A3.sfx("whoosh");}
-    if(mother){mother.g.position.x+=mother.v*dt;mother.g.rotation.y+=dt*2;if(Math.abs(mother.g.position.x)>FW/2+6){scene.remove(mother.g);mother=null;}}
-    if(over){overT-=dt;if(overT<=0)finish();}
+/* ---------- main step ---------- */
+const v3=new THREE.Vector3();
+function step(dt){
+  if(!run||paused||pickOpen)return;
+  const P=run;
+  if(P.over){P.overT-=dt;if(P.overT<=0)gameOver();return;}
+  // move
+  let mx=0,mz=0;const K=A3.keys;if(K.a||K.arrowleft)mx-=1;if(K.d||K.arrowright)mx+=1;if(K.w||K.arrowup)mz-=1;if(K.s||K.arrowdown)mz+=1;
+  if(joy.on){mx+=joy.x;mz+=joy.y;}const L=Math.hypot(mx,mz);if(L>1){mx/=L;mz/=L;}
+  const spd=13*(1+0.04*M.lv("speed"))*(1+0.12*(P.perks.engine||0))*(P.dashT>0?3:1);
+  P.vx+=(mx*spd-P.vx)*Math.min(1,dt*8);P.vz+=(mz*spd-P.vz)*Math.min(1,dt*8);
+  ship.position.x+=P.vx*dt;ship.position.z+=P.vz*dt;
+  const d0=Math.hypot(ship.position.x,ship.position.z);if(d0>R-1.5){ship.position.x*=(R-1.5)/d0;ship.position.z*=(R-1.5)/d0;}
+  P.dashT-=dt;P.dashCd-=dt;P.inv-=dt;
+  const sx=ship.position.x,sz=ship.position.z;
+  // aim + fire
+  const tg=nearest(sx,sz,30);
+  if(tg){const ang=Math.atan2(tg.x-sx,tg.z-sz)+Math.PI;let da=ang-ship.rotation.y;da=Math.atan2(Math.sin(da),Math.cos(da));ship.rotation.y+=da*Math.min(1,dt*12);}
+  else if(L>0.1){const ang=Math.atan2(mx,mz)+Math.PI;let da=ang-ship.rotation.y;da=Math.atan2(Math.sin(da),Math.cos(da));ship.rotation.y+=da*Math.min(1,dt*8);}
+  ship.rotation.z=A3.clamp(-P.vx*0.03,-0.5,0.5);
+  P.cool-=dt;
+  if(tg&&P.cool<=0){P.cool=1/(3*(1+0.06*M.lv("rate"))*(1+0.22*(P.perks.rapid||0)));
+    const n=1+(P.perks.spread||0),base=Math.atan2(tg.x-sx,tg.z-sz),dm=dmgBase();
+    for(let i=0;i<n;i++){const a=base+(i-(n-1)/2)*0.13;shootFrom({x:sx,z:sz},{x:Math.sin(a),z:Math.cos(a)},dm*crit());}
+    A3.sfx("tick");}
+  // missiles
+  if(P.perks.missile){P.misT-=dt;if(P.misT<=0&&(aliens.length||boss)){P.misT=2;for(let i=0;i<P.perks.missile;i++){const m=grab(missiles);if(!m)break;m.m.position.set(sx,1.4,sz);const a=Math.random()*6.28;m.vx=Math.cos(a)*14;m.vz=Math.sin(a)*14;m.life=4;m.dmg=dmgBase()*3;}A3.sfx("whoosh");}}
+  // laser
+  if(P.perks.laser){P.lasT-=dt;if(P.lasT<=0&&tg){P.lasT=Math.max(1,4-0.45*P.perks.laser);const dir=v3.set(tg.x-sx,0,tg.z-sz).normalize().clone(),len=40,dm=dmgBase()*5*P.perks.laser;
+    const b=grab(beams);if(b){b.m.position.set(sx,1.2,sz);b.m.lookAt(sx+dir.x,1.2,sz+dir.z);b.m.scale.set(0.6,0.6,len);b.life=0.3;}
+    aliens.slice().forEach(a=>{const ax=a.x-sx,az=a.z-sz,t=ax*dir.x+az*dir.z;if(t<0||t>len)return;const px=ax-dir.x*t,pz=az-dir.z*t;if(px*px+pz*pz<2.2)hitAlien(a,dm);});
+    if(boss){const ax=boss.x-sx,az=boss.z-sz,t=ax*dir.x+az*dir.z,px=ax-dir.x*t,pz=az-dir.z*t;if(t>0&&px*px+pz*pz<16)hitBoss(dm);}A3.sfx("whoosh");}}
+  // nova
+  if(P.perks.nova){P.novT-=dt;if(P.novT<=0){P.novT=Math.max(1.6,5-0.5*P.perks.nova);const rad=7+P.perks.nova*1.2,dm=dmgBase()*4*P.perks.nova;const r=grab(rings);if(r){r.m.position.set(sx,0.5,sz);r.life=0.4;r.r=rad;}
+    aliens.slice().forEach(a=>{if((a.x-sx)*(a.x-sx)+(a.z-sz)*(a.z-sz)<rad*rad)hitAlien(a,dm);});if(boss&&(boss.x-sx)*(boss.x-sx)+(boss.z-sz)*(boss.z-sz)<(rad+3)*(rad+3))hitBoss(dm);
+    for(const b of ebolts)if(b.on&&(b.m.position.x-sx)*(b.m.position.x-sx)+(b.m.position.z-sz)*(b.m.position.z-sz)<rad*rad)drop(b);A3.sfx("boom");}}
+  // orbs
+  orbs.forEach((o,i)=>{const a=TT*3+i/orbs.length*6.283;o.position.set(sx+Math.cos(a)*3.4,1.2,sz+Math.sin(a)*3.4);
+    for(const al of aliens){if((al.x-o.position.x)*(al.x-o.position.x)+(al.z-o.position.z)*(al.z-o.position.z)<2.6&&!(al.orbHit>0)){al.orbHit=0.3;if(hitAlien(al,dmgBase()*2))break;}}
+    for(const b of ebolts)if(b.on&&b.m.position.distanceToSquared(o.position)<1.2)drop(b);});
+  aliens.forEach(a=>{if(a.orbHit>0)a.orbHit-=dt;});
+  // drones (perk) and buddies (pets)
+  drones.forEach((d,i)=>{const a=-TT*1.5+i/Math.max(1,drones.length)*6.283;d.m.position.set(sx+Math.cos(a)*5,2.4,sz+Math.sin(a)*5);d.m.rotation.y+=dt*4;d.cd-=dt;
+    if(d.cd<=0){const t=nearest(d.m.position.x,d.m.position.z,24);if(t){d.cd=0.6;const dx=t.x-d.m.position.x,dz=t.z-d.m.position.z,l=Math.hypot(dx,dz);shootFrom({x:d.m.position.x,z:d.m.position.z},{x:dx/l,z:dz/l},dmgBase()*0.6,"#c0ffb0");}}});
+  buddies.forEach((b,i)=>{const n=buddies.length,a=TT*0.9+i/n*6.283;const tx=sx+Math.cos(a)*6.5,tz=sz+Math.sin(a)*6.5;b.g.position.x+=(tx-b.g.position.x)*Math.min(1,dt*5);b.g.position.z+=(tz-b.g.position.z)*Math.min(1,dt*5);b.g.position.y=3+Math.sin(TT*3+i)*0.3;b.cd-=dt;
+    if(b.cd<=0){const t=nearest(b.g.position.x,b.g.position.z,26);if(t){b.cd=Math.max(0.35,1.1-0.1*b.P.r);const dx=t.x-b.g.position.x,dz=t.z-b.g.position.z,l=Math.hypot(dx,dz);shootFrom({x:b.g.position.x,z:b.g.position.z},{x:dx/l,z:dz/l},dmgBase()*(0.4+0.15*b.P.r),"#ffb0f0");b.g.rotation.y=Math.atan2(dx,dz);}}});
+  // spawning
+  if(P.spawnLeft>0){P.spawnT-=dt;if(P.spawnT<=0&&aliens.length<34){P.spawnT=Math.max(0.25,1-P.wave*0.025);const grp=Math.min(4,1+Math.floor(P.wave/4));for(let i=0;i<grp&&P.spawnLeft>0;i++){spawnAlien(pickKind(P.wave));P.spawnLeft--;}}}
+  // aliens
+  for(let i=aliens.length-1;i>=0;i--){const a=aliens[i],t=a.t;
+    if(a.drop>0){a.drop=Math.max(0,a.drop-dt*14);}
+    let dx=sx-a.x,dz=sz-a.z;const dist=Math.hypot(dx,dz)||1;dx/=dist;dz/=dist;
+    let vx=dx,vz=dz,sp=t.spd*Math.min(1.25,0.72+P.wave*0.025);
+    if(t.keep&&dist<t.keep){vx=-dx*0.6;vz=-dz*0.6;}
+    if(t.orbit){a.orbA+=dt*0.6;const ox=sx+Math.cos(a.orbA)*14,oz=sz+Math.sin(a.orbA)*14;vx=ox-a.x;vz=oz-a.z;const l=Math.hypot(vx,vz)||1;vx/=l;vz/=l;}
+    if(t.zoom){a.zoomT-=dt;if(a.zoomT<0.6)sp*=a.zoomT>0?0.2:2.6;if(a.zoomT<-0.8)a.zoomT=A3.rand(1.5,2.5);}
+    // separation
+    for(let k=0;k<aliens.length;k+=3){const b=aliens[k];if(b===a)continue;const ex=a.x-b.x,ez=a.z-b.z,e2=ex*ex+ez*ez;if(e2<3&&e2>0.001){vx+=ex/e2*0.6;vz+=ez/e2*0.6;}}
+    a.x+=vx*sp*dt;a.z+=vz*sp*dt;const dd=Math.hypot(a.x,a.z);if(dd>R-0.5){a.x*=(R-0.5)/dd;a.z*=(R-0.5)/dd;}
+    a.g.position.set(a.x,1.2+a.drop+Math.sin(TT*3+a.ph)*0.2,a.z);a.g.rotation.y=Math.atan2(dx,dz);
+    if(a.hitT>0){a.hitT-=dt;a.g.scale.setScalar(1.55);}else a.g.scale.setScalar(1.35);
+    if(t.shoot){a.shootT-=dt;if(a.shootT<=0&&dist<28){a.shootT=t.shoot*A3.rand(0.8,1.2);enemyShot(a.x,a.z,sx-a.x,sz-a.z,11+P.wave*0.1);}}
+    if(dist<t.r+1.1&&a.drop<0.5){hurtMe();}
   }
-  for(let i=flashes.length-1;i>=0;i--){const f=flashes[i];f.life-=dt;const k=f.life/f.max;f.s.scale.setScalar(f.size*(1.4-k*0.4));f.s.material.opacity=k;if(f.life<=0){scene.remove(f.s);f.s.material.dispose();flashes.splice(i,1);}}
-  for(let i=pops.length-1;i>=0;i--){const p=pops[i];p.life-=dt;p.s.position.y+=dt*1.5;p.s.material.opacity=Math.min(1,p.life*2);if(p.life<=0){scene.remove(p.s);p.s.material.map.dispose();p.s.material.dispose();pops.splice(i,1);}}
-  parts.update(dt);
-  if(!playing){fleetG.position.x=Math.sin(t*0.6)*2;fleet.forEach(a=>{a.g.position.y=Math.sin(t*3+a.ph)*0.2;});player.position.x=Math.sin(t*0.8)*3;player.rotation.z=-Math.cos(t*0.8)*0.3;}
-  if(shakeT>0){shakeT-=dt;camera.position.x=(Math.random()-0.5)*shakeT*1.5;}else camera.position.x=0;
+  // boss
+  if(boss){const b=boss;let dx=sx-b.x,dz=sz-b.z;const dist=Math.hypot(dx,dz)||1;if(dist>9){b.x+=dx/dist*3.2*dt;b.z+=dz/dist*3.2*dt;}
+    b.g.position.set(b.x,Math.max(1.6,b.g.position.y-dt*5)+Math.sin(TT*1.5)*0.2,b.z);b.g.rotation.y+=dt*0.6;
+    if(b.hitT>0){b.hitT-=dt;b.g.scale.setScalar(1.06);}else b.g.scale.setScalar(1);
+    b.fireT-=dt;if(b.fireT<=0){b.fireT=Math.max(1.4,3-b.lv*0.2);const n=10+b.lv*2,off=Math.random();for(let i=0;i<n;i++){const a=(i+off)/n*6.283;enemyShot(b.x,b.z,Math.cos(a),Math.sin(a),9);}A3.sfx("jump");}
+    b.spawnT-=dt;if(b.spawnT<=0&&aliens.length<20){b.spawnT=6;for(let i=0;i<3;i++)spawnAlien("blob",b.x+A3.rand(-3,3),b.z+A3.rand(-3,3));}
+    if(dist<4.5)hurtMe();
+    $("bossFill").style.width=Math.max(0,b.hp/b.max*100)+"%";}
+  // player shots
+  for(const s of shots){if(!s.on)continue;s.life-=dt;const p=s.m.position;p.x+=s.vx*dt;p.z+=s.vz*dt;
+    if(s.life<=0||p.x*p.x+p.z*p.z>(R+2)*(R+2)){drop(s);continue;}
+    if(boss&&(boss.x-p.x)*(boss.x-p.x)+(boss.z-p.z)*(boss.z-p.z)<11){hitBoss(s.dmg);drop(s);continue;}
+    for(const a of aliens){if(a===s.hit)continue;if((a.x-p.x)*(a.x-p.x)+(a.z-p.z)*(a.z-p.z)<(a.t.r+0.3)*(a.t.r+0.3)){hitAlien(a,s.dmg);if(s.pierce>0){s.pierce--;s.hit=a;}else drop(s);break;}}}
+  for(const m of missiles){if(!m.on)continue;m.life-=dt;const p=m.m.position;const t=nearest(p.x,p.z,60);
+    if(t){const dx=t.x-p.x,dz=t.z-p.z,l=Math.hypot(dx,dz)||1;m.vx+=(dx/l*22-m.vx)*Math.min(1,dt*4);m.vz+=(dz/l*22-m.vz)*Math.min(1,dt*4);
+      if(l<(t===boss?3:t.t.r+0.4)){if(t===boss)hitBoss(m.dmg);else hitAlien(t,m.dmg);flash(p.clone(),"#ff8a3d",3);drop(m);continue;}}
+    p.x+=m.vx*dt;p.z+=m.vz*dt;m.m.rotation.y=Math.atan2(m.vx,m.vz);if(m.life<=0)drop(m);}
+  // enemy shots
+  for(const b of ebolts){if(!b.on)continue;b.life-=dt;const p=b.m.position;p.x+=b.vx*dt;p.z+=b.vz*dt;b.m.rotation.y+=dt*5;
+    if(b.life<=0||p.x*p.x+p.z*p.z>(R+1)*(R+1)){drop(b);continue;}
+    if((p.x-sx)*(p.x-sx)+(p.z-sz)*(p.z-sz)<1.3){drop(b);hurtMe();}}
+  // coins
+  const mag=4+M.lv("coin")*0.3;
+  for(let i=coins.length-1;i>=0;i--){const c=coins[i];c.vy-=20*dt;c.y=Math.max(0.6,c.y+c.vy*dt);if(c.y<=0.6)c.vy=0;
+    const dx=sx-c.x,dz=sz-c.z,d=Math.hypot(dx,dz);if(d<mag||(!aliens.length&&!boss&&P.spawnLeft<=0)){const pull=Math.max(14,30-d);c.x+=dx/(d||1)*pull*dt;c.z+=dz/(d||1)*pull*dt;}
+    if(d<1.4){P.coins+=c.v;M.add(c.v);coins.splice(i,1);if(Math.random()<0.4)A3.sfx("coin");}}
+  // wave end
+  if(P.spawnLeft<=0&&!aliens.length&&!boss){P.between+=dt;if(P.between>1.1&&!coins.length){P.between=0;const wb=P.wave*5*coinVal();P.coins+=wb;M.add(wb);A3.toast("Wave bonus +"+A3.fmt(wb)+" coins",1200);if(P.wave>S.bestWave){S.bestWave=P.wave;A3.best(S.bestWave);if(P.wave%10===0)A3.win(Math.min(5,P.wave/10),"reaching wave "+P.wave+" in Star Raiders");}offerPicks();}}
 }
-A3.loop(dt=>{step(dt);V.render();});
+function gameOver(){
+  const P=run;if(P.done)return;P.done=true;
+  if(P.wave-1>S.bestWave){S.bestWave=P.wave-1;}
+  if(S.bestWave>0)A3.best(S.bestWave);
+  M.persist();A3.sfx("lose");
+  overStats();A3.show("ovOver");$("bDash").hidden=true;joyEnd();hud();
+  run.done=true;
+}
+function overStats(){if(!run)return;$("oTitle").textContent=run.wave>=S.bestWave&&run.wave>1?"New best wave!":"Ship down!";
+  $("oText").textContent="You reached wave "+run.wave+" in "+GAL[S.world].n+".";
+  $("oStats").innerHTML="<div>Wave <b>"+run.wave+"</b></div><div>Best wave <b>"+S.bestWave+"</b></div><div>Aliens <b>"+A3.fmt(run.kills)+"</b></div><div>Coins collected <b>+"+A3.fmt(run.coins)+"</b></div><div>You have <b>"+A3.fmt(S.coins)+"</b></div>";}
+function pauseOn(on){if(!run||run.over)return;paused=on;if(on){$("pzStats").innerHTML="<div>Wave <b>"+run.wave+"</b></div><div>Coins this run <b>"+A3.fmt(run.coins)+"</b></div>";A3.show("ovPause");}else A3.hide("ovPause");}
+$("bPause").onclick=()=>{A3.sfx("click");pauseOn(!paused);};
+$("pzGo").onclick=()=>{A3.sfx("click");pauseOn(false);};
+$("pzQuit").onclick=()=>{A3.sfx("click");A3.hide("ovPause");paused=false;run.over=true;run.overT=0;ship.visible=false;};
 
-/* ---------- menus ---------- */
-function togglePause(){paused=!paused;if(paused)A3.show("ovPause");else A3.hide("ovPause");}
-$("bPause").onclick=()=>{if(playing&&!over)togglePause();};
-$("pResume").onclick=togglePause;
-$("pQuit").onclick=()=>{paused=false;playing=false;A3.hide("ovPause");finish();};
-$("diffs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;diff=S.diff=+b.dataset.d;[...$("diffs").children].forEach(x=>x.classList.toggle("on",x===b));A3.sfx("click");persist();});
-function titleStats(){$("tStats").innerHTML="<div>Best <b>"+A3.fmt(S.best)+"</b></div><div>Best wave <b>"+S.bestWave+"</b></div><div>Aliens blasted <b>"+A3.fmt(S.kills)+"</b></div><div>Coins <b>"+A3.fmt(S.coins)+"</b></div>";}
-$("bPlay").onclick=()=>{A3.sfx("click");A3.hide("ovTitle");newGame();};
-$("oAgain").onclick=()=>{A3.sfx("click");A3.hide("ovOver");newGame();};
-$("oMenu").onclick=()=>{A3.sfx("click");A3.hide("ovOver");idleScene();lifebar();titleStats();A3.show("ovTitle");};
-$("bHangar").onclick=()=>{A3.sfx("click");A3.hide("ovTitle");hangar();A3.show("ovHangar");};
-$("hgBack").onclick=()=>{A3.sfx("click");A3.hide("ovHangar");titleStats();A3.show("ovTitle");};
-function hangar(){
-  $("hgCoins").textContent=A3.fmt(S.coins);
-  $("ships").innerHTML=SHIPS.map(s=>{const own=S.ships.includes(s.id);return '<button class="ship'+(S.ship===s.id?" on":"")+'" data-id="'+s.id+'"'+(!own&&S.coins<s.price?" disabled":"")+'><span class="dot" style="background:'+s.col+'"></span>'+s.name+'<small>'+s.desc+' · '+s.lives+' lives</small><small>'+(S.ship===s.id?"Flying":own?"Tap to fly":s.price+" coins")+'</small></button>';}).join("");
+/* ---------- visuals ---------- */
+const dmy=new THREE.Object3D();
+function visuals(dt){
+  for(const s of shots)if(s.on){}
+  for(const f of flashes){if(!f.on)continue;f.life-=dt;f.m.scale.setScalar(f.size*(1.4-f.life));f.m.material.opacity=Math.max(0,f.life/0.35);if(f.life<=0)drop(f);}
+  for(const b of beams){if(!b.on)continue;b.life-=dt;b.m.material.opacity=Math.max(0,b.life/0.3);if(b.life<=0)drop(b);}
+  for(const r of rings){if(!r.on)continue;r.life-=dt;const k=1-r.life/0.4;r.m.scale.setScalar(Math.max(0.01,r.r*k));r.m.material.opacity=0.8*(1-k);if(r.life<=0)drop(r);}
+  let n=0;for(const c of coins){dmy.position.set(c.x,c.y+Math.sin(TT*4+c.ph)*0.15,c.z);dmy.rotation.set(0,TT*3+c.ph,0);dmy.scale.setScalar(1);dmy.updateMatrix();coinMesh.setMatrixAt(n++,dmy.matrix);}
+  coinMesh.count=n;coinMesh.instanceMatrix.needsUpdate=true;
+  ship.userData.jet.scale.set(1,1,0.7+Math.random()*0.5+(run&&run.dashT>0?1.5:0));
+  ship.userData.shield.visible=!!(run&&run.inv>0&&!run.over&&Math.floor(TT*12)%2===0);
+  if(ringMesh)ringMesh.material.emissiveIntensity=0.8+Math.sin(TT*2)*0.3;
+  buddies.forEach(b=>{if(b.g.userData.ring)b.g.userData.ring.rotation.z+=dt*2;const inn=b.g.userData.inner;if(inn.userData["w1"]){inn.userData["w1"].rotation.z=0.5+Math.sin(TT*14)*0.5;inn.userData["w-1"].rotation.z=-0.5-Math.sin(TT*14)*0.5;}});
+  parts.update(dt);
+  // camera
+  const tall=camera.aspect<1.1;const off=tall?new THREE.Vector3(0,40,20):new THREE.Vector3(0,27,17);
+  const tx=ship.position.x*0.75,tz=ship.position.z*0.75;
+  camera.position.x+=(tx+off.x-camera.position.x)*Math.min(1,dt*4);camera.position.y+=(off.y-camera.position.y)*Math.min(1,dt*4);camera.position.z+=(tz+off.z-camera.position.z)*Math.min(1,dt*4);
+  let sx=0,sy=0;if(shake>0){shake-=dt;sx=(Math.random()-0.5)*shake*2;sy=(Math.random()-0.5)*shake*2;}
+  camera.lookAt(tx+sx,0,tz-2+sy);
+  V.lights.sun.position.set(camera.position.x+8,30,camera.position.z-4);V.lights.sun.target.position.set(tx,0,tz);
 }
-$("ships").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const s=SHIPS.find(x=>x.id===b.dataset.id);
-  if(!S.ships.includes(s.id)){if(S.coins<s.price)return;S.coins-=s.price;S.ships.push(s.id);A3.sfx("coin");A3.toast("You bought "+s.name+"!");}else A3.sfx("click");
-  S.ship=s.id;persist();hangar();hud();scene.remove(player);player=buildShip(s);scene.add(player);player.position.set(0,0,SHIPZ);lifebar();});
+camera.position.set(0,27,17);
+let hudT=0;
+function frame(dt,norender){TT+=dt;M.tick(dt);step(dt);
+  if(!run){ship.position.set(Math.sin(TT*0.5)*8,1.2+Math.sin(TT)*0.3,Math.cos(TT*0.5)*5);ship.rotation.y=-TT*0.5+Math.PI/2;ship.rotation.z=0.3;
+    buddies.forEach((b,i)=>{const a=TT*0.9+i/buddies.length*6.283;b.g.position.set(ship.position.x+Math.cos(a)*5,3,ship.position.z+Math.sin(a)*5);});}
+  visuals(dt);hudT-=dt;if(hudT<=0){hudT=0.25;hud();}if(!norender)V.render();}
+A3.loop(dt=>frame(dt));
+
+/* ---------- HUD + menus ---------- */
+function hud(){
+  $("hWave").textContent=run?run.wave:0;$("hBest").textContent=S.bestWave;$("hCoins").textContent=A3.fmt(S.coins);$("hReb").textContent=A3.fmt(S.reb);$("hWorld").textContent=(S.world+1)+" "+GAL[S.world].n;
+  $("sc").firstChild.textContent=run&&!run.done?A3.fmt(run.coins):A3.fmt(S.coins);$("scSub").textContent=run&&!run.done?"coins this run":"coins";
+}
+function titleStats(){$("tStats").innerHTML=M.statsHtml("<div>Best wave <b>"+S.bestWave+"</b></div><div>Bosses beaten <b>"+A3.fmt(S.bosses)+"</b></div>");$("bPlay").textContent=S.runs?"Launch again!":"Launch!";}
+function start(){A3.sfx("click");["ovTitle","ovOver"].forEach(A3.hide);newRun();}
+function toTitle(){A3.sfx("click");A3.hide("ovOver");clearField();run=null;ship.visible=true;$("bDash").hidden=true;hearts();perkRow();M.buck();titleStats();A3.show("ovTitle");hud();if(M.dailyReady())setTimeout(()=>M.daily(),400);}
+$("bPlay").onclick=start;$("oAgain").onclick=start;$("oMenu").onclick=toTitle;
 A3.fullscreen($("bFs"),stage);
 $("bMute").onclick=()=>{A3.mute(!A3.mute());$("bMute").textContent=A3.mute()?"🔇":"🔊";};$("bMute").textContent=A3.mute()?"🔇":"🔊";
-function idleScene(){
-  fleetG.clear();fleet=[];eshots.forEach(e=>scene.remove(e.m));eshots=[];shots.forEach(s=>scene.remove(s.m));shots=[];pows.forEach(p=>scene.remove(p.g));pows=[];
-  if(boss){scene.remove(boss.g);boss=null;}if(mother){scene.remove(mother.g);mother=null;}bossBar.visible=false;
-  fleetG.position.set(0,0,0);
-  const f=FORMS[0];for(let r=0;r<4;r++)for(let c=0;c<9;c++)addAlien(r%ALIENS.length,(c-4)*2.1,TOP+1.5+r*3.1);
-  buildShields();player.visible=true;$("powers").innerHTML="";
-}
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&run&&!run.over&&!pickOpen)pauseOn(true);});
 
 /* ---------- start ---------- */
-[...$("diffs").children].forEach(x=>x.classList.toggle("on",+x.dataset.d===diff));
-const ro=()=>frameCam();window.addEventListener("resize",ro);if(window.ResizeObserver)new ResizeObserver(ro).observe(stage);frameCam();
-(function prewarm(){const g=new THREE.Group();scene.add(g);SHIPS.forEach(d=>{const sh=buildShip(d);sh.userData.shield.visible=true;g.add(sh);});g.add(buildBoss(1));g.add(buildMother());Object.keys(POW).forEach(k=>g.add(buildPow(k)));
-  const m=new THREE.Mesh(geo.shot,shotMat);m.add(glow("#7cf3ff",1));g.add(m);g.add(new THREE.Mesh(geo.ebolt,eshotMat));const l=A3.label("+50",{size:1});g.add(l);parts.burst(new THREE.Vector3(0,-50,0),"#ffffff",1,1,0.01);
-  try{renderer.compile(scene,camera);}catch(e){}scene.remove(g);l.material.map.dispose();})();
-idleScene();titleStats();hud();lifebar();
-window.addEventListener("pagehide",persist);
-window.__sr={sim:(sec,keys)=>{keys=keys||{};for(const k in keys)A3.keys[k]=keys[k];for(let i=0;i<sec*60;i++)step(1/60);for(const k in keys)A3.keys[k]=false;return JSON.stringify(window.__sr.state());},state:()=>({playing,over,score,wave,lives,fleet:fleet.filter(a=>a.alive).length,boss:!!boss,cubes:cubes.filter(c=>c.alive).length}),clear:()=>{fleet.forEach(a=>{if(a.alive)killAlien(a);});},goto:w=>{wave=w;startWave();},die:()=>{lives=1;inv=0;powT.shield=0;hurt();},pow:k=>{powT[k]=k==="shield"?999:8;}};
-if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"star-raiders",dir:"desc",unit:"pts",title:"Star Raiders: best score"});
+buildGalaxy();buildBuddies();
+(function prewarm(){const g=new THREE.Group();scene.add(g);Object.keys(proto).forEach(k=>g.add(proto[k].clone()));g.add(buildBoss(1));[shots,ebolts,missiles].forEach(p=>{p[0].m.visible=true;});try{renderer.compile(scene,camera);}catch(e){}[shots,ebolts,missiles].forEach(p=>{p[0].m.visible=false;});scene.remove(g);})();
+toTitle();
+if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"star-raiders-v2",dir:"desc",unit:"waves",title:"Star Raiders: highest wave"});
+window.__sr={S:()=>S,M:()=>M,start:start,run:()=>run,sim:sec=>{for(let i=0;i<sec*30;i++)frame(1/30,true);return JSON.stringify({wave:run&&run.wave,hp:run&&run.hp,aliens:aliens.length,coins:run&&run.coins,pick:pickOpen,over:run&&run.over});},pick:i=>{const b=document.querySelectorAll("#picks .pick")[i||0];if(b)b.click();},god:()=>{run.inv=1e9;},steer:(x,y)=>{joy.on=!!(x||y);joy.x=x;joy.y=y;}};
 })();
 </script>
 </body>

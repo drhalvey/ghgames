@@ -127,7 +127,7 @@ function GHMeta(cfg){
   const RAR=[{n:"Common",c:"#cfd6e6",m:1.15,w:52},{n:"Uncommon",c:"#5fd36a",m:1.3,w:26},{n:"Rare",c:"#4aa8ff",m:1.6,w:13},{n:"Epic",c:"#b085ff",m:2.2,w:6},{n:"Legendary",c:"#ffd23f",m:3.5,w:2.3},{n:"Mythic",c:"#ff7ae0",m:6,w:0.6},{n:"Secret",c:"#ff5d5d",m:15,w:0.1}];
   const SPEC=cfg.species||[{n:"Pup",e:"🐶",c:"#d8a26a"},{n:"Kitty",e:"🐱",c:"#ffb0d0"},{n:"Bunny",e:"🐰",c:"#ffffff"},{n:"Fox",e:"🦊",c:"#ff8a3d"},{n:"Owl",e:"🦉",c:"#b0773a"},{n:"Dragon",e:"🐲",c:"#5fd36a"},{n:"Unicorn",e:"🦄",c:"#e8dcff"}];
   const W=cfg.worlds,UPS=cfg.ups,SK=cfg.skins,PW=cfg.petWord||"Pets";
-  const base={v:2,coins:0,run:0,ever:0,up:{},world:0,wopen:[0],reb:0,skins:[0],skin:0,pets:{},eq:[],hatched:0,daily:{d:"",s:0},bk:0,played:0};
+  const base={v:2,coins:0,rcoins:0,ever:0,up:{},world:0,wopen:[0],reb:0,skins:[0],skin:0,pets:{},eq:[],hatched:0,daily:{d:"",s:0},bk:0,played:0};
   /* ---------- load + migrate ---------- */
   let raw=null;try{raw=JSON.parse(localStorage.getItem(cfg.save)||"null");}catch(e){raw=null;}
   const S=JSON.parse(JSON.stringify(Object.assign({},base,cfg.defaults||{})));
@@ -143,7 +143,7 @@ function GHMeta(cfg){
   if(!S.pets||typeof S.pets!=="object"||Array.isArray(S.pets))S.pets={};
   if(!Array.isArray(S.eq))S.eq=[];
   if(!S.daily||typeof S.daily!=="object")S.daily={d:"",s:0};
-  ["coins","run","ever","reb","hatched","played"].forEach(k=>{if(!(S[k]>=0)||!isFinite(S[k]))S[k]=0;});
+  ["coins","rcoins","ever","reb","hatched","played"].forEach(k=>{if(!(S[k]>=0)||!isFinite(S[k]))S[k]=0;});
   if(!(S.world>=0&&S.world<W.length)||!S.wopen.includes(S.world))S.world=0;
   if(!(S.skin>=0&&S.skin<SK.length)||!S.skins.includes(S.skin))S.skin=0;
   const M={S,fmt,fm,cap,RAR,SPEC,migrated};
@@ -163,7 +163,7 @@ function GHMeta(cfg){
   M.skin=()=>SK[S.skin];
   M.world=()=>W[S.world];
   /* ---------- coins ---------- */
-  M.add=n=>{n=cap(n);if(!(n>0))return 0;S.coins=cap(S.coins+n);S.run=cap(S.run+n);S.ever=cap(S.ever+n);dirty=true;return n;};
+  M.add=n=>{n=cap(n);if(!(n>0))return 0;S.coins=cap(S.coins+n);S.rcoins=cap((S.rcoins||0)+n);S.ever=cap(S.ever+n);dirty=true;return n;};
   M.spend=n=>{if(S.coins<n)return false;S.coins=Math.max(0,S.coins-n);changed();return true;};
   /* ---------- upgrades ---------- */
   M.lv=k=>S.up[k]||0;
@@ -183,7 +183,7 @@ function GHMeta(cfg){
   M.rebCost=r=>cap((cfg.rebBase||1e4)*Math.pow(cfg.rebGrow||5,r==null?S.reb:r));
   M.rebCan=()=>{let c=S.coins,n=0,r=S.reb;while(n<100000){const p=M.rebCost(r);if(c<p)break;c-=p;r++;n++;}return n;};
   M.rebirth=max=>{const can=M.rebCan(),n=max?can:Math.min(1,can);if(n<1){A3.sfx("hit");A3.toast("You need "+fmt(M.rebCost())+" "+(cfg.cur||"coins")+" to rebirth",1600);return 0;}
-    S.reb+=n;S.coins=0;S.run=0;S.up={};A3.sfx("win");
+    S.reb+=n;S.coins=0;S.rcoins=0;S.up={};A3.sfx("win");
     A3.toast((n>1?n+" rebirths! ":"")+"Rebirth "+fmt(S.reb)+"! Multi x"+fm(M.rebMul()),2600);
     try{if(window.PhatCoin)PhatCoin.earn("rebirth",25,"rebirth "+S.reb+" in "+cfg.name);}catch(e){}
     if(cfg.onRebirth)cfg.onRebirth(n);changed();M.persist();drawReb();return n;};

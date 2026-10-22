@@ -545,6 +545,14 @@ const mazeGroup=new THREE.Group();scene.add(mazeGroup);
 const dotGeo=new THREE.SphereGeometry(0.12,10,8),berryGeo=new THREE.SphereGeometry(0.3,16,12);
 let dotIM=null,dotIdx={},dotsLeft=0,totalDots=0,berryMeshes=[],doorMeshes=[],keyMeshes=[],chestMeshes=[],fogs=[],wallIM=null;
 const M4=new THREE.Matrix4();
+function lightRBox(w,h,d,r){
+  // a low-poly rounded block (cheap enough for hundreds of walls on an iPad)
+  const sh=new THREE.Shape(),x=-w/2,y=-d/2;
+  sh.moveTo(x+r,y);sh.lineTo(x+w-r,y);sh.quadraticCurveTo(x+w,y,x+w,y+r);sh.lineTo(x+w,y+d-r);sh.quadraticCurveTo(x+w,y+d,x+w-r,y+d);
+  sh.lineTo(x+r,y+d);sh.quadraticCurveTo(x,y+d,x,y+d-r);sh.lineTo(x,y+r);sh.quadraticCurveTo(x,y,x+r,y);
+  const g=new THREE.ExtrudeGeometry(sh,{depth:h-0.12,bevelEnabled:true,bevelThickness:0.06,bevelSize:0.06,bevelSegments:1,curveSegments:2});
+  g.rotateX(-Math.PI/2);g.translate(0,-h/2+0.06,0);return g;
+}
 function buildDungeon(){
   mazeGroup.clear();dotIdx={};berryMeshes=[];doorMeshes=[];keyMeshes=[];chestMeshes=[];fogs=[];
   scene.background=A3.skyTexture(W.sky[0],W.sky[1]);
@@ -554,7 +562,7 @@ function buildDungeon(){
   const fl=new THREE.Mesh(new THREE.PlaneGeometry(GW,GH),new THREE.MeshStandardMaterial({map:floorTex,roughness:0.9}));fl.rotation.x=-Math.PI/2;fl.receiveShadow=true;mazeGroup.add(fl);
   const big=new THREE.Mesh(new THREE.PlaneGeometry(400,400),A3.mat("#05060e"));big.rotation.x=-Math.PI/2;big.position.y=-0.03;mazeGroup.add(big);
   const walls=[];for(let y=0;y<GH;y++)for(let x=0;x<GW;x++)if(grid[y][x]==="#")walls.push([x,y]);
-  const wg=A3.rbox(0.96,0.8,0.96,0.2,"#fff").geometry;
+  const wg=lightRBox(0.96,0.8,0.96,0.2);
   const wm=new THREE.MeshStandardMaterial({color:new THREE.Color(W.wall).convertSRGBToLinear(),roughness:0.5,metalness:S.world===4?0.4:0.05,emissive:new THREE.Color(W.wall).convertSRGBToLinear(),emissiveIntensity:0.12});
   wallIM=new THREE.InstancedMesh(wg,wm,walls.length);
   walls.forEach((w,k)=>{const p=toWorld(w[0],w[1]);M4.makeTranslation(p[0],0.4,p[1]);wallIM.setMatrixAt(k,M4);});wallIM.castShadow=true;wallIM.receiveShadow=true;mazeGroup.add(wallIM);
@@ -588,11 +596,13 @@ function buildDungeon(){
   const fogTex=A3.canvasTex(128,128,(g)=>{g.fillStyle="#000";g.fillRect(0,0,128,128);for(let i=0;i<22;i++){g.fillStyle="rgba(255,255,255,"+(0.05+Math.random()*0.1)+")";g.beginPath();g.arc(Math.random()*128,Math.random()*128,10+Math.random()*22,0,7);g.fill();}});
   rooms.forEach(r=>{const p=toWorld(r.x0+4,r.y0+4);const f=new THREE.Mesh(fogGeo,new THREE.MeshBasicMaterial({color:new THREE.Color(W.wall).multiplyScalar(0.28)}));f.position.set(p[0],0.65,p[1]);mazeGroup.add(f);r.fog=f;r.seen=false;r.fade=0;
     const top=new THREE.Mesh(new THREE.PlaneGeometry(9.2,9.2),new THREE.MeshBasicMaterial({color:new THREE.Color(W.top),map:fogTex,transparent:true,opacity:0.22,blending:THREE.AdditiveBlending,depthWrite:false}));top.rotation.x=-Math.PI/2;top.position.y=0.67;f.add(top);
-    const q=A3.label(r===bossRoom?"👑":"?",{size:1.5,color:"#ffffff"});q.position.y=1.2;q.material.opacity=0.6;f.add(q);
+    const q=sharedLabel(r===bossRoom?"👑":"?");q.position.y=1.2;f.add(q);f.userData.q=q;
   });
 }
+const LBL={};
+function sharedLabel(t){if(!LBL[t]){const l=A3.label(t,{size:1.5,color:"#ffffff"});l.material.opacity=0.6;LBL[t]=l;}const s=new THREE.Sprite(LBL[t].material);s.scale.copy(LBL[t].scale);return s;}
 function reveal(r){
-  if(!r||r.seen)return;r.seen=true;r.fade=1;roomsSeen++;if(r.fog){r.fog.material.transparent=true;r.fog.material.needsUpdate=true;}
+  if(!r||r.seen)return;r.seen=true;r.fade=1;roomsSeen++;if(r.fog){r.fog.material.transparent=true;r.fog.material.needsUpdate=true;r.fog.userData.q.visible=false;}
   if(r===bossRoom)startBoss();
   else if(roomsSeen>1)A3.sfx("pop");
   hud();
@@ -807,10 +817,13 @@ function setup(){
   updateActors(0);
 }
 let curRoom=null;
+let idleFresh=false;
 function newGame(){
   A3.hide("ovTitle");A3.hide("ovOver");A3.hide("ovPause");
   lives=3+K.lvl("life");runCoins=0;inv=0;playing=true;paused=false;
-  setup();phase="ready";phaseT=1.4;
+  // the dungeon shown behind the title is brand new, so play that one
+  if(idleFresh&&W===WORLDS[S.world]){idleFresh=false;}else setup();
+  phase="ready";phaseT=1.4;
   S.runs++;K.persist();buildPets();
   ["mtop","mini"].forEach(id=>$(id).hidden=false);
   A3.toast(W.e+" "+W.n+": find the keys and the boss!",2200);hud();
@@ -928,7 +941,7 @@ function frame(dt,t){
   keysOnMap.forEach(k=>{if(k.mesh&&!k.got){k.mesh.rotation.y=t*2;k.mesh.position.y=0.5+Math.sin(t*3)*0.1;}});
   doors.forEach(d=>{if(d.anim>0){d.anim=Math.max(0,d.anim-dt*1.5);d.mesh.position.y=-(1-d.anim)*1.0;if(d.anim<=0)d.mesh.visible=false;}});
   chests.forEach(c=>{if(c.open&&c.lid.rotation.x>-1.9)c.lid.rotation.x-=dt*4;});
-  rooms&&rooms.forEach(r=>{if(r.fade>0&&r.fog){r.fade=Math.max(0,r.fade-dt*2.2);r.fog.material.opacity=r.fade;r.fog.children.forEach(c=>{if(c.material)c.material.opacity=Math.min(c.material.opacity,r.fade);});if(r.fade<=0){mazeGroup.remove(r.fog);r.fog=null;}}});
+  rooms&&rooms.forEach(r=>{if(r.fade>0&&r.fog){r.fade=Math.max(0,r.fade-dt*2.2);r.fog.material.opacity=r.fade;r.fog.children.forEach(c=>{if(c.material&&!c.isSprite)c.material.opacity=Math.min(c.material.opacity,r.fade);});if(r.fade<=0){mazeGroup.remove(r.fog);r.fog=null;}}});
   // pets follow you round the maze
   petMeshes.forEach((m,i)=>{if(!heroMesh)return;const a=t*1.6+i*2.1;camT.set(heroMesh.position.x+Math.cos(a)*1.1,0.3,heroMesh.position.z+Math.sin(a)*1.1);m.position.lerp(camT,Math.min(1,dt*4));m.position.y=0.25+Math.abs(Math.sin(t*5+i))*0.25;m.rotation.y=-a;if(m.userData.ring)m.userData.ring.rotation.z+=dt*2;});
   for(let i=floaters.length-1;i>=0;i--){const f=floaters[i];f.t-=dt;f.l.position.y+=dt*1.2;f.l.material.opacity=Math.min(1,f.t*2);if(f.t<=0){scene.remove(f.l);f.l.material.map.dispose();floaters.splice(i,1);}}
@@ -999,8 +1012,7 @@ function titleStats(){
 }
 function idle(){
   playing=false;phase="idle";W=WORLDS[S.world];setup();
-  rooms.forEach(r=>{if(r.fog&&Math.abs(r.rx-startRoom.rx)+Math.abs(r.ry-startRoom.ry)<=1){r.seen=true;r.fade=0.001;r.fog.material.transparent=true;}});
-  buildPets();hud();
+  idleFresh=true;buildPets();hud();
 }
 function toTitle(){playing=false;paused=false;A3.hide("ovOver");A3.hide("ovPause");endUI();idle();titleStats();K.refreshMenus();A3.show("ovTitle");}
 $("bPlay").onclick=()=>{A3.sfx("click");newGame();};

@@ -529,6 +529,8 @@ const clock=s=>Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
 UPS.forEach(u=>{if(u.k==="time")u.now=()=>clock(roundLen());if(u.k==="start")u.now=()=>sizeTxt(startR(),S.world);if(u.k==="grow")u.now=()=>"x"+growMul().toFixed(2);});
 function sizeTxt(r,w){const cm=r*2*10*WORLDS[w==null?S.world:w].scale;
   if(cm<100)return cm.toFixed(cm<10?1:0)+" cm";if(cm<100000)return (cm/100).toFixed(cm<1000?2:1).replace(/\.0+$/,"")+" m";const km=cm/100000;return (km<1000?km.toFixed(km<10?2:1):fmt(km))+" km";}
+// George (23/10/2026): computer blobs (Mega Blobs too) can never be taller than 100 km
+const BOT_MAX_CM=1e7,botMaxR=()=>BOT_MAX_CM/(2*10*WORLDS[S.world].scale);
 const sizeCm=(r,w)=>Math.round(r*2*10*WORLDS[w==null?S.world:w].scale);
 
 /* ---------- the giant town ----------
@@ -758,6 +760,7 @@ function placeBot(b,first){
   b.x=x;b.z=z;b.tx=x;b.tz=z;b.vx=b.vz=0;b.cool=0;b.huntT=0;b.hunt=b.flee=false;
   if(b.mega){b.r=Math.max(b.r,r*1.6,startR()*10);}
   else{const big=Math.random()<0.34;b.r=Math.max(0.5,r*(big?A3.rand(1.4,2.3):A3.rand(0.4,0.95)));}
+  b.r=Math.min(b.r,botMaxR());
   b.alive=true;showBlob(b,true);
 }
 
@@ -787,7 +790,7 @@ function startGame(){
   me=newBlob(true,startR(),p.x,p.z,"You");
   round={t:0,len:roundLen(),coins:0,eaten:0,kinds:KINDS.map(()=>0),tiers:[0,0,0,0,0,0,0,0,0],blobs:0,megas:0,peak:me.r,last10:false,ended:false,crush:false,hits:0};
   for(let i=0;i<NBOTS;i++){const b=newBlob(false,1,p.x,p.z,BOTN[(i*5+S.games)%BOTN.length],BOTCOL[i%BOTCOL.length]);placeBot(b,true);bots.push(b);}
-  for(let i=0;i<NMEGA;i++){const b=newBlob(false,startR()*A3.rand(10,14),p.x,p.z,"Mega Blob","#9a3aff",true);b.r=startR()*A3.rand(10,14);placeBot(b,true);bots.push(b);}
+  for(let i=0;i<NMEGA;i++){const b=newBlob(false,startR()*A3.rand(10,14),p.x,p.z,"Mega Blob","#9a3aff",true);b.r=Math.min(botMaxR(),startR()*A3.rand(10,14));placeBot(b,true);bots.push(b);}
   S.games++;persist();
   updateChunks(me.x,me.z,me.r,3,1e9);refill(me.x,me.z);
   camLook.set(me.x,0,me.z);camPos.set(me.x,camH(me.r),me.z+camH(me.r)*0.85);
@@ -801,7 +804,7 @@ let tickT=0,fxN=0;
 function absorb(b,o){
   o.alive=false;zeroSlot(o);const c0=o.ch;(c0.eaten[o.ti]||(c0.eaten[o.ti]=new Set())).add(o.k);
   const g=0.75*o.s*o.s*(b.me?growMul():1.1);
-  b.r=Math.sqrt(b.r*b.r+g);
+  b.r=Math.sqrt(b.r*b.r+g);if(!b.me&&b.r>botMaxR())b.r=botMaxR();
   if(b.me){
     round.eaten++;round.tiers[o.ti]++;round.kinds[o.kd]++;S.eaten++;
     const c=Math.pow(2.2,o.ti)*coinMul()*COINF;P.addCoins(c);round.coins+=c;
@@ -875,14 +878,14 @@ function blobFight(a,b){
   if(small.r<big.r*0.78&&d<big.r&&!(small.me&&(safe||small.hurt>0))){
     if(small.me){ // squished: a big chunk of your jelly goes, and too small ends the round
       const nr=small.r*0.6;round.hits++;
-      big.r=Math.sqrt(big.r*big.r+small.r*small.r*0.25);big.cool=5;big.huntT=0;
+      big.r=Math.sqrt(big.r*big.r+small.r*small.r*0.25);if(!big.me)big.r=Math.min(big.r,botMaxR());big.cool=5;big.huntT=0;
       parts.burst(new THREE.Vector3(small.x,small.r,small.z),SKINS[S.skin].hex,30,8*Math.max(1,small.r/4),0.9);
       if(nr<startR()){small.r=Math.max(0.3,nr);A3.toast(big.name+" squished you!",2000);endRound("squish");return;}
       small.r=nr;small.hurt=2.5;const n=d||1;small.vx=-dx/n*(big===a?-1:1)*30;small.vz=-dz/n*(big===a?-1:1)*30;
       A3.sfx("lose");A3.toast(big.name+" squished away a big chunk of your jelly! Run from bigger blobs",2000);
       for(let i=0;i<Math.ceil(stuck.children.length*0.5);i++)stuck.remove(stuck.children[(Math.random()*stuck.children.length)|0]);
     }else{
-      big.r=Math.sqrt(big.r*big.r+small.r*small.r*0.9*(big.me?growMul():0.7));small.alive=false;small.respawn=small.mega?1e9:4;showBlob(small,false);
+      big.r=Math.sqrt(big.r*big.r+small.r*small.r*0.9*(big.me?growMul():0.7));if(!big.me)big.r=Math.min(big.r,botMaxR());small.alive=false;small.respawn=small.mega?1e9:4;showBlob(small,false);
       if(big.me){round.blobs++;S.blobs++;let c=40*coinMul()*small.r;
         if(small.mega){c+=25*small.r*small.r*coinMul();round.megas++;S.megas=(S.megas|0)+1;A3.sfx("win");feed("You soaked up a <b>Mega Blob</b>! +"+fmt(c));A3.toast("👑 MEGA BLOB SOAKED UP! +"+fmt(c)+" coins",2600);A3.win(3,"soaking up a Mega Blob in Blob Feast");}
         else{A3.sfx("boom");feed("You soaked up <b>"+small.name+"</b>!");if(round.blobs===1)A3.win(1,"soaking up a computer blob in Blob Feast");}
@@ -1008,6 +1011,7 @@ A3.loop((dt,t)=>{
   const vd=me?viewDist(me.r):830;
   for(const b of bots){
     if(!b.alive){b.respawn-=dt;if(b.respawn<=0&&me)placeBot(b);continue;}
+    if(b.r>botMaxR())b.r=botMaxR();
     const dme=me?Math.hypot(b.x-me.x,b.z-me.z):Math.hypot(b.x,b.z);
     if(me&&mode==="play"&&dme>(b.mega?Math.max(2200,vd*3):Math.max(450,vd*1.5)))placeBot(b);
     if(b.cool>0)b.cool-=dt;

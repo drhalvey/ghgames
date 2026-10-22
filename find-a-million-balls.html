@@ -59,9 +59,10 @@
   <div class="top">
     <h1>Find a Million Balls<small>3D</small></h1>
     <div class="hud">
-      <div class="chip"><span>Found</span><b id="hFound">0 / 500</b></div>
-      <div class="chip"><span>Coins</span><b id="hCoins">0</b></div>
-      <div class="chip"><span>Zone</span><b id="hZone">Sunny Park</b></div>
+      <div class="chip"><span>Ball Book</span><b id="hFound">0 / 500</b></div>
+      <div class="chip"><span>Cash</span><b id="hCoins">0</b></div>
+      <div class="chip"><span>Luck</span><b id="hLuck">x1</b></div>
+      <div class="chip"><span>Rebirths</span><b id="hReb">0</b></div>
     </div>
   </div>
 
@@ -81,7 +82,7 @@
 
     <div class="ov" id="ovTitle">
       <h2>FIND A MILLION BALLS</h2>
-      <p id="tIntro">Well... 500 of them. They are hidden all over five worlds: up trees, on rooftops, inside houses, under benches, at the top of towers and in some very sneaky secret places. Walk into a ball, or tap or click it when you are close, to grab it.</p>
+      <p id="tIntro">Balls keep popping up in hiding spots all over five worlds: up trees, on rooftops, inside houses, under benches and in secret places. Grab them for cash, upgrade your luck to find rarer ones, and collect all 500 kinds in your Ball Book. Rebirth for x3 luck and cash every time!</p>
       <div class="zbar" id="tZones"></div>
       <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bBook">Ball Book</button><button class="btn green" id="bShop">Upgrades</button></div>
       <div class="stats" id="tStats"></div>
@@ -103,13 +104,13 @@
     </div>
 
     <div class="ov" id="ovWin" hidden>
-      <h2>YOU FOUND ALL 500!</h2>
+      <h2>BALL BOOK COMPLETE!</h2>
       <p id="winTxt"></p>
       <div class="row"><button class="btn" id="bWinX">Keep exploring</button></div>
     </div>
   </div>
 
-  <p class="help">Move with W A S D or the arrow keys, jump with Space. Drag the screen to look around (Q and E turn too, the mouse wheel zooms). On iPad: drag the left side to move, drag the right side to look, tap JUMP, and tap a ball to grab it. Each world has 100 balls and a gate that opens once you have found enough. Rarer balls are better hidden and pay more coins. Spend coins on Speed, Super Jump (to reach rooftops and treetops), Long Arm, Ball Magnet and the Ball Radar. Open the 📖 Ball Book to see which ones you still need. Your game saves by itself.</p>
+  <p class="help">Move with W A S D or the arrow keys, jump with Space. Drag the screen to look around (Q and E turn too, the mouse wheel zooms). On iPad: drag the left side to move, drag the right side to look, tap JUMP, and tap a ball to grab it. Balls keep spawning in the world you are in. Every world has 100 kinds of ball, from Common (1 in 2) to Secret (1 in billions). Luck makes rare balls spawn more, Ball Worth gives more cash, Max Balls lets more spawn at once and Spawn Speed makes them pop up faster. Rare balls shine a light beam so you can find them. Rebirth for x3 luck and x3 cash each time (x3, x9, x27, x81...). New kinds go in the 📖 Ball Book and open the gates to new worlds. Your game saves by itself.</p>
   <div id="lb"></div>
 </div>
 
@@ -124,30 +125,36 @@ const THREE=window.THREE;
 const SAVE="famb-save", TOTAL=500, PER=100, HALF=55;
 
 /* ---------- save ---------- */
-const S=A3.save(SAVE,{found:"",coins:0,up:{},t:0,zone:0,done:0,lastLb:0});
-S.up=Object.assign({spd:0,jmp:0,rng:0,mag:0,rad:0},S.up||{});
-if(typeof S.found!=="string")S.found="";
-const F=[];for(let i=0;i<TOTAL;i++)F.push(S.found.charAt(i)==="1");
-function save(){S.found=F.map(b=>b?"1":"0").join("");A3.store(SAVE,S);}
+const S=A3.save(SAVE,{disc:"",cnt:{},coins:0,up:{},reb:0,tot:0,t:0,zone:0,done:0});
+S.up=Object.assign({spd:0,jmp:0,rng:0,mag:0,rad:0,luck:0,worth:0,cap:0,rate:0},S.up||{});
+if(typeof S.disc!=="string"||!S.disc)S.disc=typeof S.found==="string"?S.found:"";delete S.found;
+if(!S.cnt||typeof S.cnt!=="object")S.cnt={};
+const F=[];for(let i=0;i<TOTAL;i++)F.push(S.disc.charAt(i)==="1");
+function save(){S.disc=F.map(b=>b?"1":"0").join("");A3.store(SAVE,S);}
 function total(){let n=0;for(const b of F)if(b)n++;return n;}
 function zoneCount(z){let n=0;for(let i=z*PER;i<z*PER+PER;i++)if(F[i])n++;return n;}
+const rebMulti=()=>Math.pow(3,S.reb);
 
 /* ---------- data ---------- */
 const Z=[
  {name:"Sunny Park",cx:0,cz:0,need:0,g:["#62c24c","#58b443"],sky:"#79c4ff",fog:"#c4e8ff",wall:"#3f9a3a",rock:"#9aa0a8",bush:"#3fae3a",light:1},
- {name:"Sandy Beach",cx:110,cz:0,need:50,g:["#f2d98a","#ead07c"],sky:"#5ccaff",fog:"#d6f4ff",wall:"#c9a25a",rock:"#b8a890",bush:"#5ac05a",light:1.05},
- {name:"Spooky Woods",cx:0,cz:110,need:120,g:["#3e6b3a","#386233"],sky:"#3e3e6e",fog:"#5c5c86",wall:"#24452a",rock:"#6a6a74",bush:"#2e6a30",light:.7},
- {name:"Frosty Peaks",cx:-110,cz:0,need:200,g:["#f2f7ff","#e4eefb"],sky:"#9cc8ff",fog:"#e4f0ff",wall:"#a9c8ea",rock:"#a8c4e0",bush:"#d8ecff",light:1},
- {name:"Candy Land",cx:0,cz:-110,need:300,g:["#ffc1dc","#ffb3d3"],sky:"#ff9ed6",fog:"#ffe0f0",wall:"#ff6fb8",rock:"#ff9a5a",bush:"#ff8ad0",light:1},
+ {name:"Sandy Beach",cx:110,cz:0,need:25,g:["#f2d98a","#ead07c"],sky:"#5ccaff",fog:"#d6f4ff",wall:"#c9a25a",rock:"#b8a890",bush:"#5ac05a",light:1.05},
+ {name:"Spooky Woods",cx:0,cz:110,need:60,g:["#3e6b3a","#386233"],sky:"#3e3e6e",fog:"#5c5c86",wall:"#24452a",rock:"#6a6a74",bush:"#2e6a30",light:.7},
+ {name:"Frosty Peaks",cx:-110,cz:0,need:110,g:["#f2f7ff","#e4eefb"],sky:"#9cc8ff",fog:"#e4f0ff",wall:"#a9c8ea",rock:"#a8c4e0",bush:"#d8ecff",light:1},
+ {name:"Candy Land",cx:0,cz:-110,need:170,g:["#ffc1dc","#ffb3d3"],sky:"#ff9ed6",fog:"#ffe0f0",wall:"#ff6fb8",rock:"#ff9a5a",bush:"#ff8ad0",light:1},
 ];
 const RAR=[
- {n:"Common",c:"#cfd8e6",coin:1,size:.42},
- {n:"Uncommon",c:"#5fd36a",coin:2,size:.4},
- {n:"Rare",c:"#4aa8ff",coin:5,size:.38},
- {n:"Epic",c:"#b47cff",coin:12,size:.36},
- {n:"Legendary",c:"#ffc93c",coin:30,size:.42},
- {n:"Secret",c:"#ff5d9e",coin:75,size:.24},
+ {n:"Common",c:"#cfd8e6",size:.42,upTo:10},
+ {n:"Uncommon",c:"#5fd36a",size:.42,upTo:100},
+ {n:"Rare",c:"#4aa8ff",size:.44,upTo:1e3},
+ {n:"Epic",c:"#b47cff",size:.46,upTo:1e5},
+ {n:"Legendary",c:"#ffc93c",size:.5,upTo:1e7},
+ {n:"Mythic",c:"#ff6a3d",size:.54,upTo:1e9},
+ {n:"Secret",c:"#ff5d9e",size:.6,upTo:Infinity},
 ];
+const ODDS=k=>Math.max(2,Math.round(2*Math.pow(1.27,k)));          // ball type k in a world is "1 in ODDS(k)"
+const tierOf=n=>{for(let i=0;i<RAR.length;i++)if(n<RAR[i].upTo)return i;return RAR.length-1;};
+const LADDER=["Plain","Spotty","Shiny","Electric","Rainbow","Galaxy","Golden","Diamond","Cosmic","Void"];
 const KIND={ground:0,behind:0,bush:1,under:1,rockTop:1,canopy:2,inside:2,roof:3,towerMid:3,towerTop:4,parkour:4,secret:5};
 const PREF=[
  ["Little","Plain","Bumpy","Muddy","Happy","Sleepy","Wobbly","Squishy","Lumpy","Dotty"],
@@ -193,7 +200,7 @@ const PFX={
  Omega:{p:["#4a1a8a","#ffd23f","#ffffff"],metal:.4,glow:.2},
  Legend:{p:["#1a1a1a","#ffd23f","#ffffff"],metal:.6,glow:.15},
  Invisible:{op:.35},
- Shiny:{metal:.4,rough:.15},Glowing:{glow:.5},Mega:{metal:.3},Ultra:{metal:.3,glow:.2},Turbo:{glow:.2},
+ Spotty:{},Plain:{},Shiny:{metal:.4,rough:.15},Glowing:{glow:.5},Mega:{metal:.3},Ultra:{metal:.3,glow:.2},Turbo:{glow:.2},
 };
 
 /* ---------- colour helpers ---------- */
@@ -265,7 +272,7 @@ function ballMat(info){
 }
 function thumb(id){
  if(thumbs[id])return thumbs[id];
- const src=texCanvas[id];if(!src)return"";
+ ensureMat(id);const src=texCanvas[id];if(!src)return"";
  const c=document.createElement("canvas");c.width=c.height=64;const g=c.getContext("2d");
  g.save();g.beginPath();g.arc(32,32,32,0,7);g.clip();g.drawImage(src,TW*.25,0,TW*.5,TH,-8,0,80,64);
  const gr=g.createRadialGradient(22,20,4,32,32,34);gr.addColorStop(0,"rgba(255,255,255,.45)");gr.addColorStop(.5,"rgba(255,255,255,0)");gr.addColorStop(1,"rgba(0,0,0,.45)");g.fillStyle=gr;g.fillRect(0,0,64,64);g.restore();
@@ -419,8 +426,12 @@ function gate(i){const zc=Z[i],dx=Math.sign(zc.cx),dz=Math.sign(zc.cz),gx=dx*HAL
 function sign(x,z,text){box(x,0,z,.2,1.6,.2,"#7a5232",false);const l=A3.label(text,{size:.6,color:"#3b2200",bg:"#ffe27a"});l.position.set(x,1.9,z);G.add(l);}
 
 /* ---------- build each zone ---------- */
-const balls=[];  // {id,z,b,pre,rar,name,x,y,z,mesh,s}
+const balls=[];   // the 500 ball TYPES: {id,z,b,pre,pi,rar,name,odds}
+const spots=[[],[],[],[],[]];   // hiding places where balls can spawn
+const live=[];   // balls in the world right now: {t:type id,sp:spot,zi,mesh,beam}
 const ballMeshes=[[],[],[],[],[]];
+for(let id=0;id<TOTAL;id++){const z=Math.floor(id/PER),k=id%PER,b=k%10,row=Math.floor(k/10),odds=ODDS(k),pre=LADDER[row];
+ balls[id]={id,z,k,b,pre,pi:b+row,rar:tierOf(odds),name:pre+" "+BASES[z][b].n,odds};}
 function buildZone(i){
  ZI=i;G=groups[i];rnd=A3.seeded(424242+i*7919);cand=[];placed=[];treeTops=[];
  const zc=Z[i];
@@ -452,17 +463,11 @@ function buildZone(i){
  // the tallest tree hides a secret on top
  treeTops.sort((a,b)=>b[1]-a[1]);if(treeTops[0])spot(treeTops[0][0],treeTops[0][1]+RAR[5].size,treeTops[0][2],"secret");
  let guard=0;while(cand.length<PER+6&&guard++<60){const p=place(1.2);if(p)tuft(p[0],p[1]);}
- // choose 100: all secrets (max 3), all legendary, then the rest at random
- const must=[],rest=[];let sec=0;
- for(const c of cand){if(c.kind==="secret"){if(sec<3){must.push(c);sec++;}else{c.kind="behind";c.rar=1;rest.push(c);}}else if(c.rar===4)must.push(c);else rest.push(c);}
- for(let k=rest.length-1;k>0;k--){const j=Math.floor(rnd()*(k+1));[rest[k],rest[j]]=[rest[j],rest[k]];}
- const pick=must.concat(rest).slice(0,PER);
- for(let k=pick.length-1;k>0;k--){const j=Math.floor(rnd()*(k+1));[pick[k],pick[j]]=[pick[j],pick[k]];}
- const occ={};
- pick.forEach((c,k)=>{const id=i*PER+k,b=k%10,key=b+"_"+c.rar;occ[key]=occ[key]||0;const pi=occ[key]++%10,pre=PREF[c.rar][pi];
-  const info={id,z:i,b,pre,pi,rar:c.rar,name:pre+" "+BASES[i][b].n,x:c.x,y:c.y,zz:c.z,kind:c.kind,s:c.kind==="under"?.24:RAR[c.rar].size};
-  balls[id]=info;});
- if(pick.length<PER)console.warn("zone",i,"only",pick.length,"spots");
+  // every hiding place can spawn balls
+ const keep=[],rest=[];let sec=0;
+ for(const c of cand){if(c.kind==="secret"&&sec>=3){c.kind="behind";c.rar=1;}if(c.kind==="secret")sec++;(c.rar>=4?keep:rest).push(c);}
+ const pick=keep.concat(rest).slice(0,PER+20);
+ spots[i]=pick.map(c=>({x:c.x,y:c.y,z:c.z,kind:c.kind,hard:c.rar>=2,busy:false}));
 }
 for(let i=0;i<Z.length;i++)buildZone(i);
 for(let i=1;i<Z.length;i++)gate(i);
@@ -482,10 +487,24 @@ function mergeZone(i){const g=groups[i];g.updateMatrixWorld(true);const buckets=
  for(const m of drop)g.remove(m);
  occluders[i]=occ;}
 for(let i=0;i<Z.length;i++)mergeZone(i);
-// ball meshes
-for(const b of balls){if(!b)continue;b.mat=ballMat(b);
- if(F[b.id])continue;spawnBall(b);}
-function spawnBall(b){const m=new THREE.Mesh(geoSph,b.mat);m.position.set(b.x,b.y,b.zz);m.scale.setScalar(b.s);m.castShadow=true;m.rotation.y=b.id;m.userData.ball=b.id;groups[b.z].add(m);b.mesh=m;ballMeshes[b.z].push(m);}
+// ball looks are made when a ball of that type first appears
+function ensureMat(id){const b=balls[id];if(!b.mat)b.mat=ballMat(b);return b.mat;}
+const beamGeo=new THREE.CylinderGeometry(.18,.18,14,8,1,true);
+function spawnOne(zi,quiet){
+ const free=spots[zi].filter(p=>!p.busy);if(!free.length)return null;
+ // luck divides every ball's odds: each kind's weight is 1 / (odds / luck), never more than 1
+ const L=luckTotal(),w=[];let sum=0;
+ for(let j=0;j<PER;j++){const x=Math.min(1,L/balls[zi*PER+j].odds);w.push(x);sum+=x;}
+ let r=Math.random()*sum,k=0;for(;k<PER-1;k++){r-=w[k];if(r<=0)break;}
+ const id=zi*PER+k,b=balls[id];
+ const pool=b.rar>=3?free.filter(p=>p.hard):free;const sp=A3.pick(pool.length?pool:free);sp.busy=true;
+ const m=new THREE.Mesh(geoSph,ensureMat(id));const rad=RAR[b.rar].size*(sp.kind==="under"?.6:1);
+ m.position.set(sp.x,sp.y+(rad-RAR[0].size),sp.z);if(m.position.y<rad)m.position.y=rad;m.scale.setScalar(rad);m.castShadow=true;m.rotation.y=Math.random()*6;
+ const o={t:id,sp,zi,mesh:m,beam:null};m.userData.live=o;groups[zi].add(m);ballMeshes[zi].push(m);live.push(o);
+ if(b.rar>=4){const bm=new THREE.Mesh(beamGeo,new THREE.MeshBasicMaterial({color:RAR[b.rar].c,transparent:true,opacity:.35,depthWrite:false}));bm.position.set(sp.x,sp.y+7,sp.z);bm.userData.noRay=1;groups[zi].add(bm);o.beam=bm;
+  if(!quiet){A3.sfx("win");A3.toast("✨ A "+RAR[b.rar].n.toUpperCase()+" "+b.name+" (1 in "+A3.fmt(b.odds)+") spawned! Look for the light beam!",3600);}}
+ return o;}
+function liveIn(zi){let n=0;for(const o of live)if(o.zi===zi)n++;return n;}
 
 /* ---------- player ---------- */
 const P={x:0,y:0,z:-6,vx:0,vy:0,vz:0,ground:true,coy:0,buf:0,face:0,walk:0};
@@ -501,12 +520,21 @@ const radarHolder=new THREE.Group();radarHolder.add(radarArrow);radarArrow.posit
 
 /* ---------- upgrades ---------- */
 const UPS=[
+ {k:"luck",ic:"🍀",n:"Luck",max:60,cost:l=>Math.round(15*Math.pow(1.62,l)),val:l=>Math.pow(1.25,l),show:v=>"x"+fmtX(v)+" luck",farm:1},
+ {k:"worth",ic:"💰",n:"Ball Worth",max:60,cost:l=>Math.round(20*Math.pow(1.6,l)),val:l=>Math.pow(1.3,l),show:v=>"x"+fmtX(v)+" cash",farm:1},
+ {k:"cap",ic:"🎯",n:"Max Balls",max:23,cost:l=>Math.round(25*Math.pow(1.75,l)),val:l=>8+l*4,show:v=>v+" balls can spawn at once",farm:1},
+ {k:"rate",ic:"⏱️",n:"Spawn Speed",max:20,cost:l=>Math.round(25*Math.pow(1.8,l)),val:l=>4*Math.pow(.85,l),show:v=>"a ball every "+v.toFixed(2)+" s",farm:1},
  {k:"spd",ic:"👟",n:"Speed",max:8,cost:l=>Math.round(20*Math.pow(2.1,l)),val:l=>8+l*1.4,show:v=>v.toFixed(1)+" speed"},
  {k:"jmp",ic:"🦘",n:"Super Jump",max:7,cost:l=>Math.round(30*Math.pow(2.3,l)),val:l=>[2.1,2.7,3.3,4.0,4.8,5.6,6.5,7.5][l],show:v=>"jump "+v.toFixed(1)+" high"},
  {k:"rng",ic:"🖐️",n:"Long Arm",max:8,cost:l=>Math.round(25*Math.pow(2,l)),val:l=>9+l*2,show:v=>"grab from "+v+" away"},
  {k:"mag",ic:"🧲",n:"Ball Magnet",max:8,cost:l=>Math.round(40*Math.pow(2.1,l)),val:l=>1.4+l*.6,show:v=>"pull in from "+v.toFixed(1)},
- {k:"rad",ic:"📡",n:"Ball Radar",max:6,cost:l=>l?Math.round(120*Math.pow(2,l)):100,val:l=>l?[0,90,70,55,40,30,20][l]:0,show:v=>v?"points to the nearest ball, ready every "+v+" s":"not bought yet"},
+ {k:"rad",ic:"📡",n:"Ball Radar",max:6,cost:l=>l?Math.round(120*Math.pow(2,l)):100,val:l=>l?[0,90,70,55,40,30,20][l]:0,show:v=>v?"points to the rarest ball, ready every "+v+" s":"not bought yet"},
 ];
+function fmtX(v){return v<1000?(Math.round(v*100)/100).toString():A3.fmt(v);}
+const luckTotal=()=>U("luck")*rebMulti();
+const cashTotal=()=>U("worth")*rebMulti();
+const ballValue=id=>{const b=balls[id];return Math.max(1,Math.ceil(Math.pow(b.odds,.6)))*Math.pow(5,b.z);};
+const rebCost=()=>2500*Math.pow(12,S.reb);
 const U=k=>{const u=UPS.find(x=>x.k===k);return u.val(S.up[k]);};
 
 /* ---------- input ---------- */
@@ -517,10 +545,10 @@ const coarse=matchMedia("(pointer:coarse)").matches;if(coarse)$("bJ").style.disp
 addEventListener("keydown",e=>{const k=(e.key||"").toLowerCase();if(mode==="play"&&[" ","arrowup","arrowdown","arrowleft","arrowright"].includes(k))e.preventDefault();if(k===" "&&mode==="play")P.buf=.14;if(k==="b"&&mode==="play")openBook();if(k==="r"&&mode==="play")useRadar();});
 function pickTargets(){const out=[];for(let i=0;i<Z.length;i++)if(groups[i].visible){for(const m of ballMeshes[i])out.push(m);for(const m of occluders[i])out.push(m);}return out;}
 function ballUnder(e){const rc=A3.ray(e,camera,cvEl);rc.far=150;
- for(const h of rc.intersectObjects(pickTargets(),false)){if(h.object.userData.noRay)continue;const id=h.object.userData.ball;return id!=null?id:null;}return null;}
-function tryPick(e){if(mode!=="play")return false;const id=ballUnder(e);if(id==null)return false;const b=balls[id];
- const d=Math.hypot(b.x-P.x,b.y-(P.y+.9),b.zz-P.z);
- if(d<=U("rng")){collect(id);return true;}
+ for(const h of rc.intersectObjects(pickTargets(),false)){if(h.object.userData.noRay)continue;return h.object.userData.live||null;}return null;}
+function tryPick(e){if(mode!=="play")return false;const o=ballUnder(e);if(!o)return false;const q=o.mesh.position;
+ const d=Math.hypot(q.x-P.x,q.y-(P.y+.9),q.z-P.z);
+ if(d<=U("rng")){collect(o);return true;}
  A3.toast("Too far away! Get closer, or buy Long Arm 🖐️");A3.sfx("tick");return true;}
 cvEl.addEventListener("pointerdown",e=>{
  if(mode!=="play")return;
@@ -534,7 +562,7 @@ cvEl.addEventListener("pointermove",e=>{
  if(e.pointerId===joyId){const r=stage.getBoundingClientRect();let dx=e.clientX-r.left-joyO.x,dy=e.clientY-r.top-joyO.y;const d=Math.hypot(dx,dy),Mx=56;if(d>Mx){dx*=Mx/d;dy*=Mx/d;}
   touch.jx=dx/Mx;touch.jy=-dy/Mx;$("knob").style.transform="translate("+dx+"px,"+dy+"px)";}
  else if(e.pointerId===lookId){const dx=e.clientX-lookLast.x,dy=e.clientY-lookLast.y;lookLast={x:e.clientX,y:e.clientY};cam.yaw-=dx*.0065;cam.pitch=Math.max(-.1,Math.min(1.3,cam.pitch+dy*.0045));}
- else if(e.pointerType==="mouse"&&mode==="play"&&performance.now()-hoverT>90){hoverT=performance.now();cvEl.style.cursor=ballUnder(e)!=null?"pointer":"grab";}});
+ else if(e.pointerType==="mouse"&&mode==="play"&&performance.now()-hoverT>90){hoverT=performance.now();cvEl.style.cursor=ballUnder(e)?"pointer":"grab";}});
 function endPtr(e){if(e.pointerId===joyId){joyId=null;touch.jx=touch.jy=0;$("joy").style.display="none";}if(e.pointerId===lookId)lookId=null;}
 cvEl.addEventListener("pointerup",endPtr);cvEl.addEventListener("pointercancel",endPtr);
 cvEl.addEventListener("wheel",e=>{if(mode!=="play")return;e.preventDefault();cam.dist=Math.max(4,Math.min(22,cam.dist*(1+e.deltaY*.001)));},{passive:false});
@@ -558,37 +586,39 @@ function zoneAt(x,z){for(let i=0;i<Z.length;i++){if(Math.abs(x-Z[i].cx)<=HALF&&M
 /* ---------- collecting ---------- */
 const parts=A3.particles(scene);
 let lastLb=0;
-function collect(id){if(F[id])return;const b=balls[id];F[id]=true;
- if(b.mesh){groups[b.z].remove(b.mesh);ballMeshes[b.z]=ballMeshes[b.z].filter(m=>m!==b.mesh);b.mesh=null;}
- parts.burst(new THREE.Vector3(b.x,b.y,b.zz),RAR[b.rar].c,b.rar>=3?34:18,b.rar>=3?7:4.5);
- const coins=RAR[b.rar].coin*(b.z+1);S.coins+=coins;
- A3.sfx(b.rar>=4?"win":b.rar>=2?"pop":"coin");
- A3.toast("#"+(id+1)+" "+b.name+" · "+RAR[b.rar].n.toUpperCase()+" · +"+A3.fmt(coins)+" coins",b.rar>=3?2600:1800);
- const n=total(),zn=zoneCount(b.z);
- if(n%25===0&&window.PhatCoin)A3.win(2,"Find a Million Balls: "+n+" found");
- if(zn===PER){A3.win(5,"Find a Million Balls: all of "+Z[b.z].name);setTimeout(()=>A3.toast("🏆 You found all 100 balls in "+Z[b.z].name+"!",3200),1200);}
- checkGates(true);save();hud();
- const now=Date.now();if(n%5===0||n===TOTAL||now-lastLb>20000){lastLb=now;A3.best(n);}
- if(n===TOTAL&&!S.done){S.done=Date.now();save();setTimeout(showWin,1500);}
+function collect(o){if(!o||!o.mesh)return;const id=o.t,b=balls[id];
+ groups[o.zi].remove(o.mesh);if(o.beam)groups[o.zi].remove(o.beam);ballMeshes[o.zi]=ballMeshes[o.zi].filter(m=>m!==o.mesh);
+ const pos=o.mesh.position.clone();o.mesh=null;o.sp.busy=false;live.splice(live.indexOf(o),1);
+ parts.burst(pos,RAR[b.rar].c,b.rar>=3?34:16,b.rar>=3?7:4.5);
+ const coins=ballValue(id)*cashTotal();S.coins+=coins;S.tot=(S.tot||0)+1;S.cnt[id]=(S.cnt[id]||0)+1;
+ const isNew=!F[id];F[id]=true;
+ A3.sfx(isNew||b.rar>=4?"win":b.rar>=2?"pop":"coin");
+ A3.toast((isNew?"🆕 NEW! ":"")+b.name+" · "+RAR[b.rar].n.toUpperCase()+" (1 in "+A3.fmt(b.odds)+") · +"+A3.fmt(coins)+" cash",isNew||b.rar>=3?2600:1500);
+ if(isNew){const n=total(),zn=zoneCount(b.z);
+  if(n%25===0)A3.win(2,"Find a Million Balls: "+n+" in the Ball Book");
+  if(zn===PER){A3.win(5,"Find a Million Balls: all of "+Z[b.z].name);setTimeout(()=>A3.toast("🏆 Every ball in "+Z[b.z].name+" is in your Ball Book!",3200),1200);}
+  checkGates(true);A3.best(n);
+  if(n===TOTAL&&!S.done){S.done=Date.now();setTimeout(showWin,1500);}}
+ save();hud();
  if(mode==="book")openBook(curTab);}
 function checkGates(announce){const n=total();for(let i=1;i<Z.length;i++){const g=gates[i];if(!g||g.open)continue;if(n>=Z[i].need){g.open=true;g.s.on=false;g.bar.visible=false;g.lock.visible=false;
  if(announce){A3.sfx("win");setTimeout(()=>A3.toast("🔓 The gate to "+Z[i].name+" is open!",3200),900);A3.win(3,"Find a Million Balls: opened "+Z[i].name);}}}}
-function nearestUnfound(){let best=null,bd=1e9;for(const b of balls){if(!b||F[b.id]||!gateOpen(b.z))continue;const d=Math.hypot(b.x-P.x,b.zz-P.z);if(d<bd){bd=d;best=b;}}return best;}
+function nearestUnfound(){const zi=zoneAt(P.x,P.z);let best=null;for(const o of live){if(o.zi!==zi)continue;if(!best||balls[o.t].odds>balls[best.t].odds)best=o;}return best;}
 function gateOpen(z){return z===0||(gates[z]&&gates[z].open);}
 let radarUntil=0,radarReady=0,radarTarget=null;
 function useRadar(){if(!S.up.rad){A3.toast("Buy the 📡 Ball Radar in Upgrades first");openShop();return;}
  const now=performance.now()/1000;if(now<radarReady){A3.toast("Radar recharging: "+Math.ceil(radarReady-now)+" s");return;}
- radarTarget=nearestUnfound();if(!radarTarget){A3.toast("No balls left that you can reach yet!");return;}
+ radarTarget=nearestUnfound();if(!radarTarget){A3.toast("No balls here right now. Wait for some to spawn!");return;}
  radarUntil=now+15;radarReady=now+15+U("rad");A3.sfx("whoosh");A3.toast("📡 Follow the blue arrow!");}
 
 /* ---------- HUD + menus ---------- */
 function hud(){const n=total(),z=zoneAt(P.x,P.z);
- $("hFound").textContent=n+" / "+TOTAL;$("hCoins").textContent=A3.fmt(S.coins);$("hZone").textContent=Z[z].name;
- $("big").firstChild.nodeValue=n+" ";$("bigZ").textContent="of 500 · "+Z[z].name+" "+zoneCount(z)+"/100";}
+ $("hFound").textContent=n+" / "+TOTAL;$("hCoins").textContent=A3.fmt(S.coins);$("hLuck").textContent="x"+fmtX(luckTotal());$("hReb").textContent=A3.fmt(S.reb);
+ $("big").firstChild.nodeValue=A3.fmt(S.coins)+" ";$("bigZ").textContent="cash · Book "+n+"/500 · "+Z[z].name+" "+zoneCount(z)+"/100";}
 function titleInfo(){const n=total();
  $("tZones").innerHTML=Z.map((z,i)=>`<div class="zb">${z.name}<b>${gateOpen(i)?zoneCount(i)+"/100":"🔒 "+z.need}</b></div>`).join("");
- $("tStats").innerHTML=`<div>Found <b>${n}</b> / 500</div><div>Coins <b>${A3.fmt(S.coins)}</b></div><div>Time <b>${fmtTime(S.t)}</b></div>`;
- $("bPlay").textContent=n?"Keep finding":"Play";}
+ $("tStats").innerHTML=`<div>Ball Book <b>${n}</b> / 500</div><div>Cash <b>${A3.fmt(S.coins)}</b></div><div>Rebirths <b>${A3.fmt(S.reb)}</b></div><div>Luck <b>x${fmtX(luckTotal())}</b></div><div>Balls grabbed <b>${A3.fmt(S.tot||0)}</b></div>`;
+ $("bPlay").textContent=S.tot?"Keep finding":"Play";}
 function fmtTime(s){s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s/60)%60;return h?h+"h "+m+"m":m+"m "+(s%60)+"s";}
 let curTab=0;
 function openBook(tab){if(tab==null)tab=zoneAt(P.x,P.z);curTab=tab;mode=mode==="title"||mode==="titlebook"?"titlebook":"book";
@@ -599,27 +629,38 @@ function openBook(tab){if(tab==null)tab=zoneAt(P.x,P.z);curTab=tab;mode=mode==="
   h+=F[id]?`<button class="bc f" data-i="${id}" style="border-color:${RAR[b.rar].c};background-image:url(${thumb(id)})">${id+1}</button>`:`<button class="bc" data-i="${id}" style="border-color:${RAR[b.rar].c}55">${id+1}</button>`;}
  $("bGrid").innerHTML=h;
  $("bGrid").querySelectorAll(".bc").forEach(c=>c.onclick=()=>{const id=+c.dataset.i,b=balls[id];if(!b)return;
-  const tag=`<span class="rare" style="background:${RAR[b.rar].c}">${RAR[b.rar].n}</span>`;
-  $("bInfo").innerHTML=F[id]?`<b>#${id+1} ${b.name}</b>${tag}<br>Worth ${A3.fmt(RAR[b.rar].coin*(b.z+1))} coins`:`<b>#${id+1} ???</b>${tag}<br>${hintFor(b)}`;});
- $("bInfo").innerHTML=`<b>${Z[tab].name}</b>: ${zoneCount(tab)} of 100 found.${gateOpen(tab)?"":" Find "+Z[tab].need+" balls in all to open the gate."} Tap a number for a clue.`;
+  const tag=`<span class="rare" style="background:${RAR[b.rar].c}">${RAR[b.rar].n}</span>`,odds="1 in "+A3.fmt(b.odds);
+  $("bInfo").innerHTML=F[id]?`<b>#${id+1} ${b.name}</b>${tag}<br>${odds} · worth ${A3.fmt(ballValue(id)*cashTotal())} cash · found ${A3.fmt(S.cnt[id]||0)} times`:`<b>#${id+1} ???</b>${tag}<br>${odds}. ${b.odds>luckTotal()*20?"Get more luck to find this one!":"Keep grabbing balls in "+Z[b.z].name+"!"}`;});
+ $("bInfo").innerHTML=`<b>${Z[tab].name}</b>: ${zoneCount(tab)} of 100 in your book.${gateOpen(tab)?"":" Get "+Z[tab].need+" in your book to open the gate."} Tap a number to see its odds.`;
  $("bGo").disabled=!gateOpen(tab);}
-function hintFor(b){return{ground:"Hiding in some long grass.",behind:"Tucked behind something.",bush:"Hiding in a bush.",under:"Under a bench or seat.",rockTop:"Sitting on top of a big rock.",canopy:"Stuck up in a tree.",inside:"Inside a building.",roof:"Up on a rooftop.",towerMid:"Halfway up something tall.",towerTop:"At the very top of something tall.",parkour:"At the top of the rainbow jumps.",secret:"A secret. Look everywhere: up high, down low, even underwater."}[b.kind]||"Somewhere!";}
 function closeBook(){$("ovBook").hidden=true;if(mode==="titlebook"){mode="title";titleInfo();$("ovTitle").hidden=false;}else mode="play";}
 function goZone(i){if(!gateOpen(i))return;const zc=Z[i];
  if(i===0){P.x=0;P.z=-6;cam.yaw=0;}else{const dx=Math.sign(zc.cx),dz=Math.sign(zc.cz);P.x=dx*(HALF+9);P.z=dz*(HALF+9);cam.yaw=Math.atan2(dx,dz);}
  P.y=0;P.vx=P.vz=P.vy=0;camPos=null;S.zone=i;save();}
 function openShop(){const from=mode;mode=from==="title"||from==="titlebook"?"titleshop":"shop";$("ovTitle").hidden=true;$("ovShop").hidden=false;drawShop();}
-function drawShop(){$("shopCoins").innerHTML="You have <b style='color:var(--gold)'>"+A3.fmt(S.coins)+"</b> coins. Find more balls to earn more.";
- $("ups").innerHTML=UPS.map(u=>{const l=S.up[u.k],mx=l>=u.max,c=u.cost(l);
+function drawShop(){$("shopCoins").innerHTML="You have <b style='color:var(--gold)'>"+A3.fmt(S.coins)+"</b> cash. Luck x"+fmtX(luckTotal())+" · Cash x"+fmtX(cashTotal());
+ const rc=rebCost(),nx=Math.pow(3,S.reb+1);
+ let h=`<div class="up" style="background:#3a2a5a"><div class="ic">🔁</div><div class="tx"><b>Rebirth</b> (you have ${A3.fmt(S.reb)})<small>Rebirth to make luck and cash x${fmtX(nx)} (x3 more each time). Resets your cash and the Luck, Ball Worth, Max Balls and Spawn Speed upgrades. Your Ball Book, open worlds and other upgrades stay.</small></div><button class="btn small pink" id="bReb" ${S.coins<rc?"disabled":""}>${A3.fmt(rc)}</button></div>`;
+ h+=`<div class="row" style="margin:6px 0"><button class="btn small alt" id="bMaxAll">Max everything</button></div>`;
+ h+=UPS.map(u=>{const l=S.up[u.k],mx=l>=u.max,c=u.cost(l);
   return`<div class="up"><div class="ic">${u.ic}</div><div class="tx"><b>${u.n}</b> level ${l}/${u.max}<small>Now: ${u.show(u.val(l))}${mx?"":" · next: "+u.show(u.val(l+1))}</small></div>
   ${mx?`<button class="btn small" disabled>MAX</button>`:`<button class="btn small green" data-k="${u.k}" ${S.coins<c?"disabled":""}>${A3.fmt(c)}</button><button class="btn small alt" data-m="${u.k}" ${S.coins<c?"disabled":""}>Max</button>`}</div>`;}).join("");
+ $("ups").innerHTML=h;
  $("ups").querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>buy(b.dataset.k,false));
- $("ups").querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>buy(b.dataset.m,true));}
+ $("ups").querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>buy(b.dataset.m,true));
+ $("bReb").onclick=rebirth;
+ $("bMaxAll").onclick=()=>{let n=0;for(;;){let best=null;for(const u of UPS){const l=S.up[u.k];if(l<u.max&&S.coins>=u.cost(l)&&(!best||u.cost(l)<best.cost(S.up[best.k])))best=u;}
+  if(!best)break;S.coins-=best.cost(S.up[best.k]);S.up[best.k]++;n++;}if(n)A3.sfx("coin");save();hud();drawShop();};}
+function rebirth(){const c=rebCost();if(S.coins<c)return;
+ S.coins=0;S.reb++;for(const u of UPS)if(u.farm)S.up[u.k]=0;
+ A3.sfx("win");parts.burst(new THREE.Vector3(P.x,P.y+1,P.z),"#ff6fa3",60,9);
+ A3.toast("🔁 REBIRTH "+A3.fmt(S.reb)+"! Luck and cash are now x"+fmtX(rebMulti()),3200);A3.win(3,"Find a Million Balls: rebirth "+S.reb);
+ save();hud();drawShop();}
 function buy(k,max){const u=UPS.find(x=>x.k===k);let n=0;
  while(S.up[k]<u.max&&S.coins>=u.cost(S.up[k])){S.coins-=u.cost(S.up[k]);S.up[k]++;n++;if(!max)break;}
  if(n){A3.sfx("coin");if(k==="rad"&&S.up.rad===n)A3.toast("📡 Radar bought! Tap 📡 or press R");}save();hud();drawShop();}
 function closeShop(){$("ovShop").hidden=true;if(mode==="titleshop"){mode="title";titleInfo();$("ovTitle").hidden=false;}else mode="play";}
-function showWin(){mode="win";$("winTxt").innerHTML=`You found every single ball in all five worlds in ${fmtTime(S.t)}. That only leaves 999,500 to go... just kidding, you have found them all! Your score is on the leaderboard.`;$("ovWin").hidden=false;A3.sfx("win");A3.win(5,"Find a Million Balls: all 500!");}
+function showWin(){mode="win";$("winTxt").innerHTML=`Every one of the 500 balls is in your Ball Book, after ${fmtTime(S.t)}! You can keep grabbing balls for cash and rebirths.`;$("ovWin").hidden=false;A3.sfx("win");A3.win(5,"Find a Million Balls: all 500!");}
 function play(){mode="play";$("ovTitle").hidden=true;cvEl.focus&&cvEl.focus();}
 $("bPlay").onclick=()=>{A3.sfx("click");play();};
 $("bBook").onclick=()=>{A3.sfx("click");mode="titlebook";openBook(zoneAt(P.x,P.z));};
@@ -636,7 +677,7 @@ A3.fullscreen($("bFs"),stage);
 $("bMute").onclick=()=>{A3.mute(!A3.mute());$("bMute").textContent=A3.mute()?"🔇":"🔊";};$("bMute").textContent=A3.mute()?"🔇":"🔊";
 
 /* ---------- frame ---------- */
-let camPos=null,lastZone=-1,saveT=0,frameN=0;
+let camPos=null,lastZone=-1,saveT=0,frameN=0,spawnT=0;const seeded=[];
 const camTgt=new THREE.Vector3(),want=new THREE.Vector3(),rc=new THREE.Raycaster(),tmpC=new THREE.Color(),tmpF=new THREE.Color();
 function update(dt){
  const playing=mode==="play";
@@ -659,7 +700,11 @@ function update(dt){
   P.walk+=Math.hypot(P.vx,P.vz)*dt*1.6;
   // magnet
   const mr=U("mag"),cy=P.y+.9;const zi=zoneAt(P.x,P.z);
-  for(const m of ballMeshes[zi]){const b=balls[m.userData.ball];const d=Math.hypot(b.x-P.x,(b.y-cy)*.7,b.zz-P.z);if(d<mr+b.s){collect(b.id);break;}}
+  for(const m of ballMeshes[zi]){const q=m.position;const d=Math.hypot(q.x-P.x,(q.y-cy)*.7,q.z-P.z);if(d<mr+m.scale.x){collect(m.userData.live);break;}}
+  // spawning in the world you are in
+  if(!seeded[zi]){seeded[zi]=1;for(let q=0;q<Math.min(5,U("cap"));q++)spawnOne(zi,true);}
+  spawnT+=dt;const iv=U("rate");
+  while(spawnT>=iv){spawnT-=iv;if(liveIn(zi)<U("cap"))spawnOne(zi,false);}
  }
  // avatar
  av.position.set(P.x,P.y,P.z);let df=P.face-av.rotation.y;df=Math.atan2(Math.sin(df),Math.cos(df));av.rotation.y+=df*Math.min(1,dt*12);
@@ -672,14 +717,15 @@ function update(dt){
  if(zi!==lastZone){lastZone=zi;hud();const t=$("zoneTag");t.textContent=Z[zi].name;t.classList.add("on");clearTimeout(update.zt);update.zt=setTimeout(()=>t.classList.remove("on"),2200);if(playing){S.zone=zi;}}
  for(let i=0;i<Z.length;i++){const zc=Z[i],dx=Math.max(0,Math.abs(P.x-zc.cx)-HALF),dz=Math.max(0,Math.abs(P.z-zc.cz)-HALF);groups[i].visible=Math.hypot(dx,dz)<95;}
  for(const m of ballMeshes[zi])m.rotation.y+=dt*.8;
+ for(const o of live)if(o.beam&&o.zi===zi){o.beam.material.opacity=.25+Math.sin(frameN*.08)*.12;}
  const k=1-Math.exp(-dt*1.5);tmpC.set(Z[zi].sky);scene.background.lerp(tmpC,k);tmpF.set(Z[zi].fog);scene.fog.color.lerp(tmpF,k);
  lights.hemi.intensity+=(.9*Z[zi].light-lights.hemi.intensity)*k;lights.sun.intensity+=(1.05*Z[zi].light-lights.sun.intensity)*k;
  lights.sun.position.set(P.x+14,P.y+30,P.z+10);lights.sun.target.position.set(P.x,P.y,P.z);
  // radar
  const now=performance.now()/1000;
- if(radarTarget&&(F[radarTarget.id]||now>radarUntil)){if(F[radarTarget.id]&&now<radarUntil)radarTarget=nearestUnfound();if(!radarTarget||now>radarUntil)radarTarget=null;}
- if(radarTarget&&now<radarUntil){radarHolder.visible=true;radarHolder.position.set(P.x,P.y+2.6,P.z);radarHolder.lookAt(radarTarget.x,P.y+2.6,radarTarget.zz);
-  const d=Math.hypot(radarTarget.x-P.x,radarTarget.y-P.y,radarTarget.zz-P.z);$("radarTag").style.display="block";$("radarTag").textContent="📡 Nearest ball: "+Math.round(d)+" m"+(radarTarget.y>2.5?" (up high!)":"");}
+ if(radarTarget&&(!radarTarget.mesh||now>radarUntil)){if(!radarTarget.mesh&&now<radarUntil)radarTarget=nearestUnfound();if(!radarTarget||now>radarUntil)radarTarget=null;}
+ if(radarTarget&&now<radarUntil){radarHolder.visible=true;radarHolder.position.set(P.x,P.y+2.6,P.z);const tq=radarTarget.mesh.position;radarHolder.lookAt(tq.x,P.y+2.6,tq.z);
+  const d=Math.hypot(tq.x-P.x,tq.y-P.y,tq.z-P.z),tb=balls[radarTarget.t];$("radarTag").style.display="block";$("radarTag").textContent="📡 "+RAR[tb.rar].n+" ball: "+Math.round(d)+" m"+(tq.y>2.5?" (up high!)":"");}
  else{radarHolder.visible=false;$("radarTag").style.display="none";}
  const cd=radarReady-now;$("radCd").textContent=!S.up.rad?"":cd>0?Math.ceil(cd)+"s":"READY";$("dRadar").classList.toggle("cool",!S.up.rad||cd>0);
  // camera
@@ -702,8 +748,9 @@ checkGates(false);
 if(S.zone&&gateOpen(S.zone))goZone(S.zone);
 titleInfo();hud();
 A3.loop(update);
-if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"find-a-million-balls",dir:"desc",unit:"balls",title:"Find a Million Balls: most balls found"});
-window.__famb={S,P,F,balls,collect,goZone,cam,openBook,openShop,play,Z,total,renderer,camera,ballUnder,pickTargets,get mode(){return mode;}};
+if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"find-a-million-balls",dir:"desc",unit:"balls",title:"Find a Million Balls: most balls in the Ball Book"});
+if(total())A3.best(total());
+window.__famb={S,P,F,balls,live,spots,spawnOne,rebirth,luckTotal,cashTotal,ballValue,collect,goZone,cam,openBook,openShop,play,Z,total,renderer,camera,ballUnder,pickTargets,get mode(){return mode;}};
 })();
 </script>
 </body>

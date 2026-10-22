@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Blob Feast</title>
 <meta property="og:title" content="Blob Feast · GH Games">
-<meta property="og:description" content="You are a wobbly jelly blob loose in a 3D town: soak up sweets, bins, cars, houses, towers and even mountains, and watch them stick inside you as you grow. Two-minute rounds, worlds, pets and rebirths.">
+<meta property="og:description" content="You are a wobbly jelly blob loose in a giant 3D town: soak up sweets, cars, houses, towers and mountains while tougher blobs and crowned Mega Blobs hunt you down. 90-second rounds, worlds, pets and rebirths.">
 <meta property="og:image" content="https://ghgames.au/og/blob-feast.png">
 <meta property="og:url" content="https://ghgames.au/blob-feast.html">
 <meta name="twitter:card" content="summary_large_image">
@@ -65,6 +65,9 @@
 .sizebar .bar{height:10px;border-radius:8px;background:rgba(0,0,0,.45);border:2px solid rgba(255,255,255,.6);overflow:hidden;margin-top:4px}
 .sizebar .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#7ad8ff,#ff7ae0)}
 .sizebar .nx{font-weight:900;font-size:12px;color:#fff;margin-top:3px;text-shadow:0 1px 0 #000,0 0 4px #000}
+.stage canvas.mini{position:absolute;left:10px;top:auto;right:auto;bottom:10px;width:124px;height:124px;display:block;border-radius:14px;border:2px solid rgba(255,255,255,.7);z-index:15;pointer-events:none;box-shadow:0 4px 0 rgba(0,0,0,.3)}
+.stage canvas.mini[hidden]{display:none}
+@media (max-width:600px){.stage canvas.mini{width:92px;height:92px;bottom:70px}}
 .feed{position:absolute;right:10px;top:10px;z-index:15;display:flex;flex-direction:column;gap:3px;align-items:flex-end;pointer-events:none}
 .feed span{background:rgba(10,8,30,.6);border-radius:10px;padding:3px 9px;font-weight:900;font-size:13px;color:#fff;animation:pgpop .25s ease-out both}
 .feed span b{color:var(--gold)}
@@ -93,14 +96,15 @@
   <div class="stage" id="stage">
     <div class="ingame"><button id="bFs">⛶</button><button id="bMute">🔊</button><button id="bQuit" hidden>✕</button></div>
     <div class="toast" id="toast"></div>
-    <div class="timer" id="timer" hidden>2:00</div>
+    <div class="timer" id="timer" hidden>1:30</div>
+    <canvas class="mini" id="mini" width="240" height="240" hidden></canvas>
     <div class="feed" id="feed" hidden></div>
     <div class="sizebar" id="sizebar" hidden><div class="nm" id="sizeNm">20 cm</div><div class="bar"><i id="sizeFill"></i></div><div class="nx" id="sizeNx"></div></div>
     <div id="joy"><div id="knob"></div></div>
 
     <div class="ov" id="ovTitle">
       <h2>BLOB FEAST</h2>
-      <p>You are a wobbly jelly blob let loose in a 3D town. Roll over anything smaller than you to soak it up (sweets, bins, cars, houses, even mountains) and watch it stick inside you as you grow, all in two minutes!</p>
+      <p>You are a wobbly jelly blob let loose in a GIANT town, 250 times bigger than before and packed with things. Soak up anything smaller than you, from sweets to mountains, but run from bigger blobs and the crowned Mega Blobs: they hunt you and squish your jelly away!</p>
       <div class="tabsum" id="tSum"></div>
       <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn green" id="bUp">Upgrades</button><button class="btn alt" id="bWorlds">Worlds</button></div>
       <div class="row"><button class="btn alt" id="bSkins">Skins</button><button class="btn alt" id="bPets">Pets</button><button class="btn pink" id="bReb">Rebirth</button><button class="btn" id="bDaily" hidden>🎁 Daily</button></div>
@@ -162,7 +166,7 @@
     </div>
   </div>
 
-  <p class="help">Mouse: point where to wobble. Keyboard: arrow keys or W A S D. iPad: drag anywhere to steer with the joystick. You can soak up anything clearly smaller than you; bigger things block your way. The bar shows how close you are to the next size of thing. Computer blobs roam the same town: soak up the smaller ones, but keep away from bigger ones or they squish some of your jelly away. Each round lasts two minutes (more with upgrades), then you get coins for everything you soaked up and how big you got. Coins buy upgrades (speed, round time, start size, magnet pull, growth, coins), skins with multis and pet eggs. Pets orbit your blob and pull things in. Reach a big enough size to unlock the next world: toy town, farm, city, beach, theme park and space station. Rebirth resets your coins and upgrades for a bigger multi for ever. The leaderboard is the biggest size ever.</p>
+  <p class="help">Mouse: point where to wobble. Keyboard: arrow keys or W A S D. iPad: drag anywhere to steer with the joystick. The town is giant, so the corner map shows you (in the middle), the town edge, computer blobs (green ones you can soak up, red ones can squish you) and the gold Mega Blobs; the little square shows where you are in the whole town. You can soak up anything clearly smaller than you; bigger things block your way, and the bigger you get the faster you wobble. You are safe for the first few seconds, then bigger blobs hunt you and try to cut you off. If one touches you it squishes away a big chunk of your jelly, and if you get squished smaller than you started the round ends. Soak up a crowned Mega Blob for a huge bonus, and grow big enough to soak up the biggest things in the world to become a Town Crusher. Each round lasts 90 seconds (more with upgrades), then you get coins for everything you soaked up and how big you got. Coins buy upgrades (speed, round time, start size, magnet pull, growth, coins), skins with multis and pet eggs. Pets orbit your blob and pull things in. Reach a big enough size to unlock the next world: toy town, farm, city, beach, theme park and space station. Rebirth resets your coins and upgrades for a bigger multi for ever. The leaderboard is the biggest size ever.</p>
   <div id="lb"></div>
 </div>
 
@@ -376,7 +380,7 @@ const SAVE="blobfeast-save";
 const fmt=n=>A3.fmt(n);
 let S=A3.save(SAVE,{});
 if(!(S.v>=2)){const old=S;S={v:2,coins:Math.min(20000,Math.floor((+old.coins||0)+(+old.best||0)/2)),oldBest:+old.best||0};}
-const DEF={v:2,coins:0,up:{},world:0,wOwn:[0],skins:[0],skin:0,pets:[],eq:[],reb:0,bestCm:0,bestR:[0,0,0,0,0,0],games:0,eaten:0,blobs:0,daily:{d:"",s:0},eggs:0,towns:0};
+const DEF={v:2,coins:0,up:{},world:0,wOwn:[0],skins:[0],skin:0,pets:[],eq:[],reb:0,bestCm:0,bestR:[0,0,0,0,0,0],games:0,eaten:0,blobs:0,daily:{d:"",s:0},eggs:0,towns:0,megas:0};
 for(const k in DEF)if(S[k]===undefined)S[k]=JSON.parse(JSON.stringify(DEF[k]));
 const stage=$("stage");
 const V=A3.view(stage,{fov:50,far:3000,sky:["#7fd0ff","#e8f7ff"],fog:["#cfeeff",200,700],shadowSize:40});
@@ -430,26 +434,60 @@ const SHAPES={
   dome:()=>[P_("cyl","#8a929e",0,.08,0,1.15,.16,1.15),P_("hemi",0,0,.15,0,1.05,1.0,1.05),P_("box","#ffd23f",0,.4,1.0,.4,.5,.1)],
   rocket:()=>[P_("cyl","#ffffff",0,1.2,0,.42,2.0,.42),P_("cone",0,0,2.5,0,.42,.6,.42),P_("box",0,.45,.35,0,.35,.7,.05),P_("box",0,-.45,.35,0,.35,.7,.05),P_("sph","#3fe0ff",0,1.6,.38,.14,.14,.06,0,0,0,.8)],
   asteroid:()=>[P_("dode",0,0,.85,0,1,.9,1),P_("sph","#6a6a7a",.4,1.3,.5,.22)],
-  skyscraper:()=>[P_("box",0,0,1.1,0,.8,2.2,.8),P_("box","#bfe8ff",0,1.1,0,.82,1.9,.5),P_("box","#bfe8ff",0,1.1,0,.5,1.9,.82),P_("cyl","#dfe4ee",0,2.5,0,.05,.6,.05)]
+  skyscraper:()=>[P_("box",0,0,1.1,0,.8,2.2,.8),P_("box","#bfe8ff",0,1.1,0,.82,1.9,.5),P_("box","#bfe8ff",0,1.1,0,.5,1.9,.82),P_("cyl","#dfe4ee",0,2.5,0,.05,.6,.05)],
+  // extra kinds for the giant town (4 per world)
+  marble:()=>[P_("sph",0,0,.4,0,.4),P_("sph2","#ffffff",.14,.62,.2,.1)],
+  teddy:()=>[P_("sph",0,0,.4,0,.38,.42,.34),P_("sph",0,0,.95,0,.28),P_("sph",0,.2,1.18,0,.1),P_("sph",0,-.2,1.18,0,.1),P_("sph","#fff0e0",0,.9,.24,.12),P_("sph2","#1a1530",.1,1.02,.24,.04),P_("sph2","#1a1530",-.1,1.02,.24,.04)],
+  shop:()=>[P_("box",0,0,.5,0,1.6,1.0,1.2),P_("box","#ffffff",0,1.05,0,1.7,.1,1.3),P_("box",1,0,.95,.72,1.6,.08,.32,-.4),P_("box","#bfe8ff",0,.55,.61,1.0,.42,.02),P_("box",1,0,1.22,.55,1.0,.25,.06)],
+  castle:()=>[P_("box",0,0,.55,0,1.2,1.1,1.2),P_("cyl",0,.62,.75,.62,.26,1.5,.26),P_("cyl",0,-.62,.75,-.62,.26,1.5,.26),P_("cyl",0,.62,.75,-.62,.26,1.5,.26),P_("cyl",0,-.62,.75,.62,.26,1.5,.26),P_("cone",1,.62,1.75,.62,.32,.5,.32),P_("cone",1,-.62,1.75,-.62,.32,.5,.32),P_("cone",1,.62,1.75,-.62,.32,.5,.32),P_("cone",1,-.62,1.75,.62,.32,.5,.32),P_("box","#7a4a22",0,.3,.61,.3,.6,.04)],
+  chick:()=>[P_("sph","#ffe14a",0,.3,0,.3,.28,.3),P_("sph","#ffe14a",.18,.58,0,.18),P_("cone","#ff8a1a",.38,.58,0,.05,.1,.05,0,0,-H),P_("sph2","#1a1530",.3,.64,.09,.03)],
+  sheep:()=>[P_("sph","#ffffff",0,.55,0,.55,.4,.42),P_("sph","#2a2a3a",.56,.65,0,.2,.18,.16),P_("cyl","#2a2a3a",.3,.18,.2,.06,.36,.06),P_("cyl","#2a2a3a",-.3,.18,.2,.06,.36,.06),P_("cyl","#2a2a3a",.3,.18,-.2,.06,.36,.06),P_("cyl","#2a2a3a",-.3,.18,-.2,.06,.36,.06)],
+  windmill:()=>[P_("cyl",0,0,.8,0,.45,1.6,.45),P_("cone",1,0,1.85,0,.52,.5,.52),P_("box","#ffffff",0,1.4,.5,.14,1.9,.05,0,0,.6),P_("box","#ffffff",0,1.4,.5,.14,1.9,.05,0,0,-.97),P_("sph",1,0,1.4,.52,.1)],
+  watertower:()=>[P_("cyl","#8a929e",.35,.6,.35,.06,1.2,.06),P_("cyl","#8a929e",-.35,.6,-.35,.06,1.2,.06),P_("cyl","#8a929e",.35,.6,-.35,.06,1.2,.06),P_("cyl","#8a929e",-.35,.6,.35,.06,1.2,.06),P_("cyl",0,0,1.5,0,.6,.7,.6),P_("cone",0,0,2.05,0,.62,.4,.62)],
+  cup:()=>[P_("cyl",0,0,.3,0,.25,.6,.25),P_("tor",0,.27,.32,0,.13,.13,.4),P_("cyl","#6a3a1a",0,.6,0,.22,.02,.22)],
+  postbox:()=>[P_("cyl",0,0,.55,0,.3,1.1,.3),P_("hemi",0,0,1.1,0,.3,.25,.3),P_("box","#1a1530",0,.85,.29,.25,.05,.03),P_("cyl","#2a2a3a",0,.04,0,.34,.08,.34)],
+  bus:()=>[P_("box",0,0,.8,0,2.4,1.1,.95),P_("box","#bfe8ff",0,1.0,0,2.3,.38,.97),P_("cyl","#222230",.75,.25,.45,.25,.12,.25,H),P_("cyl","#222230",-.75,.25,.45,.25,.12,.25,H),P_("cyl","#222230",.75,.25,-.45,.25,.12,.25,H),P_("cyl","#222230",-.75,.25,-.45,.25,.12,.25,H)],
+  stadium:()=>[P_("cyl",0,0,.35,0,1,.7,1),P_("cyl",1,0,.71,0,.82,.02,.82),P_("cyl","#dfe4ee",.92,1.0,0,.04,1.3,.04),P_("cyl","#dfe4ee",-.92,1.0,0,.04,1.3,.04),P_("box","#fff27a",.92,1.68,0,.2,.1,.2,0,0,0,1),P_("box","#fff27a",-.92,1.68,0,.2,.1,.2,0,0,0,1)],
+  starfish:()=>[P_("box",0,0,.06,0,.9,.1,.18),P_("box",0,0,.06,0,.9,.1,.18,0,1.047),P_("box",0,0,.06,0,.9,.1,.18,0,2.094),P_("sph",0,0,.08,0,.2,.1,.2)],
+  sandcastle:()=>[P_("box",0,0,.3,0,.9,.6,.9),P_("cyl",0,.38,.5,.38,.16,1.0,.16),P_("cyl",0,-.38,.5,-.38,.16,1.0,.16),P_("cyl",0,.38,.5,-.38,.16,1.0,.16),P_("cyl",0,-.38,.5,.38,.16,1.0,.16),P_("cyl",0,0,.8,0,.25,.5,.25),P_("box","#ff5d5d",.08,1.2,0,.16,.1,.02)],
+  icevan:()=>[P_("box",0,0,.7,0,2.0,.95,.95),P_("box",1,0,.42,0,2.02,.2,.97),P_("box","#bfe8ff",.65,.9,0,.5,.35,.97),P_("cone","#e8b07a",-.3,1.45,0,.22,.5,.22,Math.PI),P_("sph",1,-.3,1.75,0,.24),P_("cyl","#222230",.6,.22,.45,.22,.12,.22,H),P_("cyl","#222230",-.6,.22,.45,.22,.12,.22,H),P_("cyl","#222230",.6,.22,-.45,.22,.12,.22,H),P_("cyl","#222230",-.6,.22,-.45,.22,.12,.22,H)],
+  ship:()=>[P_("box",1,0,.3,0,2.6,.6,.8),P_("box",0,0,.75,0,2.2,.35,.7),P_("box",0,-.1,1.05,0,1.6,.3,.6),P_("box","#bfe8ff",-.1,1.05,0,1.62,.12,.62),P_("cyl",1,.45,1.4,0,.15,.5,.15)],
+  lolly:()=>[P_("cyl","#ffffff",0,.45,0,.03,.9,.03),P_("cyl",0,0,1.05,0,.3,.06,.3,H),P_("tor","#ffffff",0,1.05,.035,.2,.2,.2)],
+  teacup:()=>[P_("cyl","#ffffff",0,.05,0,.9,.1,.9),P_("cyl","#ffd23f",0,.3,0,.08,.5,.08),P_("hemi",0,0,.62,0,.7,.55,.7,Math.PI),P_("tor","#ffffff",0,.62,0,.7,.7,.7,H)],
+  bouncy:()=>[P_("box",0,0,.35,0,1.6,.7,1.4),P_("cyl",1,.7,.8,.6,.2,1.0,.2),P_("cyl",1,-.7,.8,.6,.2,1.0,.2),P_("cyl",1,.7,.8,-.6,.2,1.0,.2),P_("cyl",1,-.7,.8,-.6,.2,1.0,.2),P_("sph",1,0,.85,0,.45,.3,.45)],
+  coaster:()=>[P_("tor",0,0,1.05,0,.9,.9,1.4),P_("box",0,0,.12,0,2.4,.08,.28),P_("box","#dfe4ee",.95,.5,0,.08,1.0,.08),P_("box","#dfe4ee",-.95,.5,0,.08,1.0,.08),P_("box","#ffd23f",.55,.3,0,.4,.22,.26)],
+  rock:()=>[P_("dode",0,0,.3,0,.4,.32,.36)],
+  alien:()=>[P_("sph",0,0,.4,0,.35,.4,.33),P_("sph","#ffffff",.12,.55,.27,.1),P_("sph","#ffffff",-.12,.55,.27,.1),P_("sph2","#1a1530",.12,.56,.36,.05),P_("sph2","#1a1530",-.12,.56,.36,.05),P_("cyl",0,0,.88,0,.025,.3,.025),P_("sph","#ffd23f",0,1.05,0,.06,.06,.06,0,0,0,1)],
+  satellite:()=>[P_("cyl","#8a929e",0,.3,0,.06,.6,.06),P_("box","#dfe4ee",0,.9,0,.5,.6,.5),P_("box","#3a6ad8",.78,.9,0,.95,.03,.42),P_("box","#3a6ad8",-.78,.9,0,.95,.03,.42),P_("hemi","#ffffff",0,1.38,0,.25,.15,.25,Math.PI)],
+  ufo:()=>[P_("sph",0,0,.6,0,1,.22,1),P_("hemi","#bfe8ff",0,.7,0,.45,.4,.45),P_("tor",1,0,.56,0,.95,.95,.95,H,0,0,.8),P_("cone","#8a929e",0,.22,0,.3,.36,.3,Math.PI)]
 };
 
 /* ---------- worlds ---------- */
-// tiers: [name, shape, palette]
+// 9 size tiers. Every world has one main kind per tier plus 4 extra kinds (in tiers 1, 3, 5 and 7).
 const SIZES=[0.25,0.5,0.9,1.5,2.5,4,7,13,26];
-const COUNTS=[380,240,150,120,84,100,60,24,12];
+const EATR=0.72;                                // you can soak up things smaller than 72% of your size
+const DENS=[260,160,62,52,36,36,22,5,1.3];      // things per 128 x 128 patch of town, per tier
+const CAPT=[2400,2400,2000,1800,1600,1500,1300,1100,1100]; // most drawn at once, per kind
+const COINF=0.6;                                // coins per thing (the town is huge, so a little less each)
 const WORLDS=[
  {n:"Toy Town",sky:["#7fd0ff","#eaf8ff"],g:["#8fd86a","#84ce60"],road:"#8a8fa0",scale:1,pn:"Toy",
-  t:[["Sweets","candy",["#ff5d7a","#ffd23f","#7ad8ff","#b085ff","#5fd36a"]],["Rubber Ducks","duck",[]],["Bins","bin",["#5fd36a","#4aa8ff","#ff8a3d"]],["Benches","bench",[]],["Toy Cars","car",["#ff5d5d","#4aa8ff","#ffd23f","#5fd36a","#ff6fa3"]],["Trees","tree",["#3fae4a","#4cc95a","#2f9a40"]],["Houses","house",["#fff4e0","#ffe0f0","#e0f4ff","#fff2b0"],["#e8423a","#4a7ad8","#ff8a3d"]],["Towers","tower",["#ff9ab0","#9ad8ff","#c8ff9a"]],["Mountains","mountain",["#6aaa5a","#8a9aa8"]]]},
+  t:[["Sweets","candy",["#ff5d7a","#ffd23f","#7ad8ff","#b085ff","#5fd36a"]],["Rubber Ducks","duck",[]],["Bins","bin",["#5fd36a","#4aa8ff","#ff8a3d"]],["Benches","bench",[]],["Toy Cars","car",["#ff5d5d","#4aa8ff","#ffd23f","#5fd36a","#ff6fa3"]],["Trees","tree",["#3fae4a","#4cc95a","#2f9a40"]],["Houses","house",["#fff4e0","#ffe0f0","#e0f4ff","#fff2b0"],["#e8423a","#4a7ad8","#ff8a3d"]],["Towers","tower",["#ff9ab0","#9ad8ff","#c8ff9a"]],["Mountains","mountain",["#6aaa5a","#8a9aa8"]]],
+  x:[["Marbles","marble",["#ff5d7a","#7ad8ff","#ffd23f","#5fd36a","#b085ff"],null,1],["Teddy Bears","teddy",["#c8864a","#e8b07a","#ff9ab0"],null,3],["Toy Shops","shop",["#fff4e0","#e0f4ff","#fff2b0"],["#ff5d7a","#4aa8ff","#5fd36a"],5],["Toy Castles","castle",["#d8d0ff","#ffd8e8","#d0f0ff"],["#ff5d7a","#4a7ad8","#ffd23f"],7]]},
  {n:"Farm",sky:["#8ad0ff","#fff8e0"],g:["#a8d86a","#9ccc60"],road:"#c8a06a",scale:3,pn:"Farm",
-  t:[["Eggs","egg",[]],["Pumpkins","pumpkin",[]],["Hay Bales","hay",[]],["Fences","fence",[]],["Tractors","tractor",["#e8323a","#3aa84a","#4aa8ff"]],["Apple Trees","tree",["#4cc95a","#3fae4a"]],["Barns","barn",["#c8323a","#b8282e"]],["Silos","silo",[],["#c8323a","#4a7ad8"]],["Hills","mountain",["#6ab84a","#5aa83a"]]]},
+  t:[["Eggs","egg",[]],["Pumpkins","pumpkin",[]],["Hay Bales","hay",[]],["Fences","fence",[]],["Tractors","tractor",["#e8323a","#3aa84a","#4aa8ff"]],["Apple Trees","tree",["#4cc95a","#3fae4a"]],["Barns","barn",["#c8323a","#b8282e"]],["Silos","silo",[],["#c8323a","#4a7ad8"]],["Hills","mountain",["#6ab84a","#5aa83a"]]],
+  x:[["Chicks","chick",[],null,1],["Sheep","sheep",[],null,3],["Windmills","windmill",["#f0e6d8","#fff4e0"],["#c8323a","#4a7ad8"],5],["Water Towers","watertower",["#c8323a","#8a929e","#4a7ad8"],null,7]]},
  {n:"Big City",sky:["#6aa8e8","#e0ecff"],g:["#a8b0bc","#9ca4b0"],road:"#4a4e5a",scale:10,pn:"City",
-  t:[["Coins","candy",["#ffcf3f"]],["Toy Blocks","block",["#ff5d5d","#4aa8ff","#ffd23f"]],["Bins","bin",["#3a4a5a","#5a6a7a"]],["Benches","bench",[]],["Cars","car",["#ffffff","#2a2a3a","#e8323a","#4aa8ff","#ffd23f"]],["Trees","tree",["#3fae4a","#2f9a40"]],["Houses","house",["#e8e0d0","#d0c8b8","#f0d8c0"],["#5a5a6a","#8a3a2a"]],["Skyscrapers","skyscraper",["#6a7a8a","#8a9aaa","#4a5a7a"]],["Mountains","mountain",["#7a8a9a","#6a7a8a"]]]},
+  t:[["Coins","candy",["#ffcf3f"]],["Toy Blocks","block",["#ff5d5d","#4aa8ff","#ffd23f"]],["Bins","bin",["#3a4a5a","#5a6a7a"]],["Benches","bench",[]],["Cars","car",["#ffffff","#2a2a3a","#e8323a","#4aa8ff","#ffd23f"]],["Trees","tree",["#3fae4a","#2f9a40"]],["Houses","house",["#e8e0d0","#d0c8b8","#f0d8c0"],["#5a5a6a","#8a3a2a"]],["Skyscrapers","skyscraper",["#6a7a8a","#8a9aaa","#4a5a7a"]],["Mountains","mountain",["#7a8a9a","#6a7a8a"]]],
+  x:[["Coffee Cups","cup",["#ffffff","#ff5d5d","#4aa8ff"],null,1],["Post Boxes","postbox",["#e8323a"],null,3],["Buses","bus",["#ffd23f","#e8323a","#4aa8ff"],null,5],["Stadiums","stadium",["#dfe4ee","#c8ccd6"],["#3fae4a"],7]]},
  {n:"Sunny Beach",sky:["#3fb4ff","#fff2cc"],g:["#f5dc9a","#ecd08a"],road:"#e0c080",scale:30,pn:"Beach",
-  t:[["Shells","shell",["#ffb0c8","#fff0e0","#ffd0a0"]],["Buckets","bucket",["#ff5d5d","#ffd23f","#4aa8ff","#5fd36a"]],["Beach Umbrellas","umbrella",["#ff5d5d","#ffd23f","#4aa8ff","#ff6fa3"]],["Deck Chairs","chair",["#4aa8ff","#ff8a3d","#5fd36a"]],["Boats","boat",["#ffffff","#ff5d5d","#4aa8ff"]],["Palm Trees","palm",["#2fae4a","#3fbe5a"]],["Beach Huts","hut",["#c8a05a","#d8b06a"]],["Lighthouses","lighthouse",["#e8323a"]],["Volcanoes","mountain",["#8a6a4a","#7a5a3a"]]]},
+  t:[["Shells","shell",["#ffb0c8","#fff0e0","#ffd0a0"]],["Buckets","bucket",["#ff5d5d","#ffd23f","#4aa8ff","#5fd36a"]],["Beach Umbrellas","umbrella",["#ff5d5d","#ffd23f","#4aa8ff","#ff6fa3"]],["Deck Chairs","chair",["#4aa8ff","#ff8a3d","#5fd36a"]],["Boats","boat",["#ffffff","#ff5d5d","#4aa8ff"]],["Palm Trees","palm",["#2fae4a","#3fbe5a"]],["Beach Huts","hut",["#c8a05a","#d8b06a"]],["Lighthouses","lighthouse",["#e8323a"]],["Volcanoes","mountain",["#8a6a4a","#7a5a3a"]]],
+  x:[["Starfish","starfish",["#ff8a3d","#ff5d7a","#ffd23f"],null,1],["Sandcastles","sandcastle",["#f0d090","#e8c27a"],null,3],["Ice Cream Vans","icevan",["#ffffff","#ffd0e8"],["#ff6fa3","#7ad8ff","#ffd23f"],5],["Cruise Ships","ship",["#ffffff"],["#e8323a","#4aa8ff","#1a3a8a"],7]]},
  {n:"Theme Park",sky:["#ff9ad8","#fff0fa"],g:["#9ae0a0","#8ed494"],road:"#d8c8e8",scale:100,pn:"Park",
-  t:[["Sweets","candy",["#ff3a8a","#ffd23f","#7ae0ff","#b085ff"]],["Balloons","balloon",["#ff5d5d","#ffd23f","#4aa8ff","#ff6fa3","#5fd36a"]],["Bins","bin",["#ff6fa3","#b085ff"]],["Benches","bench",[]],["Go-karts","car",["#ff3a8a","#ffd23f","#3fe0ff"]],["Trees","tree",["#3fae4a","#ff9ad8"]],["Carousels","carousel",["#ff6fa3","#7ad8ff","#ffd23f"],["#e8323a","#b085ff"]],["Big Wheels","ferris",["#ff5d5d","#4aa8ff","#ffd23f"]],["Castle Hills","mountain",["#b085ff","#ff9ad8"]]]},
+  t:[["Sweets","candy",["#ff3a8a","#ffd23f","#7ae0ff","#b085ff"]],["Balloons","balloon",["#ff5d5d","#ffd23f","#4aa8ff","#ff6fa3","#5fd36a"]],["Bins","bin",["#ff6fa3","#b085ff"]],["Benches","bench",[]],["Go-karts","car",["#ff3a8a","#ffd23f","#3fe0ff"]],["Trees","tree",["#3fae4a","#ff9ad8"]],["Carousels","carousel",["#ff6fa3","#7ad8ff","#ffd23f"],["#e8323a","#b085ff"]],["Big Wheels","ferris",["#ff5d5d","#4aa8ff","#ffd23f"]],["Castle Hills","mountain",["#b085ff","#ff9ad8"]]],
+  x:[["Lollipops","lolly",["#ff3a8a","#ffd23f","#7ae0ff","#b085ff"],null,1],["Teacups","teacup",["#ff6fa3","#7ad8ff","#ffd23f","#b085ff"],null,3],["Bouncy Castles","bouncy",["#ff5d5d","#4aa8ff","#ffd23f"],["#5fd36a","#ff6fa3","#ffffff"],5],["Roller Coasters","coaster",["#ff3a8a","#3fe0ff","#ffd23f"],null,7]]},
  {n:"Space Station",sky:["#000010","#1a1a4a"],g:["#5a6070","#525868"],road:"#2a2e3a",scale:1000,pn:"Space",dark:1,
-  t:[["Bolts","bolt",[]],["Robots","robot",["#3fe0ff","#ff7ae0","#ffd23f"]],["Crates","crate",["#4a5a7a","#7a5aff"]],["Dishes","dish",[]],["Rovers","car",["#dfe4ee","#ffd23f"]],["Crystals","crystal",["#3fe0ff","#ff7ae0","#b085ff"]],["Domes","dome",["#bfe8ff","#d8c8ff"]],["Rockets","rocket",["#e8323a","#4aa8ff"]],["Asteroids","asteroid",["#8a8a9a","#6a6a7a"]]]}
+  t:[["Bolts","bolt",[]],["Robots","robot",["#3fe0ff","#ff7ae0","#ffd23f"]],["Crates","crate",["#4a5a7a","#7a5aff"]],["Dishes","dish",[]],["Rovers","car",["#dfe4ee","#ffd23f"]],["Crystals","crystal",["#3fe0ff","#ff7ae0","#b085ff"]],["Domes","dome",["#bfe8ff","#d8c8ff"]],["Rockets","rocket",["#e8323a","#4aa8ff"]],["Asteroids","asteroid",["#8a8a9a","#6a6a7a"]]],
+  x:[["Moon Rocks","rock",["#9a9aaa","#7a7a8a","#b0b0c0"],null,1],["Friendly Aliens","alien",["#7aff6a","#5affc8","#b0ff5a"],null,3],["Satellites","satellite",[],null,5],["Space Saucers","ufo",["#c8ccd6","#b085ff"],["#3fe0ff","#ff7ae0","#ffd23f"],7]]}
 ];
 WORLDS.forEach((w,i)=>{w.sw=[w.sky[0],w.g[0]];});
 const WNEED=[0,8,13,19,26,34];      // biggest size (in that world's units) needed in the world before
@@ -484,178 +522,297 @@ P=GHProg({S,persist,name:"Blob Feast",cur:"Coins",ups:UPS,worlds:WORLDS,skins:SK
 WORLDS.forEach((w,i)=>{w.cost=0;w.reb=WREB[i];});
 const growMul=()=>(1+0.08*(S.up.grow||0))*(1+0.2*S.reb);
 const coinMul=()=>P.multi()*(1+0.25*(S.up.coin||0))*Wc(S.world);
-const roundLen=()=>120+5*(S.up.time||0);
+const roundLen=()=>90+5*(S.up.time||0);
 const startR=()=>1+0.12*(S.up.start||0);
 const speedMul=()=>1+0.03*(S.up.speed||0);
-UPS.forEach(u=>{if(u.k==="time")u.now=()=>Math.floor(roundLen()/60)+":"+String(roundLen()%60).padStart(2,"0");if(u.k==="start")u.now=()=>sizeTxt(startR(),S.world);if(u.k==="grow")u.now=()=>"x"+growMul().toFixed(2);});
+const clock=s=>Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
+UPS.forEach(u=>{if(u.k==="time")u.now=()=>clock(roundLen());if(u.k==="start")u.now=()=>sizeTxt(startR(),S.world);if(u.k==="grow")u.now=()=>"x"+growMul().toFixed(2);});
 function sizeTxt(r,w){const cm=r*2*10*WORLDS[w==null?S.world:w].scale;
   if(cm<100)return cm.toFixed(cm<10?1:0)+" cm";if(cm<100000)return (cm/100).toFixed(cm<1000?2:1).replace(/\.0+$/,"")+" m";const km=cm/100000;return (km<1000?km.toFixed(km<10?2:1):fmt(km))+" km";}
 const sizeCm=(r,w)=>Math.round(r*2*10*WORLDS[w==null?S.world:w].scale);
 
-/* ---------- the town ---------- */
-const HALF=130;
+/* ---------- the giant town ----------
+   The town is 4110 x 4110 (250 times the old area). It is split into 128 x 128 chunks.
+   Each chunk makes its things from a seed only when it comes into range (one tier at a time,
+   bigger tiers reach further), remembers what was soaked up this round, and drops them again
+   when you move away. Drawing uses one instanced mesh per kind and part, refilled with the
+   nearest things, so draw calls and instance counts stay fixed. */
+const HALF=2055,CH=128,NCH=Math.ceil(HALF*2/CH),RS=64,CELL=16,NC=CH/CELL;
+const roadNear=v=>{const a=Math.round(v/RS);return Math.abs(a)>32?99:Math.abs(v-a*RS);};
+const onRoad=(x,z,pad)=>roadNear(x)<3.5+pad||roadNear(z)<3.5+pad;
 const town=new THREE.Group();scene.add(town);
-let objs=[],tierMeshes=[],TW=WORLDS[0];
-const mtx=new THREE.Matrix4(),q0=new THREE.Quaternion(),v3=new THREE.Vector3(),sc3=new THREE.Vector3(),eul=new THREE.Euler(),qq=new THREE.Quaternion(),ZERO=new THREE.Matrix4().makeScale(0,0,0);
-const partMats=new Map();
+const kindG=new THREE.Group();scene.add(kindG);
+let TW=WORLDS[0],TWI=0,KINDS=[],TIERK=[],KM=[];
+const chunks=new Map(),live=new Set();
+const LR=new Array(9).fill(0);
+let refillNeed=true,fillX=1e9,fillZ=1e9,fillT=0,chunkT=0,genCount=0;
+const linCache=new Map();
+function linRGB(h){let v=linCache.get(h);if(!v){const c=lin(h);v=[c.r,c.g,c.b];linCache.set(h,v);}return v;}
+const mtx=new THREE.Matrix4(),q0=new THREE.Quaternion(),v3=new THREE.Vector3(),sc3=new THREE.Vector3(),eul=new THREE.Euler(),qq=new THREE.Quaternion();
 function partMatrix(p){const m=new THREE.Matrix4();eul.set(p[8],p[9],p[10]);qq.setFromEuler(eul);m.compose(new THREE.Vector3(p[2],p[3],p[4]),qq.clone(),new THREE.Vector3(p[5],p[6],p[7]));return m;}
-const GRID=10,GN=Math.ceil(HALF*2/GRID)+2;let grid=[];
-function gIdx(x,z){const ix=Math.floor((x+HALF)/GRID)+1,iz=Math.floor((z+HALF)/GRID)+1;return Math.max(0,Math.min(GN-1,ix))*GN+Math.max(0,Math.min(GN-1,iz));}
-function clearTown(){
-  while(town.children.length){const c=town.children.pop();if(c.isInstancedMesh)c.dispose&&c.dispose();}
-  objs=[];tierMeshes=[];
+function hash4(a,b,c,d){let h=2166136261>>>0;for(const v of [a,b,c,d]){h^=v&0xffff;h=Math.imul(h,16777619);h^=(v>>>16)&0xffff;h=Math.imul(h,16777619);}h^=h>>>13;h=Math.imul(h,0x5bd1e995);h^=h>>>15;return (h>>>0)||1;}
+const tierName=ti=>TIERK[ti].map(k=>k.n).join(" and ");
+function disposeKinds(){
+  while(kindG.children.length){const m=kindG.children.pop();if(m.userData.ownMat)m.material.dispose();m.dispose&&m.dispose();}
+  KM=[];
 }
-function buildTown(wi){
-  clearTown();const W=WORLDS[wi];TW=W;
+let roadTex=null;
+function buildWorld(wi){
+  while(town.children.length){const c=town.children.pop();if(c.isInstancedMesh&&c.dispose)c.dispose();}
+  disposeKinds();
+  const W=WORLDS[wi];TW=W;TWI=wi;
   scene.background=A3.skyTexture(W.sky[0],W.sky[1]);
   V.lights.hemi.intensity=W.dark?0.7:0.95;V.lights.sun.intensity=W.dark?0.9:1.1;
-  const rnd=A3.seeded(wi*977+31);
+  KINDS=[];TIERK=[];
+  W.t.forEach((t,ti)=>{const k={i:KINDS.length,n:t[0],shape:t[1],pal:t[2],pal2:t[3]||null,ti,road:ti===4};KINDS.push(k);TIERK[ti]=[k];});
+  W.x.forEach(t=>{const k={i:KINDS.length,n:t[0],shape:t[1],pal:t[2]||[],pal2:t[3]||null,ti:t[4],road:false};KINDS.push(k);TIERK[t[4]].push(k);});
+  KM=KINDS.map(k=>{
+    const cap=CAPT[k.ti],parts=[];
+    for(const p of SHAPES[k.shape]()){
+      const variable=typeof p[1]==="number",flat=p[0]==="ico"||p[0]==="dode"||p[0]==="oct";
+      const mat=variable?new THREE.MeshStandardMaterial({color:0xffffff,roughness:.55,flatShading:flat,emissive:new THREE.Color(p[11]?"#ffffff":"#000000"),emissiveIntensity:p[11]?p[11]*0.5:0}):A3.mat(p[1],{rough:.55,flat,emissive:p[11]?p[1]:"#000000",glow:1});
+      const im=new THREE.InstancedMesh(GEO[p[0]],mat,cap);
+      im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      if(variable){im.setColorAt(0,new THREE.Color(1,1,1));im.userData.ownMat=true;}
+      im.count=0;im.castShadow=k.ti>=4;im.receiveShadow=false;im.frustumCulled=false;kindG.add(im);
+      parts.push({im,pe:partMatrix(p).elements.slice(),vc:variable?p[1]:-1});
+    }
+    return {parts,cap,n:0,dirty:false};
+  });
   // ground
   const gtex=A3.canvasTex(256,256,(g,w,h)=>{g.fillStyle=W.g[0];g.fillRect(0,0,w,h);g.fillStyle=W.g[1];g.fillRect(0,0,128,128);g.fillRect(128,128,128,128);
     g.fillStyle="rgba(255,255,255,.07)";for(const p of [[64,64],[192,192],[192,64],[64,192]]){g.beginPath();g.arc(p[0],p[1],16,0,7);g.fill();}
     if(W.dark){g.strokeStyle="rgba(120,200,255,.35)";g.lineWidth=3;g.strokeRect(2,2,252,252);}});
-  gtex.wrapS=gtex.wrapT=THREE.RepeatWrapping;gtex.repeat.set(HALF/6,HALF/6);
-  const gm=new THREE.Mesh(new THREE.PlaneGeometry(HALF*2+80,HALF*2+80),new THREE.MeshStandardMaterial({map:gtex,roughness:.9}));gm.rotation.x=-Math.PI/2;gm.receiveShadow=true;town.add(gm);
-  const outer=new THREE.Mesh(new THREE.PlaneGeometry(4000,4000),A3.mat(W.dark?"#101028":W.g[1],{rough:1}));outer.rotation.x=-Math.PI/2;outer.position.y=-0.1;town.add(outer);
-  if(wi===3){const sea=new THREE.Mesh(new THREE.PlaneGeometry(4000,1800),A3.mat("#3aa8e8",{rough:.3,emissive:"#1a6ab8",glow:.25}));sea.rotation.x=-Math.PI/2;sea.position.set(0,-0.05,HALF+40+900);town.add(sea);}
-  // roads: a grid of streets
-  const roads=[];const rm=A3.mat(W.road,{rough:.9});
-  for(let k=-2;k<=2;k++){const c=k*48;roads.push(c);
-    const a=new THREE.Mesh(new THREE.BoxGeometry(HALF*2,0.06,7),rm);a.position.set(0,0.03,c);a.receiveShadow=true;town.add(a);
-    const b=new THREE.Mesh(new THREE.BoxGeometry(7,0.07,HALF*2),rm);b.position.set(c,0.035,0);b.receiveShadow=true;town.add(b);}
-  const lm=A3.mat("#ffffff",{rough:.6});
-  {const dash=new THREE.InstancedMesh(GEO.box,lm,roads.length*70);let n=0;
-   for(const c of roads)for(let x=-HALF+4;x<HALF;x+=8){mtx.compose(v3.set(x,0.08,c),q0,sc3.set(3,0.02,0.4));dash.setMatrixAt(n++,mtx);mtx.compose(v3.set(c,0.08,x),q0,sc3.set(0.4,0.02,3));dash.setMatrixAt(n++,mtx);}
-   dash.count=n;town.add(dash);}
-  // a low wall round the edge
+  gtex.wrapS=gtex.wrapT=THREE.RepeatWrapping;gtex.repeat.set(HALF/6,HALF/6);gtex.anisotropy=4;
+  const gm=new THREE.Mesh(new THREE.PlaneGeometry(HALF*2+120,HALF*2+120),new THREE.MeshStandardMaterial({map:gtex,roughness:.9}));gm.rotation.x=-Math.PI/2;gm.receiveShadow=true;town.add(gm);
+  const outer=new THREE.Mesh(new THREE.PlaneGeometry(60000,60000),A3.mat(W.dark?"#101028":W.g[1],{rough:1}));outer.rotation.x=-Math.PI/2;outer.position.y=-0.3;town.add(outer);
+  if(wi===3){const sea=new THREE.Mesh(new THREE.PlaneGeometry(60000,26000),A3.mat("#3aa8e8",{rough:.3,emissive:"#1a6ab8",glow:.25}));sea.rotation.x=-Math.PI/2;sea.position.set(0,-0.15,HALF+60+13000);town.add(sea);}
+  // roads: 65 streets each way, one instanced mesh with a dashed texture
+  const rtex=A3.canvasTex(64,16,(g,w,h)=>{g.fillStyle=W.road;g.fillRect(0,0,w,h);g.fillStyle="rgba(255,255,255,.95)";g.fillRect(0,7,30,2);g.fillStyle="rgba(0,0,0,.12)";g.fillRect(0,0,w,1);g.fillRect(0,h-1,w,1);});
+  rtex.wrapS=THREE.RepeatWrapping;rtex.repeat.set(HALF*2/8,1);rtex.anisotropy=4;
+  const rgeo=new THREE.PlaneGeometry(HALF*2,7);rgeo.rotateX(-Math.PI/2);
+  const roads=new THREE.InstancedMesh(rgeo,new THREE.MeshStandardMaterial({map:rtex,roughness:.9}),130);let n=0;
+  for(let a=-32;a<=32;a++){mtx.compose(v3.set(0,0.05,a*RS),q0,sc3.set(1,1,1));roads.setMatrixAt(n++,mtx);
+    qq.setFromAxisAngle(v3.set(0,1,0),Math.PI/2);mtx.compose(v3.set(a*RS,0.07,0),qq,sc3.set(1,1,1));roads.setMatrixAt(n++,mtx);}
+  roads.count=n;roads.receiveShadow=true;roads.frustumCulled=false;town.add(roads);
+  // a low wall round the edge of town
   const wallM=A3.mat(W.dark?"#3fe0ff":"#ffffff",{rough:.5,emissive:W.dark?"#3fe0ff":"#000000",glow:.4});
-  for(const [x,z,sx,sz] of [[0,-HALF-1,HALF*2+4,2],[0,HALF+1,HALF*2+4,2],[-HALF-1,0,2,HALF*2+4],[HALF+1,0,2,HALF*2+4]]){const m=new THREE.Mesh(GEO.box,wallM);m.scale.set(sx,1.2,sz);m.position.set(x,0.6,z);m.castShadow=true;town.add(m);}
-  // place things
-  const occ=[];const near=(x,z,r)=>{for(const o of occ){const dx=o[0]-x,dz=o[1]-z;if(dx*dx+dz*dz<(o[2]+r)*(o[2]+r))return true;}return false;};
-  const onRoad=(x,z,pad)=>roads.some(c=>Math.abs(z-c)<3.5+pad||Math.abs(x-c)<3.5+pad);
-  for(let ti=8;ti>=0;ti--){
-    const tier=W.t[ti],s0=SIZES[ti],n=COUNTS[ti],list=[];
-    for(let k=0;k<n;k++){
-      let x=0,z=0,ok=false;
-      for(let tr=0;tr<40&&!ok;tr++){
-        if(ti===8){const a=k/n*6.283+rnd()*0.3,r=HALF-s0-4-rnd()*8;x=Math.cos(a)*r;z=Math.sin(a)*r;x=A3.clamp(x,-HALF+s0,HALF-s0);z=A3.clamp(z,-HALF+s0,HALF-s0);}
-        else if(ti===7){const a=rnd()*6.283,r=10+rnd()*55;x=Math.cos(a)*r;z=Math.sin(a)*r;}
-        else if(ti===4){const c=roads[(rnd()*roads.length)|0],al=rnd()*(HALF*2-10)-HALF+5,lane=rnd()<.5?-1.8:1.8;if(rnd()<.5){x=al;z=c+lane;}else{x=c+lane;z=al;}}
-        else{x=rnd()*(HALF*2-8)-HALF+4;z=rnd()*(HALF*2-8)-HALF+4;}
-        const s=s0*(0.8+rnd()*0.4);
-        if(ti>=5&&onRoad(x,z,s*0.8))continue;
-        if(ti>=2&&ti!==4&&near(x,z,s*0.9))continue;
-        if(ti>=4&&ti!==8&&near(x,z,s))continue;
-        ok=true;if(ti>=2)occ.push([x,z,s*(ti>=6?1.05:0.8)]);
-        const o={ti,x,z,s,ry:ti===4?(Math.abs(x)%48<5?Math.PI/2:0):rnd()*6.28,alive:true,idx:k,col:tier[2].length?tier[2][(rnd()*tier[2].length)|0]:null,col2:tier[3]?tier[3][(rnd()*tier[3].length)|0]:null,pull:0};
-        list.push(o);
-      }
+  for(const [x,z,sx,sz] of [[0,-HALF-1.5,HALF*2+6,3],[0,HALF+1.5,HALF*2+6,3],[-HALF-1.5,0,3,HALF*2+6],[HALF+1.5,0,3,HALF*2+6]]){const m=new THREE.Mesh(GEO.box,wallM);m.scale.set(sx,2,sz);m.position.set(x,1,z);town.add(m);}
+}
+function getChunk(ix,iz){const key=ix*100+iz;let c=chunks.get(key);
+  if(!c){const x0=-HALF+ix*CH,z0=-HALF+iz*CH;c={ix,iz,x0,z0,x1:Math.min(HALF,x0+CH),z1:Math.min(HALF,z0+CH),t:new Array(9).fill(null),eaten:[],occ:[],occS:new Array(NC*NC).fill(null),cells:new Array(NC*NC).fill(null),big:[]};chunks.set(key,c);}return c;}
+const chunkAt=(x,z)=>{const ix=Math.floor((x+HALF)/CH),iz=Math.floor((z+HALF)/CH);if(ix<0||iz<0||ix>=NCH||iz>=NCH)return null;return chunks.get(ix*100+iz)||null;};
+const chunkDist=(c,x,z)=>{const dx=Math.max(c.x0-x,0,x-c.x1),dz=Math.max(c.z0-z,0,z-c.z1);return Math.sqrt(dx*dx+dz*dz);};
+const cellOf=(c,x,z)=>{const a=Math.max(0,Math.min(NC-1,Math.floor((x-c.x0)/CELL))),b=Math.max(0,Math.min(NC-1,Math.floor((z-c.z0)/CELL)));return a*NC+b;};
+function occHit(c,x,z,r,ti){
+  for(const e of c.occ){if(e.ti<ti)continue;const dx=e.ox-x,dz=e.oz-z,rr=e.fr+r;if(dx*dx+dz*dz<rr*rr)return true;}
+  if(ti>5)return false;
+  const a0=Math.max(0,Math.floor((x-r-4-c.x0)/CELL)),a1=Math.min(NC-1,Math.floor((x+r+4-c.x0)/CELL)),b0=Math.max(0,Math.floor((z-r-4-c.z0)/CELL)),b1=Math.min(NC-1,Math.floor((z+r+4-c.z0)/CELL));
+  for(let a=a0;a<=a1;a++)for(let b=b0;b<=b1;b++){const L=c.occS[a*NC+b];if(!L)continue;for(const e of L){if(e.ti<ti)continue;const dx=e.ox-x,dz=e.oz-z,rr=e.fr+r;if(dx*dx+dz*dz<rr*rr)return true;}}
+  return false;}
+function genTier(c,ti){
+  if(c.t[ti])return;
+  if(ti<8)genTier(c,ti+1);          // bigger things first, so smaller ones fit round them
+  const rnd=A3.seeded(hash4(TWI+11,c.ix+7,c.iz+3,ti+1));rnd();rnd();
+  const x0=c.x0,z0=c.z0,x1=c.x1,z1=c.z1,area=(x1-x0)*(z1-z0)/(CH*CH),kinds=TIERK[ti],s0=SIZES[ti];
+  const n=Math.floor(DENS[ti]*area*(0.8+rnd()*0.4)+rnd());
+  const list=[],eat=c.eaten[ti];
+  for(let k=0;k<n;k++){
+    const kind=kinds.length>1&&rnd()<0.42?kinds[1]:kinds[0];
+    const s=s0*(0.8+rnd()*0.4),mg=ti>=5?s*1.1:s*0.6;
+    let x=0,z=0,ry=0,ok=false;
+    for(let tr=0;tr<8&&!ok;tr++){
+      if(kind.road){
+        const vert=rnd()<0.5,lane=rnd()<0.5?-1.8:1.8,lo=vert?x0:z0,hi=vert?x1:z1;
+        const a0=Math.ceil(lo/RS),a1=Math.floor((hi-0.001)/RS),a=Math.max(-32,Math.min(32,a0+Math.floor(rnd()*(a1-a0+1))));
+        const along=(vert?z0:x0)+mg+rnd()*((vert?z1-z0:x1-x0)-2*mg);
+        if(vert){x=a*RS+lane;z=along;ry=Math.PI/2;}else{x=along;z=a*RS+lane;ry=0;}
+        if(x<x0||x>x1||z<z0||z>z1)continue;
+      }else{x=x0+mg+rnd()*(x1-x0-2*mg);z=z0+mg+rnd()*(z1-z0-2*mg);ry=rnd()*6.28;
+        if(ti>=3&&onRoad(x,z,s*0.8))continue;}
+      if(ti>=2&&occHit(c,x,z,s*0.9,ti))continue;
+      ok=true;
     }
-    // instanced mesh per part
-    const shape=SHAPES[tier[1]](),meshes=[];
-    for(const p of shape){
-      const variable=typeof p[1]==="number";
-      const mat=variable?new THREE.MeshStandardMaterial({color:0xffffff,roughness:.55,flatShading:p[0]==="ico"||p[0]==="dode"||p[0]==="oct",emissive:new THREE.Color(p[11]?"#ffffff":"#000000"),emissiveIntensity:p[11]?p[11]*0.5:0}):A3.mat(p[1],{rough:.55,flat:p[0]==="ico"||p[0]==="dode",emissive:p[11]?p[1]:"#000000",glow:p[11]?1:1});
-      const im=new THREE.InstancedMesh(GEO[p[0]],mat,Math.max(1,list.length));
-      im.castShadow=ti>=3;im.receiveShadow=false;im.frustumCulled=false;
-      if(variable)for(let k=0;k<list.length;k++){const o=list[k];im.setColorAt(k,lin(p[1]===0?(o.col||"#ffffff"):(o.col2||o.col||"#ffffff")));}
-      im.count=list.length;town.add(im);meshes.push({im,pm:partMatrix(p)});
-    }
-    tierMeshes[ti]={meshes,list,dirty:true};
-    list.forEach((o,k)=>{o.k=k;setObjMatrix(o);});
-    objs.push(...list);
+    const col=kind.pal.length?kind.pal[(rnd()*kind.pal.length)|0]:null,col2=kind.pal2?kind.pal2[(rnd()*kind.pal2.length)|0]:null;
+    if(!ok)continue;
+    const o={ti,kd:kind.i,x,z,ox:x,oz:z,s,ry,k,alive:!(eat&&eat.has(k)),slot:-1,ch:c,col,col2,fr:s*(ti>=6?1.05:0.8)};
+    if(ti>=6)c.occ.push(o);else if(ti>=2){const i=cellOf(c,x,z);(c.occS[i]||(c.occS[i]=[])).push(o);}
+    list.push(o);
   }
-  grid=[];for(let i=0;i<GN*GN;i++)grid.push([]);
-  for(const o of objs)if(o.ti<8)grid[gIdx(o.x,o.z)].push(o);
-  bigList=objs.filter(o=>o.ti>=7);
+  c.t[ti]=list;genCount+=list.length;
+  if(ti>=6)for(const o of list)c.big.push(o);
+  else for(const o of list){const i=cellOf(c,o.x,o.z);(c.cells[i]||(c.cells[i]=[])).push(o);}
+  live.add(c);
 }
-let bigList=[];
-const om=new THREE.Matrix4(),tmpM=new THREE.Matrix4();
-function setObjMatrix(o,lift){
-  const T=tierMeshes[o.ti];
-  if(!o.alive){for(const m of T.meshes)m.im.setMatrixAt(o.k,ZERO);T.dirty=true;return;}
-  eul.set(0,o.ry,0);qq.setFromEuler(eul);v3.set(o.x,lift||0,o.z);sc3.set(o.s,o.s,o.s);om.compose(v3,qq,sc3);
-  for(const m of T.meshes){tmpM.multiplyMatrices(om,m.pm);m.im.setMatrixAt(o.k,tmpM);}
-  T.dirty=true;
+function dropTier(c,ti){
+  const L=c.t[ti];if(!L)return;c.t[ti]=null;genCount-=L.length;
+  if(ti>=6)c.occ=c.occ.filter(o=>o.ti!==ti);
+  else if(ti>=2)for(let i=0;i<c.occS.length;i++){const a=c.occS[i];if(a){const b=a.filter(o=>o.ti!==ti);c.occS[i]=b.length?b:null;}}
+  if(ti>=6)c.big=c.big.filter(o=>o.ti!==ti);
+  else for(let i=0;i<c.cells.length;i++){const a=c.cells[i];if(a){const b=a.filter(o=>o.ti!==ti);c.cells[i]=b.length?b:null;}}
 }
-function flushTown(){for(const T of tierMeshes){if(!T||!T.dirty)continue;T.dirty=false;for(const m of T.meshes){m.im.instanceMatrix.needsUpdate=true;}}}
+function resetChunks(){chunks.clear();live.clear();genCount=0;for(const M of KM){M.n=0;for(const p of M.parts)p.im.count=0;}refillNeed=true;fillX=fillZ=1e9;}
+const camH=r=>7+4.4*r;
+const viewDist=r=>mode==="title"?830:camH(r)*6+260;
+function computeLR(r,mag){
+  const vd=viewDist(r)*0.85,nearR=r+mag+40;
+  for(let ti=0;ti<9;ti++)LR[ti]=(SIZES[ti]*1.2<r*0.03&&ti<8)?-1:Math.max(nearR,Math.min(vd,SIZES[ti]*160));
+}
+function updateChunks(cx,cz,r,mag,budget){
+  computeLR(r,mag);let mx=0;for(const v of LR)mx=Math.max(mx,v);
+  const t0=performance.now(),todo=[];
+  const ix0=Math.max(0,Math.floor((cx-mx+HALF)/CH)),ix1=Math.min(NCH-1,Math.floor((cx+mx+HALF)/CH)),iz0=Math.max(0,Math.floor((cz-mx+HALF)/CH)),iz1=Math.min(NCH-1,Math.floor((cz+mx+HALF)/CH));
+  for(let ix=ix0;ix<=ix1;ix++)for(let iz=iz0;iz<=iz1;iz++){
+    const x0=-HALF+ix*CH,z0=-HALF+iz*CH,dx=Math.max(x0-cx,0,cx-Math.min(HALF,x0+CH)),dz=Math.max(z0-cz,0,cz-Math.min(HALF,z0+CH)),dc=Math.sqrt(dx*dx+dz*dz);
+    if(dc>mx)continue;const c=chunks.get(ix*100+iz);
+    for(let ti=8;ti>=0;ti--)if(LR[ti]>=0&&dc<LR[ti]&&!(c&&c.t[ti]))todo.push({dc,ix,iz,ti});
+  }
+  let changed=false;
+  if(todo.length){todo.sort((a,b)=>a.dc-b.dc||b.ti-a.ti);
+    for(const w of todo){genTier(getChunk(w.ix,w.iz),w.ti);changed=true;if(performance.now()-t0>budget)break;}}
+  for(const c of live){const dc=chunkDist(c,cx,cz);let any=false;
+    for(let ti=0;ti<9;ti++){if(!c.t[ti])continue;if(LR[ti]<0||dc>LR[ti]*1.25+CH){dropTier(c,ti);changed=true;}else any=true;}
+    if(!any)live.delete(c);}
+  if(changed)refillNeed=true;
+}
+function writeObj(o,lift){
+  const M=KM[o.kd],off=o.slot*16,c=Math.cos(o.ry)*o.s,sn=Math.sin(o.ry)*o.s,s=o.s;
+  for(const p of M.parts){const e=p.pe,a=p.im.instanceMatrix.array;
+    for(let j=0;j<3;j++){const vx=e[4*j],vy=e[4*j+1],vz=e[4*j+2],q=off+4*j;a[q]=c*vx+sn*vz;a[q+1]=s*vy;a[q+2]=-sn*vx+c*vz;a[q+3]=0;}
+    const vx=e[12],vy=e[13],vz=e[14];a[off+12]=c*vx+sn*vz+o.x;a[off+13]=s*vy+lift;a[off+14]=-sn*vx+c*vz+o.z;a[off+15]=1;}
+  M.dirty=true;
+}
+function zeroSlot(o){if(o.slot<0)return;const M=KM[o.kd],off=o.slot*16;for(const p of M.parts)p.im.instanceMatrix.array.fill(0,off,off+16);M.dirty=true;}
+function refill(cx,cz){
+  const arr=[...live].map(c=>[chunkDist(c,cx,cz),c]).sort((a,b)=>a[0]-b[0]);
+  for(const M of KM)M.n=0;
+  for(const [dc,c] of arr)for(let ti=0;ti<9;ti++){const L=c.t[ti];if(!L)continue;const lr=LR[ti],lr2=lr*lr,far=lr<0||dc>lr;
+    for(const o of L){o.slot=-1;if(far||!o.alive)continue;const dx=o.x-cx,dz=o.z-cz;if(dx*dx+dz*dz>lr2)continue;
+      const M=KM[o.kd];if(M.n>=M.cap)continue;o.slot=M.n++;writeObj(o,0);
+      for(const p of M.parts){if(p.vc<0)continue;const rgb=linRGB(p.vc===0?(o.col||"#ffffff"):(o.col2||o.col||"#ffffff")),ca=p.im.instanceColor.array,q=o.slot*3;ca[q]=rgb[0];ca[q+1]=rgb[1];ca[q+2]=rgb[2];}}}
+  for(const M of KM){for(const p of M.parts){p.im.count=M.n;p.im.instanceMatrix.needsUpdate=true;if(p.im.instanceColor)p.im.instanceColor.needsUpdate=true;}M.dirty=false;}
+  refillNeed=false;fillX=cx;fillZ=cz;
+}
+function flushTown(){for(const M of KM){if(!M.dirty)continue;M.dirty=false;for(const p of M.parts)p.im.instanceMatrix.needsUpdate=true;}}
+// visit every loaded thing near (x,z): R is the reach for small things; big ones are always offered from nearby chunks
+function forNear(x,z,R,fn){
+  const RB=R+26,ix0=Math.max(0,Math.floor((x-RB+HALF)/CH)),ix1=Math.min(NCH-1,Math.floor((x+RB+HALF)/CH)),iz0=Math.max(0,Math.floor((z-RB+HALF)/CH)),iz1=Math.min(NCH-1,Math.floor((z+RB+HALF)/CH));
+  for(let ix=ix0;ix<=ix1;ix++)for(let iz=iz0;iz<=iz1;iz++){const c=chunks.get(ix*100+iz);if(!c)continue;
+    for(let n=0;n<c.big.length;n++)fn(c.big[n]);
+    const a0=Math.max(0,Math.floor((x-R-c.x0)/CELL)),a1=Math.min(NC-1,Math.floor((x+R-c.x0)/CELL)),b0=Math.max(0,Math.floor((z-R-c.z0)/CELL)),b1=Math.min(NC-1,Math.floor((z+R-c.z0)/CELL));
+    for(let a=a0;a<=a1;a++)for(let b=b0;b<=b1;b++){const L=c.cells[a*NC+b];if(L)for(let n=0;n<L.length;n++)fn(L[n]);}}
+}
 // a little 3D copy of a thing, to show stuck inside the jelly
 function cloneObj(o){
-  const g=new THREE.Group(),shape=SHAPES[TW.t[o.ti][1]]();
+  const g=new THREE.Group(),shape=SHAPES[KINDS[o.kd].shape]();
   for(const p of shape){const col=typeof p[1]==="number"?(p[1]===0?(o.col||"#ffffff"):(o.col2||o.col||"#ffffff")):p[1];
     const m=new THREE.Mesh(GEO[p[0]],A3.mat(col,{rough:.55,emissive:p[11]?col:"#000000",glow:1}));m.applyMatrix4(partMatrix(p));g.add(m);}
   return g;
 }
 
 /* ---------- blobs ---------- */
-const blobGeo=new THREE.SphereGeometry(1,40,28);
-const eyeG=new THREE.SphereGeometry(0.16,12,10),pupG=new THREE.SphereGeometry(0.085,10,8),mouthG=new THREE.TorusGeometry(0.16,0.035,6,16,Math.PI);
+const blobGeo=new THREE.SphereGeometry(1,40,28),botGeo=new THREE.SphereGeometry(1,24,16);
+const eyeG=new THREE.SphereGeometry(0.16,12,10),pupG=new THREE.SphereGeometry(0.085,10,8),mouthG=new THREE.TorusGeometry(0.16,0.035,6,16,Math.PI),shadowG=new THREE.CircleGeometry(1,24);
+const crownG={ring:new THREE.CylinderGeometry(0.42,0.42,0.2,14,1,true),spike:new THREE.ConeGeometry(0.09,0.26,6),gem:new THREE.SphereGeometry(0.07,8,6)};
+const shadowM=new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.22,depthWrite:false});
 function jellyMat(sk,bot){
   const o=sk.o||{};
-  return new THREE.MeshPhysicalMaterial({color:lin(sk.hex),roughness:.12,metalness:o.metal||0,clearcoat:1,clearcoatRoughness:.1,transparent:true,opacity:o.op||(bot?0.82:0.5),depthWrite:false,emissive:lin(sk.hex),emissiveIntensity:o.glow||0.12});
+  if(bot)return new THREE.MeshStandardMaterial({color:lin(sk.hex),roughness:.15,metalness:0,transparent:true,opacity:.84,depthWrite:false,emissive:lin(sk.hex),emissiveIntensity:o.glow||0.14});
+  return new THREE.MeshPhysicalMaterial({color:lin(sk.hex),roughness:.12,metalness:o.metal||0,clearcoat:1,clearcoatRoughness:.1,transparent:true,opacity:o.op||0.5,depthWrite:false,emissive:lin(sk.hex),emissiveIntensity:o.glow||0.12});
 }
-function makeBlobMesh(mat){
+function makeBlobMesh(mat,isMe,mega){
   const g=new THREE.Group();
-  const body=new THREE.Mesh(blobGeo,mat);body.renderOrder=3;g.add(body);
-  const core=new THREE.Mesh(blobGeo,new THREE.MeshBasicMaterial({color:mat.color.clone(),transparent:true,opacity:.12,depthWrite:false}));core.scale.setScalar(0.7);g.add(core);
+  const body=new THREE.Mesh(isMe?blobGeo:botGeo,mat);body.renderOrder=3;g.add(body);
+  if(isMe){const core=new THREE.Mesh(blobGeo,new THREE.MeshBasicMaterial({color:mat.color.clone(),transparent:true,opacity:.12,depthWrite:false}));core.scale.setScalar(0.7);g.add(core);}
   const face=new THREE.Group();
   for(const sd of [-1,1]){const e=new THREE.Mesh(eyeG,A3.mat("#ffffff",{rough:.3}));e.position.set(sd*0.28,0.35,0.86);face.add(e);const p=new THREE.Mesh(pupG,A3.mat("#1a1530",{rough:.2}));p.position.set(sd*0.28,0.36,1.0);face.add(p);}
   const m=new THREE.Mesh(mouthG,A3.mat("#1a1530"));m.position.set(0,0.1,0.95);m.rotation.z=Math.PI;face.add(m);
   g.add(face);
-  const shadow=new THREE.Mesh(new THREE.CircleGeometry(1,24),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.22,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=0.03;
+  if(mega){const gold=A3.mat("#ffcf3f",{rough:.3,metal:.4,emissive:"#ffb000",glow:.35}),cr=new THREE.Group();
+    const ring=new THREE.Mesh(crownG.ring,gold);cr.add(ring);
+    for(let i=0;i<6;i++){const a=i/6*6.283,sp=new THREE.Mesh(crownG.spike,gold);sp.position.set(Math.cos(a)*0.4,0.22,Math.sin(a)*0.4);cr.add(sp);const gm=new THREE.Mesh(crownG.gem,A3.mat(i%2?"#ff5d7a":"#3fe0ff",{emissive:i%2?"#ff5d7a":"#3fe0ff",glow:.6}));gm.position.set(Math.cos(a)*0.43,0,Math.sin(a)*0.43);cr.add(gm);}
+    cr.position.y=0.93;g.add(cr);}
+  const shadow=new THREE.Mesh(shadowG,shadowM);shadow.rotation.x=-Math.PI/2;shadow.position.y=0.1;
   scene.add(g);scene.add(shadow);
   return {g,body,face,shadow};
 }
 let me=null,bots=[];
 const stuck=new THREE.Group();scene.add(stuck);
-const BOTCOL=["#ff8a3d","#b085ff","#5fd36a","#ff6fa3","#3fe0d0","#ffd23f"];
-const BOTN=["Wobbly","Gloop","Squishy","Jellybean","Puddle","Splodge","Gummy","Pudding","Custard","Sploosh","Mochi","Jiggles","Plop","Slurp"];
-function newBlob(isMe,r,x,z,name,col){
-  const sk=isMe?SKINS[S.skin]:{hex:col,o:{}};
-  const b={me:isMe,name,r,x,z,vx:0,vz:0,face:0,wob:Math.random()*6,mesh:makeBlobMesh(jellyMat(sk,!isMe)),hurt:0,think:0,tx:x,tz:z,eaten:0,alive:true,respawn:0,col:col||sk.hex,squash:0};
-  if(!isMe){b.tag=A3.label(name,{size:1,color:"#ffffff",stroke:"rgba(20,10,50,.85)",px:56});b.tag.material.depthTest=false;b.tag.renderOrder=6;b.tag.userData.ar=b.tag.scale.x/b.tag.scale.y;scene.add(b.tag);}
+const BOTCOL=["#ff8a3d","#b085ff","#5fd36a","#ff6fa3","#3fe0d0","#ffd23f","#ff5d5d","#7ad8ff"];
+const BOTN=["Wobbly","Gloop","Squishy","Jellybean","Puddle","Splodge","Gummy","Pudding","Custard","Sploosh","Mochi","Jiggles","Plop","Slurp","Wibble","Bloop","Gooey","Trifle","Blancmange","Dollop","Squidge","Fizz","Bubble","Nibbles"];
+const NBOTS=40,NMEGA=3,SAFE=8;
+function newBlob(isMe,r,x,z,name,col,mega){
+  const sk=isMe?SKINS[S.skin]:{hex:col,o:mega?{glow:.3}:{}};
+  const b={me:isMe,mega:!!mega,name,r,x,z,vx:0,vz:0,face:0,wob:Math.random()*6,mesh:makeBlobMesh(jellyMat(sk,!isMe),isMe,mega),hurt:0,think:Math.random()*0.3,tx:x,tz:z,alive:true,respawn:0,col:col||sk.hex,squash:0,cool:0,huntT:0,hunt:false,flee:false};
+  if(!isMe){b.tag=A3.label(name,{size:1,color:mega?"#ffd23f":"#ffffff",stroke:"rgba(20,10,50,.85)",px:56});b.tag.material.depthTest=false;b.tag.renderOrder=6;b.tag.userData.ar=b.tag.scale.x/b.tag.scale.y;scene.add(b.tag);}
   return b;
 }
-function dropBlob(b){scene.remove(b.mesh.g);scene.remove(b.mesh.shadow);if(b.tag)scene.remove(b.tag);}
+function dropBlob(b){scene.remove(b.mesh.g);scene.remove(b.mesh.shadow);if(b.tag){scene.remove(b.tag);b.tag.material.map.dispose();b.tag.material.dispose();}b.mesh.body.material.dispose();}
+function showBlob(b,on){b.mesh.g.visible=on;b.mesh.shadow.visible=on;if(b.tag)b.tag.visible=on;}
+// put a computer blob somewhere near you (outside the screen), sized against you
+function placeBot(b,first){
+  const cx=me?me.x:0,cz=me?me.z:0,r=me?me.r:1.5,vd=viewDist(r);
+  const inR=b.mega?Math.max(450,vd*1.1):Math.max(first?45:70,vd*0.3),outR=b.mega?Math.max(1000,vd*1.8):Math.max(150,vd*0.8);
+  let x=cx,z=cz;
+  for(let t=0;t<10;t++){const a=Math.random()*6.283,d=A3.rand(inR,outR);x=A3.clamp(cx+Math.cos(a)*d,-HALF+30,HALF-30);z=A3.clamp(cz+Math.sin(a)*d,-HALF+30,HALF-30);if(Math.hypot(x-cx,z-cz)>inR*0.7)break;}
+  b.x=x;b.z=z;b.tx=x;b.tz=z;b.vx=b.vz=0;b.cool=0;b.huntT=0;b.hunt=b.flee=false;
+  if(b.mega){b.r=Math.max(b.r,r*1.6,startR()*10);}
+  else{const big=Math.random()<0.34;b.r=Math.max(0.5,r*(big?A3.rand(1.4,2.3):A3.rand(0.4,0.95)));}
+  b.alive=true;showBlob(b,true);
+}
 
 /* ---------- round ---------- */
 let mode="title",round=null,titleT=0;
-function freeSpot(minR){for(let t=0;t<60;t++){const x=A3.rand(-HALF+20,HALF-20),z=A3.rand(-HALF+20,HALF-20);let ok=true;for(const o of bigList)if(Math.hypot(o.x-x,o.z-z)<o.s+minR+4)ok=false;
-  for(const o of objs)if(o.ti>=4&&o.ti<7&&Math.abs(o.x-x)<o.s+minR&&Math.abs(o.z-z)<o.s+minR){ok=false;break;}if(ok)return {x,z};}return {x:0,z:HALF-30};}
 let builtWorld=-1;
 function setupTown(){
   if(me){dropBlob(me);me=null;}bots.forEach(dropBlob);bots=[];
   clearStuck();
-  buildTown(S.world);builtWorld=S.world;
+  if(builtWorld!==S.world){buildWorld(S.world);builtWorld=S.world;}
+  resetChunks();
+}
+// start somewhere busy: off the roads, not inside anything, with lots of small things to soak up near by
+function spawnSpot(){
+  const r0=startR(),cx=A3.rand(-HALF+250,HALF-250),cz=A3.rand(-HALF+250,HALF-250);
+  updateChunks(cx,cz,r0,3,1e9);
+  let best={x:cx,z:cz},bs=-1e9;
+  for(let t=0;t<24;t++){const x=cx+A3.rand(-60,60),z=cz+A3.rand(-60,60);if(onRoad(x,z,r0+0.5))continue;
+    let sc=0,blocked=false;
+    forNear(x,z,22,o=>{const d=Math.hypot(o.x-x,o.z-z);if(!canEatS(r0,o.s)){if(d<o.fr+r0+1.5)blocked=true;}else if(d<22)sc++;});
+    if(!blocked&&sc>bs){bs=sc;best={x,z};}}
+  return best;
 }
 function startGame(){
-  setupTown();
-  const p=freeSpot(3);
+  setupTown();mode="play";round=null;
+  const p=spawnSpot();
   me=newBlob(true,startR(),p.x,p.z,"You");
-  for(let i=0;i<5;i++){const q=freeSpot(3);bots.push(newBlob(false,startR()*A3.rand(0.7,1.4),q.x,q.z,BOTN[(i*3+S.games)%BOTN.length],BOTCOL[i%BOTCOL.length]));}
-  round={t:0,len:roundLen(),coins:0,eaten:0,tiers:[0,0,0,0,0,0,0,0,0],blobs:0,peak:me.r,last10:false,ended:false};
-  mode="play";S.games++;persist();
-  ["timer","sizebar","feed"].forEach(id=>$(id).hidden=false);$("bQuit").hidden=false;
-  buildPets();A3.sfx("jump");A3.toast("Soak up everything smaller than you!",1800);hud();
+  round={t:0,len:roundLen(),coins:0,eaten:0,kinds:KINDS.map(()=>0),tiers:[0,0,0,0,0,0,0,0,0],blobs:0,megas:0,peak:me.r,last10:false,ended:false,crush:false,hits:0};
+  for(let i=0;i<NBOTS;i++){const b=newBlob(false,1,p.x,p.z,BOTN[(i*5+S.games)%BOTN.length],BOTCOL[i%BOTCOL.length]);placeBot(b,true);bots.push(b);}
+  for(let i=0;i<NMEGA;i++){const b=newBlob(false,startR()*A3.rand(10,14),p.x,p.z,"Mega Blob","#9a3aff",true);b.r=startR()*A3.rand(10,14);placeBot(b,true);bots.push(b);}
+  S.games++;persist();
+  updateChunks(me.x,me.z,me.r,3,1e9);refill(me.x,me.z);
+  camLook.set(me.x,0,me.z);camPos.set(me.x,camH(me.r),me.z+camH(me.r)*0.85);
+  ["timer","sizebar","feed","mini"].forEach(id=>$(id).hidden=false);$("bQuit").hidden=false;
+  buildPets();A3.sfx("jump");A3.toast("Safe for "+SAFE+" seconds: grow fast! Big blobs will hunt you",2400);hud();
 }
 function clearStuck(){while(stuck.children.length)stuck.remove(stuck.children[0]);}
-const canEatS=(r,s)=>s<r*0.78;
+const canEatS=(r,s)=>s<r*EATR;
 function feed(txt){const f=$("feed");const el=document.createElement("span");el.innerHTML=txt;f.prepend(el);while(f.children.length>5)f.lastChild.remove();setTimeout(()=>{if(el.parentNode)el.remove();},2200);}
-let tickT=0;
+let tickT=0,fxN=0;
 function absorb(b,o){
-  o.alive=false;setObjMatrix(o);
-  const g=0.9*o.s*o.s*(b.me?growMul():0.75);
+  o.alive=false;zeroSlot(o);const c0=o.ch;(c0.eaten[o.ti]||(c0.eaten[o.ti]=new Set())).add(o.k);
+  const g=0.75*o.s*o.s*(b.me?growMul():1.1);
   b.r=Math.sqrt(b.r*b.r+g);
   if(b.me){
-    round.eaten++;round.tiers[o.ti]++;S.eaten++;
-    const c=Math.pow(2.2,o.ti)*coinMul();P.addCoins(c);round.coins+=c;
-    // keep a copy stuck inside the jelly
-    const cl=cloneObj(o);cl.scale.setScalar(o.s);const a=Math.random()*6.28,el=Math.random()*1.2-0.3,rr=0.25+Math.random()*0.5;
-    cl.userData={a,el,rr,s:o.s,spin:Math.random()*6,sp:A3.rand(-0.6,0.6)};cl.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);
-    stuck.add(cl);trimStuck();
-    const now=performance.now();if(o.ti>=3||now-tickT>60){tickT=now;A3.sfx(o.ti>=5?"boom":o.ti>=3?"pop":"tick");}
-    if(o.ti>=4)parts.burst(new THREE.Vector3(o.x,o.s,o.z),o.col||"#ffffff",Math.min(20,6+o.ti*2),6,0.7);
-    if(o.ti>=3&&round.tiers[o.ti]===1)feed("First <b>"+TW.t[o.ti][0]+"</b>!");
+    round.eaten++;round.tiers[o.ti]++;round.kinds[o.kd]++;S.eaten++;
+    const c=Math.pow(2.2,o.ti)*coinMul()*COINF;P.addCoins(c);round.coins+=c;
+    fxN++;
+    if(fxN<=2&&(o.s>b.r*0.035||stuck.children.length<20)){
+      const cl=cloneObj(o);cl.scale.setScalar(o.s);const a=Math.random()*6.28,el=Math.random()*1.2-0.3,rr=0.25+Math.random()*0.5;
+      cl.userData={a,el,rr,s:o.s,spin:Math.random()*6,sp:A3.rand(-0.6,0.6)};cl.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);
+      stuck.add(cl);trimStuck();}
+    const now=performance.now();if(now-tickT>(o.ti>=5?45:70)){tickT=now;A3.sfx(o.ti>=5?"boom":o.ti>=3?"pop":"tick");}
+    if(o.ti>=4&&fxN<=3)parts.burst(new THREE.Vector3(o.x,o.s,o.z),o.col||"#ffffff",Math.min(20,6+o.ti*2),6*Math.max(1,o.s/3),0.7);
+    if(o.ti>=3&&round.kinds[o.kd]===1)feed("First <b>"+KINDS[o.kd].n+"</b>!");
   }
 }
 function trimStuck(){
@@ -666,26 +823,28 @@ function trimStuck(){
 function endRound(why){
   if(!round||round.ended)return;round.ended=true;mode="over";
   const W=S.world,peak=round.peak,cm=sizeCm(peak,W);
-  const sizeBonus=Math.floor(peak*peak*20)*coinMul()*(why==="town"?2:1);P.addCoins(sizeBonus);round.coins+=sizeBonus;
+  const sizeBonus=Math.floor(20*Math.pow(peak,1.6))*coinMul()*(round.crush?2:1);P.addCoins(sizeBonus);round.coins+=sizeBonus;
   const newBest=cm>S.bestCm;if(newBest){S.bestCm=cm;A3.best(cm);}
   const wasR=S.bestR[W]||0;if(peak>wasR)S.bestR[W]=peak;
   let unlockMsg="";const nx=W+1;
   if(nx<WORLDS.length&&!S.wOwn.includes(nx)&&peak>=WNEED[nx]&&wasR<WNEED[nx])unlockMsg=S.reb>=WREB[nx]?" You can now unlock "+WORLDS[nx].n+"!":" Reach "+WREB[nx]+" rebirth"+(WREB[nx]>1?"s":"")+" to unlock "+WORLDS[nx].n+".";
-  if(why==="town"){S.towns++;A3.win(4,"soaking up a whole town in Blob Feast");}
-  else if(newBest&&peak>=10)A3.win(2,"a new biggest blob in Blob Feast");
-  A3.sfx(why==="town"||newBest?"win":"coin");
-  $("oTitle").textContent=why==="town"?"Town soaked up!":why==="quit"?"Round over":"Time's up!";
-  $("oText").textContent=(newBest?"New best size! ":"")+"You grew to "+sizeTxt(peak,W)+" and earned "+fmt(round.coins)+" coins."+unlockMsg;
-  let h="<div>Biggest size<b>"+sizeTxt(peak,W)+"</b></div><div>Things soaked up<b>"+fmt(round.eaten)+"</b></div><div>Blobs soaked<b>"+round.blobs+"</b></div><div>Size bonus<b>"+fmt(sizeBonus)+"</b></div><div>Coins earned<b>"+fmt(round.coins)+"</b></div>";
-  for(let i=8;i>=0;i--)if(round.tiers[i])h+="<div>"+TW.t[i][0]+"<b>"+round.tiers[i]+"</b></div>";
+  if(!round.crush&&newBest&&peak>=10)A3.win(2,"a new biggest blob in Blob Feast");
+  A3.sfx(round.crush||newBest?"win":why==="squish"?"lose":"coin");
+  $("oTitle").textContent=why==="squish"?"Squished!":round.crush?"Town Crusher!":why==="quit"?"Round over":"Time's up!";
+  $("oText").textContent=(why==="squish"?"A bigger blob squished you smaller than you started. ":"")+(newBest?"New best size! ":"")+"You grew to "+sizeTxt(peak,W)+" and earned "+fmt(round.coins)+" coins."+(round.crush?" Town Crusher doubled your size bonus!":"")+unlockMsg;
+  let h="<div>Biggest size<b>"+sizeTxt(peak,W)+"</b></div><div>Things soaked up<b>"+fmt(round.eaten)+"</b></div><div>Blobs soaked<b>"+round.blobs+"</b></div>"+(round.megas?"<div>Mega Blobs<b>"+round.megas+"</b></div>":"")+"<div>Size bonus<b>"+fmt(sizeBonus)+"</b></div><div>Coins earned<b>"+fmt(round.coins)+"</b></div>";
+  const ks=KINDS.map((k,i)=>[k,round.kinds[i]]).filter(a=>a[1]).sort((a,b)=>b[0].ti-a[0].ti).slice(0,10);
+  for(const [k,n] of ks)h+="<div>"+k.n+"<b>"+fmt(n)+"</b></div>";
   $("oStats").innerHTML=h;
   persist();hud();
-  ["timer","sizebar","feed"].forEach(id=>$(id).hidden=true);$("bQuit").hidden=true;$("joy").style.display="none";
-  setTimeout(()=>{if(mode==="over")A3.show("ovOver");},why==="quit"?50:700);
+  ["timer","sizebar","feed","mini"].forEach(id=>$(id).hidden=true);$("bQuit").hidden=true;$("joy").style.display="none";
+  setTimeout(()=>{if(mode==="over")A3.show("ovOver");},why==="quit"?50:900);
 }
 
 /* ---------- movement ---------- */
-function blobSpeed(b){return (7+2.2*Math.sqrt(b.r))*(b.me?speedMul():0.8);}
+// big blobs move much faster, so a huge blob can cross the giant town
+function blobSpeed(b){return (6+2.4*Math.sqrt(b.r)+1.3*b.r)*(b.me?speedMul():(b.hunt?0.9:0.78)*(b.mega?0.85:1));}
+const magOf=b=>b.me?(2+0.6*(S.up.magnet||0)+petObjs.length*0.6)*(1+0.04*b.r):0;
 function moveBlob(b,dt,dx,dz){
   const d=Math.hypot(dx,dz);
   const sp=blobSpeed(b)*(b.hurt>0?0.6:1);
@@ -693,49 +852,65 @@ function moveBlob(b,dt,dx,dz){
   const k=Math.min(1,dt*5);b.vx+=(ax-b.vx)*k;b.vz+=(az-b.vz)*k;
   b.x+=b.vx*dt;b.z+=b.vz*dt;
   const lim=HALF-b.r*0.6;b.x=A3.clamp(b.x,-lim,lim);b.z=A3.clamp(b.z,-lim,lim);
-  // things: soak up small ones, bump into big ones
-  const mag=b.me?2+0.6*(S.up.magnet||0)+petObjs.length*0.6:1;
-  const reach=b.r+mag+SIZES[8];
-  const ix0=Math.floor((b.x-reach+HALF)/GRID)+1,ix1=Math.floor((b.x+reach+HALF)/GRID)+1,iz0=Math.floor((b.z-reach+HALF)/GRID)+1,iz1=Math.floor((b.z+reach+HALF)/GRID)+1;
-  for(let ix=Math.max(0,ix0);ix<=Math.min(GN-1,ix1);ix++)for(let iz=Math.max(0,iz0);iz<=Math.min(GN-1,iz1);iz++){const cell=grid[ix*GN+iz];for(let n=0;n<cell.length;n++)touch(b,cell[n],dt,mag);}
-  for(const o of bigList)touch(b,o,dt,mag);
+  const mag=magOf(b);
+  curB=b;curDt=dt;curMag=mag;forNear(b.x,b.z,b.r+mag+6,touchCur);
 }
+let curB=null,curDt=0,curMag=0;
+function touchCur(o){touch(curB,o,curDt,curMag);}
 function touch(b,o,dt,mag){
   if(!o.alive)return;
   const dx=o.x-b.x,dz=o.z-b.z,d2=dx*dx+dz*dz,fr=o.s*(o.ti>=6?0.75:0.6),rr=b.r+fr;
   const small=canEatS(b.r,o.s);
-  if(small&&b.me&&mag>0){const pr=b.r+mag+o.s;if(d2<pr*pr&&d2>=rr*rr*0.8){const d=Math.sqrt(d2),k=Math.min(d,dt*(10+b.r*2));o.x-=dx/d*k;o.z-=dz/d*k;o.pull=1;setObjMatrix(o,Math.min(o.s,0.4*b.r)*0.5);}}
+  if(small&&mag>0){const pr=b.r+mag+o.s;if(d2<pr*pr&&d2>=rr*rr*0.8){const d=Math.sqrt(d2),k=Math.min(d,dt*(10+b.r*2));o.x-=dx/d*k;o.z-=dz/d*k;if(o.slot>=0)writeObj(o,Math.min(o.s,0.4*b.r)*0.5);}}
   if(d2>rr*rr)return;
   if(small){absorb(b,o);return;}
   const d=Math.sqrt(d2)||0.001,push=rr-d;b.x-=dx/d*push;b.z-=dz/d*push;
   const vn=(b.vx*dx+b.vz*dz)/d;if(vn>0){b.vx-=dx/d*vn*1.3;b.vz-=dz/d*vn*1.3;}
-  if(b.me&&vn>4&&o.ti>=3){b.squash=0.25;const now=performance.now();if(now-tickT>200){tickT=now;A3.sfx("hit");}if(!b.toldBig||now-b.toldBig>4000){b.toldBig=now;A3.toast("Too big! Grow to "+sizeTxt(o.s/0.78)+" to soak up "+TW.t[o.ti][0].toLowerCase(),1600);}}
+  if(b.me&&vn>4&&o.ti>=3){b.squash=0.25;const now=performance.now();if(now-tickT>200){tickT=now;A3.sfx("hit");}if(!b.toldBig||now-b.toldBig>4000){b.toldBig=now;A3.toast("Too big! Grow to "+sizeTxt(o.s/EATR)+" to soak up "+KINDS[o.kd].n.toLowerCase(),1600);}}
 }
 function blobFight(a,b){
   const dx=b.x-a.x,dz=b.z-a.z,d=Math.hypot(dx,dz);if(d>a.r+b.r)return;
   const [big,small]=a.r>=b.r?[a,b]:[b,a];
-  if(small.r<big.r*0.78&&d<big.r){
-    if(small.me){ // squished: lose some jelly, keep going
-      if(small.hurt>0)return;small.hurt=2;small.r=Math.max(startR(),small.r*0.84);big.r=Math.sqrt(big.r*big.r+small.r*small.r*0.2);
-      small.vx=-dx/d*(big===a?-1:1)*25;small.vz=-dz/d*(big===a?-1:1)*25;
-      A3.sfx("lose");A3.toast(big.name+" squished some of your jelly! Keep away from bigger blobs",1800);parts.burst(new THREE.Vector3(small.x,small.r,small.z),SKINS[S.skin].hex,24,7,0.8);
-      for(let i=0;i<Math.ceil(stuck.children.length*0.3);i++)stuck.remove(stuck.children[(Math.random()*stuck.children.length)|0]);
+  const safe=round&&round.t<SAFE;
+  if(small.r<big.r*0.78&&d<big.r&&!(small.me&&(safe||small.hurt>0))){
+    if(small.me){ // squished: a big chunk of your jelly goes, and too small ends the round
+      const nr=small.r*0.6;round.hits++;
+      big.r=Math.sqrt(big.r*big.r+small.r*small.r*0.25);big.cool=5;big.huntT=0;
+      parts.burst(new THREE.Vector3(small.x,small.r,small.z),SKINS[S.skin].hex,30,8*Math.max(1,small.r/4),0.9);
+      if(nr<startR()){small.r=Math.max(0.3,nr);A3.toast(big.name+" squished you!",2000);endRound("squish");return;}
+      small.r=nr;small.hurt=2.5;const n=d||1;small.vx=-dx/n*(big===a?-1:1)*30;small.vz=-dz/n*(big===a?-1:1)*30;
+      A3.sfx("lose");A3.toast(big.name+" squished away a big chunk of your jelly! Run from bigger blobs",2000);
+      for(let i=0;i<Math.ceil(stuck.children.length*0.5);i++)stuck.remove(stuck.children[(Math.random()*stuck.children.length)|0]);
     }else{
-      big.r=Math.sqrt(big.r*big.r+small.r*small.r*0.9*(big.me?growMul():0.7));small.alive=false;small.respawn=6;small.mesh.g.visible=false;small.mesh.shadow.visible=false;if(small.tag)small.tag.visible=false;
-      if(big.me){round.blobs++;S.blobs++;const c=40*coinMul()*small.r;P.addCoins(c);round.coins+=c;A3.sfx("boom");feed("You soaked up <b>"+small.name+"</b>!");if(round.blobs===1)A3.win(1,"soaking up a computer blob in Blob Feast");}
-      parts.burst(new THREE.Vector3(small.x,small.r,small.z),small.col,20,7,0.8);
+      big.r=Math.sqrt(big.r*big.r+small.r*small.r*0.9*(big.me?growMul():0.7));small.alive=false;small.respawn=small.mega?1e9:4;showBlob(small,false);
+      if(big.me){round.blobs++;S.blobs++;let c=40*coinMul()*small.r;
+        if(small.mega){c+=25*small.r*small.r*coinMul();round.megas++;S.megas=(S.megas|0)+1;A3.sfx("win");feed("You soaked up a <b>Mega Blob</b>! +"+fmt(c));A3.toast("👑 MEGA BLOB SOAKED UP! +"+fmt(c)+" coins",2600);A3.win(3,"soaking up a Mega Blob in Blob Feast");}
+        else{A3.sfx("boom");feed("You soaked up <b>"+small.name+"</b>!");if(round.blobs===1)A3.win(1,"soaking up a computer blob in Blob Feast");}
+        P.addCoins(c);round.coins+=c;}
+      parts.burst(new THREE.Vector3(small.x,small.r,small.z),small.col,24,7*Math.max(1,small.r/4),0.8);
     }
   }else{const push=(a.r+b.r-d)*0.5,nx=dx/(d||1),nz=dz/(d||1);a.x-=nx*push;a.z-=nz*push;b.x+=nx*push;b.z+=nz*push;}
 }
 function botThink(b){
-  // look for something tasty near by, or run from a bigger blob
-  let best=null,bs=0;
-  const R=18+b.r*4;
-  for(let k=0;k<26;k++){const o=objs[(Math.random()*objs.length)|0];if(!o.alive||!canEatS(b.r,o.s))continue;const d=Math.hypot(o.x-b.x,o.z-b.z);if(d>R)continue;const sc=o.s*o.s/(d+3);if(sc>bs){bs=sc;best=o;}}
-  if(best){b.tx=best.x;b.tz=best.z;}else if(Math.hypot(b.tx-b.x,b.tz-b.z)<4){b.tx=A3.rand(-HALF+15,HALF-15);b.tz=A3.rand(-HALF+15,HALF-15);}
-  if(me){const d=Math.hypot(me.x-b.x,me.z-b.z);
-    if(me.r>b.r*1.25&&d<me.r*3+12){b.tx=b.x-(me.x-b.x)*3;b.tz=b.z-(me.z-b.z)*3;}
-    else if(b.r>me.r*1.3&&d<b.r*4+16&&me.hurt<=0){b.tx=me.x;b.tz=me.z;}}
+  b.hunt=false;b.flee=false;
+  // look for something tasty near by
+  let best=null,bs=0;const R=12+b.r*3;
+  const consider=o=>{if(!o||!o.alive||!canEatS(b.r,o.s))return;const d=Math.hypot(o.x-b.x,o.z-b.z);if(d>R*1.5)return;const sc=o.s*o.s/(d+3);if(sc>bs){bs=sc;best=o;}};
+  for(let k=0;k<12;k++){const x=b.x+A3.rand(-R,R),z=b.z+A3.rand(-R,R),c=chunkAt(x,z);if(!c)continue;const L=c.cells[cellOf(c,x,z)];if(L&&L.length)consider(L[(Math.random()*L.length)|0]);}
+  if(b.r>5){const c=chunkAt(b.x,b.z);if(c)for(const o of c.big)consider(o);}
+  if(best){b.tx=best.x;b.tz=best.z;}
+  else if(Math.hypot(b.tx-b.x,b.tz-b.z)<4+b.r){
+    if(!me){b.tx=A3.rand(-120,120);b.tz=A3.rand(-120,120);}
+    else if(b.mega&&Math.random()<0.6){b.tx=me.x+A3.rand(-300,300);b.tz=me.z+A3.rand(-300,300);}
+    else{const W=40+b.r*10;b.tx=b.x+A3.rand(-W,W);b.tz=b.z+A3.rand(-W,W);}
+    if(me)b.tx=A3.clamp(b.tx,-HALF+20,HALF-20);b.tz=A3.clamp(b.tz,-HALF+20,HALF-20);}
+  if(me&&mode==="play"){const d=Math.hypot(me.x-b.x,me.z-b.z);
+    const huntR=b.mega?140+b.r*6:50+b.r*8;
+    if(me.r<b.r*0.78&&d<huntR&&b.cool<=0&&me.hurt<=0&&round.t>=SAFE){
+      // hunt: aim where you are going, to cut you off
+      const lead=Math.min(2.2,d/(blobSpeed(b)+1));b.tx=me.x+me.vx*lead;b.tz=me.z+me.vz*lead;b.hunt=true;
+      b.huntT+=0.35;if(b.huntT>8){b.cool=4;b.huntT=0;}}
+    else if(b.r<me.r*0.78&&d<me.r*4+30){b.tx=b.x-(me.x-b.x)*3;b.tz=b.z-(me.z-b.z)*3;b.flee=true;}}
 }
 
 /* ---------- pets ---------- */
@@ -767,49 +942,91 @@ function playerDir(){
   return [0,0];
 }
 
-/* ---------- HUD ---------- */
+/* ---------- HUD and minimap ---------- */
 function nextTier(r){for(let i=0;i<9;i++){if(!canEatS(r,SIZES[i]*1.2))return i;}return -1;}
 function hud(){
   $("hCoins").textContent=fmt(S.coins);$("hWorld").textContent=S.world+1;$("hBest").textContent=S.bestCm?sizeTxt(S.bestCm/20/WORLDS[0].scale,0):"0";
   if(me){$("hSize").textContent=sizeTxt(me.r);$("hEat").textContent=round?fmt(round.eaten):0;
     $("sizeNm").innerHTML=sizeTxt(me.r)+"<small>"+TW.n.toUpperCase()+"</small>";
     const nt=nextTier(me.r);
-    if(nt>=0){const need=SIZES[nt]*1.2/0.78,prev=nt>0?SIZES[nt-1]*1.2/0.78:startR();$("sizeFill").style.width=A3.clamp((me.r-prev)/(need-prev)*100,0,100)+"%";$("sizeNx").textContent="Next: "+TW.t[nt][0]+" at "+sizeTxt(need);}
-    else{$("sizeFill").style.width="100%";$("sizeNx").textContent="You can soak up anything!";}}
+    if(nt>=0){const need=SIZES[nt]*1.2/EATR,prev=nt>0?SIZES[nt-1]*1.2/EATR:startR();$("sizeFill").style.width=A3.clamp((me.r-prev)/(need-prev)*100,0,100)+"%";$("sizeNx").textContent="Next: "+tierName(nt)+" at "+sizeTxt(need)+(nt===8?" (Town Crusher!)":"");}
+    else{$("sizeFill").style.width="100%";$("sizeNx").textContent="Town Crusher! You can soak up anything!";}}
+}
+const mini=$("mini"),mg=mini.getContext("2d");
+function drawMini(){
+  if(!me)return;
+  const Wd=mini.width,C=Wd/2,R=Math.max(260,viewDist(me.r)*0.8),k=C/R;
+  const X=x=>C+(x-me.x)*k,Z=z=>C+(z-me.z)*k;
+  mg.clearRect(0,0,Wd,Wd);
+  mg.fillStyle=TW.dark?"#05051a":"rgba(20,40,70,.9)";mg.fillRect(0,0,Wd,Wd);if(TWI===3){mg.fillStyle="#3aa8e8";mg.fillRect(0,Z(HALF),Wd,Wd);}
+  mg.fillStyle=TW.g[0];mg.fillRect(X(-HALF),Z(-HALF),HALF*2*k,HALF*2*k);
+  // streets
+  mg.strokeStyle="rgba(0,0,0,.18)";mg.lineWidth=1;const step=R>900?RS*4:RS;mg.beginPath();
+  for(let a=Math.ceil((me.x-R)/step)*step;a<=me.x+R;a+=step){if(Math.abs(a)>HALF)continue;mg.moveTo(X(a),Math.max(0,Z(-HALF)));mg.lineTo(X(a),Math.min(Wd,Z(HALF)));}
+  for(let a=Math.ceil((me.z-R)/step)*step;a<=me.z+R;a+=step){if(Math.abs(a)>HALF)continue;mg.moveTo(Math.max(0,X(-HALF)),Z(a));mg.lineTo(Math.min(Wd,X(HALF)),Z(a));}
+  mg.stroke();
+  // town edge
+  mg.strokeStyle=TW.dark?"#3fe0ff":"#ffffff";mg.lineWidth=3;mg.strokeRect(X(-HALF),Z(-HALF),HALF*2*k,HALF*2*k);
+  // blobs
+  for(const b of bots){if(!b.alive)continue;let x=X(b.x),z=Z(b.z);const danger=me.r<b.r*0.78,food=b.r<me.r*0.78;
+    const out=x<6||z<6||x>Wd-6||z>Wd-6;
+    if(out&&!b.mega)continue;
+    if(out){x=A3.clamp(x,7,Wd-7);z=A3.clamp(z,7,Wd-7);}
+    const rr=b.mega?Math.max(6,b.r*k):Math.max(3.5,b.r*k);
+    mg.fillStyle=b.mega?"#ffd23f":danger?"#ff4a4a":food?"#5fd36a":"#ffffff";mg.beginPath();mg.arc(x,z,Math.min(rr,40),0,7);mg.fill();
+    if(b.mega||danger){mg.strokeStyle=b.mega?"#7a2aff":"#7a0000";mg.lineWidth=2;mg.stroke();}}
+  mg.fillStyle=SKINS[S.skin].hex;mg.strokeStyle="#ffffff";mg.lineWidth=3;mg.beginPath();mg.arc(C,C,Math.max(5,Math.min(me.r*k,50)),0,7);mg.fill();mg.stroke();
+  // little whole-town map in the corner
+  const s=46,o=5;mg.fillStyle="rgba(0,0,0,.45)";mg.fillRect(o-2,o-2,s+4,s+4);mg.fillStyle=TW.g[0];mg.fillRect(o,o,s,s);
+  mg.fillStyle="#ffffff";mg.beginPath();mg.arc(o+(me.x+HALF)/(HALF*2)*s,o+(me.z+HALF)/(HALF*2)*s,3,0,7);mg.fill();
+  for(const b of bots)if(b.mega&&b.alive){mg.fillStyle="#ffd23f";mg.fillRect(o+(b.x+HALF)/(HALF*2)*s-1.5,o+(b.z+HALF)/(HALF*2)*s-1.5,3,3);}
 }
 
 /* ---------- loop ---------- */
 const camPos=new THREE.Vector3(0,80,90),camLook=new THREE.Vector3();
-let hudT=0,saveT=8,shadowS=40,botT=0,stuckT=0;
+let hudT=0,saveT=8,shadowS=40,miniT=0,camFar=3000;
+const PERF={upd:0,avg:0,n:0,chunk:0,fill:0,bots:0,max:0};
 A3.loop((dt,t)=>{
+  const tA=performance.now();fxN=0;
   const play=mode==="play"&&me;
   if(play){
     round.t+=dt;const left=round.len-round.t;
-    $("timer").textContent=Math.floor(Math.max(0,left)/60)+":"+String(Math.floor(Math.max(0,left)%60)).padStart(2,"0");$("timer").classList.toggle("low",left<10);
+    $("timer").textContent=clock(Math.max(0,left));$("timer").classList.toggle("low",left<10);
     if(left<10&&!round.last10){round.last10=true;A3.sfx("tick");A3.toast("10 seconds left!",1200);}
-    const [dx,dz]=playerDir();moveBlob(me,dt,dx,dz);if(me.hurt>0)me.hurt-=dt;
+    const [dx,dz]=playerDir();const tM=performance.now();moveBlob(me,dt,dx,dz);PERF.me=performance.now()-tM;if(me.hurt>0)me.hurt-=dt;
     round.peak=Math.max(round.peak,me.r);
+    if(!round.crush&&nextTier(me.r)<0){round.crush=true;S.towns++;const c=Math.floor(20*Math.pow(me.r,1.6))*coinMul();P.addCoins(c);round.coins+=c;
+      A3.sfx("win");A3.toast("🏆 TOWN CRUSHER! You can soak up anything now. +"+fmt(c)+" coins",3000);feed("<b>Town Crusher</b> bonus!");A3.win(4,"becoming a Town Crusher in Blob Feast");}
     if(left<=0)endRound("time");
   }
+  // streaming the town round you (or round the middle on the title screen)
+  const cx=me?me.x:0,cz=me?me.z:0,cr=me?me.r:1,cmag=me?magOf(me):3;
+  chunkT-=dt;const tC=performance.now();if(chunkT<=0){chunkT=0.15;updateChunks(cx,cz,cr,cmag,mode==="play"?5:3);}PERF.chunk=performance.now()-tC;
+  fillT-=dt;
+  const tF=performance.now();if(fillT<=0&&(refillNeed||Math.hypot(cx-fillX,cz-fillZ)>Math.max(8,LR[2]*0.12))){fillT=0.2;refill(cx,cz);}PERF.fill=performance.now()-tF;const tB=performance.now();
   // bots
-  botT-=dt;const thinkNow=botT<=0;if(thinkNow)botT=0.35;
+  const vd=me?viewDist(me.r):830;
   for(const b of bots){
-    if(!b.alive){b.respawn-=dt;if(b.respawn<=0&&me){const q=freeSpot(3);b.x=q.x;b.z=q.z;b.r=Math.max(startR()*0.8,me.r*A3.rand(0.5,1.3));b.alive=true;b.mesh.g.visible=true;b.mesh.shadow.visible=true;}continue;}
-    if(thinkNow||Math.random()<dt)botThink(b);
+    if(!b.alive){b.respawn-=dt;if(b.respawn<=0&&me)placeBot(b);continue;}
+    const dme=me?Math.hypot(b.x-me.x,b.z-me.z):Math.hypot(b.x,b.z);
+    if(me&&mode==="play"&&dme>(b.mega?Math.max(2200,vd*3):Math.max(450,vd*1.5)))placeBot(b);
+    if(b.cool>0)b.cool-=dt;
+    b.think-=dt;if(b.think<=0){b.think=0.3+Math.random()*0.15;botThink(b);}
     if(mode==="play"||mode==="title")moveBlob(b,dt,b.tx-b.x,b.tz-b.z);
     if(b.hurt>0)b.hurt-=dt;
   }
-  if(play){for(const b of bots)if(b.alive)blobFight(me,b);}
-  for(let i=0;i<bots.length;i++)for(let j=i+1;j<bots.length;j++)if(bots[i].alive&&bots[j].alive){const a=bots[i],b=bots[j],d=Math.hypot(a.x-b.x,a.z-b.z);if(d<a.r+b.r){const push=(a.r+b.r-d)*0.5,nx=(b.x-a.x)/(d||1),nz=(b.z-a.z)/(d||1);a.x-=nx*push;a.z-=nz*push;b.x+=nx*push;b.z+=nz*push;}}
-  if(play&&round.eaten>0){stuckT-=dt;if(stuckT<=0){stuckT=1;const alive=objs.length-objs.filter(o=>!o.alive).length;if(alive<objs.length*0.12)endRound("town");}}
+  PERF.bots=performance.now()-tB;
+  if(play){for(const b of bots)if(b.alive&&mode==="play")blobFight(me,b);}
+  for(let i=0;i<bots.length;i++){const a=bots[i];if(!a.alive)continue;for(let j=i+1;j<bots.length;j++){const b=bots[j];if(!b.alive)continue;const dx=b.x-a.x,dz=b.z-a.z,rr=a.r+b.r;if(dx*dx+dz*dz<rr*rr){const d=Math.sqrt(dx*dx+dz*dz),push=(rr-d)*0.5,nx=dx/(d||1),nz=dz/(d||1);a.x-=nx*push;a.z-=nz*push;b.x+=nx*push;b.z+=nz*push;}}}
   // draw blobs
   for(const b of (me?[me]:[]).concat(bots)){if(!b.alive)continue;
-    b.wob+=dt;const sp=Math.min(0.18,Math.hypot(b.vx,b.vz)*0.006);if(b.squash>0)b.squash-=dt;
+    if(!b.me){const dc=Math.hypot(b.x-camLook.x,b.z-camLook.z);const vis=dc<vd+b.r*4;b.mesh.g.visible=vis;b.mesh.shadow.visible=vis;if(b.tag)b.tag.visible=vis&&dc<vd*0.55+b.r*3;if(!vis)continue;}
+    b.wob+=dt;const sp=Math.min(0.18,Math.hypot(b.vx,b.vz)*0.006/Math.max(1,Math.sqrt(b.r)));if(b.squash>0)b.squash-=dt;
     const w=Math.sin(t*5+b.wob*2)*0.04+b.squash*0.5;
     const m=b.mesh;m.g.position.set(b.x,b.r*0.86,b.z);m.g.scale.set(b.r*(1+w+sp),b.r*(0.86-w),b.r*(1+w-sp*0.4));m.g.rotation.y=b.face;
-    m.shadow.position.set(b.x,0.03,b.z);m.shadow.scale.setScalar(b.r*1.1);
-    if(b.me){m.body.material.opacity=(SKINS[S.skin].o.op||0.5)*(b.hurt>0&&Math.sin(t*25)>0?0.5:1);if(SKINS[S.skin].o.rainbow){m.body.material.color.setHSL((t*0.15)%1,0.8,0.55).convertSRGBToLinear();m.body.material.emissive.copy(m.body.material.color);}}
-    if(b.tag){b.tag.visible=true;b.tag.position.set(b.x,b.r*1.95+1,b.z);const ts=0.9+b.r*0.35;b.tag.scale.set(ts*b.tag.userData.ar,ts,1);}
+    m.shadow.position.set(b.x,0.1+b.r*0.002,b.z);m.shadow.scale.setScalar(b.r*1.1);
+    if(b.me){const safe=round&&round.t<SAFE;m.body.material.opacity=(SKINS[S.skin].o.op||0.5)*((b.hurt>0||safe)&&Math.sin(t*(safe?10:25))>0?0.55:1);if(SKINS[S.skin].o.rainbow){m.body.material.color.setHSL((t*0.15)%1,0.8,0.55).convertSRGBToLinear();m.body.material.emissive.copy(m.body.material.color);}}
+    if(b.tag){b.tag.position.set(b.x,b.r*1.95+1,b.z);const ts=0.9+b.r*0.35;b.tag.scale.set(ts*b.tag.userData.ar,ts,1);}
   }
   // stuck things wobble inside the jelly
   if(me){for(const c of stuck.children){const u=c.userData;u.a+=u.sp*dt*0.4;u.spin+=dt*0.3;
@@ -818,27 +1035,37 @@ A3.loop((dt,t)=>{
   petsTick(dt,t);
   // camera
   if(mode==="title"){titleT+=dt*0.05;camLook.set(0,0,0);camera.position.set(Math.cos(titleT)*150,95,Math.sin(titleT)*150);camera.lookAt(camLook);}
-  else if(me){const h=7+me.r*4.4;camLook.x+=(me.x-camLook.x)*Math.min(1,dt*5);camLook.z+=(me.z-camLook.z)*Math.min(1,dt*5);
-    camPos.lerp(v3.set(camLook.x,h,camLook.z+h*0.85),Math.min(1,dt*2.5));camera.position.copy(camPos);camera.lookAt(camLook);}
+  else if(me){const h=camH(me.r);const f=Math.min(1,dt*5);camLook.x+=(me.x-camLook.x)*f;camLook.z+=(me.z-camLook.z)*f;
+    if(Math.hypot(me.x-camLook.x,me.z-camLook.z)>h*3)camLook.set(me.x,0,me.z);
+    camPos.lerp(v3.set(camLook.x,h,camLook.z+h*0.85),Math.min(1,dt*2.5));if(Math.hypot(camPos.x-camLook.x,camPos.z-camLook.z-h*0.85)>h*3)camPos.set(camLook.x,h,camLook.z+h*0.85);
+    camera.position.copy(camPos);camera.lookAt(camLook);}
   const ch=camera.position.y;scene.fog=scene.fog||new THREE.Fog(0xffffff,100,600);scene.fog.color.set(TW.sky[1]).convertSRGBToLinear();scene.fog.near=ch*2;scene.fog.far=ch*6+260;
+  const wantFar=Math.max(3000,ch*14);if(Math.abs(wantFar-camFar)>camFar*0.1){camFar=wantFar;camera.far=wantFar;camera.near=Math.max(0.1,ch*0.01);camera.updateProjectionMatrix();}
   const want=mode==="title"?140:Math.max(30,ch*1.3);if(Math.abs(want-shadowS)>shadowS*0.2){shadowS=want;const sc=V.lights.sun.shadow.camera;sc.left=sc.bottom=-want;sc.right=sc.top=want;sc.far=want*5+200;sc.updateProjectionMatrix();}
   V.lights.sun.position.set(camLook.x+shadowS*0.5,shadowS*2+40,camLook.z+shadowS*0.35);V.lights.sun.target.position.copy(camLook);
   hudT-=dt;if(hudT<=0&&mode==="play"){hudT=0.2;hud();}
+  miniT-=dt;if(miniT<=0&&mode==="play"){miniT=0.15;drawMini();}
   saveT-=dt;if(saveT<=0){saveT=8;persist();}
-  flushTown();parts.update(dt);V.render();
+  flushTown();parts.update(dt);
+  const u=performance.now()-tA;PERF.upd=u;PERF.n++;PERF.max=Math.max(PERF.max,u);PERF.avg+=(u-PERF.avg)*0.05;
+  V.render();
 });
+// tiny read-only peek used by the automated tests (no visible UI, changes nothing)
+window.__bf={get size(){return me?me.r:0;},get mode(){return mode;},PERF,
+  stats:()=>{let drawn=0,parts=0;for(const M of KM){drawn+=M.n;parts+=M.n*M.parts.length;}let cs=0,ts=0;for(const c of live){cs++;for(const L of c.t)if(L)ts++;}return {liveChunks:cs,chunkTiers:ts,loaded:genCount,drawn,instances:parts,drawCalls:KM.reduce((a,M)=>a+M.parts.length,0),bots:bots.filter(b=>b.alive).length,hunting:bots.filter(b=>b.hunt).length,megas:bots.filter(b=>b.mega&&b.alive).length};}};
 
 /* ---------- menus ---------- */
 function titleStats(){
-  $("tSum").innerHTML="<span>World <b>"+(S.world+1)+" "+WORLDS[S.world].n+"</b></span><span>Coins <b>"+fmt(S.coins)+"</b></span><span>Multi <b>x"+fmt(P.multi())+"</b></span><span>Round <b>"+Math.floor(roundLen()/60)+":"+String(roundLen()%60).padStart(2,"0")+"</b></span>";
-  $("tStats").innerHTML="<div>Biggest ever <b>"+(S.bestCm?sizeTxt(S.bestCm/20,0):"-")+"</b></div><div>Best here <b>"+(S.bestR[S.world]?sizeTxt(S.bestR[S.world]):"-")+"</b></div><div>Things soaked <b>"+fmt(S.eaten)+"</b></div><div>Rebirths <b>"+fmt(S.reb)+"</b></div>";
+  $("tSum").innerHTML="<span>World <b>"+(S.world+1)+" "+WORLDS[S.world].n+"</b></span><span>Coins <b>"+fmt(S.coins)+"</b></span><span>Multi <b>x"+fmt(P.multi())+"</b></span><span>Round <b>"+clock(roundLen())+"</b></span>";
+  $("tStats").innerHTML="<div>Biggest ever <b>"+(S.bestCm?sizeTxt(S.bestCm/20,0):"-")+"</b></div><div>Best here <b>"+(S.bestR[S.world]?sizeTxt(S.bestR[S.world]):"-")+"</b></div><div>Things soaked <b>"+fmt(S.eaten)+"</b></div><div>Town Crushers <b>"+fmt(S.towns)+"</b></div><div>Rebirths <b>"+fmt(S.reb)+"</b></div>";
   $("bPlay").textContent=S.games>0?"Continue":"Play";$("bReb").classList.toggle("glow",P.rebCan()>0);
   $("bDaily").hidden=!P.dailyReady();$("bDaily").classList.add("glow");hud();
 }
 function toTitle(){
-  mode="title";if(builtWorld!==S.world||me||objs.some(o=>!o.alive)){setupTown();}
-  if(!bots.length){for(let i=0;i<5;i++){const q=freeSpot(3);bots.push(newBlob(false,A3.rand(1.5,4),q.x,q.z,BOTN[i],BOTCOL[i]));}}
-  ["timer","sizebar","feed"].forEach(id=>$(id).hidden=true);$("bQuit").hidden=true;
+  const wasPlaying=!!me||mode==="over";
+  mode="title";if(builtWorld!==S.world||wasPlaying||!bots.length){setupTown();}
+  if(!bots.length){for(let i=0;i<8;i++){const b=newBlob(false,A3.rand(1.5,4),A3.rand(-60,60),A3.rand(-60,60),BOTN[i],BOTCOL[i]);bots.push(b);}}
+  ["timer","sizebar","feed","mini"].forEach(id=>$(id).hidden=true);$("bQuit").hidden=true;
   P.closeAll();A3.hide("ovOver");titleStats();A3.show("ovTitle");
 }
 [["bUp","ovUp"],["bWorlds","ovWorlds"],["bSkins","ovSkins"],["bPets","ovPets"],["bReb","ovReb"]].forEach(([b,ov])=>{$(b).onclick=()=>{A3.sfx("click");A3.hide("ovTitle");P.open(ov);};});

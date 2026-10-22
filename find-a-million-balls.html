@@ -38,7 +38,7 @@
 .tabs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
 .tabs button{font-family:var(--body);font-weight:900;font-size:13px;background:var(--panel2);color:var(--ink);border:2px solid var(--line);border-radius:12px;padding:5px 9px;cursor:pointer}
 .tabs button.on{background:var(--gold);color:#3b2200;border-color:#ffe27a}
-.bgrid{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;width:min(440px,100%)}
+.bgrid{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;width:min(400px,100%)}
 .bc{aspect-ratio:1;border-radius:50%;border:3px solid var(--line);background:#0b1430 center/cover no-repeat;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:10px;color:#56669a;cursor:pointer;padding:0}
 .bc.f{color:transparent}
 .binfo{min-height:44px;font-weight:900;max-width:560px}
@@ -71,7 +71,7 @@
       <div class="chip"><span>Gems</span><b id="hGems">0</b></div>
       <div class="chip"><span>Luck</span><b id="hLuck">x1</b></div>
       <div class="chip"><span>Rebirths</span><b id="hReb">0</b></div>
-      <div class="chip"><span>Index</span><b id="hIdx">0/500</b></div>
+      <div class="chip"><span>Index</span><b id="hIdx">0/6,500</b></div>
     </div>
   </div>
 
@@ -91,7 +91,7 @@
 
     <div class="ov" id="ovTitle">
       <h2>FIND A MILLION BALLS</h2>
-      <p id="tIntro">Balls rain down onto a floating island. Grab your pusher and shove them off the edge into the Void! Every ball you push in gives you cash. Buy bigger pushers and upgrades, roll abilities with gems, find all 500 kinds of ball for your Index, rebirth for x3 luck, and push ONE MILLION balls.</p>
+      <p id="tIntro">Balls rain down onto a floating island. Grab your pusher and shove them off the edge into the Void! Every ball you push in gives you cash. Buy bigger pushers and upgrades, roll abilities with gems, find all 500 kinds of ball in Normal and in every one of the 12 mutations for your Index (6,500 in all), rebirth for x3 luck, and push ONE MILLION balls.</p>
       <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bIdx">Index</button><button class="btn green" id="bShop">Shop</button></div>
       <div class="stats" id="tStats"></div>
     </div>
@@ -150,8 +150,12 @@ S.gup=Object.assign({luck:0,cash:0},S.gup||{});
 if(!S.abil||typeof S.abil!=="object")S.abil={};if(!S.cnt||typeof S.cnt!=="object")S.cnt={};
 if(typeof S.disc!=="string")S.disc="";
 const F=[];for(let i=0;i<TOTAL;i++)F.push(S.disc.charAt(i)==="1");
-function save(){S.disc=F.map(b=>b?"1":"0").join("");A3.store(SAVE,S);}
-const idxCount=()=>{let n=0;for(const b of F)if(b)n++;return n;};
+if(!Array.isArray(S.mdisc))S.mdisc=[];
+const FM=[F];for(let m=0;m<12;m++){const q=typeof S.mdisc[m]==="string"?S.mdisc[m]:"";FM.push(Array.from({length:TOTAL},(_,i)=>q.charAt(i)==="1"));}  // Index per mutation: 0 = Normal, 1-12 = the mutations
+function save(){S.disc=F.map(b=>b?"1":"0").join("");S.mdisc=FM.slice(1).map(a=>a.map(b=>b?"1":"0").join(""));A3.store(SAVE,S);}
+const idxCount=(t)=>{let n=0;for(const b of FM[t||0])if(b)n++;return n;};
+const allCount=()=>{let n=0;for(const a of FM)for(const b of a)if(b)n++;return n;};
+const IDX_ALL=TOTAL*13;
 
 /* ---------- ball kinds ---------- */
 const RAR=[
@@ -159,7 +163,8 @@ const RAR=[
  {n:"Epic",c:"#b47cff",x:10,upTo:1e5,gems:5},{n:"Legendary",c:"#ffc93c",x:50,upTo:1e7,gems:15},
  {n:"Godly",c:"#ff6a3d",x:250,upTo:1e9,gems:30},{n:"Secret",c:"#ff5d9e",x:1000,upTo:Infinity,gems:50}];
 const tierOf=n=>{for(let i=0;i<RAR.length;i++)if(n<RAR[i].upTo)return i;return RAR.length-1;};
-const LADDER=["Plain","Spotty","Shiny","Electric","Rainbow","Galaxy","Golden","Diamond","Cosmic","Void"];
+const LADDER=["Plain","Spotty","Shiny","Electric","Rainbow","Galaxy","Golden","Diamond","Cosmic","Void"];   // style keys for the ball looks
+const NAMES=["Plain","Spotty","Stripy","Zappy","Swirly","Starry","Royal","Crystal","Cosmic","Mystery"];  // shown names (kept apart from the mutation names)
 const BASES=[
  [{n:"Football",st:"pent",c:["#ffffff","#1a1a1a"]},{n:"Tennis Ball",st:"seam",c:["#d7f53a","#ffffff"]},{n:"Basketball",st:"bball",c:["#f07a1a","#2a1206"]},{n:"Golf Ball",st:"dimple",c:["#f4f4f4","#cfcfcf"]},{n:"Bouncy Ball",st:"swirl",c:["#ff3d6e","#ffd23f","#3ad1ff"]},{n:"Marble",st:"swirl",c:["#7fd6ff","#ffffff","#2a6cff"]},{n:"Cricket Ball",st:"seam",c:["#b3121b","#f2e6c8"]},{n:"Bowling Ball",st:"holes",c:["#2a3cff","#10164a"]},{n:"Dandelion Ball",st:"fur",c:["#fff6c2","#ffd23f","#ffffff"]},{n:"Acorn Ball",st:"band",c:["#c98a3c","#6b4220"]}],
  [{n:"Beach Ball",st:"segments",c:["#ff3b3b","#ffffff","#ffd23f","#ffffff","#2a8cff","#ffffff"]},{n:"Volleyball",st:"segments",c:["#ffffff","#ffd23f","#2a6cff"]},{n:"Water Balloon",st:"plain",c:["#3ad1ff","#1a7ad0"]},{n:"Pearl",st:"plain",c:["#fff4f0","#e2d0ec"]},{n:"Coconut",st:"fur",c:["#7a4a22","#4a2a10","#a06a3a"]},{n:"Sea Urchin",st:"speckle",c:["#5a1a7a","#c070ff"]},{n:"Bubble",st:"plain",c:["#bff0ff","#7fd0ff"],op:.55},{n:"Orange",st:"dimple",c:["#ff9a1a","#e07a00"]},{n:"Puffer Ball",st:"face",c:["#ffd85a","#f0a020"]},{n:"Shell Ball",st:"ribs",c:["#ffc4a8","#e08a6a"]}],
@@ -203,8 +208,8 @@ const PFX={
 
 Object.assign(PFX,{Spotty:{},Plain:{}});
 const balls=[];
-for(let id=0;id<TOTAL;id++){const row=Math.floor(id/50),base=id%50,z=Math.floor(base/10),b=base%10,odds=Math.max(2,Math.round(2*Math.pow(1.045,id))),pre=LADDER[row];
- const rar=tierOf(odds);balls[id]={id,z,b,pre,pi:b+row*3,rar,name:pre+" "+BASES[z][b].n,odds,val:RAR[rar].x*(1+Math.floor(id/10))};}
+for(let id=0;id<TOTAL;id++){const row=Math.floor(id/50),base=id%50,z=Math.floor(base/10),b=base%10,odds=Math.max(2,Math.round(2*Math.pow(1.045,id))),pre=LADDER[row],nm=NAMES[row];
+ const rar=tierOf(odds);balls[id]={id,z,b,pre,pi:b+row*3,rar,name:nm+" "+BASES[z][b].n,odds,val:RAR[rar].x*(1+Math.floor(id/10))};}
 const MUTS=[ // 12 mutations: rarer = bigger cash multi
  {n:"Shiny",odds:4,x:1.5,c:"#fff6a0"},{n:"Glowing",odds:10,x:2,c:"#a0ffb0"},{n:"Frozen",odds:25,x:3,c:"#9ad8ff"},
  {n:"Fiery",odds:60,x:5,c:"#ff7a2a"},{n:"Electric",odds:150,x:8,c:"#ffe23f"},{n:"Toxic",odds:400,x:12,c:"#7cff4a"},
@@ -404,10 +409,12 @@ let lastLb=0;
 function scored(it){S.pushed++;
  if(it.gem){const g=Math.round(10*U("gem")*(active.prospector?3:1));S.gems+=g;A3.sfx("coin");A3.toast("💎 +"+g+" gems!",1200);return;}
  const b=balls[it.id],mx=it.mut>=0?MUTS[it.mut].x:1,cash=b.val*mx*cashTotal();S.cash+=cash;S.cnt[it.id]=(S.cnt[it.id]||0)+1;
- if(!F[it.id]){F[it.id]=true;const g=RAR[b.rar].gems||0;if(g)S.gems+=g;
-  A3.sfx("win");A3.toast("🆕 NEW! "+b.name+" · "+RAR[b.rar].n.toUpperCase()+(g?" · +"+g+" 💎":""),2600);
-  const n=idxCount();if(n%25===0)A3.win(2,"Find a Million Balls: "+n+" in the Index");
-  if(n===TOTAL&&!S.doneIdx){S.doneIdx=1;setTimeout(()=>showWin("INDEX COMPLETE!","All 500 kinds of ball are in your Index!"),1200);}}
+ const tab=it.mut+1,tn=tab?MUTS[it.mut].n:"Normal";
+ if(!FM[tab][it.id]){FM[tab][it.id]=true;const g=RAR[b.rar].gems||0;if(g)S.gems+=g;
+  A3.sfx("win");A3.toast("🆕 NEW for the "+tn+" Index! "+(tab?tn+" ":"")+b.name+" · "+RAR[b.rar].n.toUpperCase()+(g?" · +"+g+" 💎":""),2600);
+  const n=idxCount(tab);if(n%25===0)A3.win(2,"Find a Million Balls: "+n+" in the "+tn+" Index");
+  if(n===TOTAL){A3.win(5,"Find a Million Balls: "+tn+" Index complete");setTimeout(()=>A3.toast("🏆 "+tn+" Index complete: all 500!",3500),1500);}
+  if(allCount()===IDX_ALL&&!S.doneIdx){S.doneIdx=1;setTimeout(()=>showWin("EVERY INDEX COMPLETE!","All 500 balls in Normal and in all 12 mutations: 6,500 in all!"),1200);}}
  else if(b.rar>=3||it.mut>=5){A3.sfx("pop");A3.toast((it.mut>=0?MUTS[it.mut].n+" ":"")+b.name+" · +"+A3.fmt(cash)+" cash",1600);}
  if(S.pushed%1000===0)A3.win(1,"Find a Million Balls: "+A3.fmt(S.pushed)+" pushed");
  if(S.pushed>=GOAL&&!S.done){S.done=Date.now();setTimeout(()=>showWin("ONE MILLION!","You pushed one million balls into the Void in "+fmtTime(S.t)+"!"),800);}
@@ -499,23 +506,29 @@ function stepPlayer(dt){
 
 /* ---------- menus ---------- */
 function fmtTime(s){s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s/60)%60;return h?h+"h "+m+"m":m+"m "+(s%60)+"s";}
-function hud(){$("hCash").textContent=A3.fmt(S.cash);$("hGems").textContent=A3.fmt(S.gems);$("hLuck").textContent="x"+fmtX(luckTotal());$("hReb").textContent=A3.fmt(S.reb);$("hIdx").textContent=idxCount()+"/500";
+function hud(){$("hCash").textContent=A3.fmt(S.cash);$("hGems").textContent=A3.fmt(S.gems);$("hLuck").textContent="x"+fmtX(luckTotal());$("hReb").textContent=A3.fmt(S.reb);$("hIdx").textContent=A3.fmt(allCount())+"/6,500";
  $("cNum").textContent=S.pushed.toLocaleString();$("cBar").style.width=Math.min(100,S.pushed/GOAL*100)+"%";}
-function titleInfo(){$("tStats").innerHTML=`<div>Pushed <b>${S.pushed.toLocaleString()}</b> / 1,000,000</div><div>Index <b>${idxCount()}</b>/500</div><div>Cash <b>${A3.fmt(S.cash)}</b></div><div>Gems <b>${A3.fmt(S.gems)}</b></div><div>Rebirths <b>${A3.fmt(S.reb)}</b></div><div>Pusher <b>${PUSHERS[S.pusher].n}</b></div>`;
+function titleInfo(){$("tStats").innerHTML=`<div>Pushed <b>${S.pushed.toLocaleString()}</b> / 1,000,000</div><div>Index <b>${allCount().toLocaleString()}</b>/6,500</div><div>Cash <b>${A3.fmt(S.cash)}</b></div><div>Gems <b>${A3.fmt(S.gems)}</b></div><div>Rebirths <b>${A3.fmt(S.reb)}</b></div><div>Pusher <b>${PUSHERS[S.pusher].n}</b></div>`;
  $("bPlay").textContent=S.pushed?"Keep pushing":"Play";}
 let back="play";
 function openOv(id){back=mode==="title"?"title":"play";mode="menu";$("ovTitle").hidden=true;["ovIdx","ovShop","ovGems"].forEach(o=>$(o).hidden=o!==id);}
 function closeOv(id){$(id).hidden=true;if(back==="title"){mode="title";titleInfo();$("ovTitle").hidden=false;}else mode="play";hud();}
 // index
-let idxTab=0;
-function openIdx(t){if(mode!=="menu")openOv("ovIdx");if(t!=null)idxTab=t;
- $("iTabs").innerHTML=LADDER.map((n,i)=>{let c=0;for(let k=i*50;k<i*50+50;k++)if(F[k])c++;return`<button data-t="${i}" class="${i===idxTab?"on":""}">${n} ${c}/50</button>`;}).join("");
- $("iTabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{A3.sfx("click");openIdx(+b.dataset.t);});
- let h="";for(let k=idxTab*50;k<idxTab*50+50;k++){const b=balls[k];h+=F[k]?`<button class="bc f" data-i="${k}" style="border-color:${RAR[b.rar].c};background-image:url(${thumb(k)})">${k+1}</button>`:`<button class="bc" data-i="${k}" style="border-color:${RAR[b.rar].c}66">${k+1}</button>`;}
+let idxTab=0,idxPage=0;
+const tabCol=t=>t?MUTS[t-1].c:"#cfd8e6";
+function openIdx(t,pg){if(mode!=="menu")openOv("ovIdx");if(t!=null){if(t!==idxTab)idxPage=0;idxTab=t;}if(pg!=null)idxPage=pg;
+ const A=FM[idxTab],tn=idxTab?MUTS[idxTab-1].n:"Normal",col=tabCol(idxTab);
+ $("iTabs").innerHTML=["Normal"].concat(MUTS.map(m=>m.n)).map((n,i)=>`<button data-t="${i}" class="${i===idxTab?"on":""}" style="${i===idxTab?"":"border-color:"+tabCol(i)}">${n} ${idxCount(i)}/500</button>`).join("")
+  +`<div style="flex-basis:100%"></div>`+[0,1,2,3,4].map(p=>{let c=0;for(let k=p*100;k<p*100+100;k++)if(A[k])c++;return`<button data-p="${p}" class="${p===idxPage?"on":""}">${p*100+1}-${p*100+100} (${c})</button>`;}).join("");
+ $("iTabs").querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{A3.sfx("click");openIdx(+b.dataset.t);});
+ $("iTabs").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{A3.sfx("click");openIdx(null,+b.dataset.p);});
+ let h="";for(let k=idxPage*100;k<idxPage*100+100;k++){const b=balls[k];
+  h+=A[k]?`<button class="bc f" data-i="${k}" style="border-color:${idxTab?col:RAR[b.rar].c};${idxTab?"box-shadow:0 0 8px "+col+";":""}background-image:url(${thumb(k)})">${k+1}</button>`:`<button class="bc" data-i="${k}" style="border-color:${RAR[b.rar].c}66">${k+1}</button>`;}
  $("iGrid").innerHTML=h;
- $("iGrid").querySelectorAll(".bc").forEach(c=>c.onclick=()=>{const id=+c.dataset.i,b=balls[id],tag=`<span class="rare" style="background:${RAR[b.rar].c}">${RAR[b.rar].n}</span>`,od="1 in "+A3.fmt(b.odds);
-  $("iInfo").innerHTML=F[id]?`<b>#${id+1} ${b.name}</b>${tag}<br>${od} · pays ${A3.fmt(b.val*cashTotal())} cash · pushed ${A3.fmt(S.cnt[id]||0)} times`:`<b>#${id+1} ???</b>${tag}<br>${od}${RAR[b.rar].gems?" · first one gives "+RAR[b.rar].gems+" 💎":""}. ${b.odds>luckTotal()*30?"You need more luck!":"Keep pushing!"}`;});
- $("iInfo").innerHTML=`<b>${idxCount()} of 500</b> kinds found. Tap a ball to see its odds. Epic and rarer balls give gems the first time you push one in.`;}
+ $("iGrid").querySelectorAll(".bc").forEach(c=>c.onclick=()=>{const id=+c.dataset.i,b=balls[id],tag=`<span class="rare" style="background:${RAR[b.rar].c}">${RAR[b.rar].n}</span>`,od="1 in "+A3.fmt(b.odds)+(idxTab?" and "+tn+" 1 in "+A3.fmt(MUTS[idxTab-1].odds):"");
+  const mx=idxTab?MUTS[idxTab-1].x:1;
+  $("iInfo").innerHTML=A[id]?`<b>#${id+1} ${idxTab?tn+" ":""}${b.name}</b>${tag}<br>${od} · pays ${A3.fmt(b.val*mx*cashTotal())} cash`:`<b>#${id+1} ???</b>${tag}<br>${od}${RAR[b.rar].gems?" · first one gives "+RAR[b.rar].gems+" 💎":""}.`;});
+ $("iInfo").innerHTML=`<b>${tn} Index: ${idxCount(idxTab)} of 500.</b> Every mutation has its own Index of all 500 balls (6,500 in all, you have ${allCount().toLocaleString()}). Push a ball in to add it.`;}
 // shop
 let shTab="up";
 function openShop(t){if(mode!=="menu")openOv("ovShop");if(t)shTab=t;

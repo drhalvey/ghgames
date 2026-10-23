@@ -62,6 +62,7 @@
     "rifts-ultimate-clash": { title: "Rift's Ultimate Clash", keys: ["riftclash-save"] },
     "roll-rampage": { title: "Roll Rampage", keys: ["rollrampage-save"] },
     "find-a-million-balls": { title: "Find a Million Balls", keys: ["famb-save"] },
+    "t-rex-titans": { title: "T-Rex Titans", keys: ["trextitans-save"] },
   };
 
   var TOKEN = "ghacct_token", USER = "ghacct_user", NICK = "ghgames_nick";

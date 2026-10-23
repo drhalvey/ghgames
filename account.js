@@ -66,6 +66,7 @@
     "plus-one-height": { title: "+1 Height Per Click", keys: ["height-save"] },
     "mega-dropper-tycoon": { title: "Mega Dropper Tycoon", keys: ["droppertycoon-save"] },
     "duel-masters": { title: "Duel Masters", keys: ["duelmasters-save"] },
+    "parry-panic": { title: "Parry Panic", keys: ["parrypanic-save"] },
   };
 
   var TOKEN = "ghacct_token", USER = "ghacct_user", NICK = "ghgames_nick";

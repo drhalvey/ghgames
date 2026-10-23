@@ -288,7 +288,7 @@ class Plot{
     for(let i=0;i<CAP;i++)this.inst.setColorAt(i,_c.set("#ffffff"));
     this.g.add(this.inst);
     this.on=new Uint8Array(CAP);this.x=new Float32Array(CAP);this.y=new Float32Array(CAP);this.vy=new Float32Array(CAP);this.z=new Float32Array(CAP);
-    this.nu=new Uint8Array(CAP);this.ln=new Uint8Array(CAP);this.val=new Float64Array(CAP);this.rot=new Float32Array(CAP);this.n=0;
+    this.nu=new Uint8Array(CAP);this.ln=new Uint8Array(CAP);this.land=new Uint8Array(CAP);this.val=new Float64Array(CAP);this.rot=new Float32Array(CAP);this.n=0;
     this.timers=new Float32Array(9);this.pads=[];this.spin=[];this.own=new Set();this.world=-1;
   }
   build(w,own){
@@ -354,7 +354,7 @@ class Plot{
   setPads(cash){for(const p of this.pads)p.m.material=cash>=itemCost(this.world,p.k)?padOk:padNo;}
   clearOre(){this.on.fill(0);this.n=0;this.timers.fill(0);}
   spawn(l,d,val){for(let i=0;i<CAP;i++)if(!this.on[i]){this.on[i]=1;this.x[i]=DROPX[d]+(Math.random()-.5)*.3;this.y[i]=3;this.vy[i]=0;this.z[i]=LINEZ[l]+(Math.random()-.5)*.6;
-      this.nu[i]=0;this.ln[i]=l;this.val[i]=val;this.rot[i]=Math.random()*6;this.inst.setColorAt(i,_c.set(ORE[l*3+d].c));this.inst.instanceColor.needsUpdate=true;this.n++;return;}}
+      this.nu[i]=0;this.ln[i]=l;this.land[i]=0;this.val[i]=val;this.rot[i]=Math.random()*6;this.inst.setColorAt(i,_c.set(ORE[l*3+d].c));this.inst.instanceColor.needsUpdate=true;this.n++;return;}}
   step(dt,rate,spd,onCash){
     for(const k of this.own){const x=ITEMS[k];if(x.kind!=="drop")continue;if(!this.own.has(BELTK[x.l]))continue;
       const ti=x.l*3+x.i;this.timers[ti]+=dt*rate;
@@ -362,7 +362,7 @@ class Plot{
     let dirty=false;
     for(let i=0;i<CAP;i++){
       if(!this.on[i]){_s.set(0,0,0);_m.makeScale(0,0,0);this.inst.setMatrixAt(i,_m);continue;}
-      if(this.y[i]>BELTY+.31){this.vy[i]-=30*dt;this.y[i]=Math.max(BELTY+.31,this.y[i]+this.vy[i]*dt);}
+      if(!this.land[i]){this.vy[i]-=30*dt;this.y[i]+=this.vy[i]*dt;if(this.y[i]<=BELTY+.31){this.y[i]=BELTY+.31;this.land[i]=1;}}
       else this.x[i]+=spd*dt;
       const l=this.ln[i];
       while(this.nu[i]<3&&this.x[i]>=UPX[this.nu[i]]){
@@ -370,7 +370,7 @@ class Plot{
           this.inst.getColorAt(i,_c);_c.lerp(new THREE.Color(1,1,1),.35);this.inst.setColorAt(i,_c);dirty=true;}
         this.nu[i]++;}
       if(this.x[i]>=FX-.3){this.on[i]=0;this.n--;if(onCash)onCash(this.val[i],l);continue;}
-      this.rot[i]+=dt*(this.y[i]>BELTY+.32?6:0);
+      this.rot[i]+=dt*(this.land[i]?0:6);
       _e.set(this.rot[i]*.7,this.rot[i],0);_q.setFromEuler(_e);_p.set(this.x[i],this.y[i],this.z[i]);_s.set(1,1,1);_m.compose(_p,_q,_s);this.inst.setMatrixAt(i,_m);}
     if(dirty)this.inst.instanceColor.needsUpdate=true;
     this.inst.instanceMatrix.needsUpdate=true;

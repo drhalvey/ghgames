@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Smoke-test a GH Games page in headless Chromium (WebGL via SwiftShader).
 
-    python3 tools/test3d.py cube-merge.html [--click "#bPlay"] [--keys "ArrowLeft,ArrowUp"] [--wait 3] [--shot out.png]
+    python3 tools/test3d.py cube-merge.html [--click "#bPlay"] [--keys "ArrowLeft,ArrowUp"] [--wait 3] [--shot out.png] [--gear]
+
+--gear fakes a logged-in player wearing crown, shades, wings, aura, trail and a gold body,
+and --eval "Gear._dressed()" shows what gear.js put on.
 
 Serves the repo on a local port, opens the page, blocks outside requests
 (Supabase, fonts, analytics), optionally clicks a selector and presses keys,
@@ -31,6 +34,7 @@ def main():
     ap.add_argument("--shot", default="")
     ap.add_argument("--eval", default="", help="JS to evaluate at the end; result printed")
     ap.add_argument("--size", default="1100x900")
+    ap.add_argument("--gear", action="store_true", help="pretend to be logged in wearing a full set of gear (gear.js)")
     a = ap.parse_args()
     port = serve()
     W, H = map(int, a.size.split("x"))
@@ -44,6 +48,9 @@ def main():
             if m.type == "error" and "net::ERR_FAILED" not in m.text and "Failed to load resource" not in m.text and "leaderboard api" not in m.text and "Failed to fetch" not in m.text:
                 errors.append("CONSOLE " + m.text)
         pg.on("console", con)
+        if a.gear:
+            pg.add_init_script("""localStorage.setItem('ghacct_token','test-token'); localStorage.setItem('ghacct_user','tester');
+              localStorage.setItem('ghgear', JSON.stringify({balance:500,level:5,owned:[],on:{hat:'crown-gold',face:'shades',back:'angel-wings',aura:'aura-galaxy',trail:'trail-rainbow',body:'body-gold'}}));""")
         pg.goto(f"http://127.0.0.1:{port}/{a.page}")
         pg.wait_for_timeout(1500)
         for sel in a.click:

@@ -140,6 +140,8 @@
     }
     return rpc("gh_pc_earn", { p_token: token(), p_game: GAME, p_reason: reason, p_amount: amount }).then(function (r) {
       setBal(r && r.balance);
+      // the same call earns Experience (XP) on the server; gear.js shows it
+      if (r && r.xp) { try { window.dispatchEvent(new CustomEvent("gh-xp", { detail: r.xp })); } catch (e) {} }
       if (r && r.amount > 0) { if (quiet) bump(r.amount); else toast("+" + r.amount + " PhatCoin" + (why ? " for " + why : "")); }
       else if (r && r.error === "daily_max" && !quiet) toast("PhatCoin daily max reached", "Come back tomorrow for more");
       return (r && r.amount) || 0;

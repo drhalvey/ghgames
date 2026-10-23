@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Changing Room · GH Games</title>
+<meta name="description" content="Spend Experience (XP) on hats, wings, auras, trails and bodies that you wear in every GH Games game.">
+<meta name="theme-color" content="#0e1017">
+<meta property="og:title" content="GH Games Changing Room">
+<meta property="og:description" content="Earn XP, open crates and dress up for every game.">
+<meta property="og:image" content="https://ghgames.au/og/home.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Games">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<script src="analytics.js" defer></script>
+<script src="theme.js"></script>
+<script src="account.js"></script>
+<script src="phatcoin.js" data-game="arcade" data-pill="none"></script>
+<script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
+<style>
+  :root{--xp:#9a5aff;--xp2:#2fd3c4}
+  .wr-title{font-family:'Lilita One',sans-serif;font-size:clamp(30px,5vw,46px);line-height:1.05;letter-spacing:.5px}
+  .wr-title small{display:block;font-family:Rubik,sans-serif;font-size:15px;color:var(--muted);letter-spacing:0;margin-top:6px}
+  .wr-top{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:20px;margin-top:18px;align-items:start}
+  @media (max-width:820px){.wr-top{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+  .stage{position:relative;height:440px;padding:0;overflow:hidden;background:radial-gradient(90% 80% at 50% 30%,#2a2f6a 0%,var(--surface) 70%)}
+  @media (max-width:820px){.stage{height:360px}}
+  .stage .view{position:absolute;inset:0}
+  .stage .hint{position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--muted);pointer-events:none}
+  .stage .tryon{position:absolute;left:12px;top:12px;right:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .stage .tryon[hidden]{display:none}
+  .tag{display:inline-block;font-weight:700;font-size:12px;padding:3px 9px;border-radius:999px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.15)}
+  .focus{position:absolute;right:10px;bottom:10px;display:flex;gap:6px}
+  .focus button,.chip{font:600 13px Rubik,sans-serif;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer}
+  .focus button.on,.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .wearing{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:10px}
+  .wslot{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 4px;text-align:center;font-size:11px;color:var(--muted);cursor:pointer;min-height:76px}
+  .wslot img{width:44px;height:44px;display:block;margin:0 auto 2px}
+  .wslot .ic{font-size:24px;line-height:44px;display:block;opacity:.5}
+  .wslot b{display:block;color:var(--text);font-size:11px;line-height:1.15;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .xp-row{display:flex;align-items:center;gap:14px}
+  .gem{width:54px;height:54px;flex:none}
+  .xp-big{font-family:'Lilita One',sans-serif;font-size:36px;line-height:1}
+  .xp-big span{font-size:18px;color:var(--muted);margin-left:4px}
+  .xlvl{margin-top:14px}
+  .lvl-top{display:flex;justify-content:space-between;font-size:14px;color:var(--muted)}
+  .lvl-top b{color:var(--text);font-family:'Lilita One',sans-serif;font-size:20px;font-weight:400}
+  .bar{height:12px;background:var(--surface-2);border-radius:999px;overflow:hidden;margin-top:6px;border:1px solid var(--line)}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--xp),var(--xp2));border-radius:999px;transition:width .4s}
+  .mini{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .mini div{flex:1;min-width:120px;background:var(--surface-2);border-radius:12px;padding:8px 10px;font-size:13px;color:var(--muted)}
+  .mini b{display:block;color:var(--text);font-size:18px}
+  .quests h2,.sec h2{font-family:'Lilita One',sans-serif;font-weight:400;font-size:24px;margin-bottom:8px}
+  .q{display:flex;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+  .q:first-of-type{border-top:0}
+  .q .qt{flex:1;min-width:0}
+  .q .qt div{font-weight:600;font-size:15px}
+  .q .qt small{color:var(--muted)}
+  .q .bar{height:8px}
+  .q .btn{padding:7px 12px;font-size:14px}
+  .q.done{opacity:.55}
+  .tabsbar{display:flex;gap:8px;margin:26px 0 12px;flex-wrap:wrap}
+  .tabsbar button{font:700 16px Rubik,sans-serif;color:var(--muted);background:transparent;border:2px solid var(--line);border-radius:999px;padding:9px 18px;cursor:pointer}
+  .tabsbar button.on{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .it{position:relative;background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:10px;text-align:center;cursor:pointer;transition:transform .12s}
+  .it:hover{transform:translateY(-2px)}
+  .it.sel{outline:3px solid var(--accent);outline-offset:1px}
+  .it .pic{width:100%;aspect-ratio:1;border-radius:12px;background:radial-gradient(80% 80% at 50% 35%,color-mix(in srgb,var(--rc) 35%,transparent),transparent 75%),var(--surface-2);display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .it .pic img{width:100%;height:100%;object-fit:contain}
+  .it .nm{font-weight:700;margin-top:8px;font-size:15px;line-height:1.2}
+  .it .rr{font-size:12px;font-weight:700;color:var(--rc)}
+  .it .act{margin-top:8px}
+  .it .act .btn{width:100%;padding:7px 8px;font-size:14px}
+  .it .act .btn.ghost{color:var(--muted)}
+  .it .badge{position:absolute;top:8px;right:8px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--green);color:#06140a}
+  .it[data-r="secret"] .rr,.rainbow-t{background:linear-gradient(90deg,#ff5a5a,#ffd23f,#3ddc84,#3d8bff,#b04aff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .it[data-r="secret"]{border-image:linear-gradient(90deg,#ff5a5a,#ffd23f,#3ddc84,#3d8bff,#b04aff) 1}
+  .crates{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+  .crate{background:var(--surface);border:2px solid var(--cc);border-radius:18px;padding:16px;text-align:center}
+  .crate svg{width:120px;height:120px}
+  .crate h3{font-family:'Lilita One',sans-serif;font-weight:400;font-size:24px}
+  .odds{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin:8px 0 12px}
+  .odds span{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--rc)}
+  .crate .btn{width:100%;margin-top:6px}
+  .how{margin-top:26px;color:var(--muted);font-size:15px}
+  .how li{margin:4px 0 4px 18px}
+  .ov{position:fixed;inset:0;z-index:50;background:rgba(5,6,16,.82);display:flex;align-items:center;justify-content:center;padding:20px}
+  .ov[hidden]{display:none}
+  .reveal{background:var(--surface);border:3px solid var(--rc);border-radius:22px;padding:22px;max-width:340px;width:100%;text-align:center;box-shadow:0 0 60px color-mix(in srgb,var(--rc) 55%,transparent)}
+  .reveal .pic{width:220px;height:220px;margin:0 auto;border-radius:16px;background:radial-gradient(70% 70% at 50% 40%,color-mix(in srgb,var(--rc) 45%,transparent),transparent 75%)}
+  .reveal .pic img{width:100%;height:100%}
+  .reveal h3{font-family:'Lilita One',sans-serif;font-weight:400;font-size:30px;margin-top:6px}
+  .reveal .rr{font-weight:700;color:var(--rc);font-size:16px}
+  .reveal p{color:var(--muted);margin:6px 0 14px}
+  .reveal .btn{margin:4px}
+  .shake{animation:shake .12s linear infinite}
+  @keyframes shake{0%{transform:rotate(-6deg) scale(1)}50%{transform:rotate(6deg) scale(1.06)}100%{transform:rotate(-6deg) scale(1)}}
+  .pop{animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes pop{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
+  .err{color:var(--red);font-weight:600;min-height:20px;margin-top:4px;font-size:14px}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="brand" href="index.html" aria-label="GH Games home">
+      <img src="favicon.svg" alt="" width="34" height="34">
+      <span>GH GAMES</span>
+    </a>
+    <nav>
+      <a href="index.html#games">Games</a>
+      <a href="wardrobe.html" class="on">Changing Room</a>
+      <a href="leaderboards.html">Leaderboards</a>
+      <span id="gh-account" class="acct-slot"></span>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <h1 class="wr-title">Changing Room<small>Earn Experience (XP) in every game, then spend it on gear you wear everywhere.</small></h1>
+
+  <div class="wr-top">
+    <div>
+      <div class="card stage">
+        <div class="view" id="view"></div>
+        <div class="tryon" id="tryon" hidden><span class="tag" id="tryName"></span><button class="chip" type="button" id="tryBack">Back to my look</button></div>
+        <div class="hint">Drag to spin</div>
+        <div class="focus" id="focus">
+          <button type="button" data-f="head">Head</button>
+          <button type="button" data-f="body" class="on">Body</button>
+          <button type="button" data-f="back">Back</button>
+        </div>
+      </div>
+      <div class="wearing" id="wearing"></div>
+    </div>
+
+    <div style="display:grid;gap:16px">
+      <div class="card" id="xpCard">
+        <div class="xp-row">
+          <svg class="gem" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="gemG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9b8ff"/><stop offset=".5" stop-color="#9a5aff"/><stop offset="1" stop-color="#2fd3c4"/></linearGradient></defs><path d="M32 4 56 22 32 60 8 22Z" fill="url(#gemG)" stroke="#fff" stroke-opacity=".5" stroke-width="2"/><path d="M8 22h48M32 4l-9 18 9 38 9-38z" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="2"/></svg>
+          <div><div class="xp-big" id="xpBal">0<span>XP</span></div><div style="color:var(--muted);font-size:14px">Experience to spend</div></div>
+        </div>
+        <div class="xlvl">
+          <div class="lvl-top"><b id="lvlN">Level 1</b><span id="lvlTxt">0 / 15 XP to Level 2</span></div>
+          <div class="bar"><i id="lvlBar" style="width:0"></i></div>
+        </div>
+        <div class="mini">
+          <div><b id="keysN">0</b>crate keys 🔑</div>
+          <div><b id="todayN">0 / 200</b>XP from playing today</div>
+        </div>
+      </div>
+      <div class="card quests" id="questCard">
+        <h2>Daily quests</h2>
+        <div id="quests"></div>
+        <div class="err" id="qErr"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="guest-box card" id="guest" hidden style="margin-top:20px;text-align:center">
+    <div style="font-size:56px">🎩</div>
+    <h2 style="font-family:'Lilita One';font-weight:400;font-size:28px">Make an account to earn XP</h2>
+    <p style="color:var(--muted)">XP, gear and crates are saved in your account so your look follows you into every game and onto every device.</p>
+    <button class="btn" type="button" id="guestNew">Make my account</button>
+    <button class="btn ghost" type="button" id="guestLogin">I have one</button>
+  </div>
+
+  <div class="tabsbar" role="tablist" id="tabs">
+    <button type="button" data-tab="shop" class="on">🛍️ Gear Shop</button>
+    <button type="button" data-tab="crates">📦 Crates</button>
+    <button type="button" data-tab="mine">🎒 My Gear</button>
+    <button type="button" data-tab="levels">⭐ Level Rewards</button>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="err" id="shopErr"></div>
+  <section class="sec" id="panel"></section>
+
+  <div class="how card">
+    <h2 style="font-family:'Lilita One';font-weight:400;font-size:22px;color:var(--text)">How to get XP</h2>
+    <ul>
+      <li>Play any game: 1 XP a minute while you're playing.</li>
+      <li>Win: 1 XP (one every 15 seconds). Rebirth: 3 XP.</li>
+      <li>Up to 200 XP a day from playing, so it takes a while. That's what makes the Mythic gear special.</li>
+      <li>Daily quests: three a day for 30 to 50 XP each. Finish all three for a free crate key.</li>
+      <li>Every new level gives a crate key 🔑. Some levels give gear you can't buy anywhere.</li>
+      <li>Got a crate item you already have? You get half its value back in XP.</li>
+    </ul>
+  </div>
+</main>
+
+<div class="ov" id="ov" hidden><div class="reveal" id="reveal"></div></div>
+
+<script>
+(function () {
+  "use strict";
+  var G = window.Gear, A = window.GHAccount;
+  var $ = function (id) { return document.getElementById(id); };
+  var tab = "shop", slot = "hat", trying = null, prev = null, busy = false;
+  var TITLES = {}; if (A) Object.keys(A.games).forEach(function (g) { TITLES[g] = A.games[g].title; });
+  function esc(t) { var d = document.createElement("div"); d.textContent = t == null ? "" : String(t); return d.innerHTML; }
+  function n(x) { return Number(x || 0).toLocaleString(); }
+  function logged() { return !!(A && A.token && A.token()); }
+  function rc(it) { return G.RAR[it.rarity].c; }
+
+  // ---------- the 3D preview ----------
+  prev = G.preview($("view"), { spin: 0.45 });
+  if (!prev) $("view").innerHTML = '<p style="padding:30px;color:var(--muted)">Your browser can\'t show 3D here, but the shop still works.</p>';
+  $("focus").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    [].forEach.call($("focus").children, function (x) { x.classList.toggle("on", x === b); });
+    if (prev) prev.setFocus(b.dataset.f);
+  });
+  function focusFor(s) { return s === "hat" || s === "face" ? "head" : s === "back" ? "back" : "body"; }
+  function setFocus(f) { [].forEach.call($("focus").children, function (x) { x.classList.toggle("on", x.dataset.f === f); }); if (prev) prev.setFocus(f); }
+  function tryOn(it) {
+    trying = it.id;
+    var look = Object.assign({}, G.on()); look[it.slot] = it.id;
+    if (prev) prev.setLook(look);
+    setFocus(focusFor(it.slot));
+    $("tryName").innerHTML = "Trying on: " + esc(it.name); $("tryon").hidden = false;
+    paintPanel();
+  }
+  function backToMine() { trying = null; $("tryon").hidden = true; if (prev) prev.wearMine(); paintPanel(); }
+  $("tryBack").onclick = backToMine;
+
+  // ---------- top panels ----------
+  function paintTop() {
+    var S = G.state(), ok = logged();
+    $("guest").hidden = ok;
+    $("xpBal").innerHTML = n(ok ? S.balance : 0) + "<span>XP</span>";
+    var lv = S.level || 1, a = S.level_start || 0, b = S.next_level || 15, life = S.lifetime || 0;
+    $("lvlN").textContent = "Level " + lv;
+    $("lvlTxt").textContent = n(life - a) + " / " + n(b - a) + " XP to Level " + (lv + 1);
+    $("lvlBar").style.width = Math.max(0, Math.min(100, (life - a) / Math.max(1, b - a) * 100)) + "%";
+    $("keysN").textContent = n(S.keys || 0);
+    $("todayN").textContent = n(S.earned_today || 0) + " / " + n(S.cap || 200);
+    // wearing
+    var on = G.on();
+    $("wearing").innerHTML = G.SLOTS.map(function (s) {
+      var it = G.item(on[s.id]);
+      return '<div class="wslot" data-slot="' + s.id + '" title="' + (it ? "Tap to take off" : "Nothing on") + '">' +
+        (it ? '<img alt="" src="' + G.thumb(it.id, 96) + '"><b>' + esc(it.name) + "</b>" : '<span class="ic">' + s.ic + "</span><b>" + s.one + "</b>") + "</div>";
+    }).join("");
+    // quests
+    var qs = S.quests || [];
+    if (!ok) $("quests").innerHTML = '<p style="color:var(--muted)">Log in to get three new quests every day.</p>';
+    else $("quests").innerHTML = qs.map(function (q) {
+      var txt = q.kind === "game" ? "Play " + (TITLES[q.game] || q.game) + " for " + q.goal + " minutes" : q.text;
+      var done = q.progress >= q.goal;
+      return '<div class="q' + (q.claimed ? " done" : "") + '"><div class="qt"><div>' + esc(txt) + '</div><small>' + q.progress + " / " + q.goal + " · " + q.reward + ' XP</small><div class="bar"><i style="width:' + Math.min(100, q.progress / q.goal * 100) + '%"></i></div></div>' +
+        (q.claimed ? '<span class="tag">Done ✓</span>' : done ? '<button class="btn" type="button" data-q="' + q.idx + '">Claim</button>' : q.kind === "game" ? '<a class="btn ghost" href="' + q.game + '.html">Play</a>' : '<span class="tag">Keep going</span>') + "</div>";
+    }).join("") + (qs.length ? '<div class="q"><div class="qt"><div>All three quests</div><small>Free crate key 🔑</small></div>' +
+      (S.bonus_claimed ? '<span class="tag">Done ✓</span>' : '<button class="btn' + (S.bonus_ready ? "" : " ghost") + '" type="button" id="bonusBtn"' + (S.bonus_ready ? "" : " disabled") + ">Claim key</button>") + "</div>" : "");
+  }
+  $("wearing").addEventListener("click", function (e) {
+    var w = e.target.closest(".wslot"); if (!w || !logged()) return;
+    var s = w.dataset.slot; if (!G.on()[s]) { slot = s; tab = "mine"; paintTabs(); paintPanel(); return; }
+    G.equip(s, null);
+  });
+  $("quests").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b || b.disabled) return;
+    if (b.id === "bonusBtn") { b.disabled = true; G.claimBonus().then(function (r) { if (r.error) $("qErr").textContent = "Not yet!"; else G.toast("Crate key!", "Open a Starter Crate for free"); }); return; }
+    if (b.dataset.q == null) return;
+    b.disabled = true;
+    G.claimQuest(+b.dataset.q).then(function (r) { if (r.error) $("qErr").textContent = r.error === "not_done" ? "Keep playing, it's not done yet" : "Already claimed"; else G.toast("+" + r.reward + " XP", "Quest done!"); }, function () { $("qErr").textContent = "Can't reach the internet"; b.disabled = false; });
+  });
+
+  // ---------- tabs ----------
+  function paintTabs() {
+    [].forEach.call($("tabs").children, function (b) { b.classList.toggle("on", b.dataset.tab === tab); });
+    $("chips").hidden = tab === "crates" || tab === "levels";
+    $("chips").innerHTML = G.SLOTS.map(function (s) { return '<button class="chip' + (s.id === slot ? " on" : "") + '" type="button" data-s="' + s.id + '">' + s.ic + " " + s.n + "</button>"; }).join("");
+  }
+  $("tabs").addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; tab = b.dataset.tab; $("shopErr").textContent = ""; paintTabs(); paintPanel(); });
+  $("chips").addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; slot = b.dataset.s; paintTabs(); paintPanel(); setFocus(focusFor(slot)); });
+
+  function sortItems(list) { return list.slice().sort(function (a, b) { return (G.RAR[a.rarity].rank - G.RAR[b.rarity].rank) || (a.level - b.level) || (a.sort - b.sort); }); }
+  function card(it) {
+    var S = G.state(), owned = S.owned.indexOf(it.id) >= 0, wearingIt = G.on()[it.slot] === it.id, act;
+    if (wearingIt) act = '<button class="btn ghost" type="button" data-off="' + it.id + '">Wearing ✓</button>';
+    else if (owned) act = '<button class="btn" type="button" data-wear="' + it.id + '">Wear</button>';
+    else if (it.source === "shop") act = '<button class="btn" type="button" data-buy="' + it.id + '"' + ((S.balance || 0) < it.price ? ' style="opacity:.6"' : "") + ">" + n(it.price) + " XP</button>";
+    else if (it.source === "level") act = '<button class="btn ghost" type="button" disabled>Level ' + it.level + "</button>";
+    else act = '<button class="btn ghost" type="button" disabled>Mythic Crate only</button>';
+    return '<div class="it' + (trying === it.id ? " sel" : "") + '" data-r="' + it.rarity + '" data-id="' + it.id + '" style="--rc:' + rc(it) + '">' +
+      (owned ? '<span class="badge">' + (wearingIt ? "ON" : "OWNED") + "</span>" : "") +
+      '<div class="pic"><img alt="" loading="lazy" data-thumb="' + it.id + '"></div>' +
+      '<div class="nm">' + esc(it.name) + '</div><div class="rr">' + G.RAR[it.rarity].n + '</div><div class="act">' + act + "</div></div>";
+  }
+  function fillThumbs() {
+    var imgs = [].slice.call(document.querySelectorAll("img[data-thumb]"));
+    (function step() {
+      var t0 = performance.now();
+      while (imgs.length && performance.now() - t0 < 25) { var im = imgs.shift(); var u = G.thumb(im.dataset.thumb, 200); if (u) im.src = u; im.removeAttribute("data-thumb"); }
+      if (imgs.length) requestAnimationFrame(step);
+    })();
+  }
+  function crateSvg(c) {
+    return '<svg viewBox="0 0 120 120" aria-hidden="true"><path d="M20 44 60 26 100 44 100 92 60 110 20 92Z" fill="' + c + '"/><path d="M20 44 60 62 100 44 60 26Z" fill="#fff" fill-opacity=".35"/><path d="M60 62V110" stroke="#000" stroke-opacity=".25" stroke-width="4"/><path d="M38 35 78 53V70" stroke="#ffd23f" stroke-width="8" fill="none"/><text x="60" y="94" text-anchor="middle" font-family="Lilita One,Arial Black" font-size="26" fill="#fff">?</text></svg>';
+  }
+  function paintPanel() {
+    var S = G.state(), html = "";
+    if (tab === "shop" || tab === "mine") {
+      var list = G.items.filter(function (it) { return it.slot === slot; });
+      if (tab === "mine") list = list.filter(function (it) { return S.owned.indexOf(it.id) >= 0; });
+      list = sortItems(list);
+      html = list.length ? '<div class="grid2">' + list.map(card).join("") + "</div>" : '<p style="color:var(--muted)">' + (tab === "mine" ? "No " + G.SLOTS.filter(function (s) { return s.id === slot; })[0].n.toLowerCase() + " yet. Buy some in the Gear Shop or open a crate." : "") + "</p>";
+    } else if (tab === "crates") {
+      html = '<div class="crates">' + Object.keys(G.CRATES).map(function (k) {
+        var c = G.CRATES[k];
+        return '<div class="crate" style="--cc:' + c.c + '">' + crateSvg(c.c) + "<h3>" + c.n + '</h3><div class="odds">' + Object.keys(c.odds).map(function (r) { return '<span style="--rc:' + G.RAR[r].c + '"' + (r === "secret" ? ' class="rainbow-t"' : "") + ">" + G.RAR[r].n + " " + c.odds[r] + "%</span>"; }).join("") + "</div>" +
+          '<button class="btn" type="button" data-crate="' + k + '">Open for ' + n(c.price) + " XP</button>" +
+          (k === "starter" ? '<button class="btn ghost" type="button" data-crate="starter" data-key="1"' + ((S.keys || 0) < 1 ? " disabled" : "") + ">Use a key 🔑 (" + n(S.keys || 0) + ")</button>" : "") +
+          (k === "mythic" ? '<p style="color:var(--muted);font-size:13px;margin-top:8px">The only way to get <b class="rainbow-t">Secret</b> gear.</p>' : "") + "</div>";
+      }).join("") + "</div>";
+    } else {
+      var lv = sortItems(G.items.filter(function (it) { return it.source === "level"; })).sort(function (a, b) { return a.level - b.level; });
+      html = '<p style="color:var(--muted);margin-bottom:12px">You\'re level ' + (S.level || 1) + '. These come free when you reach the level.</p><div class="grid2">' + lv.map(card).join("") + "</div>";
+    }
+    $("panel").innerHTML = html;
+    fillThumbs();
+  }
+  $("panel").addEventListener("click", function (e) {
+    var b = e.target.closest("button"), card = e.target.closest(".it");
+    if (b && !b.disabled) {
+      if (!logged()) { if (A) A.open(); return; }
+      if (b.dataset.wear) { var it = G.item(b.dataset.wear); G.equip(it.slot, it.id); trying = null; $("tryon").hidden = true; return; }
+      if (b.dataset.off) { G.equip(G.item(b.dataset.off).slot, null); return; }
+      if (b.dataset.buy) { buy(G.item(b.dataset.buy), b); return; }
+      if (b.dataset.crate) { openCrate(b.dataset.crate, !!b.dataset.key); return; }
+    }
+    if (card) tryOn(G.item(card.dataset.id));
+  });
+  function buy(it, b) {
+    var S = G.state();
+    if ((S.balance || 0) < it.price) { $("shopErr").textContent = "You need " + n(it.price - (S.balance || 0)) + " more XP for " + it.name + ". Keep playing!"; tryOn(it); return; }
+    if (busy) return; busy = true; b.disabled = true;
+    G.buy(it.id).then(function (r) {
+      busy = false;
+      if (r.error) { $("shopErr").textContent = r.error === "not_enough" ? "Not enough XP" : "Can't buy that"; b.disabled = false; return; }
+      $("shopErr").textContent = "";
+      G.equip(it.slot, it.id); trying = null; $("tryon").hidden = true;
+      G.toast("You got " + it.name + "!", "You're wearing it now");
+    }, function () { busy = false; b.disabled = false; $("shopErr").textContent = "Can't reach the internet"; });
+  }
+  function openCrate(kind, useKey) {
+    var c = G.CRATES[kind], S = G.state();
+    if (!useKey && (S.balance || 0) < c.price) { $("shopErr").textContent = "You need " + n(c.price - (S.balance || 0)) + " more XP for a " + c.n + "."; return; }
+    if (busy) return; busy = true;
+    var ov = $("ov"), rv = $("reveal");
+    rv.style.setProperty("--rc", c.c);
+    rv.innerHTML = '<div class="shake" style="width:160px;margin:20px auto">' + crateSvg(c.c) + "</div><h3>Opening...</h3>";
+    ov.hidden = false;
+    var started = Date.now();
+    G.crate(kind, useKey).then(function (r) {
+      setTimeout(function () {
+        busy = false;
+        if (r.error) { rv.innerHTML = "<h3>Oops</h3><p>" + (r.error === "not_enough" ? "Not enough XP" : r.error === "no_keys" ? "No keys left" : "That didn't work") + '</p><button class="btn" type="button" id="ovClose">OK</button>'; $("ovClose").onclick = function () { ov.hidden = true; }; return; }
+        var it = G.item(r.item);
+        rv.style.setProperty("--rc", G.RAR[it.rarity].c);
+        rv.innerHTML = '<div class="pop"><div class="pic"><img alt="" src="' + G.thumb(it.id, 300) + '"></div><div class="rr' + (it.rarity === "secret" ? " rainbow-t" : "") + '">' + G.RAR[it.rarity].n + " " + G.SLOTS.filter(function (s) { return s.id === it.slot; })[0].one + "</div><h3>" + esc(it.name) + "</h3>" +
+          (r.dupe ? "<p>You already had this one, so you get <b>" + n(r.refund) + " XP</b> back.</p>" : "<p>It's yours!</p>") + "</div>" +
+          (r.dupe ? "" : '<button class="btn" type="button" id="ovWear">Wear it</button>') + '<button class="btn ghost" type="button" id="ovAgain">Open another</button><button class="btn ghost" type="button" id="ovClose">Close</button>';
+        $("ovClose").onclick = function () { ov.hidden = true; };
+        $("ovAgain").onclick = function () { ov.hidden = true; openCrate(kind, useKey && (G.state().keys || 0) > 0); };
+        if ($("ovWear")) $("ovWear").onclick = function () { ov.hidden = true; G.equip(it.slot, it.id); };
+      }, Math.max(0, 1400 - (Date.now() - started)));
+    }, function () { busy = false; rv.innerHTML = '<h3>No internet</h3><button class="btn" type="button" id="ovClose">OK</button>'; $("ovClose").onclick = function () { ov.hidden = true; }; });
+  }
+  $("ov").addEventListener("click", function (e) { if (e.target === $("ov") && !busy) $("ov").hidden = true; });
+
+  if ($("guestNew")) $("guestNew").onclick = function () { if (A) A.open("new"); };
+  if ($("guestLogin")) $("guestLogin").onclick = function () { if (A) A.open("login"); };
+
+  var hash = (location.hash || "").slice(1);
+  if (hash === "crates" || hash === "mine" || hash === "levels") tab = hash;
+  G.onChange(function () { paintTop(); paintPanel(); });
+  paintTabs(); paintTop(); paintPanel();
+  G.refresh();
+})();
+</script>
+</body>
+</html>

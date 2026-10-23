@@ -310,6 +310,8 @@ const coolTime=()=>GM==="public"?0.6:(0.85-0.05*lv("cool"));
 const walkSpd=()=>9*(1+0.05*lv("speed"));
 const abilMul=()=>1-0.06*lv("abil");
 
+/* ---------- buckasnuncle (George 24/10/2026: invincible; the ball always bounces off, in Solo and the Public Arena) ---------- */
+const BUCK=(()=>{const isBuck=n=>(n||"").trim().toLowerCase()==="buckasnuncle";try{return isBuck(localStorage.getItem("ghgames_nick"))||isBuck(localStorage.getItem("ghacct_user"));}catch(e){return false;}})();
 /* ---------- buckasnuncle head start (once) ---------- */
 (function(){const isBuck=n=>(n||"").trim().toLowerCase()==="buckasnuncle";let nick="",acct="";try{nick=localStorage.getItem("ghgames_nick")||"";acct=localStorage.getItem("ghacct_user")||"";}catch(e){}
  if((isBuck(nick)||isBuck(acct))&&!S.bk){S.bk=1;S.coins=cap(S.coins+1e9);if(S.sw.indexOf(37)<0)S.sw.push(37);S.sword=37;persist();setTimeout(()=>{A3.sfx("win");A3.toast("buckasnuncle: 1B coins and the Cosmic Katana!",3500);},900);}})();
@@ -464,7 +466,7 @@ function ballUpdate(dt){
   const lim=R+6;const h=Math.hypot(B.p.x,B.p.z);if(h>lim){B.p.x*=lim/h;B.p.z*=lim/h;}
 }
 function arrive(tg){
-  if(tg.parryT>0||tg.ff>0)doParry(tg);
+  if(tg.parryT>0||tg.ff>0||(BUCK&&tg===me&&GM!=="duel"))doParry(tg);
   else eliminate(tg,B.lh,true);
 }
 function pickAimFor(e){
@@ -800,8 +802,8 @@ function drawHud(dt){
   const ti=$("topinfo");
   if(GM==="duel")ti.innerHTML="Son "+duel.a+" - "+duel.b+" Dad<small>Ball speed "+Math.round(B.s)+" · first to 3</small>";
   else if(GM==="public"&&PUB.ph!=="play")ti.innerHTML=(PUB.ph==="end"?"Round over":"Next round in "+Math.max(0,Math.ceil(PUB.tm)))+"<small>"+Math.max(1,peers.length)+" real player"+(peers.length===1?"":"s")+" here</small>";
-  else ti.innerHTML=al+" left<small>Ball speed "+Math.round(B.s)+(B.frz>0?" · FROZEN":"")+(B.slow>0?" · SLOW MO":"")+"</small>";
-  const targeted=me&&me.alive&&B.tg===me.id&&B.wait<=0&&mode==="play"&&GM!=="duel";
+  else ti.innerHTML=al+" left<small>"+(BUCK&&me&&me.alive?"👑 Invincible · ":"")+"Ball speed "+Math.round(B.s)+(B.frz>0?" · FROZEN":"")+(B.slow>0?" · SLOW MO":"")+"</small>";
+  const targeted=me&&me.alive&&B.tg===me.id&&B.wait<=0&&mode==="play"&&GM!=="duel"&&!BUCK;
   $("danger").hidden=!targeted;
   const pb=$("bParry");pb.classList.toggle("cool",!!(me&&me.cdT>0));pb.classList.toggle("down",!!(me&&me.parryT>0));
   if(GM==="duel"){[["bP1",me],["bP2",p2]].forEach(([id,e])=>{const b=$(id);b.classList.toggle("cool",!!(e&&e.cdT>0));b.classList.toggle("down",!!(e&&e.parryT>0));});}

@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>+1 Height Per Click</title>
+<meta property="og:title" content="+1 Height Per Click 3D · GH Games">
+<meta property="og:description" content="Every click makes you 1 taller. Get tall enough to walk through the giant walls, grab the win pads, hatch pets, unlock 10 worlds and rebirth for x50 height and wins.">
+<meta property="og:image" content="https://ghgames.au/og/plus-one-height.png">
+<meta property="og:url" content="https://ghgames.au/plus-one-height.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f1a33">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Games">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="plus-one-height"></script>
+<script src="phatcoin.js" data-game="plus-one-height" data-pill="none"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<link rel="stylesheet" href="arcade3d.css">
+<style>
+#joy{position:absolute;width:124px;height:124px;border-radius:50%;border:3px solid rgba(255,255,255,.55);background:rgba(255,255,255,.12);display:none;transform:translate(-50%,-50%);pointer-events:none;z-index:14}
+#knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(255,255,255,.7)}
+.dock{position:absolute;right:10px;top:84px;display:flex;flex-direction:column;gap:8px;z-index:15}
+.dock button{font-size:22px;width:50px;height:50px;border-radius:14px;border:2px solid rgba(255,255,255,.35);background:rgba(0,0,0,.45);color:#fff;cursor:pointer;position:relative}
+.dock button small{position:absolute;left:0;right:0;bottom:-2px;font-size:9px;font-weight:900;font-family:var(--body)}
+.dock button.glow{border-color:var(--gold);box-shadow:0 0 14px var(--gold)}
+#bClick{position:absolute;right:18px;bottom:18px;z-index:16;width:132px;height:132px;border-radius:50%;border:4px solid #fff;background:radial-gradient(circle at 35% 30%,#a8f0ae,#2fae4a);color:#0d3312;font-family:var(--display);font-size:22px;line-height:1.05;cursor:pointer;box-shadow:0 7px 0 #1d7a33,0 12px 20px rgba(0,0,0,.4);touch-action:none}
+#bClick small{display:block;font-family:var(--body);font-weight:900;font-size:13px}
+#bClick.down{transform:translateY(4px) scale(.96);box-shadow:0 3px 0 #1d7a33}
+#bJ{right:162px;bottom:24px;display:none}
+#big{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:15;pointer-events:none;text-align:center;font-family:var(--display);color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.55);line-height:1}
+#big b{font-size:clamp(26px,5vw,44px);font-weight:400}
+#big small{display:block;font-family:var(--body);font-weight:900;font-size:13px;color:var(--gold)}
+#next{display:block;font-family:var(--body);font-weight:900;font-size:13px;color:#bfe6ff;margin-top:3px}
+.pop{position:absolute;z-index:17;pointer-events:none;font-family:var(--display);font-size:22px;color:#fff;text-shadow:0 2px 0 #1d7a33,0 0 8px rgba(0,0,0,.6);animation:up .8s ease-out forwards;white-space:nowrap}
+@keyframes up{from{transform:translate(-50%,0);opacity:1}to{transform:translate(-50%,-80px);opacity:0}}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.tabs button{font-family:var(--body);font-weight:900;font-size:14px;background:var(--panel2);color:var(--ink);border:2px solid var(--line);border-radius:12px;padding:6px 12px;cursor:pointer}
+.tabs button.on{background:var(--gold);color:#3b2200;border-color:#ffe27a}
+.ubox{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:10px 14px;width:min(600px,100%);text-align:left;max-height:min(56vh,430px);overflow:auto}
+.up{display:flex;align-items:center;gap:8px;background:var(--panel2);border-radius:12px;padding:8px 10px;margin:6px 0}
+.up .ic{font-size:26px;width:36px;text-align:center;flex:none}
+.up .tx{flex:1;font-weight:800;font-size:14px;line-height:1.25}
+.up .tx b{font-size:16px;color:var(--gold)}
+.up .tx small{display:block;color:var(--muted);font-weight:700}
+.up .btn{flex:none}
+.rules{text-align:left;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.35;background:#0b1430;border-radius:10px;padding:8px 10px;white-space:pre;overflow:auto;color:#cfe0ff;margin:6px 0}
+.pet{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:6px;text-align:center;font-weight:900;font-size:12px;cursor:pointer;color:var(--ink);font-family:var(--body)}
+.pet.on{border-color:var(--gold);background:#3a3a1e}
+.pet .sq{width:30px;height:30px;border-radius:8px;margin:0 auto 4px;box-shadow:0 0 12px currentColor}
+.pet small{display:block;color:var(--muted);font-size:11px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;margin-top:6px}
+.wl{display:flex;align-items:center;gap:10px;background:var(--panel2);border-radius:12px;padding:8px 10px;margin:6px 0;font-weight:800}
+.wl .sw{width:30px;height:30px;border-radius:8px;flex:none}
+.wl .tx{flex:1;line-height:1.25}
+.wl .tx small{display:block;color:var(--muted);font-weight:700}
+@media (max-width:700px){#bClick{width:96px;height:96px;font-size:18px;right:12px;bottom:12px}#bClick small{font-size:11px}#bJ{right:120px;bottom:16px}.dock{top:10px;right:8px;flex-direction:row;gap:5px}.dock button{width:40px;height:40px;font-size:18px;border-radius:11px}#big{top:58px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="links"><a class="home" href="index.html">← GH Games</a></div>
+  <div class="top">
+    <h1>+1 Height Per Click<small>3D</small></h1>
+    <div class="hud">
+      <div class="chip"><span>Height</span><b id="hH">0</b></div>
+      <div class="chip"><span>Wins</span><b id="hW">0</b></div>
+      <div class="chip"><span>Per click</span><b id="hP">+1</b></div>
+      <div class="chip"><span>Rebirths</span><b id="hR">0</b></div>
+      <div class="chip"><span>World</span><b id="hWo">1</b></div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="ingame"><button id="bHome">☰</button><button id="bFs">⛶</button><button id="bMute">🔊</button></div>
+    <div id="big"><b id="bigH">0</b><small>height</small><span id="next"></span></div>
+    <div class="toast" id="toast"></div>
+    <div id="joy"><div id="knob"></div></div>
+    <div class="dock">
+      <button id="dUp" title="Upgrades">⬆️</button>
+      <button id="dReb" title="Rebirth">🔁</button>
+      <button id="dPet" title="Pets">🥚</button>
+      <button id="dWorld" title="Worlds">🌍</button>
+    </div>
+    <button id="bClick">CLICK<small id="cAmt">+1 height</small></button>
+    <button class="tbtn" id="bJ">JUMP</button>
+
+    <div class="ov" id="ovTitle">
+      <h2>+1 HEIGHT<br>PER CLICK</h2>
+      <p>Every click makes you 1 taller. The giant walls only let you through if you are tall enough, and behind each wall is a win pad. Higher pads give way more wins. Spend wins on Height Power, auto clickers, pets and new worlds, then rebirth for x50 height and wins!</p>
+      <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bTUp">Upgrades</button></div>
+      <div class="stats" id="tStats"></div>
+    </div>
+
+    <div class="ov" id="ovMenu" hidden>
+      <h2 id="mH">UPGRADES</h2>
+      <div class="tabs" id="mTabs"></div>
+      <div class="ubox" id="mBody"></div>
+      <div class="row"><button class="btn small" id="bMenuX">Back to playing</button></div>
+    </div>
+  </div>
+
+  <p class="help">Click the green CLICK button (or click the game with the mouse, or press C) to grow 1 taller each time. Move with W A S D or the arrow keys, jump with Space, drag the screen to look around (the mouse wheel zooms). On iPad: drag the left side to move, drag the right side to look, tap CLICK. Walls turn see-through and let you walk in when you are tall enough. Step on a gold win pad to collect wins (the pad's multi times your height) and you are sent back to the start. ⬆️ Upgrades: Height Power (x2 per click each level), Auto Clicker and Walk Speed. 🔁 Rebirth: x50 height and wins every rebirth, but it resets your height, wins and Height Power, and each rebirth costs way more than the last. 🥚 Pets add height per click. 🌍 10 worlds, each with taller walls and bigger win pads. Your game saves by itself.</p>
+  <div id="lb"></div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="arcade3d.js"></script>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const THREE=window.THREE;
+const SAVE="height-save";
+const NEG=-Infinity;
+
+/* ---------- huge numbers: everything big is kept as log10 ----------
+   Rebirth 100 costs about 1e1,052,357 wins, far past JavaScript's
+   biggest number (1.8e308), so heights and wins live as log10 values. */
+function la(a,b){if(a===NEG)return b;if(b===NEG)return a;const m=Math.max(a,b);return m+Math.log10(1+Math.pow(10,Math.min(a,b)-m));}
+function ls(a,b){if(b===NEG)return a;const d=b-a;if(d>-1e-12)return NEG;return a+Math.log10(1-Math.pow(10,d));}
+function fmtL(lg){
+  if(lg===NEG||!isFinite(lg)||lg<0)return "0";
+  if(lg<303)return A3.fmt(Math.pow(10,lg)+1e-9);
+  const e=Math.floor(lg),m=Math.pow(10,lg-e);
+  return m.toFixed(2)+"e"+(e<1e6?e.toLocaleString():A3.fmt(e));
+}
+const L2=Math.log10(2),L50=Math.log10(50);
+
+/* ---------- George's rebirth prices (23/10/2026) ----------
+   rebirth 1 costs 1 Dc (1e33) wins
+   every rebirth: price x step (step starts at 1e30)
+   every rebirth: step x inflation (inflation starts at 1 Qi, 1e18)
+   every 2 rebirths: inflation up 1 trillion % (x1e10)
+   every 5 rebirths: inflation up 100 thousand % (x1001)
+   every 3 rebirths: inflation x100
+   each rebirth gives x50 height and x50 wins */
+const PRICE=[];
+(function(){let P=33,St=30,I=18;for(let n=1;n<=20000;n++){PRICE.push(P);P+=St;St+=I;if(n%2===0)I+=10;if(n%5===0)I+=Math.log10(1001);if(n%3===0)I+=2;}})();
+const priceL=r=>PRICE[Math.min(r,PRICE.length-1)];
+
+/* ---------- worlds ---------- */
+const WORLDS=[
+  {n:"Grassy Plains",g:["#5fbf4a","#56b042"],sky:["#5eb8ff","#d8f1ff"],wall:"#ffd54a",dec:"#3fa34d",trunk:"#7a5a3a"},
+  {n:"Sandy Desert",g:["#f0d58a","#e6c674"],sky:["#ffb85e","#fff0cf"],wall:"#ff8a3d",dec:"#4caf50",trunk:"#c9a36a"},
+  {n:"Snowy Peaks",g:["#f4f8ff","#e2ecfa"],sky:["#8fb7e8","#eef6ff"],wall:"#7fd3ff",dec:"#2e6b4a",trunk:"#6a4a2a"},
+  {n:"Candy Land",g:["#ffc2dd","#ffb0d2"],sky:["#ff9ed1","#fff0f8"],wall:"#ff6fa3",dec:"#ff4f8a",trunk:"#ffffff"},
+  {n:"Lava Lands",g:["#5a3030","#4a2626"],sky:["#7a1a10","#ff8a4a"],wall:"#ff5d2a",dec:"#ff7a1a",trunk:"#2a1a1a"},
+  {n:"Ocean Reef",g:["#5fd0e0","#4ec0d4"],sky:["#1e7ad0","#bff0ff"],wall:"#ffffff",dec:"#ff7f7f",trunk:"#f7d08a"},
+  {n:"Spooky Woods",g:["#3a4a3a","#334233"],sky:["#1b1036","#5a3a7a"],wall:"#a86bff",dec:"#5a2a7a",trunk:"#2a2018"},
+  {n:"Neon City",g:["#22224a","#1c1c40"],sky:["#0a0a2a","#4a1a6a"],wall:"#39ffb0",dec:"#ff3df0",trunk:"#111133"},
+  {n:"Moon Base",g:["#b8b8c4","#a8a8b6"],sky:["#05051a","#2a2a4a"],wall:"#c0c8ff",dec:"#7a7a8a",trunk:"#55556a"},
+  {n:"Galaxy",g:["#3a1a6a","#30145c"],sky:["#020210","#3a0a6a"],wall:"#ffd23f",dec:"#7fe3ff",trunk:"#ff6fa3"}
+];
+const NWALL=10,GAP=14,TW=11;   // walls per world, gap between walls, half track width
+const reqL=(w,i)=>1+w*12+i*1.2;              // log10 height to pass wall i (0-9) in world w (0-9)
+const padL=(w,i)=>Math.log10(i+2)+w*1.5;      // log10 win multi of the pad behind wall i
+const worldCostL=w=>w*12+1.5;                 // log10 wins to unlock world w
+const eggCostL=w=>2+w*12;
+
+/* ---------- pets ---------- */
+const RAR=[{n:"Common",c:"#cfd6e6",p:50,b:.18,a:"Chick"},{n:"Uncommon",c:"#5fd36a",p:25,b:.4,a:"Bunny"},{n:"Rare",c:"#4aa8ff",p:15,b:.7,a:"Fox"},
+  {n:"Epic",c:"#b06bff",p:7,b:1.1,a:"Panda"},{n:"Legendary",c:"#ffc93c",p:2.7,b:1.7,a:"Dragon"},{n:"Mythic",c:"#ff3d6a",p:.3,b:2.5,a:"Unicorn"}];
+const petL=p=>RAR[p.r].b+p.w*0.6;            // log10 height multi of one pet
+const petName=p=>WORLDS[p.w].n.split(" ")[0]+" "+RAR[p.r].a;
+const MAXEQ=4,MAXPETS=60;
+
+/* ---------- upgrades ---------- */
+// Height Power: x2 height per click each level, each level costs x1.8 more (10 wins first)
+const powCostL=p=>1+p*Math.log10(1.8);
+const AUTOMAX=20,autoCostL=a=>1.5+a*2;        // Auto Clicker: +1 click a second each level
+const SPDMAX=10,spdCostL=s=>2+s*3;            // Walk Speed: +15% each level
+
+/* ---------- save ---------- */
+const S=A3.save(SAVE,{v:1,h:null,w:null,pw:0,auto:0,spd:0,reb:0,wun:1,cw:0,pets:[],eq:[],best:0,clicks:0,bestH:null,hatched:0});
+let hL=S.h==null?NEG:S.h, wL=S.w==null?NEG:S.w, bestH=S.bestH==null?NEG:S.bestH;
+function save(){S.h=hL===NEG?null:hL;S.w=wL===NEG?null:wL;S.bestH=bestH===NEG?null:bestH;A3.store(SAVE,S);}
+setInterval(save,5000);addEventListener("pagehide",save);
+
+const eqSet=()=>new Set(S.eq);
+const petTotL=()=>S.eq.reduce((s,i)=>s+(S.pets[i]?petL(S.pets[i]):0),0);
+const perL=()=>S.pw*L2+S.reb*L50+petTotL()+S.cw*1.0;   // log10 height per click
+const rebMultL=()=>S.reb*L50;
+
+/* ---------- 3D ---------- */
+const stage=$("stage");
+const view=A3.view(stage,{fov:58,far:1200,sky:["#5eb8ff","#d8f1ff"],fog:["#d8f1ff",120,420],shadowSize:40});
+if(!view)return;
+const {scene,camera,lights}=view;
+const COARSE=matchMedia("(pointer:coarse)").matches;
+if(COARSE)$("bJ").style.display="flex";
+const parts=A3.particles(scene);
+
+function mPlain(hex,o){return new THREE.MeshStandardMaterial(Object.assign({color:hex,roughness:.7,metalness:0},o||{}));}
+function bx(w,h,d,mat){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.castShadow=true;m.receiveShadow=true;return m;}
+function limb(parent,w,h,d,mat,px,py){const pv=new THREE.Group();pv.position.set(px,py,0);const b=bx(w,h,d,mat);b.position.y=-h/2;pv.add(b);parent.add(pv);return pv;}
+
+/* player: blocky kid with a "+1" shirt */
+const faceT=A3.canvasTex(128,128,g=>{g.fillStyle="#f2c39b";g.fillRect(0,0,128,128);
+  g.fillStyle="#1b1b2b";g.beginPath();g.ellipse(44,58,8,11,0,0,7);g.ellipse(84,58,8,11,0,0,7);g.fill();
+  g.fillStyle="#fff";g.beginPath();g.arc(47,54,3,0,7);g.arc(87,54,3,0,7);g.fill();
+  g.strokeStyle="#7a2a2a";g.lineWidth=6;g.lineCap="round";g.beginPath();g.arc(64,74,22,.25*Math.PI,.75*Math.PI);g.stroke();});
+const shirtT=A3.canvasTex(128,128,g=>{g.fillStyle="#2fae4a";g.fillRect(0,0,128,128);g.fillStyle="#fff";g.font="bold 64px Arial";g.textAlign="center";g.textBaseline="middle";g.fillText("+1",64,68);});
+const av=new THREE.Group(),avB=new THREE.Group();av.add(avB);scene.add(av);
+const legL=limb(avB,.4,.9,.42,mPlain(0x2f4fa8),-.22,.9),legR=limb(avB,.4,.9,.42,mPlain(0x3a5cc0),.22,.9);
+{const sh=mPlain(0x2fae4a),sk=mPlain(0xf2c39b);
+  const torso=new THREE.Mesh(new THREE.BoxGeometry(.9,.9,.48),[sh,sh,sh,sh,new THREE.MeshStandardMaterial({map:shirtT,roughness:.7}),sh]);torso.position.y=1.35;torso.castShadow=true;avB.add(torso);
+  var armL=limb(avB,.3,.85,.3,sk,-.62,1.76),armR=limb(avB,.3,.85,.3,sk,.62,1.76);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(.66,.62,.62),[sk,sk,sk,sk,new THREE.MeshStandardMaterial({map:faceT,roughness:.7}),sk]);head.position.y=2.12;head.castShadow=true;avB.add(head);
+  const hair=bx(.7,.16,.66,mPlain(0x5a3418));hair.position.set(0,2.4,-.02);avB.add(hair);}
+const tagCv=document.createElement("canvas");tagCv.width=512;tagCv.height=96;
+const tagTex=new THREE.CanvasTexture(tagCv);tagTex.encoding=THREE.sRGBEncoding;
+const tag=new THREE.Sprite(new THREE.SpriteMaterial({map:tagTex,transparent:true,depthWrite:false}));tag.scale.set(4.2,.8,1);scene.add(tag);
+let tagTxt="";
+function drawTag(t){if(t===tagTxt)return;tagTxt=t;const g=tagCv.getContext("2d");g.clearRect(0,0,512,96);g.font="900 54px Nunito, Arial Black, Arial";g.textAlign="center";g.textBaseline="middle";
+  g.lineWidth=10;g.strokeStyle="rgba(10,20,50,.9)";g.strokeText(t,256,50);g.fillStyle="#7dffb0";g.fillText(t,256,50);tagTex.needsUpdate=true;}
+
+/* pets that follow you */
+const petG=new THREE.Group();scene.add(petG);
+function makePet(p){const g=new THREE.Group(),c=RAR[p.r].c,m=mPlain(c,{emissive:p.r>=4?c:0x000000,emissiveIntensity:p.r>=4?.35:0});
+  const b=bx(.7,.6,.8,m);b.position.y=.4;g.add(b);const h=bx(.55,.5,.5,m);h.position.set(0,.85,.35);g.add(h);
+  const e=mPlain(0x111111);for(const s of[-1,1]){const ey=bx(.1,.12,.05,e);ey.position.set(s*.13,.9,.61);g.add(ey);}
+  if(p.r===5){const hn=new THREE.Mesh(new THREE.ConeGeometry(.08,.35,8),mPlain(0xffd23f));hn.position.set(0,1.25,.4);g.add(hn);}
+  if(p.r===4){for(const s of[-1,1]){const wg=bx(.5,.05,.3,m);wg.position.set(s*.55,.7,0);wg.rotation.z=s*.4;g.add(wg);}}
+  return g;}
+function rebuildPets(){while(petG.children.length)petG.remove(petG.children[0]);S.eq.forEach((i,k)=>{if(!S.pets[i])return;const m=makePet(S.pets[i]);m.userData.k=k;petG.add(m);});}
+
+/* ---------- world building ---------- */
+const worldG=new THREE.Group();scene.add(worldG);
+let walls=[],pads=[],endZ=0;
+const vsc=L=>1+1.6*Math.log10(1+Math.max(0,L));   // how big something of log-height L looks
+function buildWorld(w){
+  while(worldG.children.length)worldG.remove(worldG.children[0]);
+  walls=[];pads=[];
+  const W=WORLDS[w];
+  scene.background=A3.skyTexture(W.sky[0],W.sky[1]);scene.fog.color.set(W.sky[1]);
+  const len=(NWALL+1)*GAP+20;endZ=(NWALL+1)*GAP;
+  const gr=A3.ground(len+120,W.g[0],W.g[1],Math.round((len+120)/2));gr.position.set(0,0,len/2-30);worldG.add(gr);
+  // track edges
+  const edgeM=mPlain(W.wall,{metalness:.2});
+  for(const s of[-1,1]){const e=bx(.6,.8,len+20,edgeM);e.position.set(s*(TW+.3),.4,len/2-14);worldG.add(e);}
+  // start pad
+  const st=A3.cyl(4,4,.25,mPlain(0xffffff),28);st.position.set(0,.12,0);worldG.add(st);
+  const wl=A3.label("🌍 "+W.n,{size:1.1,color:"#ffd23f",stroke:"#3a1d00"});wl.position.set(0,.9,4.6);worldG.add(wl);
+  for(let i=0;i<NWALL;i++){
+    const z=(i+1)*GAP,need=reqL(w,i),hh=2.3*vsc(need)*1.05;
+    const mat=new THREE.MeshStandardMaterial({color:new THREE.Color(W.wall).convertSRGBToLinear(),roughness:.45,metalness:.2,transparent:true,opacity:1});
+    const m=new THREE.Mesh(new THREE.BoxGeometry(TW*2,hh,1.2),mat);m.position.set(0,hh/2,z);m.castShadow=true;m.receiveShadow=true;worldG.add(m);
+    const lb=A3.label("📏 "+fmtL(need)+" height",{size:1.0,color:"#fff",stroke:"#1b1b2b",bg:"rgba(20,10,40,.75)"});lb.position.set(0,Math.min(hh+1,hh*.5+2),z-.9);worldG.add(lb);
+    walls.push({z,need,m,mat,lb,open:false});
+    const pz=z+GAP/2,pad=A3.cyl(2.6,2.6,.3,mPlain(0xffc93c,{emissive:0xffa000,glow:.5,metal:.3}),28);pad.position.set(0,.15,pz);worldG.add(pad);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(2.8,.12,8,32),mPlain(0xffffff,{emissive:0xffffff,glow:.6}));ring.rotation.x=Math.PI/2;ring.position.set(0,.35,pz);worldG.add(ring);
+    const pl=A3.label("🏆 wins x"+fmtL(padL(w,i)),{size:1.1,color:"#ffd23f",stroke:"#3a1d00"});pl.position.set(0,2.2,pz);worldG.add(pl);
+    pads.push({z:pz,i,ring});
+  }
+  // end of the world: a giant trophy
+  const tz=endZ+6;const base=A3.box(6,1,6,mPlain(0x8a5a10,{metalness:.4}));base.position.set(0,.5,tz);worldG.add(base);
+  const cup=A3.cyl(2.2,1.2,3,mPlain(0xffd23f,{metalness:.7,rough:.3}),20);cup.position.set(0,3.5,tz);worldG.add(cup);
+  const el=A3.label(w<WORLDS.length-1?"Next: "+WORLDS[w+1].n+" 🌍":"You reached the Galaxy! 🌌",{size:1.2,color:"#fff",stroke:"#1b1b2b"});el.position.set(0,7,tz);worldG.add(el);
+  // decorations either side
+  const R=A3.seeded(w*97+5),dm=mPlain(W.dec,{flat:true}),tm=mPlain(W.trunk);
+  for(let k=0;k<44;k++){const s=k%2?1:-1,x=s*(TW+4+R()*22),z=-20+R()*(len+40),sc=1+R()*1.6;
+    if(w===7||w===8){const b=A3.box(2.5*sc,4+R()*14,2.5*sc,R()<.5?dm:tm);b.position.set(x,b.geometry.parameters.height/2,z);worldG.add(b);continue;}
+    const t=A3.cyl(.35*sc,.45*sc,2.4*sc,tm,8);t.position.set(x,1.2*sc,z);worldG.add(t);
+    const l=new THREE.Mesh(new THREE.IcosahedronGeometry(1.5*sc,0),dm);l.position.set(x,2.6*sc+1,z);l.castShadow=true;worldG.add(l);}
+  refreshWalls(true);
+}
+function refreshWalls(force){
+  for(const wl of walls){const open=hL>=wl.need;if(open!==wl.open||force){wl.open=open;wl.mat.opacity=open?.28:1;wl.mat.depthWrite=!open;wl.m.castShadow=!open;
+    if(open&&!force){A3.sfx("pop");parts.burst(new THREE.Vector3(P.x,1.5,wl.z),"#7dffb0",24,6);A3.toast("✅ You're tall enough for the "+fmtL(wl.need)+" wall!",1500);}}}
+}
+
+/* ---------- player ---------- */
+const P={x:0,y:0,z:0,vx:0,vy:0,vz:0,face:0,ground:true,walk:0,buf:0};
+const cam={yaw:0,pitch:.38,dist:12};
+let camPos=null;const camTgt=new THREE.Vector3();
+let mode="title",padCool=0;
+function toStart(){P.x=0;P.z=0;P.y=0;P.vx=P.vz=P.vy=0;P.face=0;}
+const scl=()=>Math.min(6,vsc(hL===NEG?0:hL)*0.7+0.3);
+
+/* ---------- clicking ---------- */
+let clickT=0;
+function addHeight(lg){
+  const before=hL;hL=la(hL,lg);if(hL>bestH)bestH=hL;
+  if(before===NEG||Math.floor(before*4)!==Math.floor(hL*4))refreshWalls();
+}
+function popText(txt,x,y){const pops=document.querySelectorAll(".pop");if(pops.length>10)pops[0].remove();
+  const e=document.createElement("div");e.className="pop";e.textContent=txt;e.style.left=x+"px";e.style.top=y+"px";stage.appendChild(e);setTimeout(()=>e.remove(),820);}
+function doClick(ev){
+  if(mode!=="play"&&mode!=="title")return;
+  S.clicks++;addHeight(perL());
+  const r=stage.getBoundingClientRect();let x,y;
+  if(ev&&ev.clientX!=null&&ev.clientX>0){x=ev.clientX-r.left+(Math.random()-.5)*30;y=ev.clientY-r.top-20;}else{const b=$("bClick").getBoundingClientRect();x=b.left-r.left+b.width/2;y=b.top-r.top;}
+  popText("+"+fmtL(perL()),x,y);
+  const now=performance.now();if(now-clickT>70){clickT=now;A3.sfx("tick");}
+  avB.scale.setScalar(1.08);
+}
+{const b=$("bClick");
+  b.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();b.classList.add("down");doClick(e);});
+  const off=()=>b.classList.remove("down");b.addEventListener("pointerup",off);b.addEventListener("pointerleave",off);b.addEventListener("pointercancel",off);}
+addEventListener("keydown",e=>{if(e.target&&e.target.tagName==="INPUT")return;const k=(e.key||"").toLowerCase();
+  if((k==="c"||k==="enter")&&!e.repeat&&mode==="play")doClick(null);
+  if(k===" "&&mode==="play")P.buf=.12;});
+
+/* ---------- touch + mouse ---------- */
+const cv=view.renderer.domElement,touch={jx:0,jy:0};
+let joyId=null,joyO=null,lookId=null,lookLast=null,downAt=null;
+cv.addEventListener("pointerdown",e=>{
+  const r=stage.getBoundingClientRect(),lx=e.clientX-r.left,ly=e.clientY-r.top;
+  if(e.pointerType==="touch"&&lx<r.width*.45&&joyId===null){joyId=e.pointerId;joyO={x:lx,y:ly};const j=$("joy");j.style.left=lx+"px";j.style.top=ly+"px";j.style.display="block";$("knob").style.transform="";}
+  else if(lookId===null){lookId=e.pointerId;lookLast={x:e.clientX,y:e.clientY};downAt={x:e.clientX,y:e.clientY,t:performance.now(),touch:e.pointerType==="touch"};}
+  try{cv.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();});
+cv.addEventListener("pointermove",e=>{
+  if(e.pointerId===joyId){const r=stage.getBoundingClientRect();let dx=e.clientX-r.left-joyO.x,dy=e.clientY-r.top-joyO.y;const d=Math.hypot(dx,dy),M=56;if(d>M){dx*=M/d;dy*=M/d;}
+    touch.jx=dx/M;touch.jy=-dy/M;$("knob").style.transform="translate("+dx+"px,"+dy+"px)";}
+  else if(e.pointerId===lookId){const dx=e.clientX-lookLast.x,dy=e.clientY-lookLast.y;lookLast={x:e.clientX,y:e.clientY};cam.yaw-=dx*.0065;cam.pitch=A3.clamp(cam.pitch+dy*.0045,.05,1.3);}});
+function endPtr(e){
+  if(e.pointerId===joyId){joyId=null;touch.jx=touch.jy=0;$("joy").style.display="none";}
+  if(e.pointerId===lookId){lookId=null;
+    // a quick mouse click without dragging counts as a height click
+    if(downAt&&!downAt.touch&&Math.hypot(e.clientX-downAt.x,e.clientY-downAt.y)<6&&performance.now()-downAt.t<400&&mode==="play")doClick(e);downAt=null;}}
+cv.addEventListener("pointerup",endPtr);cv.addEventListener("pointercancel",endPtr);
+cv.addEventListener("wheel",e=>{e.preventDefault();cam.dist=A3.clamp(cam.dist*(1+e.deltaY*.001),6,40);},{passive:false});
+cv.addEventListener("contextmenu",e=>e.preventDefault());
+{const b=$("bJ");b.addEventListener("pointerdown",e=>{e.preventDefault();P.buf=.12;b.classList.add("down");});b.addEventListener("pointerup",()=>b.classList.remove("down"));}
+A3.fullscreen($("bFs"),stage);
+$("bMute").onclick=()=>{$("bMute").textContent=A3.mute(!A3.mute())?"🔇":"🔊";};$("bMute").textContent=A3.mute()?"🔇":"🔊";
+$("bHome").onclick=()=>{mode="title";$("ovTitle").hidden=false;titleStats();};
+
+/* ---------- win pads ---------- */
+function hitPad(pd){
+  const gain=hL+padL(S.cw,pd.i)+rebMultL();
+  if(hL===NEG){A3.toast("Click to get some height first!",1400);return;}
+  wL=la(wL,gain);
+  A3.sfx("coin");A3.sfx("win");parts.burst(new THREE.Vector3(P.x,1,P.z),"#ffd23f",40,8);
+  A3.toast("🏆 +"+fmtL(gain)+" wins!",1600);
+  if(S.cw===S.wun-1&&pd.i===NWALL-1&&S.wun<WORLDS.length&&!S["hint"+S.wun]){S["hint"+S.wun]=1;setTimeout(()=>A3.toast("🌍 Top pad! Save up and unlock "+WORLDS[S.wun].n+" in Worlds",3200),1700);}
+  padCool=.6;toStart();save();hud();
+}
+
+/* ---------- step ---------- */
+function stepPlayer(dt){
+  let ix=(A3.keys["arrowright"]||A3.keys["d"]?1:0)-(A3.keys["arrowleft"]||A3.keys["a"]?1:0)+touch.jx;
+  let iz=(A3.keys["arrowup"]||A3.keys["w"]?1:0)-(A3.keys["arrowdown"]||A3.keys["s"]?1:0)+touch.jy;
+  if(mode!=="play"){ix=iz=0;}
+  const il=Math.hypot(ix,iz);if(il>1){ix/=il;iz/=il;}
+  const fx=Math.sin(cam.yaw),fz=Math.cos(cam.yaw),rx=-Math.cos(cam.yaw),rz=Math.sin(cam.yaw);
+  const wx=fx*iz+rx*ix,wz=fz*iz+rz*ix,run=10*(1+.15*S.spd)*Math.sqrt(scl());
+  P.vx+=(wx*run-P.vx)*Math.min(1,dt*12);P.vz+=(wz*run-P.vz)*Math.min(1,dt*12);
+  if(Math.hypot(wx,wz)>.1){const tf=Math.atan2(wx,wz);let d=tf-P.face;d=Math.atan2(Math.sin(d),Math.cos(d));P.face+=d*Math.min(1,dt*14);}
+  P.buf-=dt;if(P.buf>0&&P.ground){P.vy=12;P.ground=false;P.buf=0;A3.sfx("jump");}
+  P.vy-=32*dt;P.y+=P.vy*dt;if(P.y<=0){P.y=0;P.vy=0;P.ground=true;}
+  const ox=P.x,oz=P.z;P.x+=P.vx*dt;P.z+=P.vz*dt;
+  const hw=.5;
+  P.x=A3.clamp(P.x,-TW+hw,TW-hw);P.z=A3.clamp(P.z,-8,endZ+10);
+  for(const wl of walls){if(wl.open)continue;
+    if(oz<=wl.z-.6-hw+1e-6&&P.z>wl.z-.6-hw){P.z=wl.z-.6-hw;P.vz=Math.min(0,P.vz);if(!wl.warn||performance.now()-wl.warn>2500){wl.warn=performance.now();A3.sfx("hit");A3.toast("📏 Too short! You need "+fmtL(wl.need)+" height. Keep clicking!",2000);}}
+    if(oz>=wl.z+.6+hw-1e-6&&P.z<wl.z+.6+hw)P.z=wl.z+.6+hw;}
+  P.walk+=Math.hypot(P.vx,P.vz)*dt*1.4/Math.sqrt(scl());
+  if(padCool>0)padCool-=dt;
+  else if(mode==="play")for(const pd of pads){if(Math.abs(P.z-pd.z)<2.6&&Math.abs(P.x)<2.6&&P.y<1){hitPad(pd);break;}}
+}
+
+/* ---------- HUD ---------- */
+function nextWall(){for(const wl of walls)if(!wl.open)return wl;return null;}
+function hud(){
+  $("hH").textContent=fmtL(hL);$("bigH").textContent=fmtL(hL);$("hW").textContent=fmtL(wL);
+  $("hP").textContent="+"+fmtL(perL());$("cAmt").textContent="+"+fmtL(perL())+" height";
+  $("hR").textContent=A3.fmt(S.reb);$("hWo").textContent=(S.cw+1)+" "+WORLDS[S.cw].n;
+  const nw=nextWall();$("next").textContent=nw?"next wall: "+fmtL(nw.need):"every wall open! 🎉";
+  $("dReb").classList.toggle("glow",wL>=priceL(S.reb));
+  $("dUp").classList.toggle("glow",wL>=powCostL(S.pw));
+  drawTag(fmtL(hL)+" tall");
+}
+
+/* ---------- menu ---------- */
+let tab="up";
+const TABS=[["up","⬆️ Upgrades"],["reb","🔁 Rebirth"],["pet","🥚 Pets"],["world","🌍 Worlds"]];
+function openMenu(t){tab=t||tab;mode="menu";$("ovMenu").hidden=false;$("ovTitle").hidden=true;drawMenu();}
+$("bMenuX").onclick=()=>{$("ovMenu").hidden=true;mode="play";save();};
+$("dUp").onclick=()=>openMenu("up");$("dReb").onclick=()=>openMenu("reb");$("dPet").onclick=()=>openMenu("pet");$("dWorld").onclick=()=>openMenu("world");
+$("bTUp").onclick=()=>openMenu("up");
+function upRow(ic,title,desc,costTxt,can,id,maxId){
+  return`<div class="up"><div class="ic">${ic}</div><div class="tx"><b>${title}</b><small>${desc}</small></div>`+
+   `<button class="btn small" data-a="${id}" ${can?"":"disabled"}>${costTxt}</button>`+(maxId?`<button class="btn small pink" data-a="${maxId}" ${can?"":"disabled"}>Max</button>`:"")+`</div>`;}
+function drawMenu(){
+  $("mTabs").innerHTML=TABS.map(([k,n])=>`<button class="${k===tab?"on":""}" data-t="${k}">${n}</button>`).join("");
+  $("mTabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;drawMenu();});
+  $("mH").textContent={up:"UPGRADES",reb:"REBIRTH",pet:"PETS",world:"WORLDS"}[tab];
+  let h=`<div class="stats" style="margin-bottom:6px"><div>🏆 Wins <b>${fmtL(wL)}</b></div><div>📏 Height <b>${fmtL(hL)}</b></div><div>👆 Per click <b>+${fmtL(perL())}</b></div></div>`;
+  if(tab==="up"){
+    h+=upRow("💪","Height Power  lvl "+A3.fmt(S.pw),"x2 height per click each level (now x"+fmtL(S.pw*L2)+"). Resets on rebirth.","🏆 "+fmtL(powCostL(S.pw)),wL>=powCostL(S.pw),"pw","pwMax");
+    h+=upRow("🤖","Auto Clicker  "+S.auto+"/"+AUTOMAX,S.auto?"Clicks for you "+(S.auto===1?"once":S.auto+" times")+" a second. Kept on rebirth.":"Clicks for you. Kept on rebirth.",S.auto>=AUTOMAX?"MAX":"🏆 "+fmtL(autoCostL(S.auto)),S.auto<AUTOMAX&&wL>=autoCostL(S.auto),"auto","autoMax");
+    h+=upRow("👟","Walk Speed  "+S.spd+"/"+SPDMAX,"+15% speed each level. Kept on rebirth.",S.spd>=SPDMAX?"MAX":"🏆 "+fmtL(spdCostL(S.spd)),S.spd<SPDMAX&&wL>=spdCostL(S.spd),"spd","spdMax");
+    h+=`<div class="row" style="margin-top:6px"><button class="btn small green" data-a="all">Max everything</button></div>`;
+  }else if(tab==="reb"){
+    const c=priceL(S.reb),can=wL>=c;
+    h+=`<div class="up"><div class="ic">🔁</div><div class="tx"><b>Rebirth ${A3.fmt(S.reb+1)}</b><small>Costs 🏆 ${fmtL(c)} wins. Now x${fmtL(S.reb*L50)} height and wins, after this x${fmtL((S.reb+1)*L50)}.</small><small>Resets height, wins and Height Power. Keeps pets, worlds, Auto Clicker and Walk Speed.</small></div>`+
+      `<button class="btn small" data-a="reb" ${can?"":"disabled"}>Rebirth</button><button class="btn small pink" data-a="rebMax" ${can?"":"disabled"}>Max</button></div>`;
+    h+=`<p class="help">Next rebirths cost:</p><div class="rules">`+[1,2,3,4,5].map(k=>"rebirth "+A3.fmt(S.reb+k)+"   "+fmtL(priceL(S.reb+k-1))+" wins").join("\n")+`</div>`;
+    h+=`<div class="rules">George's rebirth rules
+ rebirth 1 costs 1 Dc wins
+   │  every rebirth   price  x step (starts 1e30)
+   │  every rebirth   step   x inflation (starts 1 Qi)
+   │  every 2         inflation +1 trillion %
+   │  every 5         inflation +100 thousand %
+   │  every 3         inflation x100
+   ▼
+ every rebirth: x50 height and x50 wins</div>`;
+  }else if(tab==="pet"){
+    const w=S.wun-1;
+    h+=`<p class="help">Eggs from every world you have unlocked. Pets give more height per click and up to ${MAXEQ} follow you (their multis multiply). Pets are kept on rebirth.</p>`;
+    for(let k=w;k>=0;k--){const c=eggCostL(k);
+      h+=upRow("🥚",WORLDS[k].n+" Egg","Pets x"+fmtL(RAR[0].b+k*.6)+" to x"+fmtL(RAR[5].b+k*.6)+" height per click","🏆 "+fmtL(c),wL>=c,"egg"+k,"egg10_"+k);}
+    h+=`<p class="help" style="margin-top:6px">Your pets (${S.pets.length}/${MAXPETS}), tap to equip or unequip. Total pet multi <b>x${fmtL(petTotL())}</b></p><div class="row"><button class="btn small green" data-a="best">Equip best</button></div><div class="pgrid">`;
+    const eq=eqSet();
+    h+=S.pets.map((p,i)=>({p,i})).sort((a,b)=>petL(b.p)-petL(a.p)).map(({p,i})=>`<button class="pet ${eq.has(i)?"on":""}" data-p="${i}"><div class="sq" style="background:${RAR[p.r].c};color:${RAR[p.r].c}"></div>${petName(p)}<small>${RAR[p.r].n} · x${fmtL(petL(p))}</small>${eq.has(i)?"<small>EQUIPPED</small>":""}</button>`).join("")+`</div>`;
+  }else{
+    h+=`<p class="help">Each world has taller walls, bigger win pads and gives more height per click. Worlds stay unlocked when you rebirth.</p>`;
+    WORLDS.forEach((W,k)=>{const own=k<S.wun,next=k===S.wun;
+      h+=`<div class="wl"><div class="sw" style="background:linear-gradient(${W.sky[0]},${W.g[0]})"></div><div class="tx">${k+1}. ${W.n}${k===S.cw?" ⭐":""}<small>walls ${fmtL(reqL(k,0))} to ${fmtL(reqL(k,NWALL-1))} · pads up to x${fmtL(padL(k,NWALL-1))} · x${fmtL(k)} per click</small></div>`+
+        (own?`<button class="btn small ${k===S.cw?"":"green"}" data-a="go${k}" ${k===S.cw?"disabled":""}>${k===S.cw?"Here":"Go"}</button>`:next?`<button class="btn small" data-a="buyw" ${wL>=worldCostL(k)?"":"disabled"}>🏆 ${fmtL(worldCostL(k))}</button>`:`<button class="btn small" disabled>🔒</button>`)+`</div>`;});
+  }
+  $("mBody").innerHTML=h;
+  $("mBody").querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>act(b.dataset.a));
+  $("mBody").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>togglePet(+b.dataset.p));
+  hud();
+}
+
+/* buying: everything is log10 */
+function buyPow(max){
+  let n=0;
+  if(!max){if(wL>=powCostL(S.pw)){wL=ls(wL,powCostL(S.pw));S.pw++;n=1;}}
+  else{
+    // levels p..p+k-1 cost c0 x (1.8^k - 1)/0.8, all worked out in log10
+    const c0=powCostL(S.pw),LR=Math.log10(1.8),L8=Math.log10(0.8);if(wL<c0)return 0;
+    const k=Math.max(1,Math.floor(la(wL-c0+L8,0)/LR+1e-9));
+    const spent=c0+ls(k*LR,0)-L8;
+    wL=spent>=wL-1e-12?NEG:ls(wL,spent);S.pw+=k;n=k;
+  }
+  return n;
+}
+function buySimple(key,costF,maxLv,max){let n=0;while(S[key]<maxLv&&wL>=costF(S[key])){wL=ls(wL,costF(S[key]));S[key]++;n++;if(!max)break;}return n;}
+function act(a){
+  let ok=0;
+  if(a==="pw")ok=buyPow(false);else if(a==="pwMax")ok=buyPow(true);
+  else if(a==="auto")ok=buySimple("auto",autoCostL,AUTOMAX,false);else if(a==="autoMax")ok=buySimple("auto",autoCostL,AUTOMAX,true);
+  else if(a==="spd")ok=buySimple("spd",spdCostL,SPDMAX,false);else if(a==="spdMax")ok=buySimple("spd",spdCostL,SPDMAX,true);
+  else if(a==="all"){ok=buySimple("auto",autoCostL,AUTOMAX,true)+buySimple("spd",spdCostL,SPDMAX,true)+buyPow(true);}
+  else if(a==="reb"||a==="rebMax"){rebirth(a==="rebMax");return;}
+  else if(a.startsWith("egg10_")){ok=hatch(+a.slice(6),10);}
+  else if(a.startsWith("egg")){ok=hatch(+a.slice(3),1);}
+  else if(a==="best"){equipBest();ok=1;}
+  else if(a==="buyw"){const k=S.wun;if(wL>=worldCostL(k)){wL=ls(wL,worldCostL(k));S.wun++;ok=1;A3.win(2,"unlocking "+WORLDS[k].n+" in +1 Height Per Click");goWorld(k);A3.toast("🌍 Welcome to "+WORLDS[k].n+"!",2400);}}
+  else if(a.startsWith("go")){goWorld(+a.slice(2));ok=1;}
+  if(ok){A3.sfx("coin");save();}else A3.sfx("click");
+  drawMenu();
+}
+function goWorld(k){S.cw=k;buildWorld(k);toStart();save();}
+function hatch(w,n){
+  const c=eggCostL(w)+Math.log10(n);if(wL<c)return 0;wL=ls(wL,c);
+  let bestR=-1;
+  for(let j=0;j<n;j++){let x=Math.random()*100,r=0;for(;r<RAR.length-1;r++){if(x<RAR[r].p)break;x-=RAR[r].p;}
+    S.pets.push({w,r});S.hatched++;bestR=Math.max(bestR,r);}
+  trimPets();equipBest();
+  A3.toast("🥚 You hatched "+(n>1?n+" pets! Best: ":"a ")+RAR[bestR].n+(n>1?"":" "+RAR[bestR].a)+"!",2200);
+  if(bestR>=4)A3.win(2,"hatching a "+RAR[bestR].n+" pet in +1 Height Per Click");
+  return 1;
+}
+function trimPets(){
+  if(S.pets.length<=MAXPETS)return;
+  const order=S.pets.map((p,i)=>i).sort((a,b)=>petL(S.pets[b])-petL(S.pets[a]));
+  const keep=new Set(order.slice(0,MAXPETS));S.pets=S.pets.filter((p,i)=>keep.has(i));S.eq=[];
+}
+function equipBest(){S.eq=S.pets.map((p,i)=>i).sort((a,b)=>petL(S.pets[b])-petL(S.pets[a])).slice(0,MAXEQ);rebuildPets();}
+function togglePet(i){const k=S.eq.indexOf(i);if(k>=0)S.eq.splice(k,1);else{if(S.eq.length>=MAXEQ)S.eq.shift();S.eq.push(i);}rebuildPets();save();drawMenu();}
+function rebirth(max){
+  if(wL<priceL(S.reb))return;
+  let n=0;
+  do{wL=ls(wL,priceL(S.reb));S.reb++;n++;}while(max&&wL!==NEG&&wL>=priceL(S.reb)&&n<1e6);
+  hL=NEG;wL=NEG;S.pw=0;refreshWalls(true);toStart();
+  A3.sfx("win");parts.burst(new THREE.Vector3(0,2,0),"#ff6fa3",70,10);
+  A3.toast("🔁 REBIRTH "+A3.fmt(S.reb)+"! Now x"+fmtL(S.reb*L50)+" height and wins",3200);
+  A3.win(3,"rebirth "+S.reb+" in +1 Height Per Click");A3.best(S.reb);
+  save();drawMenu();
+}
+
+/* ---------- title ---------- */
+function titleStats(){$("tStats").innerHTML=`<div>Height <b>${fmtL(hL)}</b></div><div>Wins <b>${fmtL(wL)}</b></div><div>Rebirths <b>${A3.fmt(S.reb)}</b></div><div>Tallest ever <b>${fmtL(bestH)}</b></div>`;}
+$("bPlay").onclick=()=>{$("ovTitle").hidden=true;mode="play";A3.sfx("click");if(S.clicks===0)setTimeout(()=>A3.toast("👆 Click the green button to grow 1 taller!",3200),300);};
+
+/* ---------- frame ---------- */
+let hudT=0;
+function update(dt,t){
+  if(S.auto>0&&mode!=="title")addHeight(perL()+Math.log10(S.auto*dt));
+  stepPlayer(dt);
+  const s=scl();
+  av.position.set(P.x,P.y,P.z);av.rotation.y=P.face;av.scale.setScalar(s);
+  avB.scale.setScalar(A3.lerp(avB.scale.x,1,Math.min(1,dt*10)));
+  const mv=Math.hypot(P.vx,P.vz)>.5,sw=mv&&P.ground?Math.sin(P.walk)*.7:0;
+  legL.rotation.x=sw;legR.rotation.x=-sw;armL.rotation.x=-sw*.8;armR.rotation.x=sw*.8;
+  tag.position.set(P.x,P.y+2.6*s+.9,P.z);
+  // pets trail behind
+  petG.children.forEach((m,k)=>{const ang=P.face+Math.PI+(k-1.5)*.55,d=2.2+s*.6;
+    const tx=P.x+Math.sin(ang)*d,tz=P.z+Math.cos(ang)*d;m.position.x=A3.lerp(m.position.x,tx,Math.min(1,dt*6));m.position.z=A3.lerp(m.position.z,tz,Math.min(1,dt*6));
+    m.position.y=Math.abs(Math.sin(t*6+k))*.35;m.rotation.y=P.face;});
+  for(const pd of pads)pd.ring.rotation.z+=dt*1.5;
+  // camera grows with you
+  if(mode==="title")cam.yaw+=dt*.12;
+  if(A3.keys["q"])cam.yaw+=dt*2.2;if(A3.keys["e"])cam.yaw-=dt*2.2;
+  const d=cam.dist*(0.75+s*.3),cp=Math.cos(cam.pitch);
+  camTgt.set(P.x,P.y+1.4*s,P.z);
+  const want=new THREE.Vector3(camTgt.x-Math.sin(cam.yaw)*cp*d,camTgt.y+Math.sin(cam.pitch)*d,camTgt.z-Math.cos(cam.yaw)*cp*d);
+  if(!camPos)camPos=want.clone();else camPos.lerp(want,1-Math.exp(-dt*10));
+  camera.position.copy(camPos);camera.lookAt(camTgt);
+  lights.sun.position.set(P.x+14,30,P.z-10);lights.sun.target.position.set(P.x,0,P.z+6);
+  parts.update(dt);
+  hudT-=dt;if(hudT<=0){hudT=.12;hud();if(mode==="menu"&&tab!=="pet"&&Math.random()<.15)refreshMenuButtons();}
+  view.render();
+}
+function refreshMenuButtons(){/* keep the buy buttons honest while auto clicking */
+  $("mBody").querySelectorAll("button[data-a]").forEach(b=>{const a=b.dataset.a;let c=null;
+    if(a==="pw"||a==="pwMax")c=powCostL(S.pw);else if((a==="auto"||a==="autoMax")&&S.auto<AUTOMAX)c=autoCostL(S.auto);else if((a==="spd"||a==="spdMax")&&S.spd<SPDMAX)c=spdCostL(S.spd);
+    else if(a==="reb"||a==="rebMax")c=priceL(S.reb);if(c!=null)b.disabled=wL<c;});}
+
+/* ---------- start ---------- */
+if(S.cw>=S.wun)S.cw=S.wun-1;
+buildWorld(S.cw);rebuildPets();toStart();titleStats();hud();
+A3.loop(update);
+if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"plus-one-height",dir:"desc",unit:"rebirths",title:"+1 Height Per Click: most rebirths"});
+window.__h1={S,P,get hL(){return hL;},set hL(v){hL=v;refreshWalls();},get wL(){return wL;},set wL(v){wL=v;},doClick,openMenu,act,rebirth,hatch,goWorld,priceL,perL,get walls(){return walls;},get pads(){return pads;},cam,get mode(){return mode;}};
+})();
+</script>
+</body>
+</html>

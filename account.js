@@ -63,6 +63,7 @@
     "roll-rampage": { title: "Roll Rampage", keys: ["rollrampage-save"] },
     "find-a-million-balls": { title: "Find a Million Balls", keys: ["famb-save"] },
     "t-rex-titans": { title: "T-Rex Titans", keys: ["trextitans-save"] },
+    "plus-one-height": { title: "+1 Height Per Click", keys: ["height-save"] },
   };
 
   var TOKEN = "ghacct_token", USER = "ghacct_user", NICK = "ghgames_nick";

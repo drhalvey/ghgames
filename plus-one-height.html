@@ -105,7 +105,7 @@
     </div>
   </div>
 
-  <p class="help">Click the green CLICK button (or click the game with the mouse, or press C) to grow 1 taller each time. Move with W A S D or the arrow keys, jump with Space, drag the screen to look around (the mouse wheel zooms). On iPad: drag the left side to move, drag the right side to look, tap CLICK. Walls turn see-through and let you walk in when you are tall enough. Step on a gold win pad to collect wins (the pad's multi times your height) and you are sent back to the start. ⬆️ Upgrades: Height Power (x1.5 per click each level), Auto Clicker and Walk Speed. 🔁 Rebirth: x50 height and wins every rebirth, but it resets your height, wins and Height Power, and each rebirth costs way more than the last. 🥚 Pets add height per click. 🌍 10 worlds, each with taller walls and bigger win pads. Your game saves by itself.</p>
+  <p class="help">Click the green CLICK button (or click the game with the mouse, or press C) to grow 1 taller each time. Move with W A S D or the arrow keys, jump with Space, drag the screen to look around (the mouse wheel zooms). On iPad: drag the left side to move, drag the right side to look, tap CLICK. Walls turn see-through and let you walk in when you are tall enough. Step on a gold win pad to collect wins (the pad's multi times your height) and you are sent back to the start. ⬆️ Upgrades: Height Power (x1.25 per click each level), Auto Clicker and Walk Speed. 🔁 Rebirth: x50 height and wins every rebirth, but it resets your height, wins and Height Power, and each rebirth costs way more than the last. 🥚 Pets add height per click. 🌍 10 worlds, each with taller walls and bigger win pads. Your game saves by itself.</p>
   <div id="lb"></div>
 </div>
 
@@ -131,7 +131,7 @@ function fmtL(lg){
   const e=Math.floor(lg),m=Math.pow(10,lg-e);
   return m.toFixed(2)+"e"+(e<1e6?e.toLocaleString():A3.fmt(e));
 }
-const L2=Math.log10(2),L15=Math.log10(1.5),L50=Math.log10(50);
+const L2=Math.log10(2),L125=Math.log10(1.25),L50=Math.log10(50);
 
 /* ---------- George's rebirth prices (23/10/2026) ----------
    rebirth 1 costs 1 Dc (1e33) wins
@@ -172,8 +172,8 @@ const petName=p=>WORLDS[p.w].n.split(" ")[0]+" "+RAR[p.r].a;
 const MAXEQ=4,MAXPETS=60;
 
 /* ---------- upgrades ---------- */
-// Height Power: x1.5 height per click each level (George, 23/10/2026: was x2, then +2), each level costs x1.4 more (10 wins first)
-const PCR=1.4,powCostL=p=>1+p*Math.log10(PCR);
+// Height Power: x1.25 height per click each level (George, 23/10/2026: was x2, then +2, then x1.5), each level costs x1.2 more (10 wins first)
+const PCR=1.2,powCostL=p=>1+p*Math.log10(PCR);
 const AUTOMAX=20,autoCostL=a=>1.5+a*2;        // Auto Clicker: +1 click a second each level
 const SPDMAX=10,spdCostL=s=>2+s*3;            // Walk Speed: +15% each level
 
@@ -185,7 +185,7 @@ setInterval(save,5000);addEventListener("pagehide",save);
 
 const eqSet=()=>new Set(S.eq);
 const petTotL=()=>S.eq.reduce((s,i)=>s+(S.pets[i]?petL(S.pets[i]):0),0);
-const perL=()=>S.pw*L15+S.reb*L50+petTotL()+S.cw*1.0;   // log10 height per click
+const perL=()=>S.pw*L125+S.reb*L50+petTotL()+S.cw*1.0;   // log10 height per click
 const rebMultL=()=>S.reb*L50;
 
 /* ---------- 3D ---------- */
@@ -395,7 +395,7 @@ function drawMenu(){
   $("mH").textContent={up:"UPGRADES",reb:"REBIRTH",pet:"PETS",world:"WORLDS"}[tab];
   let h=`<div class="stats" style="margin-bottom:6px"><div>🏆 Wins <b>${fmtL(wL)}</b></div><div>📏 Height <b>${fmtL(hL)}</b></div><div>👆 Per click <b>+${fmtL(perL())}</b></div></div>`;
   if(tab==="up"){
-    h+=upRow("💪","Height Power  lvl "+A3.fmt(S.pw),"x1.5 height per click each level (now x"+fmtL(S.pw*L15)+"). Resets on rebirth.","🏆 "+fmtL(powCostL(S.pw)),wL>=powCostL(S.pw),"pw","pwMax");
+    h+=upRow("💪","Height Power  lvl "+A3.fmt(S.pw),"x1.25 height per click each level (now x"+fmtL(S.pw*L125)+"). Resets on rebirth.","🏆 "+fmtL(powCostL(S.pw)),wL>=powCostL(S.pw),"pw","pwMax");
     h+=upRow("🤖","Auto Clicker  "+S.auto+"/"+AUTOMAX,S.auto?"Clicks for you "+(S.auto===1?"once":S.auto+" times")+" a second. Kept on rebirth.":"Clicks for you. Kept on rebirth.",S.auto>=AUTOMAX?"MAX":"🏆 "+fmtL(autoCostL(S.auto)),S.auto<AUTOMAX&&wL>=autoCostL(S.auto),"auto","autoMax");
     h+=upRow("👟","Walk Speed  "+S.spd+"/"+SPDMAX,"+15% speed each level. Kept on rebirth.",S.spd>=SPDMAX?"MAX":"🏆 "+fmtL(spdCostL(S.spd)),S.spd<SPDMAX&&wL>=spdCostL(S.spd),"spd","spdMax");
     h+=`<div class="row" style="margin-top:6px"><button class="btn small green" data-a="all">Max everything</button></div>`;

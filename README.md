@@ -14,6 +14,9 @@ ghgames/
   favicon.svg     the yellow GH logo
   account.js      player accounts, online saves, avatars/looks, invite links, share sheet, link-a-device — see below
   phatcoin.js     PhatCoin, the one coin for every game, kept in the player's account — see below
+  gear.js         Experience (XP), levels, quests, crates and the accessories worn in every game — see below
+  wardrobe.html   the Changing Room: XP, daily quests, Gear Shop, crates, level rewards, 3D preview
+  gear-home.js    homepage Changing Room card (loads three.js + gear.js only when it scrolls into view)
   hub.js          homepage PhatCoin hub (wallet, daily bonus, shop teaser, friends) and "Continue playing"
   me.html, me.js  the player's page: PhatCoin shop, friends + gifts, invite link, account settings
   manifest.webmanifest, sw.js, icons/   "Add to Home Screen" app install (network-first, so updates show at once)
@@ -150,3 +153,14 @@ Make a free [GitHub](https://github.com) account, then a new **public** reposito
 - **Invites**: `ghgames.au/?invite=theirname` (any page). When the new player has earned 100 PhatCoin from actual play, the inviter gets 100 and the new player 50. Max 20 paid invites per player.
 - It is not real money and cannot be bought or cashed out.
 - Give someone PhatCoin by hand: `update public.pc_wallets w set balance = balance + 100 from public.accounts a where a.id = w.account_id and a.username = 'theirname';`
+
+## Experience (XP) and gear (the Changing Room)
+
+- XP is the rare currency. It lives in the account (`xp_wallets`, every change in `xp_log`, all credits through `xp_credit`). Logged-in players only.
+- Earned on the server inside `gh_pc_earn`, so games need no XP code: **play 1 a minute** (55 s apart), **win 1** (15 s apart), **rebirth 3** (60 s apart), max 200 a day from these. Daily quests (same 3 for everyone each Perth day, `xp_quests`): 30-50 XP each, all three = a crate key.
+- **Level** = floor(sqrt(XP earned ever / 15)) + 1. Every new level gives a crate key; levels 5, 10, 15, 20, 25, 30, 40, 50, 75, 100 also give level-only gear.
+- Prices: Common 40, Uncommon 120, Rare 350, Epic 900, Legendary 2500, Mythic 7000. Secret gear only comes from Mythic Crates. Crates: Starter 100 (or a key), Epic 600, Mythic 2500; a duplicate gives half its value back.
+- 124 items in 6 slots: hat, face, back, aura, trail, body. The catalogue (names, rarities, 3D art) is in `gear.js`; after adding or changing items run `node tools/gear-items-sql.js` and paste the output into the Supabase SQL editor so `gear_items` matches.
+- In a 3D game: load `gear.js` after `three.min.js`, then `Gear.dress(playerObject, { forward, head, torso, body })` (see the top of gear.js). Gear updates itself when the player changes their look. Test with `python3 tools/test3d.py game.html --gear --eval "Gear._dressed()" --shot out.png`.
+- Give someone XP by hand: `select public.xp_credit(a.id, 500, 'gift') from public.accounts a where a.username = 'theirname';`
+- Database changes: `sql/2026-10-24-xp-gear.sql`.

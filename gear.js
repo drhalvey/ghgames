@@ -755,7 +755,7 @@
     var flap = p.kind === "butterfly" || p.kind === "fairy" ? 6 : 2.4;
     return { obj: g, tick: function (t, dt, motion) {
       var a = Math.sin(t * flap) * (0.18 + Math.min(0.25, (motion || 0) * 0.05));
-      L.forEach(function (w) { w.rotation.y = 0.35 + a; }); R.forEach(function (w) { w.rotation.y = -0.35 - a; });
+      L.forEach(function (w) { w.rotation.y = -0.35 - a; }); R.forEach(function (w) { w.rotation.y = 0.35 + a; });
       if (p.rainbow) all.forEach(function (m, i) { m.material.color.setHSL(((t * 0.2 + (i % 6) / 6) % 1), 0.9, 0.6); m.material.emissive.copy(m.material.color).multiplyScalar(0.4); });
       if (p.glow && !p.rainbow) all.forEach(function (m, i) { m.material.emissiveIntensity = 0.35 + 0.25 * Math.sin(t * 3 + i * 0.4); });
       fire.forEach(function (f, i) { var ph = (t * 0.8 + i / fire.length) % 1, s = i % 2 ? 1 : -1; at(f, s * (0.3 + ph * 1.1), SH + 0.1 - ph * 0.9, BZ - 0.15); f.scale.setScalar(0.1 * (1 - ph)); f.material.color.setHSL(0.1 - ph * 0.08, 1, 0.55); f.material.emissive.copy(f.material.color); });

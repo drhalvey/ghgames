@@ -68,6 +68,7 @@
     "mega-dropper-tycoon": { title: "Mega Dropper Tycoon", keys: ["droppertycoon-save"] },
     "duel-masters": { title: "Duel Masters", keys: ["duelmasters-save"] },
     "parry-panic": { title: "Parry Panic", keys: ["parrypanic-save"] },
+    "sky-high-splat": { title: "Sky High Splat", keys: ["skysplat-save"] },
   };
 
   var TOKEN = "ghacct_token", USER = "ghacct_user", NICK = "ghgames_nick";

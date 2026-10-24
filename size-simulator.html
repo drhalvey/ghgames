@@ -244,6 +244,7 @@ h1 small{font-size:16px;background:var(--gold);color:#1d1530;border-radius:8px;p
 <div class="overlay" id="overlay" hidden><div class="box" id="box"></div></div>
 
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/break_infinity.js@2.0.0/dist/break_infinity.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="leaderboard.js"></script>
@@ -1006,6 +1007,7 @@ function onMe(p) {
   e.name = safeName(p.n); e.tx2 = +p.x || 0; e.ty2 = +p.y || 0; e.m = Decimal.max(1, safeBig(p.m));
   e.c = (p.c | 0) % COLS.length; e.sh = p.sh ? 1 : 0; e.boost = p.b ? 1 : 0; e.pets = String(p.p || "").slice(0, 12);
   e.fx = +p.fx || 0; e.fy = +p.fy || 0; e.seen = performance.now();
+  if (p.gear && typeof p.gear === "object") { const gk = JSON.stringify(p.gear); if (gk !== e.gearK) { e.gearK = gk; e.gear = p.gear; } }
 }
 function onBots(p) {
   if (isHost || !Array.isArray(p.b)) return;
@@ -1049,7 +1051,7 @@ let netT = 0; const foodQ = [];
 function netTick(dt) {
   netT -= dt; if (netT > 0 || !online) return;
   netT = 0.15;
-  const u = { me: { i: MYID, n: NAME, x: Math.round(ME.x), y: Math.round(ME.y), m: S.mass.toString(), c: S.col, sh: ME.sh > 0 ? 1 : 0, b: ME.boost > 0 ? 1 : 0, p: eqEmojis(), fx: +ME.fx.toFixed(2), fy: +ME.fy.toFixed(2) } };
+  const u = { me: { i: MYID, n: NAME, x: Math.round(ME.x), y: Math.round(ME.y), m: S.mass.toString(), c: S.col, sh: ME.sh > 0 ? 1 : 0, b: ME.boost > 0 ? 1 : 0, p: eqEmojis(), fx: +ME.fx.toFixed(2), fy: +ME.fy.toFixed(2), gear: (window.Gear ? Gear.on() : {}) } };
   if (foodQ.length) { if (foodQ.length > 200) foodQ.splice(0, foodQ.length - 200); u.f = foodQ.splice(0, 40); }
   if (isHost) u.b = [...E.values()].filter(e => e.bot).map(b => [b.id, b.name, Math.round(b.x), Math.round(b.y), b.m.toString(), b.c, b.sh > 0 ? 1 : 0, +b.fx.toFixed(2), +b.fy.toFixed(2)]);
   bcast("u", u);
@@ -1372,9 +1374,28 @@ function petList(str, n) { const out = []; for (const ch of [...(str || "")]) if
 // ---------------- everyone on screen ----------------
 const MODELS = new Map();   // id -> { m, ci, tag, pets: [{ sp, ring, x, z, e }], phase, lx, ly, yaw }
 let shieldGeo = null, shieldMat = null, boostMat = null;
+// accessories (gear.js): my look on my character, other real players' looks on theirs.
+// The character picked in this game keeps its own colours (body:false). Bots get nothing.
+function gearOff(m) { if (window.Gear && m) try { Gear.undress(m); if (m.userData.gearHat) Gear.undress(m.userData.gearHat); } catch (e) {} }
+function gearModel(o, look, key) {
+  if (!window.Gear || o.gearK === key) return;
+  o.gearK = key;
+  try {
+    const u = o.m.userData, head = u.body.children.find(c => c.isMesh && Math.abs(c.position.y - 1.98) < 0.01);
+    const opts = { forward: "z", head, height: 2.5, feet: 0, cx: 0, cz: 0, slots: { body: false, hat: false } };
+    if (look) opts.look = look;
+    Gear.dress(o.m, opts);
+    // every character already wears its own hat, so the gear hat sits on top of it (on a hat-only holder)
+    const C = CHARS[o.ci] || CHARS[0], HT = { cap: 2.62, ninja: 2.37, crown: 2.5, cowboy: 2.62, robot: 2.37, wizard: 2.42, pirate: 2.53, chef: 2.88 };
+    if (!u.gearHat) { u.gearHat = new THREE.Group(); u.body.add(u.gearHat); }
+    const ho = { forward: "z", headTop: HT[C.hat] || 2.37, headSize: 0.82, height: 2.5, feet: 0, cx: 0, cz: 0, slots: { face: false, back: false, aura: false, trail: false, body: false } };
+    if (look) ho.look = look;
+    Gear.dress(u.gearHat, ho);
+  } catch (e) {}
+}
 function modelFor(id, ci) {
   let o = MODELS.get(id);
-  if (o && o.ci !== ci) { scene.remove(o.m); o.m = makeChar(ci); o.ci = ci; scene.add(o.m); }
+  if (o && o.ci !== ci) { gearOff(o.m); scene.remove(o.m); o.m = makeChar(ci); o.ci = ci; o.gearK = null; scene.add(o.m); }
   if (!o) {
     o = { m: makeChar(ci), ci, phase: 0, lx: null, ly: null, yaw: 0, pets: [], seen: 0 };
     if (!shieldGeo) { shieldGeo = new THREE.SphereGeometry(1, 20, 14); shieldMat = new THREE.MeshBasicMaterial({ color: 0x8cdcff, transparent: true, opacity: 0.22, depthWrite: false }); boostMat = new THREE.MeshBasicMaterial({ color: 0xffe27a, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false }); }
@@ -1387,7 +1408,7 @@ function modelFor(id, ci) {
 }
 function dropModel(id) {
   const o = MODELS.get(id); if (!o) return;
-  scene.remove(o.m); scene.remove(o.shield); scene.remove(o.ring); o.tag.remove();
+  gearOff(o.m); scene.remove(o.m); scene.remove(o.shield); scene.remove(o.ring); o.tag.remove();
   for (const p of o.pets) { scene.remove(p.sp); scene.remove(p.sh); }
   MODELS.delete(id);
 }
@@ -1516,6 +1537,7 @@ function draw(now, dt) {
     if (!p.me && Math.hypot(lx, lz) > gatherR + pr * 3) continue;
     live.add(p.id);
     const o = modelFor(p.id, p.c);
+    if (p.me) gearModel(o, null, "me"); else if (p.e && !p.e.bot && p.e.gearK) gearModel(o, p.e.gear, p.e.gearK);
     const ddx = o.lx == null ? 0 : p.x - o.lx, ddy = o.lx == null ? 0 : p.y - o.ly;
     const mv = Math.hypot(ddx, ddy); o.lx = p.x; o.ly = p.y;
     const moving = p.me ? p.moving : mv > pr * 0.004;

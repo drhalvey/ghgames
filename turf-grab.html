@@ -166,6 +166,7 @@
 
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script src="arcade3d.js"></script>
 <script>
 /* ---------- progression: upgrades, worlds, skins, pets, rebirths, daily reward ----------
@@ -550,10 +551,11 @@ function makePlayer(isMe,name,col,x,z,skill,startR){
   const cr=new THREE.Group(),cm=A3.mat("#ffcf3f",{metal:.5,rough:.3,emissive:"#ffb300",glow:.3});const band=new THREE.Mesh(crownGeo,cm);band.material.side=THREE.DoubleSide;cr.add(band);
   for(let k=0;k<5;k++){const a=k/5*6.283,pt=new THREE.Mesh(crownPt,cm);pt.position.set(Math.cos(a)*0.3,0.2,Math.sin(a)*0.3);cr.add(pt);}cr.position.y=1.06;cr.visible=isMe||Math.random()<0.4;g.add(cr);
   scene.add(g);
+  if(isMe&&window.Gear){try{Gear.dress(g,{forward:"-z",height:2.6,feet:-1.0,headTop:1.04,headSize:1.08,slots:{body:false}});const hideCr=()=>{try{cr.visible=!(Gear.on()||{}).hat;}catch(e){}};hideCr();if(!window.__tgGearHook){window.__tgGearHook=1;Gear.onChange(()=>{try{if(me&&me.crown)me.crown.visible=!(Gear.on()||{}).hat;}catch(e){}});}}catch(e){}}
   const c=lin(col),hsl={};new THREE.Color(col).getHSL(hsl);
   const light=new THREE.Color().setHSL(hsl.h,Math.min(1,hsl.s*0.95),Math.min(0.76,hsl.l+0.1)).convertSRGBToLinear();
   const p={id,me:isMe,name,col,c,tc:[light,light.clone().lerp(c,0.35)],trc:c.clone(),x,z,px:x,pz:z,dir:Math.floor(Math.random()*4),t:0,
-    q:[],trail:[],area:0,alive:true,mesh:g,body,skill:skill||0.5,plan:[],speed:isMe?6.6*(1+0.03*(S.up.speed||0)):A3.rand(5.4,6.6),face:0,kos:0,deathT:0,hx:x,hz:z,respawn:0,shield:isMe?(S.up.shield||0):0};
+    q:[],trail:[],area:0,alive:true,mesh:g,body,crown:cr,skill:skill||0.5,plan:[],speed:isMe?6.6*(1+0.03*(S.up.speed||0)):A3.rand(5.4,6.6),face:0,kos:0,deathT:0,hx:x,hz:z,respawn:0,shield:isMe?(S.up.shield||0):0};
   p.face=-p.dir*Math.PI/2;
   p.tag=A3.label(isMe?"You":name,{size:0.7,color:isMe?"#1b8a3a":"#1d2a4a",stroke:"rgba(255,255,255,.95)",px:56});p.tag.material.depthTest=false;p.tag.renderOrder=5;scene.add(p.tag);
   players.push(p);
@@ -564,7 +566,7 @@ function makePlayer(isMe,name,col,x,z,skill,startR){
   return p;
 }
 function clearAll(){
-  players.forEach(p=>{scene.remove(p.mesh);scene.remove(p.tag);if(p.castle)scene.remove(p.castle);});players=[];
+  players.forEach(p=>{scene.remove(p.mesh);if(p.me&&window.Gear){try{Gear.undress(p.mesh);}catch(e){}}scene.remove(p.tag);if(p.castle)scene.remove(p.castle);});players=[];
   owner.fill(-1);trail.fill(-1);lvl.fill(0);grow.fill(0);animList.length=0;tileAnim.fill(0);
   for(let i=0;i<GG;i++)setTile(i,tileH(i));tilesDirty=true;bDirty=true;
 }

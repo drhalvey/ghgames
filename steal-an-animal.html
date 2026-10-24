@@ -168,6 +168,7 @@ h1 small{font-family:var(--display);font-size:16px;background:var(--gold);color:
 <script src="https://cdn.jsdelivr.net/npm/break_infinity.js@2.0.0/dist/break_infinity.min.js"></script>
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
@@ -979,13 +980,15 @@ if (!HAS3D) {
     head.position.y = 2.12; head.castShadow = true; body.add(head);
     const hat = robber ? box(.72, .22, .7, mPlain(0x1b1b2b)) : box(.7, .16, .66, mPlain(0x5a3418));
     hat.position.set(0, robber ? 2.5 : 2.4, -.02); body.add(hat);
-    if (!robber) { const capM = mPlain(0xe8433a); const cap = box(.72, .18, .7, capM); cap.position.y = 2.52; body.add(cap); const brim = box(.56, .06, .4, capM); brim.position.set(0, 2.45, .42); body.add(brim); }
+    const capParts = [hat];
+    if (!robber) { const capM = mPlain(0xe8433a); const cap = box(.72, .18, .7, capM); cap.position.y = 2.52; body.add(cap); const brim = box(.56, .06, .4, capM); brim.position.set(0, 2.45, .42); body.add(brim); capParts.push(cap, brim); }
     const crown = new THREE.Group();
     { const gm = new THREE.MeshStandardMaterial({ color: 0xffd23c, metalness: .6, roughness: .3, emissive: 0x553300 });
       const b = box(.7, .2, .7, gm); crown.add(b);
       for (const [px, pz] of [[-.27, -.27], [.27, -.27], [-.27, .27], [.27, .27], [0, .3], [0, -.3]]) { const s = box(.14, .24, .14, gm); s.position.set(px, .2, pz); crown.add(s); } }
     crown.position.y = 2.75; crown.visible = false; body.add(crown);
-    root.userData = { legL, legR, armL, armR, body, crown, ph: 0 };
+    const clothes = [torso]; for (const l of [legL, legR, armL, armR]) l.traverse(m => { if (m.isMesh) clothes.push(m); });
+    root.userData = { legL, legR, armL, armR, body, crown, head, torso, capParts, clothes, ph: 0 };
     scene.add(root);
     return root;
   }
@@ -999,6 +1002,8 @@ if (!HAS3D) {
     u.body.position.y = moving ? Math.abs(Math.sin(u.ph)) * .08 : 0;
   }
   const hero = makePerson(0xffc93c, false);
+  // the player's GH Games accessories (hero faces +z); the built-in cap comes off while a gear hat is worn
+  try { if (window.Gear) Gear.dress(hero, { forward: "z", head: hero.userData.head, torso: hero.userData.torso, body: hero.userData.clothes }); } catch (e) {}
   const heroTag = makeLabel(512, 72, .8); scene.add(heroTag);
   const robbers = NPC_INFO.map(info => { const r = makePerson(new THREE.Color(info.c).getHex(), true); r.userData.tag = makeLabel(512, 72, .75); scene.add(r.userData.tag);
     r.userData.bang = makeLabel(96, 96, 1.1); scene.add(r.userData.bang); setLabel(r.userData.bang, "!", "#ff5d5d", null, 80); return r; });
@@ -1275,6 +1280,7 @@ if (!HAS3D) {
     animPerson(hero, moved > .1, dt, !!player.carry);
     hero.visible = !(player.inv > 0 && Math.floor(t * 10) % 2);
     hero.userData.crown.visible = vip();
+    { const gearHat = !!(window.Gear && Gear.on().hat); for (const c of hero.userData.capParts) c.visible = !gearHat; }
     setLabel(heroTag, (vip() ? "👑 " : "") + (hasName() ? NAME : "You"), "#ffe066", null, 46);
     heroTag.position.set(hx, hy + (player.carry ? 4.9 : 3.3), hz);
     if (player.carry) drawAnimal3(player.carry.a, hx, hy + 2.75, hz, hero.rotation.y, .9, null);

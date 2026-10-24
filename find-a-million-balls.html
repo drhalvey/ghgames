@@ -133,6 +133,7 @@
 
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script src="arcade3d.js"></script>
 <script>
 (function(){
@@ -363,7 +364,7 @@ const M=(c,o)=>A3.mat(c,o);
 const P={x:0,y:0,z:0,vx:0,vy:0,vz:0,ground:true,coy:0,buf:0,face:Math.PI,walk:0};
 const av=new THREE.Group();scene.add(av);
 function part(w,h,d,c,x,y,z,par){const m=new THREE.Mesh(geoBox,M(c));m.scale.set(w,h,d);m.position.set(x,y,z);m.castShadow=true;(par||av).add(m);return m;}
-part(.8,.8,.45,"#2a8cff",0,1.05,0);part(.55,.55,.55,"#ffd23f",0,1.73,0);part(.12,.1,.02,"#111",-.12,1.8,.28);part(.12,.1,.02,"#111",.12,1.8,.28);
+const avTorso=part(.8,.8,.45,"#2a8cff",0,1.05,0),avHead=part(.55,.55,.55,"#ffd23f",0,1.73,0);part(.12,.1,.02,"#111",-.12,1.8,.28);part(.12,.1,.02,"#111",.12,1.8,.28);
 const armL=new THREE.Group(),armR=new THREE.Group(),legL=new THREE.Group(),legR=new THREE.Group();
 [[armL,-.52,1.42,"#ffd23f"],[armR,.52,1.42,"#ffd23f"],[legL,-.2,.65,"#2f3a5a"],[legR,.2,.65,"#2f3a5a"]].forEach(([g,x,y,c])=>{g.position.set(x,y,0);av.add(g);const m=new THREE.Mesh(geoBox,M(c));m.scale.set(.26,.68,.3);m.position.y=-.32;m.castShadow=true;g.add(m);});
 const pushG=new THREE.Group();av.add(pushG);
@@ -620,6 +621,12 @@ function update(dt){frameN++;
 
 /* ---------- start ---------- */
 setPusher();setAura();titleInfo();hud();
+/* accessories (gear.js): hat/face on the head, backs on the torso, body skin on torso/arms/legs (not the pusher board).
+   The game's own aura/trail (they give luck and cash) win: gear's aura/trail only show when no game one is worn. */
+let gearKey="";
+function dressGear(){try{if(!window.Gear)return;const ga=S.aura>=0&&S.auras.includes(S.aura),gt=S.trail>=0&&S.trails.includes(S.trail),k=ga+"|"+gt;if(k===gearKey)return;gearKey=k;
+  Gear.dress(av,{forward:"z",height:2.0,feet:0,cx:0,cz:0,head:avHead,torso:avTorso,body:[avTorso,avHead,armL.children[0],armR.children[0],legL.children[0],legR.children[0]],slots:{aura:!ga,trail:!gt}});}catch(e){}}
+dressGear();setInterval(dressGear,1000);
 for(let i=0;i<30;i++)dropBall();
 A3.loop(update);
 if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"find-a-million-balls",dir:"desc",unit:"balls",title:"Find a Million Balls: most balls pushed into the Void"});

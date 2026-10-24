@@ -202,6 +202,7 @@ button.chip.snd{cursor:pointer;font-family:var(--body);color:var(--ink);text-ali
 </div>
 
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script src="leaderboard.js"></script>
 <script>
 "use strict";
@@ -1180,6 +1181,39 @@ function drawPlayers3D() {
   if (hairMesh.instanceColor) hairMesh.instanceColor.needsUpdate = true;
 }
 
+// ---- the player's GH Games accessories on the kicker (the No. 10 you control) ----
+// Players are instanced meshes drawn from data, so the gear hangs on an invisible stand-in that
+// follows the kicker every frame: a holder at his feet facing his way, plus head and torso
+// proxies that copy his posed head and chest (so the crown bobs and the wings lean with him).
+const kGear = (() => {
+  const hide = new THREE.MeshBasicMaterial({ visible: false });
+  const holder = new THREE.Group(); holder.visible = false; scene.add(holder);
+  const headP = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.28, 0.27), hide); headP.matrixAutoUpdate = false; holder.add(headP);
+  const torsoP = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.6, 0.25), hide); torsoP.matrixAutoUpdate = false; holder.add(torsoP);
+  const inv = new THREE.Matrix4(), M = new THREE.Matrix4(), X = new THREE.Vector3(), Y = new THREE.Vector3(), Z = new THREE.Vector3(), Pv = new THREE.Vector3();
+  let dressed = false;
+  function place(obj, c, up, F) {
+    Y.set(up[0], up[1], up[2]).normalize();
+    Z.set(F[0], 0, F[2]); Z.addScaledVector(Y, -Z.dot(Y)).normalize();
+    X.crossVectors(Y, Z);
+    M.makeBasis(X, Y, Z); M.setPosition(Pv.set(c[0], c[1], c[2]));
+    obj.matrix.multiplyMatrices(inv, M); obj.matrixWorldNeedsUpdate = true;
+  }
+  function update() {
+    const p = G.kicker;
+    if (!p || G.players.indexOf(p) < 0) { holder.visible = false; return; }
+    const J = skel(p), sz = p.big || 1;
+    holder.position.set(p.x, 0, p.z); holder.rotation.y = Math.PI - p.th; holder.visible = true;
+    holder.updateMatrixWorld(true); inv.copy(holder.matrixWorld).invert();
+    const hc = [J.head[0], J.head[1] + 0.03 * sz, J.head[2]];
+    place(headP, hc, [J.head[0] - J.neck[0], J.head[1] - J.neck[1], J.head[2] - J.neck[2]], J.F);
+    const sc = L3(J.s0, J.s1, 0.5), w = J.waist;
+    place(torsoP, [(sc[0] + w[0]) / 2, (sc[1] + w[1]) / 2, (sc[2] + w[2]) / 2], [sc[0] - w[0], sc[1] - w[1], sc[2] - w[2]], J.F);
+    if (!dressed) { dressed = true; try { if (window.Gear) Gear.dress(holder, { forward: "z", head: headP, torso: torsoP, height: 1.85 * sz, feet: 0, slots: { body: false } }); } catch (e) {} }
+  }
+  return { update, holder };
+})();
+
 // ================= game state =================
 const G = {
   mode: S.mode, kind: "drop", phase: "cine", t: 0, pt: 0, kick: null, aim: 0, aimDir: 0, players: [],
@@ -1946,7 +1980,7 @@ function draw() {
   postMat.color.set(ST.space ? 0xe9e2ff : 0xffffff);
   for (const f of flagPoles) f.fl.rotation.y = Math.sin(G.t * 6 + f.z) * 0.35;
   if (ribbonT) ribbonT.offset.x = -(G.t * 0.05) % 1;
-  drawPlayers3D(); drawBall3D(); drawAim3D(); drawScreen(); drawFlashes();
+  drawPlayers3D(); try { kGear.update(); } catch (e) {} drawBall3D(); drawAim3D(); drawScreen(); drawFlashes();
   updCrowd(); updParticles(dt); updWeather(dt);
   applyCamera();
   sun.target.position.set(C.lx * 0.6 + camera.position.x * 0.4, 0, C.lz * 0.6 + camera.position.z * 0.4);

@@ -239,6 +239,7 @@ h1 small{font-family:var(--body);font-weight:900;font-size:16px;background:var(-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script>
 "use strict";
 if (!window.THREE) { document.getElementById("lobby").innerHTML = '<h2>3D could not load</h2><p class="nogl">Something went wrong loading the 3D engine. <a href="monster-mayhem-classic.html">Play Monster Mayhem Classic</a> instead: same game, same save.</p>'; throw new Error("three.js missing"); }
@@ -609,7 +610,22 @@ function renderLod(list, t, dt) {
   for (const m of [lodBody, lodFace, lodLeg]) m.instanceMatrix.needsUpdate = true;
   lodBody.instanceColor.needsUpdate = true; lodLeg.instanceColor.needsUpdate = true;
 }
-function disposeView(v) { scene.remove(v.root); v.side.dispose(); if (v.glow) v.glow.material.dispose(); }
+// accessories (gear.js): my own look on my monster, and other real players' looks on theirs
+function gearView(v, M) {
+  if (!window.Gear || M.bot || M.boss) return;
+  try {
+    // the monster is a fat cube, much wider than gear's mannequin: size the aura to the full body,
+    // and hang the back gear on a holder just behind the body so wings are not swallowed by it
+    const opts = { forward: "z", head: v.bodyG.children[0], headSize: 1.35, height: 3.4, feet: 0, cx: 0, cz: 0, slots: { body: false, back: false } };
+    if (!M.me) { const p = peers.find(q => q.i === M.id); if (!p || !p.gear) return; opts.look = p.gear; }
+    Gear.dress(v.root, opts);
+    if (!v.backG) { v.backG = new THREE.Group(); v.backG.position.set(0, 0, -0.6); v.bodyG.add(v.backG); }
+    const bo = { forward: "z", height: 2.6, feet: 0, cx: 0, cz: 0, slots: { hat: false, face: false, aura: false, trail: false, body: false } };
+    if (opts.look) bo.look = opts.look;
+    Gear.dress(v.backG, bo); v.geared = true;
+  } catch (e) {}
+}
+function disposeView(v) { if (v.geared) try { Gear.undress(v.root); Gear.undress(v.backG); } catch (e) {} scene.remove(v.root); v.side.dispose(); if (v.glow) v.glow.material.dispose(); }
 function animMonster(v, M, t, dt) {
   const r3 = radius(M.m) * SC;
   v.root.position.set(M.x * SC, 0, M.y * SC);
@@ -1023,7 +1039,7 @@ function render3D(st, dt) {
     if (v && (v.skin !== M.skin || v.boss !== !!M.boss)) { disposeView(v); views.delete(M.id); v = null; }
     if (!full.has(M)) { if (v) { if (!M.alive || Math.hypot(M.x - fcx, M.y - fcy) > VR * 1.4) { disposeView(v); views.delete(M.id); } else v.root.visible = false; } continue; }
     if (v) v.root.visible = true;
-    if (!v) { v = makeMonsterView(M.skin, M.boss); v.yaw = Math.atan2(M.face[0] || 0, M.face[1] || 1); scene.add(v.root); views.set(M.id, v); }
+    if (!v) { v = makeMonsterView(M.skin, M.boss); v.yaw = Math.atan2(M.face[0] || 0, M.face[1] || 1); scene.add(v.root); views.set(M.id, v); gearView(v, M); }
     seen.add(M.id); animMonster(v, M, t, dt);
   }
   for (const [id, v] of views) if (!st.mons.has(id)) { disposeView(v); views.delete(id); }
@@ -1724,7 +1740,8 @@ let sb = null, ch = null, online = false, peers = [], hostId = MYID, isHost = tr
 const netNow = () => Date.now() + clockOff;
 function bcast(ev, payload) { if (online && ch) try { ch.send({ type: "broadcast", event: ev, payload }); } catch (e) {} }
 const owns = M => !M.remote;   // my own monster, or a bot I run as host
-const meta = () => ({ i: MYID, n: NAME, t: joinT });
+const meta = () => ({ i: MYID, n: NAME, t: joinT, gear: (window.Gear ? Gear.on() : {}) });
+if (window.Gear) try { Gear.onChange(() => { if (online && ch) try { ch.track(meta()); } catch (e) {} }); } catch (e) {}
 let retryT = 2000;
 function connect() {
   disconnect();
@@ -1764,6 +1781,7 @@ function onSync() {
   else if (wasHost) { isHost = false; for (const [id, M] of G.mons) if (M.bot) { M.remote = true; M.tx2 = M.x; M.ty2 = M.y; } }
   const ids = new Set(peers.map(p => p.i));
   for (const [id, M] of G.mons) if (!M.bot && M.remote && !ids.has(id)) G.mons.delete(id);
+  for (const [id, v] of views) { const M = G.mons.get(id); if (M && M.remote && !M.bot && !v.geared) gearView(v, M); }
   updateOnlineMsg();
 }
 function becomeHost() {

@@ -119,6 +119,7 @@
 
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script src="arcade3d.js"></script>
 <script>
 (function(){
@@ -846,11 +847,20 @@ function buildPets(){
 
 /* ---------- player ---------- */
 function makePlayer(){
-  if(player)scene.remove(player);
+  if(player){scene.remove(player);if(window.Gear&&pModel){try{Gear.undress(pModel);}catch(e){}}}
   player=new THREE.Group();player.scale.setScalar(1.15);pModel=buildCrit(SKINS[S.skin].id);player.add(pModel);
   const bub=new THREE.Mesh(new THREE.SphereGeometry(0.62,18,12),new THREE.MeshStandardMaterial({color:0x7fd8ff,transparent:true,opacity:0.3,emissive:0x2a8aff,emissiveIntensity:0.4,depthWrite:false}));bub.position.y=0.5;bub.visible=false;player.add(bub);player.userData.bub=bub;
   if(!shadowBlob){shadowBlob=new THREE.Mesh(new THREE.CircleGeometry(0.34,16),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.22,depthWrite:false}));shadowBlob.rotation.x=-Math.PI/2;shadowBlob.position.y=0.21;scene.add(shadowBlob);}
   scene.add(player);
+  dressCrit();
+}
+// accessories (gear.js) on the critter model (faces -z), so they turn and squash with it.
+// Where each critter's head is: [top of head, head width, how far forward the face is]
+const CRIT_HEAD={duck:[0.95,0.44,0.06],goose:[0.95,0.44,0.06],frog:[0.73,0.5,0.06],penguin:[0.82,0.4,0.04],pig:[0.74,0.5,0.07],panda:[0.94,0.48,0.03],fox:[0.93,0.46,0.08],robot:[0.96,0.46,0.0],dino:[1.0,0.44,0.17],unicorn:[1.03,0.36,0.22]};
+function dressCrit(){
+  if(!window.Gear||!pModel)return;
+  try{const h=CRIT_HEAD[SKINS[S.skin].id]||[0.9,0.5,0.05];
+    Gear.dress(pModel,{forward:"-z",height:1.7,feet:-0.4,cz:0,headTop:h[0],headSize:h[1],headZ:h[2],slots:{body:false}});}catch(e){}
 }
 function startWorld(){
   clearWorld();parts.clear();applyWorld();
@@ -1107,7 +1117,7 @@ function titleStats(){
   $("tStats").innerHTML="<div>Best run <b>"+S.bestSaved+"</b> saved</div><div>Total saved <b>"+A3.fmt(S.saved)+"</b></div><div>Coins <b>"+A3.fmt(S.coins)+"</b></div><div>Rebirths <b>"+A3.fmt(S.reb)+"</b></div><div>Multi <b>x"+K.fm(multi())+"</b></div>";
   $("bPlay").textContent=S.runs>0?"Continue: "+WORLDS[S.world].n:"Play";
 }
-function showcase(){if(playing)return;if(player){player.remove(pModel);pModel=buildCrit(SKINS[S.skin].id);player.add(pModel);}}
+function showcase(){if(playing)return;if(player){player.remove(pModel);if(window.Gear){try{Gear.undress(pModel);}catch(e){}}pModel=buildCrit(SKINS[S.skin].id);player.add(pModel);dressCrit();}}
 function idleScene(){
   startWorld();
   while(highRow<22){highRow++;addRow(highRow);}

@@ -169,6 +169,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script src="arcade3d.js"></script>
 <script>
 (function(){
@@ -334,9 +335,19 @@ function makeBall(k){
   if(SKINS[k].o.ring){ring=new THREE.Mesh(new THREE.TorusGeometry(1.55,0.12,8,48),A3.mat(SKINS[k].o.ring,{emissive:SKINS[k].o.ring,glow:0.6}));ring.rotation.x=Math.PI/2.4;root.add(ring);}
   const bubble=new THREE.Mesh(ballGeo,bubbleMat);bubble.scale.setScalar(1.25);bubble.visible=false;root.add(bubble);
   scene.add(root);
-  return {root,mesh,ring,bubble,k};
+  // gear holder: does not roll with the ball, turns to face where the ball is going
+  const holder=new THREE.Group();root.add(holder);const backHolder=new THREE.Group();holder.add(backHolder);
+  return {root,mesh,ring,bubble,k,holder,backHolder};
 }
-function dropBall(b){if(!b)return;scene.remove(b.root);b.mesh.material.dispose();}
+function dropBall(b){if(!b)return;if(window.Gear&&b.holder)try{Gear.undress(b.holder);Gear.undress(b.backHolder);}catch(e){}scene.remove(b.root);b.mesh.material.dispose();}
+// accessories (gear.js): hat on top of the ball, shades on the front, wings behind; the ball keeps its own skin
+function dressBall(b,look){
+  if(!window.Gear||!b||!b.holder)return;
+  try{const o={forward:"z",height:2,feet:-1,cx:0,cz:0,headTop:1,headSize:1.3,headZ:0.35,slots:{back:false,body:false}};if(look)o.look=look;Gear.dress(b.holder,o);
+    // back gear on its own frame pushed out behind the ball, so wings and capes are not hidden inside it
+    const k={forward:"z",height:2.4,feet:-1.3,cx:0,cz:-0.85,slots:{hat:false,face:false,aura:false,trail:false,body:false}};if(look)k.look=look;Gear.dress(b.backHolder,k);}catch(e){}
+}
+function faceBall(b,a){if(b&&b.holder)b.holder.rotation.y=Math.PI/2-a;}
 
 /* ---------- name tags (canvas sprites we can re-write) ---------- */
 function mkTag(){
@@ -674,6 +685,7 @@ function spawnMe(){
   if(me)dropBall(me.ball);
   setUnits();
   me={id:MYID,name:myName(),p:true,x:0,z:0,a:0,ta:0,go:0,m:SPAWN,r:1,fx:{},shield:false,spawnT:3,gcd:0,kb:0,alive:true,ball:makeBall(S.skin),q:new THREE.Quaternion(),tag:myTag()};
+  dressBall(me.ball);
   for(let t=0;t<40;t++){const a=Math.random()*6.283,r=Math.sqrt(Math.random())*(RA*0.7);const x=Math.cos(a)*r,z=Math.sin(a)*r;
     if(bots.every(b=>!b.alive||b.m<SPAWN||Math.hypot(b.x-x,b.z-z)>b.r+16)){me.x=x;me.z=z;break;}}
   me.a=me.ta=Math.atan2(-me.z,-me.x);me.r=rOf(me.m);
@@ -963,7 +975,7 @@ A3.loop((dt,t)=>{fpsN++;const T0=performance.now();
   // draw the player and humans
   if(me&&me.ball){
     const vis=me.alive;me.ball.root.visible=vis;me.tag.visible=vis&&mode==="play";
-    if(vis){me.ball.root.position.set(me.x,me.r,me.z);me.ball.root.scale.setScalar(me.r);me.ball.mesh.quaternion.copy(me.q);
+    if(vis){me.ball.root.position.set(me.x,me.r,me.z);me.ball.root.scale.setScalar(me.r);me.ball.mesh.quaternion.copy(me.q);faceBall(me.ball,me.a);
       me.ball.bubble.visible=me.shield||(me.spawnT>0&&Math.sin(t*20)>-0.3);if(me.ball.ring)me.ball.ring.rotation.z+=dt;
       setTag(me.tag,me.name,"#7dffb0");placeTag(me.tag,me,me.r*2+1.2);}
   }
@@ -1006,7 +1018,7 @@ function connect(){
     const mine=ch;
     mine.subscribe(async st=>{
       if(mine!==ch)return;
-      if(st==="SUBSCRIBED"){online=true;retryT=2000;try{await mine.track({i:MYID,n:myName(),t:joinT});}catch(e){}updateOnlineMsg();}
+      if(st==="SUBSCRIBED"){online=true;retryT=2000;try{await mine.track({i:MYID,n:myName(),t:joinT,gear:(window.Gear?Gear.on():{})});}catch(e){}updateOnlineMsg();}
       else if(st==="CHANNEL_ERROR"||st==="TIMED_OUT"||st==="CLOSED"){
         online=false;updateOnlineMsg();
         if(GMODE==="public"&&!document.hidden)setTimeout(()=>{if(mine===ch&&GMODE==="public"&&!online&&!document.hidden){joinT=Date.now();connect();}},retryT);
@@ -1021,8 +1033,10 @@ function onSync(){
   peers=Object.values(ch.presenceState()).map(a=>a[0]).filter(Boolean);
   const ids=new Set(peers.map(p=>p.i));
   for(const [id,h] of humans)if(!ids.has(id)){dropHuman(h);humans.delete(id);}
+  for(const [id,h] of humans){const g=peerGear(id);if(JSON.stringify(h.gearOn||{})!==JSON.stringify(g)){h.gearOn=g;dressBall(h.ball,g);}}
   updateOnlineMsg();
 }
+function peerGear(id){const p=peers.find(q=>q&&String(q.i).slice(0,20)===id);return p&&p.gear&&typeof p.gear==="object"?p.gear:{};}
 function updateOnlineMsg(){
   const n=Math.max(1,peers.length),el=$("onlineLbl");
   el.textContent=online?(n>1?"🟢 "+n+" players in the arena":"🟢 Online, waiting for players"):"⚪ Offline (computer balls only)";
@@ -1039,8 +1053,8 @@ function onU(p){
   const id=String(p.i).slice(0,20);
   let h=humans.get(id);
   const k=A3.clamp(p.k|0,0,SKINS.length-1);
-  if(!h){h={id,name:safeName(p.n),human:true,x:+p.x||0,z:+p.z||0,tx:0,tz:0,a:0,m:20,r:1,fx:{},alive:true,spawnT:0,shield:false,q:new THREE.Quaternion(),ball:makeBall(k),tag:mkTag(),seen:0,claimT:0};humans.set(id,h);}
-  if(h.ball.k!==k){dropBall(h.ball);h.ball=makeBall(k);}
+  if(!h){h={id,name:safeName(p.n),human:true,x:+p.x||0,z:+p.z||0,tx:0,tz:0,a:0,m:20,r:1,fx:{},alive:true,spawnT:0,shield:false,q:new THREE.Quaternion(),ball:makeBall(k),tag:mkTag(),seen:0,claimT:0};humans.set(id,h);dressBall(h.ball,peerGear(id));}
+  if(h.ball.k!==k){dropBall(h.ball);h.ball=makeBall(k);dressBall(h.ball,peerGear(id));}
   h.name=safeName(p.n);h.tx=A3.clamp(+p.x||0,-RA,RA);h.tz=A3.clamp(+p.z||0,-RA,RA);h.a=+p.a||0;h.m=cap(+p.m||20);h.r=rOf(h.m);
   h.shield=!!p.s;h.spawnT=p.s?1:0;h.fx.giant=p.g?1:0;
   const was=h.alive;h.alive=!!p.al;if(!was&&h.alive){h.x=h.tx;h.z=h.tz;}
@@ -1051,7 +1065,7 @@ function drawHuman(h,dt,t){
   if(Math.hypot(dx,dz)>40){h.x=h.tx;h.z=h.tz;}else{h.x+=dx*k;h.z+=dz*k;const dist=Math.hypot(dx*k,dz*k);if(dist>1e-4){ax3.set(dz,0,-dx).normalize();qa.setFromAxisAngle(ax3,dist/h.r);h.q.premultiply(qa);}}
   h.ball.root.visible=h.alive;h.tag.visible=h.alive&&mode==="play";
   if(!h.alive)return;
-  h.ball.root.position.set(h.x,h.r,h.z);h.ball.root.scale.setScalar(h.r);h.ball.mesh.quaternion.copy(h.q);h.ball.bubble.visible=h.shield;
+  h.ball.root.position.set(h.x,h.r,h.z);h.ball.root.scale.setScalar(h.r);h.ball.mesh.quaternion.copy(h.q);faceBall(h.ball,h.a);h.ball.bubble.visible=h.shield;
   setTag(h.tag,h.name,"#ffd23f");placeTag(h.tag,h,h.r*2+1.2);
 }
 function eatHumans(){

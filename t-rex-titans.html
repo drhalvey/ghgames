@@ -269,6 +269,7 @@ h1 small{font-size:16px;background:var(--gold);color:#1d1530;border-radius:8px;p
 </div>
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script>
 (function(){
 "use strict";
@@ -597,7 +598,9 @@ function makeFighter(role,dinoId,skinId){
   const starM=new THREE.MeshBasicMaterial({color:0xffe23a});
   for(let i=0;i<3;i++){const st=new THREE.Mesh(new THREE.OctahedronGeometry(.09),starM);starsG.add(st);}
   root.scale.setScalar(R.scale);
-  root.userData={rig,legL,legR,up,arms,neck,headBox,jaw,tail,faceMat,face,role,starsG,mats:[M.body,M.belly],headTop:headY+1.02+.9+.6};
+  // invisible head-sized box for gear.js: hood width, top just under the snout, so hats sit on the dino head and shades on the face
+  const gearHead=new THREE.Mesh(new THREE.BoxGeometry(.72*headS,.81*headS,.66),new THREE.MeshBasicMaterial({visible:false}));gearHead.position.set(0,.055*headS,-.04);headBox.add(gearHead);
+  root.userData={rig,legL,legR,up,arms,neck,headBox,jaw,tail,faceMat,face,role,starsG,mats:[M.body,M.belly],headTop:headY+1.02+.9+.6,gearHead,torso};
   root.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   return root;
 }
@@ -758,7 +761,12 @@ function newFighter(i,role,dinoId,skinId,opts){
   f.hp=f.hpMax;setFace(f,"happy");
   return f;
 }
-function clearFighters(){for(const f of F){scene.remove(f.mesh);f.mesh.traverse(o=>{if(o.geometry)o.geometry.dispose();});}F=[];rainbowMats.length=0;}
+// accessories (gear.js) go on fighter 1 (you; player 1 in 2 player mode); the dino costume stays, so no body skin
+function dressMe(){
+  const f=F[0];if(!window.Gear||!f||!f.mesh)return;
+  try{const u=f.mesh.userData;Gear.dress(f.mesh,{forward:"z",head:u.gearHead,torso:u.torso,slots:{body:false}});}catch(e){}
+}
+function clearFighters(){for(const f of F){if(window.Gear)try{Gear.undress(f.mesh);}catch(e){}scene.remove(f.mesh);f.mesh.traverse(o=>{if(o.geometry)o.geometry.dispose();});}F=[];rainbowMats.length=0;}
 function say(f,txt,secs){const b=$("bub"+f.i);b.textContent=txt;b.style.display="block";f.bubT=secs||1.3;}
 
 function startAttack(f,type){
@@ -901,6 +909,7 @@ function startMatch(cfg){
   buildRoom(cfg.room);
   const a=cfg.p[0],b=cfg.p[1];
   F=[newFighter(0,a.role,a.d,a.s,a.o),newFighter(1,b.role,b.d,b.s,b.o)];
+  dressMe();
   hideAll();$("fhud").style.display="block";$("bPause").style.display="block";
   $("fnL").textContent=F[0].name+" · "+F[0].dino.name;$("fnR").textContent=F[1].dino.name+" · "+F[1].name;
   resetRound();
@@ -1120,6 +1129,7 @@ function cycle(list,cur,step){const i=list.findIndex(x=>x.id===cur);return list[
 function preview(roles,eqs,roomI){
   clearFighters();buildRoom(roomI);
   F=[newFighter(0,roles[0],eqs[0].d,eqs[0].s,{}),newFighter(1,roles[1],eqs[1].d,eqs[1].s,{})];
+  dressMe();
   F[0].x=-1.8;F[1].x=1.8;F.forEach(f=>{f.mesh.position.set(f.x,0,0);f.mesh.rotation.y=visYaw(f);});
 }
 function titleScreen(){

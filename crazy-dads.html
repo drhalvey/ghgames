@@ -230,6 +230,7 @@ button.chip:hover{border-color:var(--gold)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
@@ -946,7 +947,8 @@ function finishMyRound() {
 const SB_URL = "https://bpqaeqswtgtbqrczjcrx.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwcWFlcXN3dGd0YnFyY3pqY3J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzUzOTIsImV4cCI6MjA5NjkxMTM5Mn0.hsEZJ_C4NvySPMb59G9EPPfdJRSNBODbnuo9ij_zxrI";
 function bcast(ev, payload) { if (online && ch) try { ch.send({ type: "broadcast", event: ev, payload }); } catch (e) {} }
-function meta() { return { i: MYID, n: NAME, s: S.side, h: S.hat, t: joinT }; }
+function meta() { return { i: MYID, n: NAME, s: S.side, h: S.hat, t: joinT, gear: (window.Gear ? Gear.on() : {}) }; }
+if (window.Gear) try { Gear.onChange(() => { if (online && ch) try { ch.track(meta()); } catch (e) {} }); } catch (e) {}
 function connect() {
   disconnect();
   if (!window.supabase || !navigator.onLine) return;
@@ -1229,7 +1231,7 @@ function makePerson(o) {
   soda.position.set(0, -.88, .12); soda.visible = false; armR.add(soda);
   const held = new THREE.Group(); held.position.set(0, -.92, .14); held.visible = false; armL.add(held);
   const back = new THREE.Group(); back.position.set(0, ty, -.42); back.visible = false; body.add(back);
-  root.userData = { tilt, body, legL, legR, armL, armR, face, soda, held, back, heldKind: "", backKind: "", hy, faceKind: "n" };
+  root.userData = { tilt, body, legL, legR, armL, armR, face, soda, held, back, heldKind: "", backKind: "", hy, faceKind: "n", head, torso };
   return root;
 }
 function personFor(e) {
@@ -1793,8 +1795,23 @@ function makeView(e) {
   v.shadow = groundRing(.9, 0x000000, .25); scene.add(v.shadow);
   return v;
 }
-function dropView(v) { for (const k of ["m", "tag", "emo", "heart", "mine", "glow", "red", "shadow"]) scene.remove(v[k]); }
-function rebuildBody(v, e) { scene.remove(v.m); v.m = personFor(e); v.m.scale.setScalar(e.team === "dad" ? 1.08 : .84); scene.add(v.m); v.team = e.team; v.hat = null; }
+// accessories (gear.js): my look on me, other real players' looks on theirs (from presence).
+// Body skins are off (team shirts matter) and a hat bought in this game wins over a gear hat.
+function gearView(v, e) {
+  if (!window.Gear || e.bot) return;
+  let look = null;
+  if (e.id !== MYID) { const p = (peers || []).find(q => q.i === e.id); if (!p || !p.gear || typeof p.gear !== "object") return; look = p.gear; }
+  const ownHat = !!(e.hat && e.hat !== "none" && HAT[e.hat]), key = (look ? JSON.stringify(look) : "me") + "|" + ownHat + "|" + e.team;
+  if (v.gearK === key && v.gearM === v.m) return;
+  v.gearK = key; v.gearM = v.m;
+  try {
+    const u = v.m.userData, opts = { forward: "z", head: u.head, torso: u.torso, slots: { body: false, hat: !ownHat } };
+    if (look) opts.look = look;
+    Gear.dress(v.m, opts);
+  } catch (err) {}
+}
+function dropView(v) { if (window.Gear) try { Gear.undress(v.m); } catch (e) {} for (const k of ["m", "tag", "emo", "heart", "mine", "glow", "red", "shadow"]) scene.remove(v[k]); }
+function rebuildBody(v, e) { if (window.Gear) try { Gear.undress(v.m); } catch (err) {} scene.remove(v.m); v.m = personFor(e); v.m.scale.setScalar(e.team === "dad" ? 1.08 : .84); scene.add(v.m); v.team = e.team; v.hat = null; }
 
 // Didi the greyhound with Monica on her back
 function makeDidi() {
@@ -1998,6 +2015,7 @@ function drawEnts(now, dt, M) {
     seen.add(e.id);
     let v = V.get(e.id); if (!v) { v = makeView(e); V.set(e.id, v); }
     if (v.team !== e.team) rebuildBody(v, e);
+    gearView(v, e);
     const x = X3(e.rx), z = Z3(e.ry);
     const s = personState(e, v, now, dt, M, iAmDad);
     const u = v.m.userData, sc = e.team === "dad" ? 1.08 : .84;

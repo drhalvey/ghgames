@@ -367,6 +367,7 @@ input[type=range]{width:200px}
 </div>
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script>
 (function(){
 "use strict";
@@ -822,8 +823,12 @@ function newFighter(o){
   setHeld(f);
   if(f.id!==MYID){f.tag=labelSprite(f.name,"#fff");f.tag.position.y=2.35;f.ch.g.add(f.tag);}
   F.push(f);return f;}
-function removeFighter(f){scene.remove(f.ch.g);F=F.filter(x=>x!==f);}
-function clearFighters(){for(const f of F)scene.remove(f.ch.g);F=[];me=null;}
+/* accessories (gear.js). This is first person, so you never see yourself: your gear goes in your
+   network state and everyone else dresses your fighter with it. No body skins (team shirts matter). */
+function gearFighter(f,look){if(!window.Gear||!f||!f.ch)return;try{Gear.dress(f.ch.g,{forward:"-z",head:f.ch.head,torso:f.ch.torso,height:2.1,feet:0,cx:0,cz:0,slots:{body:false},look:look||{}});}catch(e){}}
+function ungearFighter(f){if(window.Gear&&f&&f.ch)try{Gear.undress(f.ch.g);}catch(e){}}
+function removeFighter(f){ungearFighter(f);scene.remove(f.ch.g);F=F.filter(x=>x!==f);}
+function clearFighters(){for(const f of F){ungearFighter(f);scene.remove(f.ch.g);}F=[];me=null;}
 function curDef(f){return W[f.eq[f.slot]];}
 function setHeld(f){const g=f.ch.gun;while(g.children.length)g.remove(g.children[0]);
   const id=f.eq[f.slot];if(id==="fists")return;g.add(buildWeapon(id,f.wraps[id]||"std"));}
@@ -1297,7 +1302,7 @@ function hashStr(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt
 function mapSize(mode,n){return mode==="team"?34+n*5:mode==="arena"?62:mode==="friends"?50:34;}
 function resetAreas(){for(const q of projs)scene.remove(q.m);for(const s of smokes)scene.remove(s.m);for(const z of fires)scene.remove(z.m);for(const p of pads)scene.remove(p.m);projs=[];smokes=[];fires=[];pads=[];}
 function startMatch(o){
-  hideAll();for(const c of menuChars)scene.remove(c.g);menuChars=[];
+  hideAll();for(const c of menuChars){if(window.Gear)try{Gear.undress(c.g);}catch(e){}scene.remove(c.g);}menuChars=[];
   const mode=o.mode,n=o.size||1;
   G={mode,mapId:o.map,seed:o.seed||Math.floor(Math.random()*1e9),size:n,diff:o.diff||0,skill:o.skill||.5,firstTo:5,score:{A:0,B:0},round:1,phase:"pre",timer:3,over:false,t:0,stats:{kos:0,deaths:0,keys:0,heads:0},target:o.target||0,net:!!o.net};
   buildWorld(G.mapId,mapSize(mode,n),G.seed);
@@ -1621,7 +1626,7 @@ function stateOf(f,lk){const o={i:f.id,n:f.name,tm:f.team,x:r2(f.pos.x),y:r2(f.p
 function netTick(dt){
   NET.fxT-=dt;if(NET.fxT<=0){NET.fxT=1;NET.fxN=0;}
   NET.hostT-=dt;if(NET.hostT<=0){NET.hostT=1;pickHost();}
-  NET.sT-=dt;if(NET.sT<=0&&me){NET.sT=1/12;const s=stateOf(me,true);s.mp=G.mapId;s.sd=G.seed;netSend("s",s);}
+  NET.sT-=dt;if(NET.sT<=0&&me){NET.sT=1/12;const s=stateOf(me,true);s.mp=G.mapId;s.sd=G.seed;s.gear=(window.Gear?Gear.on():{});netSend("s",s);}
   if(NET.isHost){NET.bT-=dt;if(NET.bT<=0){NET.bT=1/6;const bs=F.filter(f=>f.bot&&!f.remote).map(f=>stateOf(f,true));if(bs.length)netSend("b",bs);}
     NET.fillT-=dt;if(NET.fillT<=0){NET.fillT=1;if(G.mode==="arena")fillArenaBots();}}
   const now=performance.now();
@@ -1632,6 +1637,7 @@ function upsertRemote(p,isBot){
   if(f&&!f.remote)return f;
   if(!f){const lk=p.lk?{shirt:p.lk[0],pants:p.lk[1],skin:p.lk[2],hair:p.lk[3],hat:p.lk[4]}:lookFor("X");
     f=newFighter({id:p.i,name:String(p.n||"?").slice(0,16),team:p.tm,remote:true,bot:isBot,look:lk,fin:p.f||"pop"});f.pos.set(p.x,p.y,p.z);f.tpos.set(p.x,p.y,p.z);f.yaw=f.tyaw=p.yw;}
+  if(!isBot&&p.gear&&typeof p.gear==="object"){const gk=JSON.stringify(p.gear);if(gk!==f.gearKey){f.gearKey=gk;gearFighter(f,p.gear);}}
   f.tpos.set(p.x,p.y,p.z);f.tyaw=p.yw;f.tpitch=p.pt;f.hp=p.hp;f.kills=p.k||0;f.deaths=p.d||0;f.fin=p.f||"pop";f.rspd=p.sp||0;f.team=p.tm;f.seen=performance.now();
   if(p.w&&W[p.w]&&(f.eq[f.slot]!==p.w||(f.wraps[p.w]||"std")!==p.wr)){const sl=W[p.w].slot;f.eq[sl]=p.w;f.slot=sl;f.wraps[p.w]=WR[p.wr]?p.wr:"std";setHeld(f);}
   if(p.al&&!f.alive){f.alive=true;f.ch.g.visible=true;f.ch.g.scale.setScalar(1);f.pos.copy(f.tpos);}
@@ -1705,11 +1711,13 @@ function friendsCheckEnd(){if(!NET.isHost||!NET.cfg||G.over)return;const tg=NET.
 
 /* ================= menu background ================= */
 let menuChars=[],menuT=0;
-function menuScene(){for(const c of menuChars)scene.remove(c.g);menuChars=[];
+function menuScene(){for(const c of menuChars){if(window.Gear)try{Gear.undress(c.g);}catch(e){}scene.remove(c.g);}menuChars=[];
   const m=pick(MAPS);buildWorld(m.id,40,Math.floor(Math.random()*1e6));
   const ids=["sniper","rpg","katana","minigun","shotgun","scythe"];
   ids.forEach((id,i)=>{const c=makeChar(lookFor(i%2?"B":"A"));c.gun.add(buildWeapon(id,pick(WRAPS).id));const a=i/ids.length*Math.PI*2;c.g.position.set(Math.cos(a)*4,0,Math.sin(a)*4);c.g.position.y=groundAt(c.g.position.x,6,c.g.position.z);c.g.rotation.y=-a-Math.PI/2+Math.PI;
     c.armR.rotation.x=Math.PI/2;c.armL.rotation.x=Math.PI/2-.1;c.armL.rotation.z=-.5;scene.add(c.g);menuChars.push(c);});
+  // the menu crowd: the first fighter wears YOUR accessories, so you can see them somewhere
+  if(window.Gear&&menuChars[0])try{const c=menuChars[0];Gear.dress(c.g,{forward:"-z",head:c.head,torso:c.torso,height:2.1,feet:0,cx:0,cz:0,slots:{body:false}});}catch(e){}
   camera.fov=60;camera.updateProjectionMatrix();vm.visible=false;}
 function menuTick(dt){menuT+=dt;const r=12;camera.position.set(Math.cos(menuT*.12)*r,6.5,Math.sin(menuT*.12)*r);camera.lookAt(0,1.4,0);
   menuChars.forEach((c,i)=>{c.head.rotation.x=Math.sin(menuT*2+i)*.1;c.g.position.y+=Math.sin(menuT*3+i)*.002;});}

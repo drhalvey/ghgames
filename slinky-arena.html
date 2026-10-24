@@ -178,6 +178,7 @@
 
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script src="arcade3d.js"></script>
 <script>
 /* ---------- progression: upgrades, worlds, skins, pets, rebirths, daily reward ----------
@@ -564,7 +565,7 @@ const G={eye:new THREE.SphereGeometry(0.34,12,10),pup:new THREE.SphereGeometry(0
   wing:(()=>{const s=new THREE.Shape();s.moveTo(0.5,0);s.lineTo(0.3,1.4);s.lineTo(0.1,2.7);s.lineTo(-0.5,2.1);s.lineTo(-0.6,1.5);s.lineTo(-1.1,1.7);s.lineTo(-1.0,1.0);s.lineTo(-1.5,0.9);s.lineTo(-0.7,0);return new THREE.ShapeGeometry(s);})(),
   halo:new THREE.TorusGeometry(0.75,0.08,6,24)};
 function buildHead(s){
-  if(s.head){scene.remove(s.head);}
+  if(s.head){scene.remove(s.head);if(window.Gear){try{Gear.undress(s.head);}catch(e){}}}
   const fam=famOf(s.evo),pal=s.pal,col=pal[0],col2=pal[1%pal.length];
   const g=new THREE.Group();const gl=fam>=6?0.35:fam===2?0.25:0.05;
   const skull=new THREE.Mesh(segGeo,A3.mat(col,{rough:.3,emissive:col,glow:gl}));skull.scale.set(1.15,fam===1?0.85:1,1.05);skull.castShadow=true;g.add(skull);
@@ -577,6 +578,8 @@ function buildHead(s){
   if(fam>=3){const n=fam>=5?2:1;for(const sd of [-1,1])for(let k=0;k<n;k++){const h=new THREE.Mesh(G.horn,A3.mat(fam>=7?"#ffd23f":col2,{emissive:fam>=6?col2:"#000000",glow:.4}));h.position.set(-0.25-k*0.35,0.85-k*0.1,sd*(0.4+k*0.12));h.rotation.z=0.9+k*0.2;h.rotation.x=-sd*0.3;g.add(h);}}
   if(fam>=7){const ha=new THREE.Mesh(G.halo,A3.mat("#ffd23f",{emissive:"#ffd23f",glow:1}));ha.position.set(-0.1,1.5,0);ha.rotation.x=Math.PI/2;g.add(ha);}
   scene.add(g);s.head=g;
+  // accessories (gear.js) on your own snake's head (faces +x, skull is a ball of radius 1); your skin keeps its colours
+  if(s.p&&window.Gear){try{Gear.dress(g,{forward:"x",height:5,feet:-2.85,headTop:1.2,headSize:1.76,headZ:-0.07,slots:{body:false}});}catch(e){}}
   // wings for dragons
   if(s.wings){scene.remove(s.wings);s.wings=null;}
   if(fam>=5){const wg=new THREE.Group();const wm=new THREE.MeshStandardMaterial({color:lin(col2),emissive:lin(col2),emissiveIntensity:fam>=6?0.45:0.15,side:THREE.DoubleSide,roughness:.5,transparent:fam>=6,opacity:fam>=6?0.9:1});
@@ -611,7 +614,7 @@ function makeSnake(o){
   s.tag.material.depthTest=false;s.tag.renderOrder=5;s.tag.userData.ar=s.tag.scale.x/s.tag.scale.y;scene.add(s.tag);
   layout(s);return s;
 }
-function dropSnake(s){scene.remove(s.head);if(s.wings)scene.remove(s.wings);scene.remove(s.tag);s.tag.material.map.dispose();s.tag.material.dispose();}
+function dropSnake(s){scene.remove(s.head);if(window.Gear){try{Gear.undress(s.head);}catch(e){}}if(s.wings)scene.remove(s.wings);scene.remove(s.tag);s.tag.material.map.dispose();s.tag.material.dispose();}
 function layout(s){
   const hx=s.ring[s.hi*2],hz=s.ring[s.hi*2+1],d0=Math.hypot(s.x-hx,s.z-hz);
   s.seg[0]=s.x;s.seg[1]=s.z;

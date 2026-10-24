@@ -200,6 +200,7 @@ h1 small{font-size:16px;background:var(--gold);color:#24170a;border-radius:8px;p
 
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script>
 (function(){
 "use strict";
@@ -488,7 +489,7 @@ function makeKid(){
   const hair = box(0.74, 0.18, 0.7, mP(0x5a3418)); hair.position.set(0, 0.32, -0.02); headG.add(hair);
   const fringe = box(0.74, 0.12, 0.12, mP(0x5a3418)); fringe.position.set(0, 0.24, 0.32); headG.add(fringe);
   const sweat = sph(0.07, mP(0x8fd3ff, { emissive:0x2266aa, emissiveIntensity:.4 }), 8, 6); sweat.position.set(0.4, 0.2, 0.2); sweat.visible = false; headG.add(sweat);
-  root.userData = { body, arms, headG, sweat };
+  root.userData = { body, arms, headG, head, torso, sweat };
   return root;
 }
 
@@ -551,6 +552,11 @@ drawScaleScreen(0);
 // ---------- actors ----------
 const toilet = makeToilet(); scene.add(toilet);
 const kid = makeKid(); kid.position.set(0, 0, 0.12); scene.add(kid);
+// accessories (gear.js): hat/face on the head, backs on the torso, body skin on shirt, arms and shorts (he is sitting, so height is given)
+try { if (window.Gear) { const u = kid.userData, ms = [u.torso];
+  u.arms.forEach(a => a.children.forEach(c => { if (c.isMesh) ms.push(c); }));
+  u.body.children.forEach(c => { if (c.isMesh && c.geometry.parameters && c.geometry.parameters.depth === 0.95) ms.push(c); });
+  Gear.dress(kid, { forward:"z", height:3.15, feet:0, cx:0, cz:0.05, head:u.head, torso:u.torso, body:ms }); } } catch (e) {}
 const flyPoo = makePoo(); flyPoo.visible = false; scene.add(flyPoo);
 const pilePoo = makePoo(); pilePoo.visible = false; scene.add(pilePoo);
 const floor = new THREE.Mesh(boxGeo(140, 1, 140, 2), mT(0xffffff, STUD)); floor.position.y = -0.5; floor.receiveShadow = true; scene.add(floor);

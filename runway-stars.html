@@ -246,6 +246,7 @@ button.chip:hover{border-color:var(--gold)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
@@ -1118,12 +1119,22 @@ const R3 = (function () {
   const clock0 = performance.now();
   const now = () => (performance.now() - clock0) / 1000;
 
+  // accessories (gear.js): my own look on me, other real players' looks on theirs. Runway outfits stay (body:false)
+  function gearOn(m, id) {
+    if (!window.Gear || !m) return;
+    try {
+      const opts = { forward: "z", head: m.userData.head, headSize: .72, height: 2.85, feet: 0, cx: 0, cz: 0, slots: { body: false } };
+      if (id != null && id !== MYID) { const p = (peers || []).find(q => q.i === id); if (!p || !p.gear) return; opts.look = p.gear; }
+      Gear.dress(m, opts);
+    } catch (e) {}
+  }
+  function gearOff(m) { if (window.Gear && m) try { Gear.undress(m); } catch (e) {} }
   function setMe(fit) {
     const k = JSON.stringify(norm(fit));
     if (k === meKey && me) return;
     meKey = k;
-    if (me) room.remove(me);
-    me = makeModel(fit); me.position.set(0, .3, 0); room.add(me);
+    if (me) { gearOff(me); room.remove(me); }
+    me = makeModel(fit); me.position.set(0, .3, 0); room.add(me); gearOn(me);
   }
   function setVis() {
     room.visible = mode === "room";
@@ -1139,15 +1150,15 @@ const R3 = (function () {
     mode = "walk";
     if (k !== walkKey || !walker) {
       walkKey = k;
-      if (walker) venue.remove(walker);
-      walker = makeModel(m.f || DEFAULT_FIT); walker.userData.poseN = Math.floor(Math.random() * 3); venue.add(walker);
+      if (walker) { gearOff(walker); venue.remove(walker); }
+      walker = makeModel(m.f || DEFAULT_FIT); walker.userData.poseN = Math.floor(Math.random() * 3); venue.add(walker); gearOn(walker, m.i);
       cam.offYaw = 0; cam.offPitch = 0; cam.zoom = 1;
       hype = .5;
     }
     walkT0 = now() - Math.max(0, startedMsAgo) / 1000;
     setVis();
   }
-  function clearRes() { resModels.forEach(m => venue.remove(m)); resLabels.forEach(s => { venue.remove(s); s.material.map.dispose(); s.material.dispose(); }); resModels = []; resLabels = []; }
+  function clearRes() { resModels.forEach(m => { gearOff(m); venue.remove(m); }); resLabels.forEach(s => { venue.remove(s); s.material.map.dispose(); s.material.dispose(); }); resModels = []; resLabels = []; }
   function label(lines, W, H, worldH) {
     const [c, g] = cnv(W, H);
     g.fillStyle = "rgba(20,10,40,.86)"; rr(g, 4, 4, W - 8, H - 8, 26); g.fill();
@@ -1164,7 +1175,7 @@ const R3 = (function () {
         const lb = label([{ t: (i === 0 ? "🥇 " : i === 1 ? "🥈 " : "🥉 ") + p.n, f: "900 44px Nunito, Arial", c: "#fff", y: 46 }, { t: "★ " + p.a.toFixed(1), f: "900 40px Nunito, Arial", c: "#ffc93c", y: 98 }], 400, 136, .62);
         lb.position.set(x, RUN_H + h + 3.55, 3.4); venue.add(lb); resLabels.push(lb); }
       else { const j = i - 3, row = Math.floor(j / 4), col = j % 4; m.position.set(-1.5 + col, RUN_H, .9 - row * 1.4); m.scale.setScalar(.8); }
-      venue.add(m); resModels.push(m);
+      venue.add(m); resModels.push(m); if (!p.b) gearOn(m, p.i);
     });
     if (winners && winners.length) popConfetti();
     hype = 1; setVis();
@@ -1468,7 +1479,8 @@ setInterval(() => { if (isHost && H && playing) hostPush(); }, 1000);
 const SB_URL = "https://bpqaeqswtgtbqrczjcrx.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwcWFlcXN3dGd0YnFyY3pqY3J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzUzOTIsImV4cCI6MjA5NjkxMTM5Mn0.hsEZJ_C4NvySPMb59G9EPPfdJRSNBODbnuo9ij_zxrI";
 function bcast(ev, payload) { if (online && ch) try { ch.send({ type: "broadcast", event: ev, payload }); } catch (e) {} }
-function meta() { return { i: MYID, n: NAME, t: joinT }; }
+if (window.Gear) try { Gear.onChange(() => { if (online && ch) try { ch.track(meta()); } catch (e) {} }); } catch (e) {}
+function meta() { return { i: MYID, n: NAME, t: joinT, gear: (window.Gear ? Gear.on() : {}) }; }
 function connect() {
   disconnect();
   if (!window.supabase || !navigator.onLine) { updateOnline(); return; }

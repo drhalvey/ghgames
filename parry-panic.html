@@ -196,6 +196,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script src="arcade3d.js"></script>
 <script>
 (function(){
@@ -402,7 +403,7 @@ function makeChar(seed,sw,shirtOverride){
   const swG=makeSword(sw);swG.position.y=-1.0;armR.add(swG);
   armR.rotation.x=-.6;
   [legL,legR,torso,head,e1,e2,mo,armL,armR].forEach(o=>g.add(o));
-  return {g,legL,legR,armL,armR,sw:swG,swIdx:sw,shirt};
+  return {g,legL,legR,armL,armR,sw:swG,swIdx:sw,shirt,head,torso,skinMeshes:[ll,lr,torso,al,ar]};
 }
 function setSword(c,i){if(c.swIdx===i)return;c.armR.remove(c.sw);disposeTree(c.sw);c.sw=makeSword(i);c.sw.position.y=-1.0;c.armR.add(c.sw);c.swIdx=i;}
 const bubbleMat=new THREE.MeshStandardMaterial({color:0x7ad8ff,emissive:0x3a8aff,emissiveIntensity:.5,transparent:true,opacity:.28,depthWrite:false});
@@ -416,9 +417,20 @@ function mkEnt(o){
   e.c=makeChar(o.seed,o.sw,o.shirt);scene.add(e.c.g);
   e.tag=A3.label(o.name,{size:.6,px:64,stroke:"#000",color:o.me?"#7dffb0":(o.remote?"#ffd23f":"#ffffff")});scene.add(e.tag);
   e.bub=new THREE.Mesh(bubbleGeo,bubbleMat);e.bub.visible=false;scene.add(e.bub);
-  ENTS.push(e);byId.set(e.id,e);return e;
+  ENTS.push(e);byId.set(e.id,e);
+  if(o.me||o.remote)dressEnt(e);
+  return e;
 }
-function clearEnts(){ENTS.forEach(e=>{scene.remove(e.c.g);disposeTree(e.c.g);scene.remove(e.tag);e.tag.material.map.dispose();e.tag.material.dispose();scene.remove(e.bub);});ENTS=[];byId.clear();me=null;p2=null;}
+// accessories (gear.js): you (and Son in a duel, it's your gear), plus real players with the gear they sent
+function dressEnt(e){
+  if(!window.Gear||!e||!e.c)return;
+  try{
+    const op={forward:"z",head:e.c.head,torso:e.c.torso,height:2.84,feet:0,body:e.c.skinMeshes};
+    if(e.remote)op.look=(humans.get(e.id)||{}).gear||{};
+    Gear.dress(e.c.g,op);
+  }catch(err){}
+}
+function clearEnts(){ENTS.forEach(e=>{if(window.Gear)try{Gear.undress(e.c.g);}catch(err){}scene.remove(e.c.g);disposeTree(e.c.g);scene.remove(e.tag);e.tag.material.map.dispose();e.tag.material.dispose();scene.remove(e.bub);});ENTS=[];byId.clear();me=null;p2=null;}
 const ent=id=>id==null?null:byId.get(id)||null;
 const aliveList=()=>ENTS.filter(e=>e.alive);
 function placeRing(list){const n=list.length;list.forEach((e,i)=>{const a=i/n*Math.PI*2+0.3,d=R*0.62;e.x=Math.sin(a)*d;e.z=Math.cos(a)*d;e.tx=e.x;e.tz=e.z;e.ry=Math.atan2(-e.x,-e.z);});}
@@ -882,7 +894,7 @@ function connect(){
     const mine=ch;
     mine.subscribe(async st=>{
       if(mine!==ch)return;
-      if(st==="SUBSCRIBED"){online=true;retryT=2000;try{await mine.track({i:MYID,n:myName(),t:joinT});}catch(e){}updateOnlineMsg();}
+      if(st==="SUBSCRIBED"){online=true;retryT=2000;try{await mine.track({i:MYID,n:myName(),t:joinT,gear:(window.Gear?Gear.on():{})});}catch(e){}updateOnlineMsg();}
       else if(st==="CHANNEL_ERROR"||st==="TIMED_OUT"||st==="CLOSED"){
         online=false;updateOnlineMsg();
         if(GM==="public"&&!document.hidden)setTimeout(()=>{if(mine===ch&&GM==="public"&&!online&&!document.hidden)connect();},retryT);
@@ -895,7 +907,9 @@ function disconnect(){if(ch){try{ch.untrack();sb.removeChannel(ch);}catch(e){}}c
 function onSync(){
   if(!ch)return;
   peers=Object.values(ch.presenceState()).map(a=>a[0]).filter(Boolean);
-  peers.forEach(p=>{if(p.i!==MYID){const h=humans.get(p.i)||{};h.n=safeName(p.n);humans.set(p.i,h);}});
+  peers.forEach(p=>{if(p.i!==MYID){const h=humans.get(p.i)||{};h.n=safeName(p.n);
+    const g=(p.gear&&typeof p.gear==="object")?p.gear:{};if(JSON.stringify(h.gear||{})!==JSON.stringify(g)){h.gear=g;humans.set(p.i,h);const e=ent(p.i);if(e&&e.remote)dressEnt(e);}
+    humans.set(p.i,h);}});
   updateOnlineMsg();
   if(isHost()&&B.o&&B.o!==MYID&&!peers.some(p=>p.i===B.o)){B.o=MYID;B.q+=2;sendBall(true);}
 }

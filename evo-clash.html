@@ -151,6 +151,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script src="arcade3d.js"></script>
 <script>
 (function(){
@@ -415,6 +416,7 @@ const SKIN=["#f1c7a0","#e0ac80","#b07850","#7a4c2c"];
 const bubbleMat=new THREE.MeshBasicMaterial({color:new THREE.Color("#7cc8ff"),transparent:true,opacity:0.22,depthWrite:false});
 function buildModel(c){
   if(c.root)scene.remove(c.root);
+  if(c.body&&window.Gear)try{Gear.undress(c.body);}catch(e){}
   const L=c.L,age=ageOf(L),f=formOf(L),A=AGES[age];
   const tunic=A.tunic[f%A.tunic.length],skin=A.metal?"#c3cad6":SKIN[c.skin%4];
   const glo=A.space?{emissive:A.trim,glow:0.08}:{};
@@ -422,7 +424,8 @@ function buildModel(c){
   const legL=part(GB,A.legs,0.3,0.7,0.3,0,0.35,-0.2),legR=part(GB,A.legs,0.3,0.7,0.3,0,0.35,0.2);body.add(legL,legR);
   body.add(part(GB,tunic,0.52,0.8,0.82,0,1.1,0,glo));
   body.add(part(GB,A.trim,0.54,0.1,0.84,0,0.78,0));
-  body.add(part(GB,skin,0.66,0.66,0.66,0,1.85,0,A.metal?{metal:.6,rough:.35}:{}));
+  const headM=part(GB,skin,0.66,0.66,0.66,0,1.85,0,A.metal?{metal:.6,rough:.35}:{});body.add(headM);
+  const tunicM=body.children[2];
   const eye=A.metal?{emissive:"#3fe0ff",glow:1.5}:{};
   body.add(part(GB,A.metal?"#3fe0ff":"#1a1530",0.04,0.12,0.1,0.34,1.92,-0.14,eye),part(GB,A.metal?"#3fe0ff":"#1a1530",0.04,0.12,0.1,0.34,1.92,0.14,eye));
   if(!A.metal)body.add(part(GB,"#8a3a3a",0.03,0.05,0.2,0.34,1.68,0));
@@ -456,7 +459,19 @@ function buildModel(c){
   const bubble=new THREE.Mesh(GS,bubbleMat);bubble.scale.setScalar(1.6);bubble.position.y=1.2;bubble.visible=false;body.add(bubble);
   scene.add(root);
   c.root=root;c.body=body;c.pivot=pivot;c.legL=legL;c.legR=legR;c.aura=aura;c.bubble=bubble;c.builtL=L;
+  c.gearHead=headM;c.gearBody=[legL,legR,tunicM,headM,armL];
+  dressChar(c);
   makeTag(c);
+}
+// accessories (gear.js): the player, and real players in the Public Arena with the gear they sent
+const gearOf=new Map();
+function dressChar(c){
+  if(!window.Gear||!c.body||!(c.p||(c.human&&c.remote)))return;
+  try{
+    const o={forward:"x",head:c.gearHead,height:2.2,feet:0,body:c.gearBody};
+    if(!c.p)o.look=gearOf.get(c.id)||{};
+    Gear.dress(c.body,o);
+  }catch(e){}
 }
 function makeTag(c){
   if(c.tag){scene.remove(c.tag);c.tag.material.map.dispose();c.tag.material.dispose();}
@@ -910,7 +925,7 @@ const SB_URL="https://bpqaeqswtgtbqrczjcrx.supabase.co";
 const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwcWFlcXN3dGd0YnFyY3pqY3J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzUzOTIsImV4cCI6MjA5NjkxMTM5Mn0.hsEZJ_C4NvySPMb59G9EPPfdJRSNBODbnuo9ij_zxrI";
 let sb=null,ch=null,online=false,peers=[],hostId=MYID,isHost=true,joinT=Date.now(),retryT=2000;
 function bcast(ev,payload){if(online&&ch)try{ch.send({type:"broadcast",event:ev,payload});}catch(e){}}
-const meta=()=>({i:MYID,n:myName(),t:joinT});
+const meta=()=>({i:MYID,n:myName(),t:joinT,gear:(window.Gear?Gear.on():{})});
 function connect(){
   disconnect();if(GMODE!=="public")return;
   becomeHost();
@@ -945,6 +960,8 @@ function onSync(){
   else if(was){isHost=false;for(const c of chars.slice())if(c.bot)removeChar(c);}
   const ids=new Set(peers.map(p=>p.i));
   for(const c of chars.slice())if(c.human&&!ids.has(c.id))removeChar(c);
+  for(const p of peers){if(!p||p.i===MYID)continue;const id=String(p.i).slice(0,20),g=(p.gear&&typeof p.gear==="object")?p.gear:{};
+    if(JSON.stringify(gearOf.get(id)||{})!==JSON.stringify(g)){gearOf.set(id,g);const c=byId.get(id);if(c)dressChar(c);}}
   updateOnlineMsg();
 }
 function becomeHost(){isHost=true;hostId=MYID;for(const c of chars)if(c.bot&&c.remote){c.remote=false;if(c.tx!=null){c.x=c.tx;c.z=c.tz;}c.think=0;c.respawn=c.alive?0:2;}}

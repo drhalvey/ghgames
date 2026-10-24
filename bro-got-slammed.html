@@ -218,6 +218,7 @@ button.chip:hover{border-color:var(--gold)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
@@ -702,7 +703,9 @@ function finishMyRound() {
 const SB_URL = "https://bpqaeqswtgtbqrczjcrx.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwcWFlcXN3dGd0YnFyY3pqY3J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzUzOTIsImV4cCI6MjA5NjkxMTM5Mn0.hsEZJ_C4NvySPMb59G9EPPfdJRSNBODbnuo9ij_zxrI";
 function bcast(ev, payload) { if (online && ch) try { ch.send({ type: "broadcast", event: ev, payload }); } catch (e) {} }
-function meta() { return { i: MYID, n: NAME, s: S.side, t: joinT, lb: S.bat, ls: S.slam }; }
+function meta() { return { i: MYID, n: NAME, s: S.side, t: joinT, lb: S.bat, ls: S.slam, gear: (window.Gear ? Gear.on() : {}) }; }
+// tell the others when I change my look in the Changing Room
+try { if (window.Gear) { let lastLook = JSON.stringify(Gear.on()); Gear.onChange(() => { const k = JSON.stringify(Gear.on()); if (k === lastLook) return; lastLook = k; try { if (window.redressMe) redressMe(); } catch (e) {} if (online && ch) try { ch.track(meta()); } catch (e) {} }); } } catch (e) {}
 function connect() {
   disconnect();
   if (!window.supabase || !navigator.onLine) return;
@@ -732,6 +735,7 @@ function onSync() {
   if (newHost === MYID) { if (!was) becomeHost(); }
   else if (was) { isHost = false; for (const [id] of E) if (id !== MYID) E.delete(id); lastSt = null; }
   if (isHost) syncHumans();
+  try { if (window.dressPeers) dressPeers(); } catch (e) {}
   updateOnlineMsg();
 }
 const lvl = v => Math.max(0, Math.min(UP_MAX, Math.floor(Number(v) || 0)));
@@ -1214,7 +1218,7 @@ function fmtTime(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.
     const fN = faceMat(team, v, "normal");
     const head = new THREE.Mesh(new THREE.BoxGeometry(ped ? 0.8 : 0.68, ped ? 0.72 : 0.64, ped ? 0.72 : 0.64), [skin, skin, skin, skin, fN, skin]);
     head.position.y = 1.26; head.castShadow = true; upper.add(head);
-    let bat = null;
+    let bat = null; const hats = [];
     if (ped) {
       const snout = box(0.42, 0.28, 0.32, mPlain(v === 2 ? 0xdfe3ea : 0xf0d2a8)); snout.position.set(0, 1.12, 0.48); upper.add(snout);
       const nose = box(0.2, 0.13, 0.08, mPlain(0x1b1b2b, { roughness: 0.3 })); nose.position.set(0, 1.22, 0.65); upper.add(nose);
@@ -1229,8 +1233,8 @@ function fmtTime(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.
       const tail = box(0.16, 0.16, 0.5, em); tail.position.set(0, 0.92, -0.36); tail.rotation.x = 0.7; body.add(tail);
     } else {
       // hats: cap (backwards), cowboy hat, headband
-      if (v <= 1) { const cm = mPlain(v ? 0xff6fa3 : 0xffc93c); const cap = cyl(0.36, 0.36, 0.2, cm, 16); cap.position.y = 1.62; upper.add(cap); const brim = box(0.5, 0.06, 0.36, cm); brim.position.set(0, 1.56, -0.42); upper.add(brim); }
-      else if (v === 2) { const hm = mPlain(0x8a5a2a); const b = cyl(0.62, 0.62, 0.06, hm, 18); b.position.y = 1.6; upper.add(b); const t = cyl(0.3, 0.36, 0.38, hm, 14); t.position.y = 1.8; upper.add(t); }
+      if (v <= 1) { const cm = mPlain(v ? 0xff6fa3 : 0xffc93c); const cap = cyl(0.36, 0.36, 0.2, cm, 16); cap.position.y = 1.62; upper.add(cap); const brim = box(0.5, 0.06, 0.36, cm); brim.position.set(0, 1.56, -0.42); upper.add(brim); hats.push(cap, brim); }
+      else if (v === 2) { const hm = mPlain(0x8a5a2a); const b = cyl(0.62, 0.62, 0.06, hm, 18); b.position.y = 1.6; upper.add(b); const t = cyl(0.3, 0.36, 0.38, hm, 14); t.position.y = 1.8; upper.add(t); hats.push(b, t); }
       else { const hb = box(0.72, 0.12, 0.68, mPlain(0xff5d5d)); hb.position.y = 1.44; upper.add(hb); const hair = box(0.7, 0.14, 0.66, mPlain(0x3a2414)); hair.position.y = 1.62; upper.add(hair); }
       // the bat, held in the right hand
       bat = new THREE.Group(); bat.position.y = -0.78; armR.add(bat);
@@ -1247,11 +1251,37 @@ function fmtTime(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.
     const tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: tt, transparent: true, depthWrite: false })); tag.scale.set(3.4, 0.96, 1); tag.position.y = (ped ? 2.0 : 1.86) * sc + 0.85; root.add(tag);
     const stars = [];
     for (let i = 0; i < 3; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: starTex, transparent: true, depthWrite: false })); s.scale.set(0.6, 0.6, 1); s.visible = false; root.add(s); stars.push(s); }
-    root.userData = { team, v, body, upper, legL, legR, armL, armR, head, bat, tag, tc, tg, tt, tagKey: "", stars, ring, sc, yaw: Math.PI / 2 - (e.f || 0), phase: 0, lx: e.rx, lz: e.ry, faceState: "normal", hitT: 0, dustT: 0 };
+    root.userData = { team, v, body, upper, legL, legR, armL, armR, head, bat, hats, tag, tc, tg, tt, tagKey: "", stars, ring, sc, yaw: Math.PI / 2 - (e.f || 0), phase: 0, lx: e.rx, lz: e.ry, faceState: "normal", hitT: 0, dustT: 0 };
     root.traverse(o => { if (o.isMesh && o !== shadow && o !== ring) o.castShadow = true; });
     scene.add(root);
+    // GH Games accessories: mine on my fighter, other real players' on theirs (team colours stay, so no body skins)
+    try {
+      if (e.id === MYID) dressFighter(root, null);
+      else { const pr = peers.find(q => q.i === e.id); if (pr && pr.gear) dressFighter(root, pr.gear); }
+    } catch (err) {}
     return root;
   }
+  // dress the body group (it turns and scales with the fighter); faces +z, the head is on the swinging upper half
+  function dressFighter(m, look) {
+    if (!window.Gear) return;
+    const u = m.userData, o = { forward: "z", head: u.head, height: u.team === "ped" ? 2.55 : 2.5, feet: 0, slots: { body: false } };
+    if (look) o.look = look;
+    u.gearKey = look ? JSON.stringify(look) : "me";
+    Gear.dress(u.body, o);
+    // a gear hat replaces the fighter's own cap or cowboy hat
+    const hatOn = !!(look || Gear.on()).hat;
+    for (const h of u.hats || []) h.visible = !hatOn;
+  }
+  window.redressMe = () => { const m = MODELS.get(MYID); if (m) dressFighter(m, null); prevDressed = null; };
+  // another player changed their look (presence update): re-dress their fighter
+  window.dressPeers = () => {
+    for (const pr of peers) {
+      if (pr.i === MYID || !pr.gear) continue;
+      const m = MODELS.get(pr.i); if (!m) continue;
+      const k = JSON.stringify(pr.gear);
+      if (m.userData.gearKey !== k) dressFighter(m, pr.gear);
+    }
+  };
   function drawTag(e, u) {
     const mine = e.id === MYID, fr = Math.min(1, Math.max(0, e.hp) / HP[e.team]);
     const key = e.name + "|" + (e.out ? -1 : Math.round(fr * 40)) + "|" + mine + "|" + tagEpoch;
@@ -1448,10 +1478,10 @@ function fmtTime(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.
   const prev = [{ id: "prev-ped", team: "ped", name: "", f: Math.PI * 0.85, rx: W / 2 - 50, ry: H / 2 + 10, swingT: 0, stun: 0, dashT: 0, out: false, hp: 150 },
                 { id: "prev-bro", team: "bro", name: "", f: Math.PI * 0.15, rx: W / 2 + 50, ry: H / 2 + 10, swingT: 0, stun: 0, dashT: 0, out: false, hp: 250 }];
   const prevModels = prev.map(p => { const m = makeFighter(p); m.userData.tag.visible = false; m.userData.ring.visible = false; return m; });
-  let prevT = 0, lobbyT = 0;
+  let prevT = 0, lobbyT = 0, prevDressed = null;
   function sweepModels(keep) {
     for (const [id, m] of MODELS) if (!keep || !E.has(id) || E.get(id).team !== m.userData.team) {
-      scene.remove(m); m.traverse(o => { if (o.isSprite && o.material.map && o.material.map !== starTex) { o.material.map.dispose(); o.material.dispose(); } }); MODELS.delete(id);
+      scene.remove(m); try { if (window.Gear) Gear.undress(m.userData.body); } catch (e) {} m.traverse(o => { if (o.isSprite && o.material.map && o.material.map !== starTex) { o.material.map.dispose(); o.material.dispose(); } }); MODELS.delete(id);
     }
   }
   drawLobby = (now, dt) => {
@@ -1459,6 +1489,7 @@ function fmtTime(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.
     if (MODELS.size) sweepModels(false);
     lobbyT += dt; prevT -= dt;
     prevModels.forEach(m => { m.visible = true; });
+    if (prevDressed !== S.side) { prevDressed = S.side; try { if (window.Gear) { prevModels.forEach((m, i) => { if (prev[i].team === S.side) dressFighter(m, null); else { Gear.undress(m.userData.body); for (const h of m.userData.hats || []) h.visible = true; } }); } } catch (e) {} }
     if (prevT <= 0) { prevT = 1.6; const p = prev[S.side === "ped" ? 0 : 1]; p.swingT = ATK[p.team].anim; if (p.team === "ped") shock(X3(p.rx), Z3(p.ry), (ATK.ped.reach + R.ped) * K); }
     prev.forEach((p, i) => { p.swingT = Math.max(0, p.swingT - dt); p.f = Math.atan2(prev[1 - i].ry - p.ry, prev[1 - i].rx - p.rx) + (i ? 0.5 : -0.5); animFighter(p, prevModels[i], now, dt); prevModels[i].userData.ring.visible = S.side === p.team; prevModels[i].userData.ring.material = ringMats.me; });
     const a = lobbyT * 0.12;

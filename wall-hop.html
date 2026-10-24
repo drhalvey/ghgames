@@ -326,6 +326,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 <script src="https://cdn.jsdelivr.net/npm/break_infinity.js@2.0.0/dist/break_infinity.min.js"></script>
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script>
 (function(){
 const D = x => new Decimal(x);
@@ -1486,8 +1487,19 @@ function make3D(){
     const hair = box(.72,.16,.68,mPlain("#5a3418")); hair.position.set(0,2.46,-.02); body.add(hair);
     const band = box(.74,.14,.7,mPlain("#ffc93c",{metalness:.2,roughness:.5})); band.position.set(0,2.3,0); body.add(band);
     const knot = box(.18,.18,.3,mPlain("#ffc93c")); knot.position.set(0,2.3,-.45); knot.rotation.x=.5; body.add(knot);
-    return {legL,legR,armL,armR};
+    return {legL,legR,armL,armR,head,torso,band,knot};
   })();
+  // the player's GH Games accessories (kid faces +z). Dress the flipping body so the gear flips with
+  // the jump; the yellow headband comes off while a gear hat is on.
+  function dressKid(){
+    try {
+      if(!window.Gear) return;
+      Gear.dress(body, { forward:"z", head:K.head, torso:K.torso, slots:{ body:false } });
+      const hatOn = !!Gear.on().hat; K.band.visible = K.knot.visible = !hatOn;
+    } catch(e){}
+  }
+  dressKid();
+  try { if(window.Gear) Gear.onChange(dressKid); } catch(e){}
   // dizzy stars for a bonk
   const starT = (()=>{ const [c,g]=cnv(64,64); g.font="54px Arial"; g.textAlign="center"; g.textBaseline="middle"; g.fillStyle="#ffe066"; g.fillText("★",32,34); return tex(c); })();
   const dizzy = [0,1,2].map(()=>{ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:starT, transparent:true, depthWrite:false})); s.scale.set(.55,.55,1); s.visible=false; kid.add(s); return s; });

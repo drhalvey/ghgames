@@ -172,6 +172,7 @@
 
 <script src="leaderboard.js"></script>
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script src="arcade3d.js"></script>
 <script>
 /* ---------- progression: upgrades, worlds, skins, pets, rebirths, daily reward ----------
@@ -749,7 +750,7 @@ function newBlob(isMe,r,x,z,name,col,mega){
   if(!isMe){b.tag=A3.label(name,{size:1,color:mega?"#ffd23f":"#ffffff",stroke:"rgba(20,10,50,.85)",px:56});b.tag.material.depthTest=false;b.tag.renderOrder=6;b.tag.userData.ar=b.tag.scale.x/b.tag.scale.y;scene.add(b.tag);}
   return b;
 }
-function dropBlob(b){scene.remove(b.mesh.g);scene.remove(b.mesh.shadow);if(b.tag){scene.remove(b.tag);b.tag.material.map.dispose();b.tag.material.dispose();}b.mesh.body.material.dispose();}
+function dropBlob(b){if(b.me&&window.Gear)try{Gear.undress(b.mesh.g);if(b.mesh.gearBack)Gear.undress(b.mesh.gearBack);}catch(e){}scene.remove(b.mesh.g);scene.remove(b.mesh.shadow);if(b.tag){scene.remove(b.tag);b.tag.material.map.dispose();b.tag.material.dispose();}b.mesh.body.material.dispose();}
 function showBlob(b,on){b.mesh.g.visible=on;b.mesh.shadow.visible=on;if(b.tag)b.tag.visible=on;}
 // put a computer blob somewhere near you (outside the screen), sized against you
 function placeBot(b,first){
@@ -788,6 +789,11 @@ function startGame(){
   setupTown();mode="play";round=null;
   const p=spawnSpot();
   me=newBlob(true,startR(),p.x,p.z,"You");
+  // accessories (gear.js): hat on top of your blob, shades over its eyes, wings behind; your Blob Feast skin stays
+  try{if(window.Gear){Gear.dress(me.mesh.g,{forward:"z",height:2,feet:-1,cx:0,cz:0,headTop:1,headSize:1.3,headZ:0.35,slots:{back:false,body:false}});
+    // back gear on its own frame behind the jelly so wings are not hidden inside it
+    const bk=new THREE.Group();me.mesh.g.add(bk);me.mesh.gearBack=bk;
+    Gear.dress(bk,{forward:"z",height:2.4,feet:-1.3,cx:0,cz:-0.85,slots:{hat:false,face:false,aura:false,trail:false,body:false}});}}catch(e){}
   round={t:0,len:roundLen(),coins:0,eaten:0,kinds:KINDS.map(()=>0),tiers:[0,0,0,0,0,0,0,0,0],blobs:0,megas:0,peak:me.r,last10:false,ended:false,crush:false,hits:0};
   for(let i=0;i<NBOTS;i++){const b=newBlob(false,1,p.x,p.z,BOTN[(i*5+S.games)%BOTN.length],BOTCOL[i%BOTCOL.length]);placeBot(b,true);bots.push(b);}
   for(let i=0;i<NMEGA;i++){const b=newBlob(false,startR()*A3.rand(10,14),p.x,p.z,"Mega Blob","#9a3aff",true);b.r=Math.min(botMaxR(),startR()*A3.rand(10,14));placeBot(b,true);bots.push(b);}

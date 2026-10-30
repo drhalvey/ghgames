@@ -184,26 +184,41 @@ body.jac .batbar{grid-template-columns:repeat(5,1fr)}
 body.side .batbar{grid-template-columns:repeat(4,1fr)}
 body.jac.side .batbar{grid-template-columns:repeat(3,1fr)}
 body.jac .gov,body:not(.jac) .jac{display:none!important}
-.g1{display:grid;grid-template-columns:1fr 1fr 1.3fr 1fr 1.4fr;gap:8px}
+.g1{display:grid;grid-template-columns:1.7fr 1fr 1.4fr;gap:8px}
+.seq{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
+.sq{font-family:var(--body);font-weight:900;font-size:10.5px;line-height:1.05;border:2px solid var(--line);border-radius:9px;padding:6px 2px;color:#c7b8a3;background:var(--panel2);cursor:pointer;min-width:0}
+.sq small{display:block;font-size:9px;font-weight:800;opacity:.75;margin-top:2px}
+.sq.done{color:#7d7064}
+.sq.next{color:#fff;border-color:var(--gold);background:#5a3e1e;box-shadow:0 0 0 2px rgba(242,193,78,.35)}
+.sq.fire.next{background:#8e1b22}
+.sq[disabled]{cursor:default}
+.sq.next[disabled]{filter:brightness(.7)}
+.bb.order{background:#c4202c;box-shadow:0 4px 0 #6e0d14;font-size:21px;line-height:1.05}
+.bb.order.ready{background:#b07a1c;box-shadow:0 4px 0 #6a480c}
+.bb.order.present{background:#c2561c;box-shadow:0 4px 0 #6e2a08}
+.bb.order.recover{background:#47596a;box-shadow:0 4px 0 #26323d}
+.bb.order.now{animation:pulse .45s infinite alternate}
 .g2{display:grid;grid-template-columns:1fr 1fr 1.6fr;gap:8px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .j1{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:8px}
 .j2{display:grid;grid-template-columns:1.6fr 1fr;gap:8px}
 .btns{grid-template-columns:repeat(4,1fr)}
 @media (max-width:640px){
-  .g1{grid-template-columns:1fr 1fr 1fr}.g1 .fire{grid-column:span 1}.g1 .drill{grid-column:span 2}
+  .g1{grid-template-columns:1fr 1fr}.g1 .order{grid-column:1/3}
+  .seq{grid-template-columns:repeat(5,1fr)}
   .g2{grid-template-columns:1fr 1fr}.g2 .drill{grid-column:1/3}
   .j1{grid-template-columns:1fr 1fr 1fr}.j1 .charge{grid-column:1/4}
   .j2{grid-template-columns:1fr 1fr}
   .btns{grid-template-columns:1fr 1fr}
 }
 body.side .g1,body.side .g2,body.side .g3,body.side .j2{grid-template-columns:1fr 1fr}
-body.side .g1 .fire{grid-column:span 2}body.side .g1 .drill,body.side .g2 .drill{grid-column:1/3}
+body.side .g1 .order,body.side .g1 .drill,body.side .g2 .drill{grid-column:1/3}
+body.side .seq{grid-template-columns:repeat(5,1fr)}
 body.side .g3 .bb:last-child{grid-column:1/3}
 body.side .j1{grid-template-columns:1fr 1fr}body.side .j1 .charge{grid-column:1/3}
 body.side .btns{grid-template-columns:1fr 1fr}
-body.battle .g1,body.battle .g2,body.battle .g3,body.battle .j1,body.battle .j2{gap:6px}
-body.replaying .g1,body.replaying .g2,body.replaying .g3,body.replaying .j1,body.replaying .j2{display:none}
+body.battle .seq,body.battle .g1,body.battle .g2,body.battle .g3,body.battle .j1,body.battle .j2{gap:6px}
+body.replaying .seq,body.replaying .g1,body.replaying .g2,body.replaying .g3,body.replaying .j1,body.replaying .j2{display:none}
 .bb.guns{background:#6b5326;box-shadow:0 4px 0 #3b2d12}
 .bb.guns.now{animation:pulse .5s infinite alternate}
 .bb.ammo{background:#4b4f58;box-shadow:0 4px 0 #26292f}
@@ -245,7 +260,7 @@ body.jac .dbtn.regular{background:#2d6a8f}
     <div class="hud">
       <div class="chip coins"><span>SHILLINGS</span><b id="hCoins">0</b></div>
       <div class="chip"><span>VICTORIES</span><b id="hWins">0</b></div>
-      <div class="chip"><span id="hStarL">PERFECT VOLLEYS</span><b id="hPerf">0</b></div>
+      <div class="chip"><span id="hStarL">PERFECT RANK FIRE</span><b id="hPerf">0</b></div>
       <div class="chip"><span>BEST SCORE</span><b id="hBest">0</b></div>
       <button class="mute" id="muteBtn" aria-label="Sound on or off">🔊</button>
     </div>
@@ -269,10 +284,9 @@ body.jac .dbtn.regular{background:#2d6a8f}
   <div class="batbar" id="batBar"></div>
 
   <!-- the government army's orders -->
+  <div class="seq gov" id="seqBar"></div>
   <div class="g1 gov">
-    <button class="bb ready" id="readyBtn">MAKE READY<small>raise and cock · R</small></button>
-    <button class="bb present" id="presentBtn">PRESENT<small>level the muskets · P</small></button>
-    <button class="bb fire big" id="fireBtn">FIRE!<small style="font-family:var(--body)" id="fireHint">all together · space</small></button>
+    <button class="bb order ready" id="orderBtn">MAKE READY<small id="orderHint">next word of command · space</small></button>
     <button class="bb steady" id="steadyBtn">STEADY, LADS!<small id="steadyHint">calm the men · S</small></button>
     <button class="bb drill" id="drillBtn">RELOAD DRILL<span class="dbar"><i class="zone" id="dzone"></i><i class="mark" id="dmark"></i></span><small id="drillHint">tap in the green · D</small></button>
   </div>
@@ -314,11 +328,12 @@ body.jac .dbtn.regular{background:#2d6a8f}
     <ul>
       <li><b>Pick your regiments.</b> Tap a regiment on the moor or its button under the picture, and orders go to just those men. <b>ALL</b> commands everyone. Keys 1 to 9 and 0 pick regiments, the backtick key picks all.</li>
       <li><b>The cannonade.</b> The Jacobites stand on the far side of the moor. Press <b>FIRE THE GUNS</b> each time your ten little guns are loaded. <b>ROUNDSHOT</b> reaches far. When the clans charge, switch to <b>GRAPESHOT</b>: a can of musket balls that is deadly under 300 yards and useless further out.</li>
-      <li><b>The Highland charge</b> is fast. Hold your fire, then <b>MAKE READY</b>, <b>PRESENT</b> and <b>FIRE!</b> at about 50 yards. Every engaged regiment firing at once is a <b>PERFECT VOLLEY</b>.</li>
+      <li><b>Firing by ranks.</b> Each battalion is three ranks deep and fires one rank at a time, always in this order: <b>MAKE READY</b>, then <b>REAR RANK, PRESENT</b>, <b>REAR RANK, FIRE!</b>, <b>REAR RANK, RECOVER</b>, then the same for the <b>MIDDLE RANK</b> and the <b>FRONT RANK</b>, then start again. The big button gives the next word of command to the battalions you have picked; the row above it shows where they are in the drill.</li>
+      <li>Wait a moment after <b>PRESENT</b> so the muskets are level, or the volley comes out ragged, but don't hold them too long. A rank that has recovered reloads while the others fire, so keep the drill rolling. Fire rear, middle and front all cleanly with the clans close for <b>PERFECT RANK FIRE</b>. Start the rear rank at about 100 yards: the charge is fast.</li>
       <li>When the clans reach your line, tap <b>NEW BAYONET DRILL</b> when the marker is in the green. Each man thrusts at the Highlander attacking the soldier on his right, under the sword arm where the targe does not cover him.</li>
       <li><b>The second line.</b> Sempill's and Bligh's stand behind. They cannot shoot through their own men, so if the clans burst through, <b>ADVANCE</b> them and fire. <b>WOLFE'S, WHEEL!</b> swings Wolfe's regiment forward on the left so it fires along the side of the charge.</li>
       <li><b>DRAGOONS</b>: the Campbell militia knock gaps in the Culwhiniac walls and Hawley's dragoons ride round behind the Jacobite right. It takes a while, so send them early.</li>
-      <li>Watch each regiment's <b>discipline</b> bar. Nervous men fire without orders or run. <b>STEADY, LADS!</b> calms them. If three regiments are overrun, the battle is lost.</li>
+      <li>Watch each battalion's <b>discipline</b> bar. Nervous men fire before the word is given, or run. <b>STEADY, LADS!</b> calms them. If three regiments are overrun, the battle is lost.</li>
       <li><b>Camera.</b> Drag to swing round, pinch or wheel to zoom, two fingers or right-drag to move. 🎥 switches Auto, Free and the soldier's view. <b>⏩</b> speeds up the battle and you can watch the replay after.</li>
     </ul>
   </div>
@@ -347,6 +362,7 @@ body.jac .dbtn.regular{background:#2d6a8f}
       <li>Cumberland had drilled his men to thrust their bayonets at the Highlander attacking the man to their right. Barrell's were driven back, but Sempill's and Bligh's in the second line fired into the Highlanders who broke through, and Wolfe's fired along their flank.</li>
       <li>On the left, the MacDonalds had further to go through bog. They halted short of the line. Alexander MacDonald of Keppoch charged forward with a few men and was killed.</li>
       <li>Within an hour the Jacobites were running. The Irish Picquets and the Royal Écossais, soldiers in French service, covered the retreat while dragoons rode round through the walls. About 1,200 to 1,500 Jacobites were killed. The government lost 50 killed and 259 wounded.</li>
+      <li>The game has every battalion fire by ranks. On the day most regiments used platoon firing: small groups fired one after another along the line, and the front rank kept its fire for the moment the Highlanders arrived.</li>
       <li>After the battle, Cumberland's army treated the Highlands very harshly, and many people later remembered him that way. Laws banned Highland weapons and, for a time, tartan. The Prince escaped to France months later, helped by Flora MacDonald.</li>
     </ul>
   </div>
@@ -1004,7 +1020,7 @@ function newBattle(o) {
   RNG = mulberry(seed);
   const side = o.side || S.side, diff = o.diff || S.diff, D0 = DIFFS[diff];
   // the real battle: tuned so the losses come out near the real ones
-  const D = o.hist ? Object.assign({}, D0, { jHeart: 150, fury: 0, jFire: 0.55, jMelee: 1.8, wait: 22, jArt: 10, gFire: 0.6, gFireR: [44, 54], gBayo: 0.3, drag: 30 }) : D0;
+  const D = o.hist ? Object.assign({}, D0, { jHeart: 150, fury: 0, jFire: 0.55, jMelee: 1.7, wait: 22, jArt: 10, gFire: 0.68, gFireR: [44, 54], gBayo: 0.33, drag: 30 }) : D0;
   UP = Object.assign(upDefaults("gov"), o.up || S.up);
   UJ = Object.assign(upDefaults("jac"), o.upj || S.upj);
   const reinf = side === "gov" ? 0 : 0;
@@ -1014,7 +1030,7 @@ function newBattle(o) {
     phase: "intro", introT: 5, t: 0, waitT: side === "gov" ? D.wait : 999, battleT: 0, D,
     bats: BATDEFS.map((def, idx) => {
       const n = Math.max(12, Math.round(def.men / MEN) + reinf);
-      return { def, idx, x: def.x, d: def.d, figs: makeBatFigs(n), n0: n, disc: 100, state: "stand", st: 0, loaded: true, reloading: false, reload: 0, smokeT: 0, fireAt: -1, ordered: false, flee: 0,
+      return { def, idx, x: def.x, d: def.d, figs: makeBatFigs(n), n0: n, disc: 100, state: "stand", st: 0, rk: newRanks(), step: 0, cycOn: false, cyc: null, aiT: 0, smokeT: 0, flee: 0,
         advT: 0, advFrom: 0, advDist: 0, advDur: 1, dirty: false, face: 0, flank: false, whT: -1, melee: 0, aiR: rnd(D.gFireR[0], D.gFireR[1]), aiAdv: false };
     }),
     cols: COLDEFS.map((def, idx) => {
@@ -1046,8 +1062,6 @@ const activeCols = () => G.cols.filter(c => c.state !== "rout" && c.state !== "g
 const liveBats = () => G.bats.filter(b => b.state !== "broken");
 const brokenCount = () => G.bats.filter(b => b.state === "broken").length;
 const routedCount = () => G.cols.filter(c => c.state === "rout" || c.state === "gone").length;
-const isUp = b => b.state === "stand" || b.state === "readying" || b.state === "ready" || b.state === "present" || b.state === "presenting" || b.state === "firing";
-const busy = b => b.advT > 0 || b.state === "wheel" || b.state === "broken";
 const waiting = c => c.state === "stand";
 const charging = c => c.state === "charge" || c.state === "melee" || c.state === "halt" || c.state === "waver";
 function lineD() { const l = liveBats().filter(b => b.def.line === 1); return l.length ? l.reduce((a, b) => a + b.d, 0) / l.length : 0; }
@@ -1133,10 +1147,85 @@ function spawnSmoke(x, d, n, big, flank) {
   for (let i = 0; i < n; i++) G.smoke.push(flank ? { x: x - rnd(2, 12), d: d + rnd(-25, 25), r: rnd(10, 22), a: rnd(0.55, 0.85), life: rnd(5, 8), age: 0, vx: rnd(-2, 2) }
     : { x: x + rnd(-58, 58), d: d + rnd(1, big ? 10 : 4), r: rnd(10, big ? 24 : 14), a: rnd(0.55, 0.85), life: rnd(5, 8), age: 0, vx: rnd(-2, 3) });
 }
-function fireBat(bat, ordered) {
-  const tg = targetFor(bat);
-  bat.loaded = false; bat.reloading = true; bat.reload = 0; bat.state = "firing"; bat.st = 0.35;
-  bat.figs.forEach(f => { if (f.alive) f.flash = vrnd(0.08, 0.16); });
+// ---------- firing by ranks ----------
+// Every battalion works through the same words of command, one after another, and then repeats them.
+// Ranks: 0 = front, 1 = middle, 2 = rear.
+const RANKNAME = ["front", "middle", "rear"], RANKCAP = ["Front", "Middle", "Rear"];
+const SEQ = [
+  { c: "ready", label: "MAKE READY", short: "Make ready", chip: "READY" },
+  { c: "present", r: 2, label: "REAR RANK, PRESENT", short: "Rear present", chip: "R·PRES" },
+  { c: "fire", r: 2, label: "REAR RANK, FIRE!", short: "Rear fire", chip: "R·FIRE" },
+  { c: "recover", r: 2, label: "REAR RANK, RECOVER", short: "Rear recover", chip: "R·REC" },
+  { c: "present", r: 1, label: "MIDDLE RANK, PRESENT", short: "Middle present", chip: "M·PRES" },
+  { c: "fire", r: 1, label: "MIDDLE RANK, FIRE!", short: "Middle fire", chip: "M·FIRE" },
+  { c: "recover", r: 1, label: "MIDDLE RANK, RECOVER", short: "Middle recover", chip: "M·REC" },
+  { c: "present", r: 0, label: "FRONT RANK, PRESENT", short: "Front present", chip: "F·PRES" },
+  { c: "fire", r: 0, label: "FRONT RANK, FIRE!", short: "Front fire", chip: "F·FIRE" },
+  { c: "recover", r: 0, label: "FRONT RANK, RECOVER", short: "Front recover", chip: "F·REC" }
+];
+const SAYS = { ready: "Make ready!", present: "Present!", fire: "Fire!", recover: "Recover!" };
+function newRanks() { return [0, 1, 2].map(() => ({ s: "shoulder", st: 0, reload: 0, presT: 0, fireAt: -1, ordered: false, ragged: false })); }
+const rankLoaded = k => k.s === "shoulder" || k.s === "readying" || k.s === "ready" || k.s === "presenting" || k.s === "present";
+const rankUp = k => k.s === "readying" || k.s === "ready" || k.s === "presenting" || k.s === "present";
+const rankLoading = k => k.s === "loading" || k.s === "recovering";
+const isUp = b => b.state === "stand" && b.rk.some(rankUp);
+const anyPresent = b => b.rk.some(k => k.s === "presenting" || k.s === "present");
+const busy = b => b.advT > 0 || b.state === "wheel" || b.state === "broken";
+function canPrep(b) { return !(b.advT > 0 || b.state === "wheel" || b.state === "broken"); }
+const menInRank = (bat, r) => bat.figs.reduce((n, f) => n + (f.alive && f.rk === r ? 1 : 0), 0);
+// why a battalion cannot take the word of command at step i ("" means it can)
+function stepBlock(b, i) {
+  if (!canPrep(b)) return b.state === "wheel" ? "wheeling" : "marching";
+  if (b.step !== i) return "not yet";
+  const S_ = SEQ[i]; if (S_.c === "ready") return "";
+  const k = b.rk[S_.r];
+  if (S_.c === "present") return (k.s === "ready" || k.s === "readying" || k.s === "shoulder") ? "" : rankLoading(k) ? RANKNAME[S_.r] + " rank still loading " + Math.round(k.reload * 100) + "%" : "not ready";
+  if (S_.c === "fire") return (k.s === "present" || k.s === "presenting") && k.fireAt < 0 ? "" : "not presented";
+  if (S_.c === "recover") return k.s === "fired" ? "" : "has not fired";
+  return "";
+}
+function doStep(b, i, quiet) {
+  if (stepBlock(b, i)) return false;
+  const S_ = SEQ[i];
+  if (S_.c === "ready") {
+    b.cycOn = true; b.cyc = { fires: [] };
+    b.rk.forEach(k => { if (k.s === "shoulder") { k.s = "readying"; k.st = 0.4; } });
+  } else {
+    const k = b.rk[S_.r];
+    if (S_.c === "present") { k.st = k.s === "ready" ? 0.45 : 0.9; k.s = "presenting"; k.presT = 0; }
+    else if (S_.c === "fire") { k.ragged = k.s === "presenting"; k.fireAt = G.t + (k.ragged ? k.st + 0.15 + RNG() * 0.35 : 0.02 + RNG() * (1 - b.disc / 100) * 0.4); k.ordered = true; }
+    else if (S_.c === "recover") { k.s = "recovering"; k.st = 0.4; if (S_.r === 0) b.cycOn = false; }
+  }
+  b.step = (i + 1) % SEQ.length;
+  return true;
+}
+// the words of command, to the battalions you have picked. i = a step, or -1 for "each battalion's next word"
+function orderStep(sel, i, quiet) {
+  const bats = batsOf(sel), done = [];
+  for (const b of bats) if (doStep(b, i < 0 ? b.step : i, quiet)) done.push(b);
+  if (quiet) return done.length;
+  if (!done.length) {
+    const b = bats[0];
+    if (!b) return 0;
+    const why = stepBlock(b, i < 0 ? b.step : i);
+    msg(b.def.short + " can't take that word yet: " + (why === "not yet" ? "the next word for them is " + SEQ[b.step].label : why) + ".", "bad");
+    return 0;
+  }
+  const S_ = SEQ[(done[0].step + SEQ.length - 1) % SEQ.length];
+  const same = done.every(b => SEQ[(b.step + SEQ.length - 1) % SEQ.length] === S_);
+  if (same) {
+    const words = S_.c === "ready" ? "Make ready!" : RANKCAP[S_.r] + " rank! " + SAYS[S_.c];
+    say(callFor(done) + words, { pitch: S_.c === "fire" ? 0.65 : 0.7, rate: S_.c === "fire" ? 1.3 : 1.1 });
+    if (S_.c === "ready") { sfx.cock(); msg(namesOf(done) + ": make ready! Every rank cocks its muskets. Next: REAR RANK, PRESENT.", ""); }
+    else if (S_.c === "present") { sfx.roar(Math.max(1, Math.round(done.length / 2)), done[0].x); msg(namesOf(done) + ": the " + RANKNAME[S_.r] + " rank levels its muskets. Next: " + RANKNAME[S_.r].toUpperCase() + " RANK, FIRE!", ""); }
+    else if (S_.c === "recover") msg(namesOf(done) + ": the " + RANKNAME[S_.r] + " rank recovers its arms and starts to reload." + (S_.r ? " Next: " + RANKNAME[S_.r - 1].toUpperCase() + " RANK, PRESENT." : " The drill starts again: MAKE READY."), "");
+  } else say("Carry on!", { pitch: 0.7 });
+  return done.length;
+}
+function fireRank(bat, r, ordered) {
+  const k = bat.rk[r], tg = targetFor(bat);
+  k.s = "fired"; k.fireAt = -1;
+  bat.figs.forEach(f => { if (f.alive && f.rk === r) f.flash = vrnd(0.08, 0.16); });
   let kills = 0, range = 999;
   if (tg && tg.range < 400) {
     range = tg.range;
@@ -1144,72 +1233,46 @@ function fireBat(bat, ordered) {
     if (G.aiGov) p *= G.D.gFire;
     if (bat.flank) p *= 1.6;
     if (activeCols().some(c => c !== tg.col && Math.abs(c.x - tg.col.x) < 70 && Math.abs(c.d - tg.col.d) < 25)) p *= 1.2; // the clans bunched together
-    if (bat.smokeT > 0) p *= 0.6;
+    if (bat.smokeT > 0) p *= 0.75;
+    if (k.ragged) p *= 0.65;
+    if (k.presT > 3) p *= 0.85; // arms tired from holding the muskets level
     p *= targeMul();
     p = Math.min(p, 0.6);
-    const n = Math.round(aliveB(bat) * 0.85);
+    const n = Math.round(menInRank(bat, r) * 0.95);
     for (let i = 0; i < n; i++) if (RNG() < p) kills++;
     kills = killCol(tg.col, kills, bat.flank ? "flank" : "");
-    tg.col.heart -= heartLoss(kills * (bat.flank ? 1.5 : 0.9));
+    tg.col.heart -= heartLoss(kills * (bat.flank ? 1.5 : 0.9) + (range <= 60 ? 2 : 0));
+    if (range > 110) tg.col.heart += 3; // the clans jeer a wasted volley
   }
-  bat.smokeT = 4;
-  spawnSmoke(bat.x, bat.d, 8, true, bat.flank);
-  G.soundQ++;
+  bat.smokeT = 3;
+  spawnSmoke(bat.x, bat.d - (2 - r) * 2, 4, false, bat.flank);
+  G.soundQ++; G.volleys++;
+  const clean = ordered && !k.ragged && k.presT <= 3;
+  if (ordered && clean && range <= 60) G.crashing++;
   if (!ordered && mine("gov")) {
     G.noOrders++;
-    msg("The " + bat.def.short + " fired without orders!" + (range > 100 ? " Wasted at long range." : " Shout STEADY, LADS!"), "bad");
-  } else if (G.volley && ordered) G.volley.shots.push({ t: G.t, kills, range, bat });
-  if (isJ() && kills >= 3 && tg) float(tg.col.x, tg.col.d, "-" + kills * MEN, "#ff8a8a");
+    msg("The " + RANKNAME[r] + " rank of " + bat.def.short + " fired without orders!" + (range > 100 ? " Wasted at long range." : " Shout STEADY, LADS!"), "bad");
+  }
+  if (bat.cycOn !== undefined && bat.cyc) bat.cyc.fires.push({ r, range, clean });
+  if (mine("gov") && ordered) {
+    if (kills) float(bat.x, bat.d + 12, RANKCAP[r] + " rank: " + kills * MEN + " hit", "#ffd166");
+    if (range > 110) msg("The " + RANKNAME[r] + " rank of " + bat.def.short + " fired at " + Math.round(range) + " yards: far too far. Almost every ball missed.", "bad");
+    else if (k.ragged) msg("Ragged! The " + RANKNAME[r] + " rank fired before their muskets were level. Wait a moment after PRESENT.", "bad");
+  }
+  if (isJ() && kills >= 3 && tg) { float(tg.col.x, tg.col.d, "-" + kills * MEN, "#ff8a8a"); if (G.t - (G.jMsgT || -9) > 5 && range < 120) { G.jMsgT = G.t; msg("The " + RANKNAME[r] + " rank of " + bat.def.short + " fires: " + kills * MEN + " of your men fall. Get in among them before the next rank presents!", "bad"); } }
   if (bat.flank && kills && G.t - (G.flankMsgT || -9) > 4 && !isJ()) { G.flankMsgT = G.t; msg("Wolfe's fire along the side of the charge! " + kills * MEN + " Highlanders hit.", "good"); }
+  // a whole cycle done cleanly: rear, middle, front, each levelled and fired in good time and in range
+  if (r === 0 && bat.cyc) {
+    const f = bat.cyc.fires, ok = f.length >= 3 && [2, 1, 0].every(x => f.some(y => y.r === x && y.clean)) && Math.min(...f.map(y => y.range)) <= 65 && Math.max(...f.map(y => y.range)) <= 140;
+    bat.cyc = null;
+    if (ok) {
+      G.perfects++;
+      activeCols().forEach(c => { if (Math.abs(c.x - bat.x) < 220 && colRange(c) < 160) c.heart -= heartLoss(G.aiGov ? 4 : 10); });
+      bat.disc = Math.min(100, bat.disc + 15);
+      if (mine("gov")) { banner("PERFECT RANK FIRE!", "#ffd166", 64); msg(bat.def.short + " fired rear, middle and front ranks in perfect order. The clans in front of them falter!", "good"); SLOWT = 1.2; dramaAt(bat.x, bat.d + 30, 1.6, 1.3); huzzah(0.45, 0.6); }
+    }
+  }
   return kills;
-}
-function canPrep(b) { return !(b.advT > 0 || b.state === "wheel"); }
-function orderReady(sel, quiet) {
-  let n = 0, empty = 0, moving = 0; const ok = [];
-  batsOf(sel).forEach(b => {
-    if (!canPrep(b)) { moving++; return; }
-    if (!b.loaded) { empty++; return; }
-    if (b.state === "stand") { b.state = "readying"; b.st = 0.4; n++; ok.push(b); }
-  });
-  if (quiet) return;
-  if (n) {
-    say(callFor(ok) + "Make ready!", { pitch: 0.7 });
-    sfx.cock();
-    msg("Make ready! " + (ok.length >= liveBats().length ? "The whole army raises" : namesOf(ok) + " raise") + " their muskets and cock them. Now PRESENT, then FIRE.", "");
-  } else if (moving) msg("Wait until they have finished moving.", "bad");
-  else if (empty) msg("Still reloading! Use the RELOAD DRILL.", "bad");
-}
-function orderPresent(sel, quiet) {
-  let empty = 0, moving = 0; const ok = [];
-  batsOf(sel).forEach(b => {
-    if (!canPrep(b)) { moving++; return; }
-    if (!b.loaded) { empty++; return; }
-    if (b.state === "ready" || b.state === "readying") { b.state = "presenting"; b.st = 0.45; ok.push(b); }
-    else if (b.state === "stand") { b.state = "presenting"; b.st = 0.9; ok.push(b); }
-  });
-  if (quiet) return;
-  if (ok.length) {
-    say(callFor(ok) + "Present!", { pitch: 0.65, rate: 1.1 });
-    sfx.roar(ok.length, ok.reduce((a, b) => a + b.x, 0) / ok.length);
-    msg("Present! The front rank kneels and every musket is levelled at the clans. Arms get heavy, so FIRE soon!", "");
-  } else if (moving) msg("Wait until they have finished moving.", "bad");
-  else if (empty) msg("Still reloading! Use the RELOAD DRILL.", "bad");
-  else msg("They are already presenting. FIRE!", "");
-}
-function orderFire(sel, quiet) {
-  let n = 0;
-  const bats = batsOf(sel), fresh = !G.volley;
-  if (fresh) G.volley = { shots: [], until: G.t + 1.7, n: 0, subset: bats.length < liveBats().length, names: [] };
-  const fired = [];
-  bats.forEach(b => {
-    if (b.fireAt >= 0 || !b.loaded || !canPrep(b)) return;
-    if (b.state === "present") b.fireAt = G.t + 0.02 + RNG() * (1 - b.disc / 100) * 0.55;
-    else if (b.state === "ready" || b.state === "readying" || b.state === "presenting") { b.state = "presenting"; b.st = 0.4; b.fireAt = G.t + 0.45 + RNG() * 0.45; }
-    else { if (b.state === "stand") { b.state = "presenting"; b.st = 0.5; } b.fireAt = G.t + 0.55 + RNG() * 0.9; }
-    b.ordered = true; n++; fired.push(b);
-  });
-  if (n) { G.volley.n += n; G.volley.names.push(...fired.map(b => b.def.short)); if (!quiet) say(callFor(fired) + "FIRE!", { rate: 1.3, pitch: 0.65 }); }
-  if (!n && fresh && !liveBats().some(b => b.fireAt >= 0)) { G.volley = null; if (!quiet) msg("Nobody there is ready to fire! Reload, or wait for them to finish moving.", "bad"); }
 }
 function orderSteady(quiet) {
   if (G.steadyCd > 0) return;
@@ -1225,19 +1288,35 @@ function drillZone() { const w = 0.18 + 0.035 * UP.drill; return [0.5 - w / 2, 0
 function bayoZone() { const w = 0.2 + 0.04 * UP.bayo; return [0.5 - w / 2, 0.5 + w / 2]; }
 function clayZone() { const w = 0.2 + 0.035 * UJ.blade; return [0.5 - w / 2, 0.5 + w / 2]; }
 function barPos(ph) { const p = ph % 2; return p < 1 ? p : 2 - p; }
+const loadingRanks = () => { const o = []; for (const b of liveBats()) for (const k of b.rk) if (k.s === "loading") o.push([b, k]); return o; };
 function orderDrill() {
   if (G.drillCd > 0) return;
-  const rel = liveBats().filter(b => b.reloading); if (!rel.length) return;
+  const rel = loadingRanks(); if (!rel.length) return;
   G.drillCd = 0.22;
   const p = barPos(G.drillPh), [a, z] = drillZone();
   if (p >= a && p <= z) {
-    rel.forEach(b => { b.reload += 0.22; b.disc = Math.min(100, b.disc + 2); });
+    rel.forEach(([b, k]) => { k.reload += 0.22; b.disc = Math.min(100, b.disc + 1); });
     sfx.good();
     if (!SILENT) $("drillHint").textContent = vpick(["Smartly done!", "Bite! Pour! Ram!", "Like clockwork!", "Prime and load!"]);
   } else {
-    rel.forEach(b => { b.disc -= 1.5; });
+    rel.forEach(([b]) => { b.disc -= 0.8; });
     if (!SILENT) $("drillHint").textContent = "Fumbled the cartridge!";
   }
+}
+// one battalion's ranks, every step of the game
+function stepRanks(bat, dt) {
+  bat.rk.forEach((k, r) => {
+    if (k.st > 0) k.st -= dt;
+    if (k.s === "readying" && k.st <= 0) k.s = "ready";
+    if (k.s === "presenting" && k.st <= 0) { k.s = "present"; k.presT = 0; }
+    if (k.s === "present") k.presT += dt;
+    if (k.s === "recovering" && k.st <= 0) { k.s = "loading"; k.reload = 0; }
+    if (k.s === "loading") {
+      k.reload += dt / reloadTime() * (G.hist ? 1.15 : 1);
+      if (k.reload >= 1) { k.reload = 0; k.s = bat.cycOn ? "readying" : "shoulder"; k.st = 0.4; }
+    }
+    if (k.fireAt >= 0 && G.t >= k.fireAt) fireRank(bat, r, k.ordered);
+  });
 }
 // the new drill: thrust at the Highlander attacking the man on your right, under his sword arm
 function orderBayo(sel) {
@@ -1259,7 +1338,7 @@ function orderBayo(sel) {
     if (!SILENT) $("bayoHint").textContent = "Thrust went wide!";
   }
 }
-const canAdvBat = b => (G.phase === "battle" || G.phase === "wait") && b.state === "stand" && !b.flank && b.advT <= 0 && rangeBat(b) > 25 && b.d < (b.def.line === 2 ? -14 : b.def.d + 25);
+const canAdvBat = b => (G.phase === "battle" || G.phase === "wait") && b.state === "stand" && !anyPresent(b) && !b.flank && b.advT <= 0 && rangeBat(b) > 25 && b.d < (b.def.line === 2 ? -14 : b.def.d + 25);
 function orderAdvance(sel, quiet) {
   const bats = batsOf(sel), ok = bats.filter(canAdvBat);
   if (!ok.length) {
@@ -1267,7 +1346,7 @@ function orderAdvance(sel, quiet) {
     if (bats.some(b => b.flank)) msg("Wolfe's are already in place on the flank.", "bad");
     else if (bats.some(b => rangeBat(b) <= 25)) msg("Too close to advance! Fire!", "bad");
     else if (bats.some(b => b.def.line === 2)) msg("The second line can come up to just behind the front line, and no further.", "bad");
-    else msg("To advance, the regiment must be standing still, not presenting or firing.", "bad");
+    else msg("To advance, the battalion must be standing still with no rank presenting.", "bad");
     return;
   }
   ok.forEach(b => { b.advFrom = b.d; b.advDist = Math.min(b.def.line === 2 ? 22 : 15, (b.def.line === 2 ? -14 : b.def.d + 25) - b.d); b.advDur = 2.5; b.advT = b.advDur; });
@@ -1279,7 +1358,7 @@ function orderAdvance(sel, quiet) {
 function orderWheel(quiet) {
   const b = G.bats[7];
   if (!b || b.state === "broken" || b.flank || b.whT >= 0 || G.phase === "intro") return;
-  b.state = "wheel"; b.whT = 0; b.fireAt = -1; b.wx0 = b.x; b.wd0 = b.d;
+  b.state = "wheel"; b.whT = 0; b.rk.forEach(k => { k.fireAt = -1; if (k.s === "presenting" || k.s === "present") k.s = "ready"; }); b.wx0 = b.x; b.wd0 = b.d;
   if (quiet) return;
   say("Wolfe's! Forward on the left, and wheel!");
   msg("Wolfe's march forward past the end of the line and wheel round to face along it. From there they can shoot into the side of any charge.", "");
@@ -1294,7 +1373,7 @@ function orderDragoons(quiet) {
 }
 function breakBat(bat) {
   if (bat.state === "broken") return;
-  bat.state = "broken"; bat.fireAt = -1; bat.flee = 0; bat.advT = 0; bat.melee = 0;
+  bat.state = "broken"; bat.rk.forEach(k => k.fireAt = -1); bat.flee = 0; bat.advT = 0; bat.melee = 0;
   G.broke.push(bat.def.short);
   banner(bat.def.short.toUpperCase() + " OVERRUN!", isJ() ? "#ffd166" : "#ff7b7b", 46);
   if (isJ()) msg("The " + bat.def.name + " are swept back! Keep going!", "good");
@@ -1582,19 +1661,17 @@ function stepDrag(dt) {
 function stepGovAI(dt) {
   if (G.phase === "intro" || G.result) return;
   G.aiSteadyCd -= dt;
+  // each battalion's officers give the words of command themselves, in order, as the clans close
   for (const b of liveBats()) {
     if (b.state === "wheel" || b.advT > 0) continue;
-    const r = rangeBat(b);
-    if (b.loaded && b.fireAt < 0) {
-      if (b.state === "stand" && r < b.aiR + 40) { b.state = "readying"; b.st = 0.4; }
-      else if ((b.state === "ready") && r < b.aiR + 16) { b.state = "presenting"; b.st = 0.45; }
-      else if (b.state === "present" && r <= b.aiR) {
-        b.fireAt = G.t + 0.02 + RNG() * (1 - b.disc / 100) * 0.5; b.ordered = true;
-        if (!G.volley) G.volley = { shots: [], until: G.t + 1.7, n: 0, subset: true, names: [] };
-        G.volley.n++;
-      }
-    }
-    if (!b.loaded && b.state === "stand" && b.reloading && G.hist) b.reload += dt * 0.15;
+    b.aiT -= dt; if (b.aiT > 0) continue;
+    const r = rangeBat(b), S_ = SEQ[b.step];
+    let go = false;
+    if (S_.c === "ready") go = r < b.aiR + 75;
+    else if (S_.c === "present") go = S_.r === 2 && !b.cycN ? r < b.aiR + 34 : r < 260;
+    else if (S_.c === "fire") go = b.rk[S_.r].s === "present" && b.rk[S_.r].presT > 0.15;
+    else go = true;
+    if (go && doStep(b, b.step, true)) { b.aiT = S_.c === "fire" ? rnd(0.3, 0.5) : rnd(0.35, 0.7); if (S_.c === "present" && S_.r === 2) b.cycN = (b.cycN || 0) + 1; }
   }
   if (G.aiSteadyCd <= 0 && liveBats().some(b => b.disc < 45)) { G.aiSteadyCd = 9; orderSteady(true); }
   // Wolfe's swing forward when the charge comes at the left
@@ -1638,9 +1715,8 @@ function exec(o) {
   if (G.result && o.c !== "skip") return;
   switch (o.c) {
     case "skip": G.introT = 0; break;
-    case "ready": orderReady(o.s); break;
-    case "present": orderPresent(o.s); break;
-    case "fire": orderFire(o.s); break;
+    case "next": orderStep(o.s, -1); break;
+    case "step": orderStep(o.s, +o.a); break;
     case "steady": orderSteady(); break;
     case "drill": orderDrill(); break;
     case "bayo": orderBayo(o.s); break;
@@ -1689,7 +1765,7 @@ function stepHistory() {
   }
   if (G.firstCharge && minRange() < 290) once("d", "The government gunners switch to grapeshot: tin cans packed with musket balls, deadly at close range.");
   if (G.cols.slice(0, 5).some(c => c.state === "charge" && colRange(c) < 190)) once("e", "The bog and the line of the road push the charge to its right. The clans bunch together and run at Barrell's and Munro's on the government left.");
-  if (G.volleys > 0) once("f", "Barrell's and Munro's fire a volley at about 50 yards. The front ranks of the clans go down, but the rest keep coming.");
+  if (G.volleys > 0) once("f", "Barrell's and Munro's open fire at about 50 yards. The front of the charge goes down, but the rest keep coming.");
   if (G.firstMelee) once("g", "The Highlanders reach the red line with broadswords and targes. Cumberland's men use their new drill: each thrusts his bayonet at the Highlander attacking the man to his right, under the raised sword arm.");
   if (G.bats[7].flank) once("i", "Wolfe's regiment swings forward beside the wall and fires along the side of the charge. Campbell militiamen shoot from behind the wall too.");
   if (G.bats[0].state === "broken" || G.bats[8].aiAdv || G.bats[9].aiAdv) once("j", "Barrell's are driven back and some Highlanders burst through. They run into Sempill's and Bligh's regiments in the second line, who fire into them at close range.");
@@ -1732,7 +1808,6 @@ function step(dt) {
   stepCols(dt);
   stepGuns(dt);
   stepDrag(dt);
-  if (G.volley && G.t > G.volley.until) { evaluateVolley(); G.volley = null; }
   if (G.soundQ) { sfx.volley(G.soundQ); G.shakeT = Math.min(0.5, 0.08 * G.soundQ + 0.05); FLASH = Math.min(1, 0.3 + 0.15 * G.soundQ); G.soundQ = 0; }
   // government drums beat while the clans are coming, the pipes play in the charge
   if (G.cols.some(c => c.state === "charge" || c.state === "melee") && !G.result) {
@@ -1762,9 +1837,6 @@ function stepBats(dt) {
     if (bat.state === "broken") { bat.flee += dt; continue; }
     if (bat.dirty) { bat.dirty = false; layoutBat(bat); }
     bat.st -= dt;
-    if (bat.state === "readying" && bat.st <= 0) bat.state = "ready";
-    if (bat.state === "presenting" && bat.st <= 0) bat.state = "present";
-    if (bat.state === "firing" && bat.st <= 0) bat.state = "stand";
     if (bat.state === "wheel") {
       bat.whT += dt;
       const p = Math.min(1, bat.whT / 7), e = p * p * (3 - 2 * p);
@@ -1777,28 +1849,22 @@ function stepBats(dt) {
       bat.d = bat.advFrom + bat.advDist * (1 - Math.max(0, bat.advT) / bat.advDur);
       if (bat.advT <= 0) bat.smokeT = 0;
     }
-    if (bat.reloading) {
-      bat.reload += dt / reloadTime();
-      if (bat.reload >= 1) { bat.reloading = false; bat.loaded = true; bat.reload = 0; }
-    }
+    stepRanks(bat, dt);
     bat.smokeT = Math.max(0, bat.smokeT - dt);
-    if (bat.fireAt >= 0 && G.t >= bat.fireAt) {
-      bat.fireAt = -1;
-      if (bat.loaded && isUp(bat)) fireBat(bat, bat.ordered);
-      bat.ordered = false;
-    }
     if (G.result) continue;
     // discipline
     const r = rangeBat(bat);
     let dd = 0;
-    if (G.phase === "battle" && r < 130 && bat.loaded && isUp(bat) && bat.state !== "firing") dd -= (130 - r) / 130 * 3 * G.D.drain * vetMul();
-    if (bat.state === "present") dd -= 1.2 * G.D.drain * vetMul();
-    if (bat.state === "ready") dd -= 0.4 * G.D.drain * vetMul();
+    if (G.phase === "battle" && r < 130 && bat.rk.some(rankUp)) dd -= (130 - r) / 130 * 3 * G.D.drain * vetMul();
+    for (const k of bat.rk) { if (k.s === "present") dd -= (k.presT > 3 ? 2.2 : 0.8) * G.D.drain * vetMul(); }
     if (r > 250 && bat.melee === 0) dd += 1.5;
     bat.disc = clamp(bat.disc + dd * dt, 0, 100);
     // nervous men fire without orders
-    if (G.phase === "battle" && bat.disc < 35 && r < 170 && bat.loaded && bat.fireAt < 0 && bat.advT <= 0 && (bat.state === "stand" || bat.state === "ready" || bat.state === "present")) {
-      if (RNG() < (35 - bat.disc) / 35 * 0.5 * dt) fireBat(bat, false);
+    // nervous men: the rank whose turn it is fires before the word is given
+    const S_ = SEQ[bat.step];
+    if (G.phase === "battle" && bat.disc < 35 && r < 170 && bat.advT <= 0 && (S_.c === "present" || S_.c === "fire")) {
+      const k = bat.rk[S_.r];
+      if ((k.s === "ready" || k.s === "present") && k.fireAt < 0 && RNG() < (35 - bat.disc) / 35 * 0.5 * dt) { k.ragged = k.s !== "present"; fireRank(bat, S_.r, false); bat.step = SEQ.findIndex(q => q.c === "recover" && q.r === S_.r); }
     }
     if (bat.disc <= 0 || aliveB(bat) < bat.n0 * 0.3) breakBat(bat);
   }
@@ -1888,44 +1954,6 @@ function stepMelee(col, dt) {
   if (B.disc <= 0 || aliveB(B) < B.n0 * 0.3) { breakBat(B); col.state = "charge"; col.meleeBat = null; col.broke = true; col.heart += 10; }
 }
 
-function evaluateVolley() {
-  const v = G.volley; if (!v.shots.length) return;
-  v.shots.sort((a, b) => a.t - b.t);
-  const t0 = v.shots[0].t, sync = v.shots.filter(s => s.t - t0 <= 0.3).length;
-  const range = v.shots.reduce((a, s) => a + s.range, 0) / v.shots.length;
-  const kills = v.shots.reduce((a, s) => a + s.kills, 0);
-  const engaged = liveBats().filter(b => rangeBat(b) < 150 || v.shots.some(s => s.bat === b)).length;
-  G.volleys++;
-  let shock = 0;
-  if (range <= 75 && sync >= 2) shock = Math.min(5, sync) * 2.2 * (range <= 55 ? 1.5 : 1);
-  if (isJ()) { // the computer's volley, seen from the clans
-    if (shock) activeCols().forEach(c => { if (colRange(c) < 160) c.heart -= heartLoss(shock * 0.7); });
-    if (sync >= 2 && range < 90) { banner("THE REDCOATS FIRE!", "#ff9b9b", 46); msg("A volley from " + sync + " regiments at " + Math.round(range) + " yards: " + kills * MEN + " of your men fall. Get in before they reload!", "bad"); }
-    return;
-  }
-  const perfect = sync >= 3 && sync >= v.n && range <= 55;
-  let text, color, note, good = false;
-  if (perfect) {
-    shock += 15; G.perfects++; text = "PERFECT VOLLEY!"; color = "#ffd166"; good = true;
-    note = "Every engaged regiment fired as one! " + kills * MEN + " Highlanders fall at " + Math.round(range) + " yards.";
-    liveBats().forEach(b => b.disc = Math.min(100, b.disc + 15));
-    SLOWT = 1.5; dramaAt(v.shots[0].bat.x, lineD() + 30, 1.9, 1.3);
-    huzzah(0.5, 0.9);
-  } else if (range > 110) {
-    text = "WASTED!"; color = "#ff9b9b"; note = "Fired at " + Math.round(range) + " yards: far too far. Almost every ball missed. Wait until the clans are close.";
-  } else if (sync >= 3 && range <= 75) {
-    G.crashing++; text = "CRASHING VOLLEY!"; color = "#fff"; good = true; note = sync + " regiments fired together at " + Math.round(range) + " yards. " + kills * MEN + " Highlanders hit.";
-  } else if (v.subset && sync >= v.n && range <= 75) {
-    text = "STEADY VOLLEY"; color = "#fff"; good = true; note = v.names.join(" and ") + " fired together at " + Math.round(range) + " yards. " + kills * MEN + " Highlanders hit.";
-  } else if (range <= 75) {
-    text = "RAGGED VOLLEY"; color = "#ffcf9b"; note = "Only " + sync + " regiment" + (sync > 1 ? "s" : "") + " fired together. MAKE READY first and keep discipline high.";
-  } else { text = "TOO EARLY"; color = "#ffcf9b"; note = "Fired at " + Math.round(range) + " yards. About 50 yards is best against the Highland charge."; }
-  if (shock) activeCols().forEach(c => { if (colRange(c) < 160) c.heart -= shock; });
-  if (range > 110) activeCols().forEach(c => { c.heart += 6; });
-  if (!G.hist || perfect) banner(text, color, perfect ? 70 : 52);
-  if (!G.hist) msg(note, good ? "good" : "bad");
-}
-
 function stepFx(dt) {
   const wind = 3 + 6 * G.sleet; // the wind blows the smoke into the Jacobites' faces
   for (const s of G.smoke) { s.age += dt; s.x += s.vx * dt; s.d += wind * dt; s.r += 3 * dt; }
@@ -1988,7 +2016,7 @@ function selCols() { if (!G || !isJ()) return []; return SEL ? G.cols.filter(c =
 function ui() {
   const J = S.side === "jac";
   setT("hCoins", fmt(S.coins)); setT("hWins", fmt(J ? S.winsJ : S.wins)); setT("hPerf", fmt(J ? S.perfectJ : S.perfect)); setT("hBest", fmt(S.best));
-  setT("hStarL", J ? "WHOLE-LINE CHARGES" : "PERFECT VOLLEYS");
+  setT("hStarL", J ? "WHOLE-LINE CHARGES" : "PERFECT RANK FIRE");
   setT("diffHint", (J ? "Jacobites" : "Redcoats") + " · " + DIFFS[S.diff][J ? "jac" : "gov"]);
   $("muteBtn").textContent = S.mute ? "🔇" : "🔊";
   const spl = "⏩ " + SPEED + "x"; setL("speedBtn", spl); setC($("speedBtn"), "fast", SPEED > 1);
@@ -2003,19 +2031,29 @@ function ui() {
       const bar = $("bcb" + i), dc = broken ? 0 : b.disc / 100, w = Math.round(dc * 100) + "%", c = dc > 0.6 ? "#4fcf6a" : dc > 0.35 ? "#f2c14e" : "#e0383f";
       if (cache["bw" + i] !== w) { cache["bw" + i] = w; bar.style.width = w; }
       if (cache["bcol" + i] !== c) { cache["bcol" + i] = c; bar.style.background = c; }
-      setT("bcs" + i, broken ? "overrun" : b.melee ? "⚔ melee" : b.state === "wheel" ? "wheeling" : b.reloading ? Math.round(b.reload * 100) + "%" : b.loaded ? (b.state === "present" ? "◎" : b.state === "ready" ? "⇡" : "✓") : "✗");
+      setT("bcs" + i, broken ? "overrun" : b.melee ? "⚔ melee" : b.state === "wheel" ? "wheeling" : "▸ " + SEQ[b.step].chip);
     });
     setC($("bcAll"), "on", !SEL);
     const sb = selBats(), r0 = sb.length ? Math.min(...sb.map(rangeBat)) : 9999;
-    setD("readyBtn", done || !sb.some(b => b.state === "stand" && b.loaded && !busy(b)));
-    setD("presentBtn", done || !sb.some(b => (b.state === "stand" || b.state === "ready" || b.state === "readying") && b.loaded && !busy(b)));
-    setC($("presentBtn"), "now", !done && sb.some(b => b.state === "ready") && r0 <= 75);
-    setD("fireBtn", done || !sb.some(b => b.loaded && !busy(b)));
-    setT("fireHint", SEL ? (sb.length === 1 ? sb[0].def.short + " only" : sb.length + " regiments") : "all together · space");
-    setC($("fireBtn"), "now", !done && G.phase === "battle" && r0 <= 58 && r0 >= 15 && sb.some(b => b.loaded && isUp(b)));
+    // the drill: the next word of command for the battalions you have picked
+    const lead = sb[0], can = sb.filter(b => !stepBlock(b, b.step));
+    const nx = lead ? SEQ[lead.step] : SEQ[0], same = sb.every(b => b.step === (lead ? lead.step : 0));
+    setL("orderBtn", nx.label);
+    const ocl = "bb order " + nx.c; if (cache.ocl !== ocl) { cache.ocl = ocl; $("orderBtn").className = ocl; }
+    setD("orderBtn", done || !can.length);
+    const who = SEL ? (sb.length === 1 ? sb[0].def.short : sb.length + " battalions") : "every battalion";
+    setT("orderHint", !can.length && lead ? lead.def.short + ": " + stepBlock(lead, lead.step) : same ? who + " · space" : "each battalion takes its own next word · space");
+    const firing = can.some(b => SEQ[b.step].c === "fire" && b.rk[SEQ[b.step].r].s === "present");
+    setC($("orderBtn"), "now", !done && G.phase === "battle" && ((firing && r0 <= 110) || (can.some(b => SEQ[b.step].c !== "fire") && r0 <= 130 && r0 > 8)));
+    SEQ.forEach((q, i) => {
+      const el = $("sq" + i); if (!el) return;
+      setC(el, "next", !!lead && lead.step === i);
+      setC(el, "done", !!lead && (lead.step > i));
+      setD("sq" + i, done || !sb.some(b => !stepBlock(b, i)));
+    });
     setD("steadyBtn", done || G.steadyCd > 0);
     setT("steadyHint", G.steadyCd > 0 ? "ready in " + Math.ceil(G.steadyCd) + "s" : "calm the men · S");
-    const rel = liveBats().some(b => b.reloading);
+    const rel = loadingRanks().length > 0;
     setD("drillBtn", done || !rel);
     let [a, z] = drillZone(); $("dzone").style.left = (a * 100) + "%"; $("dzone").style.width = ((z - a) * 100) + "%"; $("dmark").style.left = (barPos(G.drillPh) * 100) + "%";
     if (!rel && cache.drillIdle !== true) { cache.drillIdle = true; $("drillHint").textContent = "tap in the green · D"; }
@@ -2090,7 +2128,7 @@ function showStart() {
     ? "You lead <b>Prince Charles's clans</b>. Cumberland's guns will open fire, and every minute you wait costs men. <b>Charge together, fire one volley at 40 yards, then broadswords!</b>"
     : "You command the <b>Duke of Cumberland's army</b>. Pound the clans with your guns, then <b>hold the red line against the Highland charge</b>.";
   $("startCoins").textContent = fmt(S.coins) + " shillings";
-  const rp = S.replay && S.replay.v === 1 ? S.replay : null;
+  const rp = S.replay && S.replay.v === 2 ? S.replay : null;
   $("startReplay").hidden = !rp;
   if (rp) $("startReplayHint").textContent = (rp.side === "jac" ? "Jacobites" : "Redcoats") + ": " + (rp.result === "win" ? "victory" : "defeat") + " on " + DIFFS[rp.diff][rp.side === "jac" ? "jac" : "gov"] + " · " + fmtTime(rp.end * DT) + " long";
   if (!REPLAY && (!G || G.side !== S.side)) { newBattle(); applySide(S.side); SEL = null; }
@@ -2147,7 +2185,7 @@ function showEnd() {
   if (win) { if (J) S.winsJ++; else S.wins++; }
   if (J) S.perfectJ += G.together; else S.perfect += G.perfects;
   const newBest = score > S.best; if (newBest) S.best = score;
-  S.replay = { v: 1, side: G.side, seed: G.seed, diff: G.diff, up: G.up0, upj: G.uj0, cmds: G.log, end: G.n, result: G.result, score, at: Date.now() };
+  S.replay = { v: 2, side: G.side, seed: G.seed, diff: G.diff, up: G.up0, upj: G.uj0, cmds: G.log, end: G.n, result: G.result, score, at: Date.now() };
   save();
   if (window.Leaderboard && Leaderboard.getName() && score > 0) Leaderboard.submit(score).then(() => { if (window.PhatCoin) PhatCoin.leaderboard(Leaderboard.getName(), "desc"); });
   if (win && window.PhatCoin) PhatCoin.earn("win", Math.min(5, stars + 2), J ? "Jacobite victory at Culloden" : "victory at Culloden");
@@ -2157,15 +2195,15 @@ function showEnd() {
   $("endStats").innerHTML = J
     ? row("Score", fmt(score) + (newBest ? " · best!" : "")) + row("Shillings earned", "+" + fmt(coins)) + row("Regiments overrun", broke) + row("Whole-line charge", G.together ? "Yes!" : "No")
       + row("Clans that charged alone", G.noOrders) + row("Battle time", fmtTime(G.t)) + row("Your men lost", fmt(G.killed * MEN)) + row("Redcoats hit", fmt(G.lost * MEN))
-    : row("Score", fmt(score) + (newBest ? " · best!" : "")) + row("Shillings earned", "+" + fmt(coins)) + row("Perfect volleys", G.perfects) + row("Volleys fired", G.volleys)
+    : row("Score", fmt(score) + (newBest ? " · best!" : "")) + row("Shillings earned", "+" + fmt(coins)) + row("Perfect rank fire", G.perfects) + row("Rank volleys fired", G.volleys)
       + row("Fired without orders", G.noOrders) + row("Regiments overrun", broke) + row("Battle time", fmtTime(G.t)) + row("Your men lost", fmt(G.lost * MEN))
       + row("Jacobites hit", fmt(G.killed * MEN)) + row("Hit by your guns", fmt(G.gunKills * MEN));
   let tip = "";
-  if (!J && win && stars < 3) tip = stars === 1 ? " For more stars: MAKE READY at about 75 yards, PRESENT, then FIRE with every engaged regiment at once at about 50 for a PERFECT VOLLEY." : " For the third star: no regiment may be overrun and nobody may fire without orders.";
+  if (!J && win && stars < 3) tip = stars === 1 ? " For more stars: MAKE READY early, start the rear rank at about 100 yards, wait a moment after each PRESENT, and fire rear, middle and front cleanly for PERFECT RANK FIRE." : " For the third star: no regiment may be overrun and nobody may fire without orders.";
   if (J && win && stars < 3) tip = " For more stars: charge the whole line together with one CLAYMORE! before any clan goes alone, and lose fewer than 4 in every 10 men.";
   $("endHist").textContent = !J
     ? (win ? "That is how it went in 1746. Barrell's were driven back, but the second line and Wolfe's flank fire stopped the charge, and the Jacobite army ran. After the battle Cumberland's army treated the Highlands very harshly." + tip
-           : "In the real battle the government line held. Try again: grapeshot when the clans come under 300 yards, a volley at about 50, the bayonet drill when they reach you, and bring up Sempill's and Bligh's behind Barrell's and Munro's.")
+           : "In the real battle the government line held. Try again: grapeshot when the clans come under 300 yards, keep the rank fire rolling from about 100 yards, the bayonet drill when they reach you, and bring up Sempill's and Bligh's behind Barrell's and Munro's.")
     : (win ? "In 1746 it did not happen like this. The clans waited too long under cannon fire, the bog slowed the left, and the charge that reached the line was stopped by the second line. You changed history!" + tip
            : "The real Jacobite army lost too. Try again: do not wait too long under the guns, charge together, FIRE at about 40 yards, keep tapping SWORD AND TARGE at the red line, and send the SECOND LINE against the dragoons.");
   $("endOv").hidden = false;
@@ -2212,7 +2250,10 @@ function replaySeek(n) {
 // ---------- input ----------
 const tap = (id, fn) => $(id).addEventListener("click", e => { e.preventDefault(); audio(); fn(); });
 const press = (id, fn) => $(id).addEventListener("pointerdown", e => { e.preventDefault(); audio(); fn(); });
-tap("readyBtn", () => cmd("ready")); tap("presentBtn", () => cmd("present")); tap("fireBtn", () => cmd("fire")); tap("steadyBtn", () => cmd("steady"));
+tap("orderBtn", () => cmd("next")); tap("steadyBtn", () => cmd("steady"));
+{ const bar = $("seqBar"); SEQ.forEach((q, i) => { const b = document.createElement("button"); b.className = "sq" + (q.c === "fire" ? " fire" : ""); b.id = "sq" + i;
+  const parts = q.c === "ready" ? ["MAKE", "READY"] : [RANKCAP[q.r].toUpperCase(), q.c.toUpperCase()]; b.innerHTML = parts[0] + "<small>" + parts[1] + "</small>"; b.title = q.label;
+  b.addEventListener("click", e => { e.preventDefault(); audio(); cmd("step", i); }); bar.appendChild(b); }); }
 press("drillBtn", () => cmd("drill")); press("bayoBtn", () => cmd("bayo"));
 tap("gunBtn", () => cmd("guns")); tap("ammoBtn", () => cmd("ammo"));
 tap("advBtn", () => cmd("adv")); tap("wolfeBtn", () => cmd("wheel")); tap("dragBtn", () => cmd("drag"));
@@ -2593,7 +2634,7 @@ function camStep(rdt) {
     else { w = 1; const sg = isJ() ? -1 : 1, x = WX(DRAMA.x), z = WZ(DRAMA.d), y = groundH(x, z); _lB.set(x, y + 8, z); _pB.set(x + 55 * sg, y + 34, z + 80 * sg); }
   }
   if (!w && VIEW === "auto" && !G.result && !isJ() && !(REPLAY && REPLAY.speed >= 4)) {
-    const tense = G.phase === "battle" && liveBats().some(b => b.state === "present" || b.state === "presenting" || b.fireAt >= 0) && minRange() < 90;
+    const tense = G.phase === "battle" && liveBats().some(anyPresent) && minRange() < 90;
     if (tense || FLASH > 0.2) VOLCAM = 1.3;
     VOLCAM -= rdt;
     if (VOLCAM > 0) { w = 1; linePose(_pB, _lB, null); }
@@ -2628,8 +2669,9 @@ function applyCam(rdt) {
 const gy = (X, Z) => groundH(X, Z);
 function batPose(bat, f) {
   if (bat.melee > 0) return f.rk === 0 ? "charge" : "ready";
-  if (bat.state === "present" || bat.state === "presenting" || bat.state === "firing") return f.rk === 0 ? "kpresent" : "present";
-  if (bat.state === "ready" || bat.state === "readying") return "ready";
+  const k = bat.rk[clamp(f.rk, 0, 2)];
+  if (k.s === "presenting" || k.s === "present" || k.s === "fired") return f.rk === 0 ? "kpresent" : "present";
+  if (k.s === "ready" || k.s === "readying" || k.s === "recovering" || k.s === "loading") return "ready";
   return "stand";
 }
 function fmtTime(t) { t = Math.max(0, Math.floor(t)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); }
@@ -2867,7 +2909,7 @@ function drawLabels() {
     ctx.textAlign = "center";
     if (J) { const df = bat.disc / 100; ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillRect(lx - 31, ly - 30, 62, 8); ctx.fillStyle = "#ff8a8a"; ctx.fillRect(lx - 30, ly - 29, 60 * df, 6); if (CAM.dist < 1200 || bat.melee) { ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.font = "900 10px Nunito, sans-serif"; ctx.fillText(bat.def.short, lx, ly - 34); } continue; }
     const sel = SEL && SEL.has(bat.idx);
-    ctx.fillStyle = sel ? "rgba(70,48,16,.88)" : "rgba(10,8,6,.72)"; roundRect(lx - 62, ly, 124, 38, 7); ctx.fill();
+    ctx.fillStyle = sel ? "rgba(70,48,16,.88)" : "rgba(10,8,6,.72)"; roundRect(lx - 68, ly, 136, 44, 7); ctx.fill();
     if (sel) { ctx.strokeStyle = "#f2c14e"; ctx.lineWidth = 2; ctx.stroke(); }
     ctx.fillStyle = "#fff"; ctx.font = "900 11px Nunito, sans-serif";
     ctx.fillText(bat.def.short + "  ·  " + aliveB(bat) * MEN, lx, ly + 12);
@@ -2876,8 +2918,16 @@ function drawLabels() {
     if (bat.melee > 0) { ctx.fillStyle = "#ff9b6b"; ctx.fillText("MELEE! BAYONET DRILL", lx, ly + 34); }
     else if (bat.state === "wheel") { ctx.fillStyle = "#9fe3f0"; ctx.fillText("WHEELING...", lx, ly + 34); }
     else if (bat.advT > 0) { ctx.fillStyle = "#9fe3f0"; ctx.fillText("ADVANCING...", lx, ly + 34); }
-    else if (bat.reloading) bar(lx - 56, ly + 27, 112, 6, bat.reload, "#e0873a");
-    else { ctx.fillStyle = bat.loaded ? "#b8ffc4" : "#ffb0b0"; ctx.fillText((bat.loaded ? "LOADED" : "EMPTY") + (bat.state === "present" ? " · PRESENT" : bat.state === "ready" ? " · READY" : "") + (bat.flank ? " · FLANK" : ""), lx, ly + 34); }
+    else {
+      // three pips, rear to front: green loaded, gold presenting, red fired, orange filling while it loads
+      [2, 1, 0].forEach((r, j) => {
+        const k = bat.rk[r], x0 = lx - 56 + j * 24, cl = k.s === "fired" ? "#e0383f" : (k.s === "present" || k.s === "presenting") ? "#ffd166" : rankLoaded(k) ? "#4fcf6a" : "#3a3026";
+        ctx.fillStyle = cl; ctx.fillRect(x0, ly + 26, 20, 7);
+        if (rankLoading(k)) { ctx.fillStyle = "#e0873a"; ctx.fillRect(x0, ly + 26, 20 * clamp(k.reload, 0, 1), 7); }
+      });
+      ctx.textAlign = "left"; ctx.fillStyle = "#c7b8a3"; ctx.font = "800 8.5px Nunito, sans-serif"; ctx.fillText("R M F", lx - 52, ly + 41);
+      ctx.fillStyle = "#fff"; ctx.font = "900 9.5px Nunito, sans-serif"; ctx.fillText("▸ " + SEQ[bat.step].short, lx + 18, ly + 33); ctx.textAlign = "center";
+    }
   }
   // the generals
   ctx.font = "800 11px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "rgba(255,255,255,.85)";
@@ -2938,10 +2988,8 @@ function drawHUD() {
           if (sb.some(b => b.melee)) { adv = "BAYONETS! The new drill!"; col = "#ff9b6b"; }
           else if (r > 300) { adv = "ROUNDSHOT · hold your fire"; col = "#fff"; }
           else if (r > 110) { adv = "GRAPESHOT! Hold your fire"; col = "#ffd59a"; }
-          else if (r > 78) { adv = "Hold... hold..."; col = "#f2c14e"; }
-          else if (r > 62) { adv = "MAKE READY!"; col = "#ffb04e"; }
-          else if (r > 52) { adv = "PRESENT!"; col = "#ffd166"; }
-          else if (r >= 12) { adv = "FIRE NOW!"; col = "#7dff95"; }
+          else if (r > 130) { adv = "Hold... MAKE READY"; col = "#f2c14e"; }
+          else if (r >= 12) { const nx = sb.length ? SEQ[sb[0].step] : SEQ[0]; adv = "Next: " + nx.label; col = nx.c === "fire" ? "#7dff95" : "#ffd166"; }
           else { adv = "They're on you! Bayonets!"; col = "#ff7b7b"; }
         }
       }
@@ -3077,11 +3125,11 @@ document.addEventListener("keydown", e => {
   const k = e.key.toLowerCase();
   if (k === "f") { SPEED = SPEED >= 3 ? 1 : SPEED + 1; return; }
   if (!isJ()) {
-    if (e.code === "Space") { e.preventDefault(); audio(); cmd("fire"); }
+    if (e.code === "Space") { e.preventDefault(); audio(); cmd("next"); }
     else if (k >= "1" && k <= "9") toggleSel(+k - 1);
     else if (k === "0") toggleSel(9);
     else if (k === "`") selAll();
-    else if (k === "r") cmd("ready"); else if (k === "p") cmd("present"); else if (k === "s") cmd("steady"); else if (k === "d") cmd("drill");
+    else if (k === "r") cmd("step", 0); else if (k === "s") cmd("steady"); else if (k === "d") cmd("drill");
     else if (k === "g") cmd("guns"); else if (k === "t") cmd("ammo"); else if (k === "b") cmd("bayo"); else if (k === "a") cmd("adv");
     else if (k === "w") cmd("wheel"); else if (k === "h") cmd("drag");
   } else {

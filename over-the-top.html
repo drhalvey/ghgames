@@ -49,7 +49,7 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
 .stage:fullscreen{border:none;border-radius:0;height:100%}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 /* HUD */
-.hud{position:absolute;inset:0;pointer-events:none;font-weight:900;text-shadow:0 2px 3px rgba(0,0,0,.8)}
+.hud{position:absolute;inset:0;pointer-events:none;z-index:2;font-weight:900;text-shadow:0 2px 3px rgba(0,0,0,.8)}
 .hud .tl{position:absolute;left:12px;top:10px;max-width:58%}
 .hud .tc{position:absolute;left:50%;top:10px;transform:translateX(-50%);text-align:center}
 .hud .bl{position:absolute;left:12px;bottom:12px}
@@ -67,6 +67,33 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
 .xhair:before{left:16px;top:0;width:2px;height:34px;clip-path:polygon(0 0,100% 0,100% 38%,0 38%,0 62%,100% 62%,100% 100%,0 100%)}
 .xhair:after{top:16px;left:0;height:2px;width:34px;clip-path:polygon(0 0,38% 0,38% 100%,0 100%,0 0,62% 0,100% 0,100% 100%,62% 100%)}
 .xhair.hit:before,.xhair.hit:after{background:#ff5050}
+.xhair.on:before,.xhair.on:after{background:#ffb347}
+.xhair.busy{opacity:.35}
+/* telescopic sight on the machine gun */
+.scope{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:1;transition:opacity .12s;overflow:hidden}
+.scope .lens{position:absolute;top:3%;height:94%;aspect-ratio:1;left:50%;transform:translateX(-50%);border-radius:50%;box-shadow:0 0 0 200vmax rgba(5,5,5,.94),inset 0 0 50px 14px rgba(0,0,0,.75)}
+.scope svg{position:absolute;inset:0;width:100%;height:100%}
+.scope line,.scope path{stroke:rgba(15,15,15,.92);stroke-width:.45;fill:none}
+.scope.on line,.scope.on path{stroke:#d52b2b}
+/* iron sights on the rifle */
+.sights{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:1;transition:opacity .1s,transform .12s}
+.sights svg{position:absolute;inset:0;width:100%;height:100%}
+.sights.kick{transform:translateY(5%)}
+.zl{position:absolute;right:14px;top:46%;font-family:var(--display);font-size:24px;color:#fff;text-shadow:0 2px 3px #000;pointer-events:none}
+/* reload ring */
+.ring{z-index:3;position:absolute;left:50%;top:50%;width:84px;height:84px;margin:-42px 0 0 -42px;pointer-events:none;display:none}
+.ring circle{fill:none;stroke-width:7}
+.ring .bg{stroke:rgba(0,0,0,.5)}
+.ring .fg{stroke:#f2c14e;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
+.ringTxt{z-index:3;position:absolute;left:50%;top:calc(50% + 50px);transform:translateX(-50%);font-weight:900;font-size:15px;color:#fff;text-shadow:0 2px 3px #000;pointer-events:none;white-space:nowrap;display:none;background:rgba(0,0,0,.45);padding:3px 10px;border-radius:10px}
+/* rounds in the HUD */
+.rounds{display:flex;gap:3px;justify-content:center;margin:5px 0 2px;flex-wrap:nowrap}
+.rounds i{display:block;width:8px;height:22px;border-radius:4px 4px 1px 1px;background:linear-gradient(90deg,#c9962f,#f3d27a 45%,#b8862b);box-shadow:0 1px 2px #000;transition:opacity .1s,transform .15s}
+.rounds i:before{content:"";display:block;height:7px;border-radius:4px 4px 0 0;background:linear-gradient(90deg,#8a5a26,#c58a4a,#7a4c1f)}
+.rounds i.out{opacity:.18;transform:translateY(3px)}
+.rounds.belt{gap:2px}
+.rounds.belt i{width:6px;height:15px}
+.rounds.belt i:before{height:5px}
 .dmg{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 45%,rgba(170,0,0,.75) 100%);transition:opacity .25s}
 .banner{position:absolute;left:50%;top:22%;transform:translateX(-50%);font-family:var(--display);font-size:clamp(26px,5vw,48px);color:#fff;text-shadow:0 3px 0 #000,0 0 18px rgba(0,0,0,.8);pointer-events:none;text-align:center;opacity:0;transition:opacity .3s;white-space:nowrap}
 .banner small{display:block;font-family:var(--body);font-weight:900;font-size:clamp(13px,2.2vw,18px);color:var(--gold)}
@@ -139,6 +166,11 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
         <div class="bar" id="hHeatWrap"><i id="hHeat"></i></div>
       </div>
     </div>
+    <div class="scope" id="scope"><div class="lens"><svg viewBox="0 0 100 100"><line x1="2" y1="50" x2="44" y2="50"/><line x1="56" y1="50" x2="98" y2="50"/><line x1="50" y1="56" x2="50" y2="98"/><path d="M47.5 50 L50 46 L52.5 50"/><line x1="46" y1="60" x2="54" y2="60"/><line x1="47" y1="68" x2="53" y2="68"/><line x1="48" y1="76" x2="52" y2="76"/><line x1="40" y1="49" x2="40" y2="51"/><line x1="60" y1="49" x2="60" y2="51"/><line x1="30" y1="48" x2="30" y2="52"/><line x1="70" y1="48" x2="70" y2="52"/></svg></div></div>
+    <div class="sights" id="sights"><svg id="sightSvg" viewBox="-280 -210 560 420" preserveAspectRatio="xMidYMid slice"></svg></div>
+    <div class="zl" id="zLabel"></div>
+    <svg class="ring" id="ring" viewBox="0 0 84 84"><circle class="bg" cx="42" cy="42" r="34"/><circle class="fg" id="ringFg" cx="42" cy="42" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6"/></svg>
+    <div class="ringTxt" id="ringTxt"></div>
     <div class="xhair" id="xhair" hidden></div>
     <div class="dmg" id="dmg"></div>
     <div class="banner" id="banner"></div>
@@ -211,9 +243,9 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
   </div>
 
   <div class="help" id="help">
-    <b>Computer:</b> click the battlefield to grab the mouse (Esc lets go). Mouse looks and aims. <b>Machine gun:</b> hold left click or Space to fire, right click or Z to zoom, R reload the belt, A calls the artillery.
-    <b>Rifleman:</b> WASD move, Shift sprint, C duck (ducking inside a shell hole hides you from the machine guns), left click fire, right click aim down the sights, R reload, F bayonet, G throw a bomb.<br>
-    <b>iPad / phone:</b> drag on the right side to aim, left thumb stick to move, buttons for everything else.
+    <b>Computer:</b> click the battlefield to grab the mouse (Esc lets go). Mouse looks and aims (it slows a little when you are on a target). <b>Zoom:</b> mouse wheel, or right click / Z to step through. <b>Machine gun:</b> hold left click or Space to fire; zoom right in for the telescopic sight, R reload the belt, A calls the artillery.
+    <b>Rifleman:</b> WASD move, Shift sprint, C duck (ducking inside a shell hole hides you from the machine guns), left click fire, right click (or wheel) to look down the iron sights, R reload, F bayonet, G throw a bomb.<br>
+    <b>iPad / phone:</b> drag on the right side to aim, pinch with two fingers to zoom (or tap the zoom button), left thumb stick to move, buttons for everything else.
   </div>
   <div id="lb"></div>
 </div>
@@ -256,10 +288,10 @@ const DIFFS = {
   veteran: { name: "Veteran", mult: 2,   waves: [14, 20, 26, 32, 38, 46], breaches: 2, hp: 4, enemyAcc: 0.08,  walk: 2.4,  charge: 4.4, defenders: 17, crews: 3, mgAcc: 0.2,  pFac: 0.035, rifleAcc: 0.11, php: 3, grenades: 3, shellGap: [4, 7],  comradeKill: 0.045 }
 };
 const SIDES = {
-  brit: { name: "British", rifle: "Lee-Enfield", mag: 10, bolt: 0.48, spread: 1.1, ads: 0.3, mg: "Vickers", rpm: 450,
+  brit: { name: "British", rifle: "Lee-Enfield", mag: 10, bolt: 0.48, spread: 0.6, ads: 0.12, mg: "Vickers", rpm: 450,
           coat: 0x857a4e, coat2: 0x6d6440, web: 0xb5a678, leg2: 0x7d7250, helm: 0x56573c, helmet: "brodie",
           medals: ["Military Medal", "Distinguished Conduct Medal", "Victoria Cross"], icons: ["🥉", "🥈", "🎖️"], bomb: "Mills bomb" },
-  ger:  { name: "German", rifle: "Mauser", mag: 5, bolt: 0.6, spread: 0.85, ads: 0.17, mg: "MG 08", rpm: 500,
+  ger:  { name: "German", rifle: "Mauser", mag: 5, bolt: 0.6, spread: 0.5, ads: 0.07, mg: "MG 08", rpm: 500,
           coat: 0x6a7260, coat2: 0x575d4d, web: 0x2c2823, leg2: 0x1e1c1a, helm: 0x5b6352, helmet: "stahl",
           medals: ["Iron Cross 2nd Class", "Iron Cross 1st Class", "Pour le Mérite"], icons: ["✠", "✠", "✚"], bomb: "stick grenade" }
 };
@@ -352,7 +384,13 @@ const sfx = {
   grunt(vol, pan) { if (shoutBudget > 6) return; shoutBudget++; const f = rnd(150, 230); tone(f, 0.22, "sawtooth", 0.05 * vol, 0, f * 0.7, pan); noise(0.15, 800, "bandpass", 0.08 * vol, 2, 0, pan); },
   swish() { noise(0.18, 2600, "bandpass", 0.3, 1.2); tone(300, 0.15, "triangle", 0.06, 0, 120); },
   throwB() { noise(0.15, 1200, "bandpass", 0.15, 1); },
-  bounce() { tone(260, 0.05, "triangle", 0.05); }
+  bounce() { tone(260, 0.05, "triangle", 0.05); },
+  clank() { tone(240, 0.09, "square", 0.08); noise(0.1, 1600, "bandpass", 0.3, 2); },
+  boxThump() { noise(0.22, 320, "lowpass", 0.45); tone(90, 0.15, "sine", 0.3, 0, 60); },
+  rattle() { for (let i = 0; i < 7; i++) noise(0.05, 1800 + Math.random() * 1500, "bandpass", 0.14, 3, i * 0.11); },
+  cock() { noise(0.06, 2200, "bandpass", 0.3, 3); tone(1300, 0.04, "square", 0.06); noise(0.06, 1800, "bandpass", 0.3, 3, 0.22); tone(1000, 0.04, "square", 0.06, 0.22); },
+  round() { noise(0.04, 2600 + Math.random() * 600, "bandpass", 0.22, 4); tone(1700 + Math.random() * 300, 0.025, "square", 0.04); },
+  boltOpen() { noise(0.05, 2000, "bandpass", 0.25, 3); tone(900, 0.04, "square", 0.05); }
 };
 setInterval(() => { shoutBudget = Math.max(0, shoutBudget - 3); }, 1000);
 
@@ -775,10 +813,14 @@ function mgModel(sd) {
   for (let i = 0; i < 6; i++) P(jacket, dark, 0, 0, -0.2 - i * 0.12, Math.PI / 2, 0.066, 0.02, 0.066); // ribs
   P(jacket, dark, 0, 0, -0.98, Math.PI / 2, 0.025, 0.14, 0.025);                                 // muzzle
   P(BOX, dark, 0, 0.01, 0.07, 0, 0.17, 0.16, 0.42);                                               // receiver
-  P(BOX, steel, 0, 0.1, 0.05, 0, 0.12, 0.03, 0.3);
+  const cover = new THREE.Group(); cover.position.set(0, 0.095, -0.12); g.add(cover);        // top cover, hinged at the front
+  { const c = new THREE.Mesh(BOX, steel); c.position.set(0, 0, 0.17); c.scale.set(0.13, 0.03, 0.34); c.castShadow = true; cover.add(c); }
+  const cock = P(BOX, steel, 0.11, 0.0, 0.18, 0, 0.05, 0.035, 0.07);                             // cocking handle
   P(BOX, wood, 0.07, -0.01, 0.31, 0, 0.035, 0.11, 0.035); P(BOX, wood, -0.07, -0.01, 0.31, 0, 0.035, 0.11, 0.035); // spade grips
-  P(BOX, sd === "brit" ? lam(0x4b5236) : lam(0x5a5a4a), -0.2, -0.12, 0.05, 0, 0.12, 0.16, 0.26);  // ammo box
-  P(BOX, brass, -0.12, 0.0, 0.03, 0, 0.12, 0.02, 0.05);                                           // the belt going in
+  const box = P(BOX, sd === "brit" ? lam(0x4b5236) : lam(0x5a5a4a), -0.2, -0.12, 0.05, 0, 0.12, 0.16, 0.26);  // ammo box
+  const belt = new THREE.Group(); belt.position.set(-0.16, 0.02, 0.03); g.add(belt);              // the belt going in: rounds on a strip
+  { const strip = new THREE.Mesh(BOX, lam(0x7a6a4a)); strip.scale.set(0.2, 0.012, 0.05); belt.add(strip);
+    for (let i = 0; i < 8; i++) { const r = new THREE.Mesh(BOX, brass); r.position.set(-0.09 + i * 0.026, 0.012, 0); r.scale.set(0.012, 0.012, 0.075); belt.add(r); } }
   P(CYL, sd === "brit" ? lam(0x3e4a3a) : lam(0x48483e), 0.22, -0.16, -0.1, 0, 0.05, 0.22, 0.05); // water can
   const mount = new THREE.Group(); g.add(mount); // tripod (Vickers) or sled (MG 08)
   if (sd === "brit") {
@@ -789,7 +831,7 @@ function mgModel(sd) {
     between(L2, [0.22, -0.5, 0.4], [0, -0.06, 0.1], 0.035, 0x323432); between(L2, [-0.22, -0.5, 0.4], [0, -0.06, 0.1], 0.035, 0x323432);
     mount.add(new THREE.Mesh(mergeParts(L2), SMAT));
   }
-  g.userData.mount = mount;
+  g.userData.mount = mount; Object.assign(g.userData, { cover, cock, box, belt, boxY: box.position.y, boxX: box.position.x, beltX: belt.position.x });
   return g;
 }
 
@@ -857,7 +899,7 @@ addEventListener("keydown", e => {
   if (!playing()) return;
   if (e.code === "Space") { e.preventDefault(); if (G.mode === "mg") IN.fire = true; }
   if (e.code === "KeyR") reload();
-  if (e.code === "KeyZ" && G.mode === "mg") G.zoom = !G.zoom;
+  if (e.code === "KeyZ") zoomToggle();
   if (e.code === "KeyA" && G.mode === "mg") callArty();
   if (e.code === "KeyC" || e.code === "ControlLeft") toggleCrouch();
   if (e.code === "KeyF") bayonet();
@@ -880,7 +922,7 @@ stage.addEventListener("pointerdown", e => {
     if (!playing()) return;
     if (!locked && stage.requestPointerLock) { wantLock = true; try { const r = stage.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (err) {} }
     if (e.button === 0) { IN.fire = true; if (G.mode === "rifle") fireRifle(); }
-    if (e.button === 2) { if (G.mode === "mg") G.zoom = true; else IN.aim = true; }
+    if (e.button === 2) zoomToggle();
     touches.set(e.pointerId, { kind: "mouse", x: e.clientX, y: e.clientY });
     return;
   }
@@ -899,7 +941,7 @@ stage.addEventListener("pointermove", e => {
   if (!G) return;
   if (e.pointerType === "mouse") {
     if (!playing()) return;
-    const sens = (G.zoom || IN.aim ? 0.0011 : 0.0023);
+    const sens = 0.0023 * lookScale();
     if (locked) { IN.look.x += e.movementX * sens; IN.look.y += e.movementY * sens; }
     else if (touches.has(e.pointerId)) { const t = touches.get(e.pointerId); IN.look.x += (e.clientX - t.x) * sens * 1.4; IN.look.y += (e.clientY - t.y) * sens * 1.4; t.x = e.clientX; t.y = e.clientY; }
     return;
@@ -911,15 +953,25 @@ stage.addEventListener("pointermove", e => {
     return;
   }
   const t = touches.get(e.pointerId); if (!t || t.kind !== "look") return;
-  const sens = (G.zoom || IN.aim ? 0.0024 : 0.0048);
+  // two fingers on the look side: pinch to zoom instead of turning
+  const looks = [...touches.values()].filter(q => q.kind === "look");
+  if (looks.length >= 2) {
+    t.x = e.clientX; t.y = e.clientY;
+    const d = Math.hypot(looks[0].x - looks[1].x, looks[0].y - looks[1].y);
+    if (!pinchD) pinchD = d; else if (d / pinchD > 1.3) { zoomStep(1); pinchD = d; } else if (d / pinchD < 0.77) { zoomStep(-1); pinchD = d; }
+    return;
+  }
+  const sens = 0.0048 * lookScale();
   IN.look.x += (e.clientX - t.x) * sens; IN.look.y += (e.clientY - t.y) * sens; t.x = e.clientX; t.y = e.clientY;
 });
 function endPointer(e) {
-  if (e.pointerType === "mouse") { if (e.button === 0) IN.fire = false; if (e.button === 2) { if (G && G.mode === "mg") G.zoom = false; IN.aim = false; } touches.delete(e.pointerId); return; }
+  if (e.pointerType === "mouse") { if (e.button === 0) IN.fire = false; touches.delete(e.pointerId); return; }
   if (e.pointerId === joyId) { joyId = null; IN.mx = IN.my = 0; IN.sprint = false; knob.style.transform = ""; joy.style.left = "28px"; joy.style.top = "auto"; joy.style.bottom = "28px"; }
   if (btnPtr.has(e.pointerId)) { touchButton(btnPtr.get(e.pointerId), false, e.pointerId); }
-  touches.delete(e.pointerId);
+  touches.delete(e.pointerId); pinchD = 0;
 }
+let pinchD = 0;
+stage.addEventListener("wheel", e => { if (!playing()) return; e.preventDefault(); zoomStep(e.deltaY < 0 ? 1 : -1); }, { passive: false });
 stage.addEventListener("pointerup", endPointer); stage.addEventListener("pointercancel", endPointer);
 const btnPtr = new Map();
 function touchButton(id, down, pid) {
@@ -927,7 +979,7 @@ function touchButton(id, down, pid) {
   const el = $(id);
   if (id === "tFire") { IN.fire = down; el.classList.toggle("on", down); if (down && G.mode === "rifle") fireRifle(); return; }
   if (!down) return;
-  if (id === "tAim") { if (G.mode === "mg") G.zoom = !G.zoom; else IN.aim = !IN.aim; el.classList.toggle("on", G.mode === "mg" ? G.zoom : IN.aim); }
+  if (id === "tAim") zoomToggle();
   if (id === "tReload") reload();
   if (id === "tBay") bayonet();
   if (id === "tGren") grenade();
@@ -944,6 +996,76 @@ function showTouch() {
   place("tBay", 108, 108, !mg); place("tGren", 186, 24, !mg); place("tCrouch", 116, 186, !mg); place("tArty", 186, 24, mg);
   const tp = $("tPause"); tp.style.right = "auto"; tp.style.left = "12px"; tp.style.bottom = "auto"; tp.style.top = "84px"; tp.style.width = tp.style.height = "44px";
   $("joy").style.display = mg ? "none" : "block";
+}
+
+// ======================================================================
+// zoom and aim
+// ======================================================================
+const ZOOMS = { mg: [52, 26, 13], rifle: [62, 30] };
+function setZoom(i) {
+  if (!G || G.over) return;
+  const L = ZOOMS[G.mode]; G.zl = clamp(i, 0, L.length - 1);
+  if (G.mode === "rifle") IN.aim = G.zl > 0;
+  zoomUI();
+}
+function zoomStep(d) { if (G) setZoom((G.zl || 0) + d); }
+function zoomToggle() { if (!playing()) return; const n = ZOOMS[G.mode].length; setZoom(G.zl >= n - 1 ? 0 : G.zl + 1); sfx.click(); }
+function zoomUI() {
+  const b = $("tAim");
+  if (G.mode === "mg") { b.innerHTML = ["ZOOM<br>1x", "ZOOM<br>2x", "ZOOM<br>4x"][G.zl]; $("zLabel").textContent = G.zl ? ["", "2x", "4x"][G.zl] : ""; }
+  else { b.innerHTML = G.zl ? "HIP" : "AIM"; $("zLabel").textContent = ""; }
+  b.classList.toggle("on", G.zl > 0);
+}
+function lookScale() { return (camera.fov / ZOOMS[G.mode][0]) * (G.onTarget ? 0.6 : 1); }
+// gentle aim assist: if a target is very near the middle of the screen, the shot goes to him
+function assistDir(ox, oy, oz, dx, dy, dz, list, cone) {
+  let best = null, ba = cone;
+  for (const s of list) {
+    if (!s.alive) continue; capsule(s, CAP);
+    const k = (s.state === "up" || s.team === "nest") ? 0.86 : 0.68;
+    const cx = CAP[0] + (CAP[3] - CAP[0]) * k, cy = CAP[1] + (CAP[4] - CAP[1]) * k, cz = CAP[2] + (CAP[5] - CAP[2]) * k;
+    const vx = cx - ox, vy = cy - oy, vz = cz - oz, d = Math.hypot(vx, vy, vz); if (d < 1) continue;
+    const c = (vx * dx + vy * dy + vz * dz) / d; if (c <= 0.9) continue;
+    const ang = Math.acos(Math.min(1, c)); if (ang < ba) { ba = ang; best = [vx / d, vy / d, vz / d, d, s]; }
+  }
+  if (best && rayGround(ox, oy, oz, best[0], best[1], best[2], best[3] - 0.4) > 0) return null; // hidden behind the ground
+  return best;
+}
+function spreadDir(dx, dy, dz, spread) {
+  let yaw = Math.atan2(-dx, -dz), pit = Math.asin(clamp(dy, -1, 1));
+  const a = rnd(0, Math.PI * 2), r = Math.sqrt(Math.random()) * spread; yaw += Math.cos(a) * r; pit += Math.sin(a) * r;
+  return [-Math.sin(yaw) * Math.cos(pit), Math.sin(pit), -Math.cos(yaw) * Math.cos(pit)];
+}
+function assistCone() { return (usedTouch ? 2.6 : 1.6) * D2R * (camera.fov / ZOOMS[G.mode][0]); }
+function targets() { return units.filter(s => G.mode === "mg" ? s.team === "them" : (s.team === "them" || s.team === "nest")); }
+function checkOnTarget() {
+  const d = new THREE.Vector3(); camera.getWorldDirection(d);
+  const e = camera.position, hit = assistDir(e.x, e.y, e.z, d.x, d.y, d.z, targets(), assistCone() * 0.75);
+  G.onTarget = !!hit; $("xhair").classList.toggle("on", G.onTarget); $("scope").classList.toggle("on", G.onTarget);
+}
+// the reload ring in the middle of the screen
+function ring(p, txt) {
+  const r = $("ring"), t = $("ringTxt");
+  if (p == null) { r.style.display = "none"; t.style.display = "none"; return; }
+  r.style.display = "block"; t.style.display = "block"; $("ringFg").setAttribute("stroke-dashoffset", (213.6 * (1 - clamp(p, 0, 1))).toFixed(1)); t.textContent = txt;
+}
+// rounds shown as little cartridges
+function buildRounds() {
+  const mg = G.mode === "mg", n = mg ? 25 : SIDES[G.side].mag;
+  $("hAmmo").innerHTML = `<div id="aT"></div><div class="rounds${mg ? " belt" : ""}" id="aSeg">${"<i></i>".repeat(n)}</div><small id="aSub"></small>`;
+}
+function showRounds(full) { const is = $("aSeg").children; for (let i = 0; i < is.length; i++) is[i].classList.toggle("out", i >= full); }
+function drawSights() {
+  const brit = G.side === "brit", metal = "#121212", wood = "#3d2616";
+  const front = brit
+    ? `<rect x="-2.6" y="0" width="5.2" height="26" fill="${metal}"/><path d="M-15 30 V-4 a3 3 0 0 1 6 0 V30 Z M9 30 V-4 a3 3 0 0 1 6 0 V30 Z" fill="${metal}"/><rect x="-19" y="24" width="38" height="16" rx="3" fill="${metal}"/>`
+    : `<path d="M-7 26 L0 0 L7 26 Z" fill="${metal}"/><rect x="-12" y="24" width="24" height="14" rx="3" fill="${metal}"/>`;
+  const barrel = `<path d="M-13 38 L13 38 L50 215 L-50 215 Z" fill="${metal}"/>`;
+  const rear = brit
+    ? `<path d="M-62 2 L-10 2 Q-10 14 0 14 Q10 14 10 2 L62 2 L62 18 L-62 18 Z" fill="${metal}"/>`
+    : `<path d="M-62 2 L-11 2 L0 14 L11 2 L62 2 L62 18 L-62 18 Z" fill="${metal}"/>`;
+  const body = `<path d="M-50 18 L50 18 L110 215 L-110 215 Z" fill="${wood}"/><rect x="-30" y="18" width="60" height="12" fill="${metal}"/>`;
+  $("sightSvg").innerHTML = barrel + front + rear + body;
 }
 
 // ======================================================================
@@ -974,6 +1096,7 @@ function startGame() {
   ["startOv", "endOv", "pauseOv"].forEach(id => $(id).hidden = true);
   $("hud").hidden = false; $("xhair").hidden = false;
   if (G.mode === "mg") startMG(); else startRifle();
+  G.zl = 0; G.onTarget = false; G.tgtT = 0; buildRounds(); drawSights(); zoomUI(); ring(null);
   showTouch(); S.battles++; save();
   if (!usedTouch && stage.requestPointerLock) { wantLock = true; try { const r = stage.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {} }
 }
@@ -1012,9 +1135,11 @@ function spawnAttacker(x) {
 function aliveFoes() { let n = 0; for (const s of units) if (s.alive && s.team === "them") n++; return n; }
 function reload() {
   if (!playing()) return;
-  if (G.mode === "mg") { if (G.reloadT > 0 || G.belt === 250) return; G.reloadT = 3.6; sfx.belt(); hint("Loading a new belt…", 2); return; }
+  if (G.mode === "mg") { beltReload(); return; }
   rifleReload();
 }
+const MG_RELOAD = 3.6;
+function beltReload() { if (G.reloadT > 0 || G.belt === 250 || G.jamT > 0) return; G.reloadT = MG_RELOAD; G.relStage = -1; G.beltWas = G.belt; }
 function callArty() {
   if (!playing() || G.mode !== "mg") return;
   if (G.arty <= 0) { hint("No more artillery today"); return; }
@@ -1047,21 +1172,44 @@ function killUnit(s, by) {
 function mgShot() {
   const sd = SIDES[G.side];
   G.belt--; G.heat += 0.6; G.shots++;
-  const spread = (0.25 + Math.min(1, G.cont / 2.5) * 0.85) * D2R * (G.zoom ? 0.8 : 1);
-  const a = rnd(0, Math.PI * 2), r = Math.sqrt(Math.random()) * spread;
-  const yaw = G.yaw + Math.cos(a) * r, pit = G.pitch + Math.sin(a) * r;
-  const dx = -Math.sin(yaw) * Math.cos(pit), dy = Math.sin(pit), dz = -Math.cos(yaw) * Math.cos(pit);
+  const eye = camera.position, foes = targets();
+  let dx = -Math.sin(G.yaw) * Math.cos(G.pitch), dy = Math.sin(G.pitch), dz = -Math.cos(G.yaw) * Math.cos(G.pitch);
+  const as = assistDir(eye.x, eye.y, eye.z, dx, dy, dz, foes, assistCone());
+  if (as) { dx = as[0]; dy = as[1]; dz = as[2]; }
+  const spread = (0.12 + Math.min(1, G.cont / 3) * 0.45) * D2R * (G.zl ? 0.55 : 1);
+  [dx, dy, dz] = spreadDir(dx, dy, dz, spread);
   const mz = new THREE.Vector3(0, 0, -1.05); mgGun.localToWorld(mz);
-  const eye = camera.position;
-  const res = shoot(eye.x, eye.y, eye.z, dx, dy, dz, units.filter(s => s.team === "them"), usedTouch ? 0.25 : 0.1);
+  const res = shoot(eye.x, eye.y, eye.z, dx, dy, dz, foes, usedTouch ? 0.15 : 0.05);
   if (G.shots % 3 === 0) tracer(mz.x, mz.y, mz.z, dx, dy, dz, res.t);
   muzzle(mz.x, mz.y, mz.z, true); flashL.position.copy(mz); flashL.intensity = 2.2;
-  sfx.mg(0); G.shake = Math.max(G.shake, 0.05);
-  G.pitch += rnd(0, 0.0016); G.yaw += rnd(-0.0012, 0.0012);
+  sfx.mg(0); G.shake = Math.max(G.shake, G.zl ? 0.02 : 0.05);
   const hx = eye.x + dx * res.t, hz = eye.z + dz * res.t;
   if (res.s) killUnit(res.s, "player");
   else if (res.ground) { dirt(hx, hz); for (const s of units) if (s.alive && s.team === "them" && Math.abs(s.x - hx) < 3 && Math.abs(s.z - hz) < 3) s.sup += 0.6; }
   if (G.belt <= 0) { G.belt = 0; hint("Belt empty! Press R / RELOAD", 2); }
+}
+// the loading drill, shown on the gun itself
+function mgAnim(dt) {
+  const ud = mgGun.userData;
+  let open = 0, boxOff = 0, beltIn = G.belt > 0 ? 1 : 0, cockZ = 0;
+  if (G.reloadT > 0) {
+    const p = 1 - G.reloadT / MG_RELOAD, stg = p < 0.17 ? 0 : p < 0.45 ? 1 : p < 0.72 ? 2 : p < 0.86 ? 3 : 4;
+    const TXT = ["Lift the top cover", "Swap the ammo box", "Feed in the new belt", "Shut the cover", "Cock it! Cock it!"];
+    if (stg !== G.relStage) { G.relStage = stg; [sfx.clank, sfx.boxThump, sfx.rattle, sfx.clank, sfx.cock][stg](); }
+    if (stg === 0) { open = p / 0.17; beltIn = G.beltWas > 0 ? 1 : 0; }
+    else if (stg === 1) { open = 1; const q = (p - 0.17) / 0.28; boxOff = q < 0.5 ? q * 2 : (1 - q) * 2; beltIn = 0; }
+    else if (stg === 2) { open = 1; beltIn = (p - 0.45) / 0.27; }
+    else if (stg === 3) { open = 1 - (p - 0.72) / 0.14; beltIn = 1; }
+    else { beltIn = 1; cockZ = Math.abs(Math.sin((p - 0.86) / 0.14 * Math.PI * 2)) * 0.09; }
+    ring(p, TXT[stg]);
+    showRounds(stg < 2 ? 0 : Math.round(25 * clamp(beltIn, 0, 1)));
+  } else if (G.jamT > 0) ring(1 - G.jamT / 4, "Topping up the water…");
+  else ring(null);
+  ud.cover.rotation.x = -1.15 * clamp(open, 0, 1);
+  ud.box.position.y = ud.boxY - 0.45 * boxOff; ud.box.position.x = ud.boxX - 0.12 * boxOff;
+  const feed = IN.fire && G.belt > 0 && G.reloadT <= 0 && G.jamT <= 0 ? Math.sin(G.t * 50) * 0.008 : 0;
+  ud.belt.position.x = ud.beltX - 0.35 * (1 - clamp(beltIn, 0, 1)) + feed; ud.belt.visible = beltIn > 0.03;
+  ud.cock.position.z = 0.18 + cockZ;
 }
 function updMG(dt) {
   const D = G.D, sd = SIDES[G.side];
@@ -1069,16 +1217,20 @@ function updMG(dt) {
   G.yaw = clamp(G.yaw - IN.look.x, -58 * D2R, 58 * D2R); G.pitch = clamp(G.pitch - IN.look.y, -14 * D2R, 9 * D2R); IN.look.x = IN.look.y = 0;
   mgGun.rotation.set(G.pitch, G.yaw, 0, "YXZ"); mgGun.userData.mount.rotation.set(-G.pitch, 0, 0);
   const e = mgEye();
-  const fov = G.zoom ? 22 : 50; camera.fov += (fov - camera.fov) * Math.min(1, dt * 10); camera.updateProjectionMatrix();
-  // the camera sits behind the gun and turns with it
+  // zoom: 1x over the gun, 2x and 4x through the telescopic sight; reloading always drops back to 1x and looks down at the gun
+  const zi = G.reloadT > 0 || G.jamT > 0 ? 0 : G.zl, fovT = ZOOMS.mg[zi];
+  camera.fov += (fovT - camera.fov) * Math.min(1, dt * 14); if (Math.abs(fovT - camera.fov) < 0.05) camera.fov = fovT; camera.updateProjectionMatrix();
+  G.tilt = (G.tilt || 0) + (((G.reloadT > 0) ? 0.3 : 0) - (G.tilt || 0)) * Math.min(1, dt * 7);
   const cy = G.yaw, cp = G.pitch;
-  camera.position.set(e.x + Math.sin(cy) * 0.0, e.y, e.z);
   _v.set(-Math.sin(cy) * Math.cos(cp), Math.sin(cp), -Math.cos(cy) * Math.cos(cp));
-  // pivot the eye around the gun so the gun stays put on screen
+  // the eye sits behind the gun and turns with it
   const back = 1.25; camera.position.set(mgGun.position.x - _v.x * back, mgGun.position.y + 0.4, mgGun.position.z - _v.z * back);
-  camera.lookAt(camera.position.x + _v.x, camera.position.y + _v.y, camera.position.z + _v.z);
+  const lp = cp - G.tilt; camera.lookAt(camera.position.x - Math.sin(cy) * Math.cos(lp), camera.position.y + Math.sin(lp), camera.position.z - Math.cos(cy) * Math.cos(lp));
+  const scoped = camera.fov < 38;
+  mgGun.visible = !scoped; $("scope").style.opacity = scoped ? 1 : 0; $("xhair").hidden = scoped || G.reloadT > 0;
+  mgAnim(dt);
   // firing, heat and the belt
-  if (G.reloadT > 0) { G.reloadT -= dt; if (G.reloadT <= 0) { G.belt = 250; hint("Belt in. Fire!", 1.2); } }
+  if (G.reloadT > 0) { G.reloadT -= dt; if (G.reloadT <= 0) { G.reloadT = 0; G.belt = 250; ring(null); hint("Belt in. Fire!", 1.2); } }
   if (G.jamT > 0) { G.jamT -= dt; if (Math.random() < dt * 8) puff(mgGun.position.x, mgGun.position.y + 0.1, mgGun.position.z - 0.5, { c: 0xffffff, vy: 1.5, s0: 0.3, s1: 1.4, life: 1.2, a: 0.5 }); }
   const canFire = IN.fire && G.belt > 0 && G.reloadT <= 0 && G.jamT <= 0;
   if (IN.fire && G.belt === 0 && G.reloadT <= 0 && !G.clickT) { sfx.click(); G.clickT = 0.4; }
@@ -1096,7 +1248,7 @@ function updMG(dt) {
     G.waveLive = false; const bonus = Math.round(100 * G.wave * D.mult) + (G.waveClean ? Math.round(50 * D.mult) : 0); G.score += bonus;
     if (G.wave >= D.waves.length) { endGame(true, "You held the line. Not one wave got through to stay."); return; }
     banner("Wave " + G.wave + " beaten!", "+" + bonus + " pts · next wave soon", 2.6); G.waveT = 7;
-    if (G.reloadT <= 0 && G.belt < 250) { G.reloadT = 3.6; sfx.belt(); }
+    if (G.reloadT <= 0 && G.belt < 250) beltReload();
   }
   // their soldiers
   let charging = 0;
@@ -1201,7 +1353,7 @@ function rifleReload() {
   if (P.reloadT > 0 || P.mag >= sd.mag || P.res <= 0) return;
   const need = Math.min(sd.mag - P.mag, P.res);
   P.reloadT = G.side === "brit" ? (need > 5 ? 2.5 : 1.3) : (P.mag === 0 ? 1.5 : need * 0.42);
-  P.reloadN = need; sfx.reload(); if (Math.random() < 0.3) sayLine(G.side, "reload");
+  P.reloadTot = P.reloadT; P.reloadN = need; P.reloadDone = 0; P.magStart = P.mag; sfx.boltOpen(); if (Math.random() < 0.3) sayLine(G.side, "reload");
 }
 function camDir() { return { x: -Math.sin(G.yaw) * Math.cos(G.pitch), y: Math.sin(G.pitch), z: -Math.cos(G.yaw) * Math.cos(G.pitch) }; }
 function fireRifle() {
@@ -1211,16 +1363,19 @@ function fireRifle() {
   if (P.mag <= 0) { sfx.click(); rifleReload(); return; }
   P.mag--; P.boltT = sd.bolt; G.shots++;
   const moving = Math.abs(IN.mx) + Math.abs(IN.my) > 0.1 || keys.KeyW || keys.KeyA || keys.KeyS || keys.KeyD;
-  let spread = (IN.aim ? sd.ads : sd.spread) * (moving ? (IN.aim ? 2.2 : 1.6) : 1) * D2R; if (P.crouch) spread *= 0.75;
-  const a = rnd(0, Math.PI * 2), r = Math.sqrt(Math.random()) * spread, yaw = G.yaw + Math.cos(a) * r, pit = G.pitch + Math.sin(a) * r;
-  const dx = -Math.sin(yaw) * Math.cos(pit), dy = Math.sin(pit), dz = -Math.cos(yaw) * Math.cos(pit);
-  const e = camera.position;
-  const res = shoot(e.x, e.y, e.z, dx, dy, dz, units.filter(s => s.team === "them" || s.team === "nest"), usedTouch ? 0.22 : 0.08);
+  let spread = (IN.aim ? sd.ads : sd.spread) * (moving ? 1.8 : 1) * D2R; if (P.crouch) spread *= 0.75;
+  const e = camera.position, cd = camDir(), foes = targets();
+  let dx = cd.x, dy = cd.y, dz = cd.z;
+  const as = assistDir(e.x, e.y, e.z, dx, dy, dz, foes, assistCone());
+  if (as) { dx = as[0]; dy = as[1]; dz = as[2]; }
+  [dx, dy, dz] = spreadDir(dx, dy, dz, spread);
+  const res = shoot(e.x, e.y, e.z, dx, dy, dz, foes, usedTouch ? 0.15 : 0.05);
   // muzzle at the end of your bayonet
   const fx = Math.sin(playerS.face), fz = Math.cos(playerS.face), my = P.y + (P.crouch ? 0.85 : 1.25);
   muzzle(P.x + fx * 1.0, my, P.z + fz * 1.0, false); flashL.position.set(P.x + fx, my, P.z + fz); flashL.intensity = 1.6;
   sfx.rifle(1, 0); setTimeout(() => G && !G.over && sfx.bolt(), 120);
-  G.shake = Math.max(G.shake, 0.12); G.pitch += 0.012;
+  G.shake = Math.max(G.shake, IN.aim ? 0.05 : 0.12); G.pitch += 0.005;
+  const sg = $("sights"); sg.classList.add("kick"); setTimeout(() => sg.classList.remove("kick"), 110);
   if (res.s) { if (res.s.team === "nest") hitNestCrew(res.s); else { killUnit(res.s, "player"); G.defKilled++; } }
   else if (res.ground) dirt(e.x + dx * res.t, e.z + dz * res.t);
   if (P.mag === 0) setTimeout(() => { if (G && !G.over && P.mag === 0) rifleReload(); }, 450);
@@ -1336,15 +1491,30 @@ function updRifle(dt) {
   playerS.speed = ml > 0.05 ? sp * Math.min(1, ml) : 0; playerS.pose = P.crouch ? "crouch" : "stand"; playerS.cut = wired;
   poseSoldier(playerS, dt);
   // camera over the shoulder
-  const d = camDir(), dist = IN.aim ? 1.5 : 3.6, up = IN.aim ? 0.3 : 0.75, sh = IN.aim ? 0.55 : 0.95, head = P.y + (P.crouch ? 1.15 : 1.62) * SC;
-  let cx = P.x - d.x * dist + rx * sh, cy = head + up - d.y * dist, cz = P.z - d.z * dist + rz * sh;
-  cy = Math.max(cy, H(cx, cz) + 0.35);
-  camera.position.set(cx, cy, cz); camera.lookAt(cx + d.x, cy + d.y, cz + d.z);
-  const fov = IN.aim ? 34 : 62; camera.fov += (fov - camera.fov) * Math.min(1, dt * 10); camera.updateProjectionMatrix();
+  const d = camDir(), sightsOn = G.zl > 0 && P.reloadT <= 0 && P.lungeT <= 0;
+  let cx, cy, cz;
+  if (sightsOn) { const eh = P.y + (P.crouch ? 1.08 : 1.55) * SC; cx = P.x + d.x * 0.15; cy = eh; cz = P.z + d.z * 0.15; }
+  else { const head = P.y + (P.crouch ? 1.15 : 1.62) * SC; cx = P.x - d.x * 3.6 + rx * 0.95; cy = head + 0.75 - d.y * 3.6; cz = P.z - d.z * 3.6 + rz * 0.95; cy = Math.max(cy, H(cx, cz) + 0.35); }
+  if (!G.camSet) { G.camSet = true; camera.position.set(cx, cy, cz); }
+  camera.position.lerp(_v2.set(cx, cy, cz), Math.min(1, dt * 18)); camera.lookAt(camera.position.x + d.x, camera.position.y + d.y, camera.position.z + d.z);
+  const fovT = ZOOMS.rifle[sightsOn ? 1 : 0]; camera.fov += (fovT - camera.fov) * Math.min(1, dt * 14); if (Math.abs(fovT - camera.fov) < 0.05) camera.fov = fovT; camera.updateProjectionMatrix();
+  const inSights = sightsOn && camera.fov < 46;
+  playerS.root.visible = !(sightsOn && camera.fov < 52);
+  $("sights").style.opacity = inSights ? 1 : 0; $("xhair").hidden = inSights || P.reloadT > 0;
+  $("xhair").classList.toggle("busy", P.boltT > 0);
+  // reloading: turn the rifle to the side and push rounds in one at a time
+  playerS.pivot.rotation.y = P.reloadT > 0 ? 0.55 + Math.sin(G.t * 14) * 0.06 : 0;
+  if (P.reloadT > 0) {
+    P.reloadT -= dt;
+    const prog = clamp(1 - P.reloadT / P.reloadTot, 0, 1), loaded = Math.floor(P.reloadN * clamp((prog - 0.15) / 0.75, 0, 1));
+    while (P.reloadDone < loaded) { P.reloadDone++; P.mag++; P.res--; sfx.round(); }
+    const brit = G.side === "brit";
+    ring(prog, brit ? (P.reloadN > 5 ? (P.reloadDone < 5 ? "Charger 1 of 2" : "Charger 2 of 2") : "Charger in") : (P.magStart === 0 ? "Stripper clip" : "Single rounds"));
+    if (P.reloadT <= 0) { while (P.reloadDone < P.reloadN) { P.reloadDone++; P.mag++; P.res--; } P.reloadT = 0; ring(null); sfx.bolt(); }
+  }
   // rifle timing
   if (P.boltT > 0) P.boltT -= dt;
   if (P.bayT > 0) P.bayT -= dt;
-  if (P.reloadT > 0) { P.reloadT -= dt; if (P.reloadT <= 0) { P.mag += P.reloadN; P.res -= P.reloadN; } }
   if (G.phase !== "attack") { updComrades(dt); updDefenders(dt); return; }
   // their shells
   G.shellT -= dt;
@@ -1550,13 +1720,16 @@ function hud() {
   $("hHp").textContent = G.hp > 12 ? "❤️ x" + G.hp : "❤️".repeat(Math.max(0, G.hp)) + "🖤".repeat(Math.max(0, maxHp - Math.max(0, G.hp)));
   if (G.mode === "mg") {
     $("hObj").innerHTML = `Wave ${Math.max(1, G.wave)} / ${D.waves.length} · Breaches ${G.breaches} / ${D.breaches}<small>${sd.mg} · artillery left: ${G.arty}${G.artyT > 0 ? " (reloading)" : ""} · ${aliveFoes()} coming</small>`;
-    $("hAmmo").innerHTML = G.reloadT > 0 ? "Loading belt…" : `${sd.mg} · belt ${G.belt}/250<small>${G.jamT > 0 ? "BOILING: wait" : "water jacket heat"}</small>`;
+    $("aT").textContent = G.reloadT > 0 ? "Loading a new belt" : `${sd.mg} · ${G.belt} rounds`;
+    if (G.reloadT <= 0) showRounds(Math.ceil(G.belt / 10));
+    $("aSub").textContent = G.jamT > 0 ? "BOILING: wait" : "water jacket heat";
     $("hHeatWrap").style.display = "block"; const hb = $("hHeat"); hb.style.width = clamp(G.heat, 0, 100) + "%"; hb.style.background = G.heat > 75 ? "#e0383f" : G.heat > 50 ? "#f2a33a" : "#5fcf6f";
     $("hStamWrap").style.display = "none";
   } else {
     const left = G.nests.filter(n => !n.dead).length;
     $("hObj").innerHTML = `Machine guns silenced: ${2 - left} / 2${left ? "" : " · now get into their trench!"}<small>Your section: ${G.mates} men · ${sd.bomb}s: ${P.gren}${P.crouch ? " · DUCKING" : ""}</small>`;
-    $("hAmmo").innerHTML = P.reloadT > 0 ? "Reloading…" : `${sd.rifle} ${P.mag}/${sd.mag}<small>${P.res} rounds in your pouches</small>`;
+    $("aT").textContent = `${sd.rifle} ${P.mag}/${sd.mag}`; showRounds(P.mag);
+    $("aSub").textContent = P.reloadT > 0 ? "Reloading…" : P.mag === 0 ? "Empty! R / RELOAD" : `${P.res} rounds in your pouches`;
     $("hHeatWrap").style.display = "none"; $("hStamWrap").style.display = "block";
     const st = $("hStam"); st.style.width = P.stam + "%"; st.style.background = P.stam < 25 ? "#e0383f" : "#d8c46a";
   }
@@ -1602,7 +1775,7 @@ function endGame(win, text) {
   $("endMedal").hidden = !medalTxt; $("endMedal").innerHTML = medalTxt;
   const somme = (G.side === "brit") === (G.mode === "rifle");
   $("endHist").innerHTML = (somme ? HIST.somme : HIST.spring) + "<br><br>" + HIST.guns;
-  setTimeout(() => { $("endOv").hidden = false; $("hud").hidden = true; $("xhair").hidden = true; $("touch").hidden = true; }, win ? 1600 : 1200);
+  setTimeout(() => { $("endOv").hidden = false; $("hud").hidden = true; $("xhair").hidden = true; $("touch").hidden = true; clearAimUI(); }, win ? 1600 : 1200);
   if (win) { banner(G.mode === "mg" ? "The line held!" : "Trench taken!", "", 2); sfx.whistle(0.12, 0); }
   if (window.Leaderboard && Leaderboard.getName && Leaderboard.getName() && G.score > 0) Leaderboard.submit(G.score).then(() => { if (window.PhatCoin) PhatCoin.leaderboard(Leaderboard.getName(), "desc"); }).catch(() => {});
   if (win && window.PhatCoin) PhatCoin.earn("win", Math.min(5, stars + 2), G.mode === "mg" ? "holding the line" : "taking the trench");
@@ -1613,7 +1786,9 @@ $("menuBtn").onclick = () => { clearWorld(); G = null; menu(); };
 // ======================================================================
 // menu
 // ======================================================================
+function clearAimUI() { $("scope").style.opacity = 0; $("sights").style.opacity = 0; $("zLabel").textContent = ""; ring(null); }
 function menu() {
+  clearAimUI();
   $("startOv").hidden = false; $("endOv").hidden = true; $("hud").hidden = true; $("xhair").hidden = true; $("touch").hidden = true;
   document.querySelectorAll("[data-side]").forEach(b => b.classList.toggle("sel", b.dataset.side === S.side));
   document.querySelectorAll("[data-job]").forEach(b => b.classList.toggle("sel", b.dataset.job === S.job));
@@ -1643,6 +1818,7 @@ document.addEventListener("visibilitychange", () => { if (document.hidden && pla
 let last = performance.now(), ambT = 3;
 function step(dt) {
   G.t += dt; G.dmgT = Math.max(0, G.dmgT - dt);
+  G.tgtT -= dt; if (G.tgtT <= 0) { G.tgtT = 0.06; checkOnTarget(); }
   if (G.mode === "mg") updMG(dt); else { updRifle(dt); updGrenades(dt); }
   if (G && !G.over) { updShells(dt); G.hudT = (G.hudT || 0) - dt; if (G.hudT <= 0) { G.hudT = 0.08; hud(); } }
 }

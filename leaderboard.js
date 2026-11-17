@@ -11,8 +11,68 @@
   var TABLE = "scores";
   var NAME_KEY = "ghgames_nick";
   var configured = CONFIG.url.indexOf("YOUR_") === -1 && CONFIG.key.indexOf("YOUR_") === -1;
-  var BANNED = /(fuck|shit|cunt|bitch|nigg|f4g|fag|slut|whore|dick|penis|rape)/i;
+  // Same rules as the database's gh_name_ok: no rude words (incl. sh1t, f u c k, fuuuck) and no contact details.
+  var RUDE = /(fuck|fuk|fck|fuc|shit|cunt|bitch|biatch|niger|niga|fag|slut|whore|dick|penis|vagina|rape|sex|porn|nazi|hitler|wank|tits|retard|kys|kilyourself|paedo|molest|suicide|bastard|twat|prick|boner|nude|naked)/;
+  var CONTACT = /(@|https?|www\.|\.com|\.au|\.net|snap|insta|discord|tiktok|whatsapp|kik|telegram)/;
+  function nameOk(n) {
+    var raw = String(n || "").toLowerCase();
+    if (CONTACT.test(raw) || (raw.replace(/[^0-9]/g, "").length >= 6) || /k\W*k\W*k/.test(raw)) return false;
+    var map = { "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "8": "b", "$": "s", "!": "i", "|": "i" };
+    var s = raw.replace(/[0134578$!|]/g, function (c) { return map[c]; }).replace(/[^a-z]/g, "").replace(/(.)\1+/g, "$1");
+    return !RUDE.test(s);
+  }
+  // George's special players keep their perks but stay off the public boards (they still see themselves).
+  var HIDDEN = { "buckasnuncle": 1, "guide dog": 1, "guidedog": 1 };
+  function showOnBoard(n, me) {
+    var k = String(n || "").trim().toLowerCase();
+    if (me && k === String(me).trim().toLowerCase()) return true;
+    return nameOk(n) && !HIDDEN[k];
+  }
   var PERIOD_LABEL = { day: "today", week: "this week", month: "this month", all: "all-time" };
+
+  // Live games (Public Arenas, co-op): any rude or contact-detail name from another player shows as "Player".
+  var NAME_KEYS = { n: 1, name: 1, nick: 1, nm: 1, player: 1, owner: 1, thief: 1 };
+  function scrub(o, d) {
+    if (!o || typeof o !== "object" || d > 5) return o;
+    for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) {
+      var v = o[k];
+      if (typeof v === "string") { if (NAME_KEYS[k] && !nameOk(v)) o[k] = "Player"; }
+      else if (v && typeof v === "object") scrub(v, (d || 0) + 1);
+    }
+    return o;
+  }
+  function wrapSupabase(lib) {
+    if (!lib || !lib.createClient || lib.__ghSafe) return lib;
+    var make = lib.createClient;
+    lib.createClient = function () {
+      var client = make.apply(this, arguments);
+      try {
+        var mk = client.channel;
+        client.channel = function () {
+          var ch = mk.apply(this, arguments);
+          var on = ch.on, ps = ch.presenceState;
+          ch.on = function (type, filter, cb) {
+            if (typeof cb === "function") { var f = cb; cb = function (p) { try { scrub(p, 0); } catch (e) {} return f.apply(this, arguments); }; }
+            return on.call(this, type, filter, cb);
+          };
+          if (ps) ch.presenceState = function () { var st = ps.apply(this, arguments); try { scrub(st, 0); } catch (e) {} return st; };
+          return ch;
+        };
+      } catch (e) {}
+      return client;
+    };
+    lib.__ghSafe = true;
+    return lib;
+  }
+  (function () {
+    if (window.supabase) { wrapSupabase(window.supabase); return; }
+    try {
+      var held;
+      Object.defineProperty(window, "supabase", { configurable: true, enumerable: true,
+        get: function () { return held; }, set: function (v) { held = wrapSupabase(v); } });
+    } catch (e) {}
+  })();
+  window.GHName = { ok: nameOk, clean: function (n) { return nameOk(n) ? n : "Player"; }, scrub: scrub };
 
   function api(path, opts) {
     opts = opts || {};
@@ -98,7 +158,7 @@
   function setName(n) {
     n = (n || "").trim().slice(0, 12);
     if (!n) return false;
-    if (BANNED.test(n)) { alert("Please pick a friendlier name 🙂"); return false; }
+    if (!nameOk(n)) { alert("Please pick a friendlier name, with no links, numbers or social handles 🙂"); return false; }
     localStorage.setItem(NAME_KEY, n);
     return true;
   }
@@ -131,12 +191,14 @@
   function fetchBoard(cfg, period) {
     if (!configured) return Promise.resolve([]);
     var dir = cfg.dir === "asc" ? "asc" : "desc";
-    var q = "?game=eq." + encodeURIComponent(cfg.game) + "&order=score." + dir + "&limit=200";
+    var q = "?game=eq." + encodeURIComponent(cfg.game) + "&order=score." + dir + "&limit=400";
     var start = periodStart(period);
     if (start) q += "&created_at=gte." + start;
     return api(TABLE + q).then(function (rows) {
       var best = {};
+      var me = getName();
       rows.forEach(function (r) {
+        if (!showOnBoard(r.name, me)) return;
         var c = best[r.name];
         if (!c || (dir === "desc" ? r.score > c.score : r.score < c.score)) best[r.name] = r;
       });

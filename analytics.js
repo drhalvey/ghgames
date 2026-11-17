@@ -5,7 +5,7 @@
    Frondi Clicker pages deliberately do NOT load this file (its privacy policy
    promises no analytics). */
 (function () {
-  var GA_ID = "G-XXXXXXXXXX"; // replace with the GH Games measurement ID
+  var GA_ID = "G-K792JCY17E"; // GH Games (ghgames.au) property, created 17/11/2026
   if (!/^G-[A-Z0-9]{6,}$/.test(GA_ID) || GA_ID === "G-XXXXXXXXXX") return;
   if (location.hostname !== "ghgames.au" && location.hostname !== "www.ghgames.au") return; // no stats from local testing
   var s = document.createElement("script");

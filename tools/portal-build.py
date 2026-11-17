@@ -42,6 +42,18 @@ def build(slug, crazy=False):
     if crazy:
         head_add += '<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>'
     s = s.replace("</head>", head_add + "\n</head>", 1)
+    if crazy:
+        # portal app mode: full-window game, shop drawer, first-play tips (tools/portal-app/<slug>.css/.js)
+        app = os.path.join(ROOT, "tools", "portal-app", slug)
+        if os.path.isfile(app + ".css"):
+            s = s.replace("</head>", "<style>\n" + open(app + ".css", encoding="utf-8").read() + "\n</style>\n</head>", 1)
+        if os.path.isfile(app + ".js"):
+            i = s.rfind("</body>")
+            s = s[:i] + "<script>\n" + open(app + ".js", encoding="utf-8").read() + "\n</script>\n" + s[i:]
+        # no mentions of the Classic version on portals
+        s = re.sub(r'<li>Same save[^\n]*?</li>\s*', '', s)
+        s = re.sub(r"This device can't run the 3D version\. Play (?:Rugby Kicker )?(?:the )?Classic(?: version)? instead[^\"<]*", "This device can't run the 3D version. Try a newer browser or device.", s)
+        s = re.sub(r'(?<=[.!>])\s*[^.<>]*(?:<[^>]*>[^<.]*)*?<a [^>]*data-portal-hide="1"[^>]*>Classic version</a>\.', '', s)
     open(os.path.join(dest, "index.html"), "w", encoding="utf-8").write(s)
     stub = open(os.path.join(ROOT, "tools", "portal-stubs.js"), encoding="utf-8").read()
     if crazy: stub = "window.GH_CRAZY = true;\n" + stub
@@ -57,6 +69,17 @@ def build(slug, crazy=False):
         p = os.path.join(ROOT, ref)
         if os.path.isfile(p) and not os.path.exists(os.path.join(dest, ref)):
             os.makedirs(os.path.dirname(os.path.join(dest, ref)), exist_ok=True); shutil.copy(p, os.path.join(dest, ref))
+    if crazy:
+        # CrazyGames takes loose files only (no zips, no folders): flatten
+        for d, _, fs in list(os.walk(dest)):
+            if d == dest: continue
+            for f in fs:
+                rel = os.path.relpath(os.path.join(d, f), dest).replace(os.sep, "/")
+                shutil.move(os.path.join(d, f), os.path.join(dest, f))
+                h = os.path.join(dest, "index.html"); t = open(h, encoding="utf-8").read()
+                t = re.sub(r'([\'"(])(?:\./)?' + re.escape(rel), r'\g<1>' + f, t); open(h, "w", encoding="utf-8").write(t)
+        for d, ds, _ in list(os.walk(dest, topdown=False)):
+            if d != dest: shutil.rmtree(d, ignore_errors=True)
     z = dest + ".zip"
     with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED) as zf:
         for d, _, fs in os.walk(dest):

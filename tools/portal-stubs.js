@@ -56,6 +56,29 @@
       var tries = 0; (function wait() { if (sdk()) sdk().init().then(res, res); else if (tries++ < 50) setTimeout(wait, 100); else res(); })();
     });
     ready.then(function () { try { sdk().game.loadingStart(); } catch (e) {} });
+    // Progress save through the CrazyGames Data Module. Games keep using
+    // localStorage; every write is mirrored into SDK.data, and on start any
+    // newer cloud copy is pulled back into localStorage (one reload).
+    ready.then(function () {
+      var d; try { d = sdk().data; } catch (e) {}
+      if (!d) return;
+      var LS = Storage.prototype, set0 = LS.setItem, rem0 = LS.removeItem, clr0 = LS.clear;
+      var keysOf = function () { try { return JSON.parse(d.getItem("__gh_keys") || "[]"); } catch (e) { return []; } };
+      var keys = keysOf(), changed = false;
+      keys.forEach(function (k) {
+        var v = d.getItem(k);
+        if (v !== null && localStorage.getItem(k) !== v) { set0.call(localStorage, k, v); changed = true; }
+      });
+      var addKey = function (k) { if (keys.indexOf(k) < 0) { keys.push(k); d.setItem("__gh_keys", JSON.stringify(keys)); } };
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf("SDK") < 0 && k.indexOf("crazygames") < 0) { addKey(k); if (d.getItem(k) === null) d.setItem(k, localStorage.getItem(k)); }
+      }
+      LS.setItem = function (k, v) { set0.call(this, k, v); if (this === localStorage) { try { addKey(k); d.setItem(k, String(v)); } catch (e) {} } };
+      LS.removeItem = function (k) { rem0.call(this, k); if (this === localStorage) { try { d.removeItem(k); } catch (e) {} } };
+      LS.clear = function () { clr0.call(this); if (this === localStorage) { try { d.clear(); } catch (e) {} } };
+      if (changed && !sessionStorage.getItem("gh_cg_synced")) { sessionStorage.setItem("gh_cg_synced", "1"); location.reload(); }
+    });
     window.addEventListener("load", function () {
       ready.then(function () {
         try { sdk().game.loadingStop(); } catch (e) {}

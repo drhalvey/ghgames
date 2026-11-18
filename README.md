@@ -27,6 +27,7 @@ ghgames/
   bro-got-slammed.html  Pedigreers vs Bro Got Slammed: 4-minute team fights, wins buy damage upgrades (online via Supabase Realtime)
   size-simulator.html  eat-and-grow PvP: upgrades, rebirths, worlds bought with coins, pets, daily rewards, shared 10-minute events (online via Supabase Realtime)
   steal-an-animal.html  buy animals off the road, steal from computer bases and friends' bases (online via Supabase sta_* functions), guards, lock, 8 galaxies of 25 worlds, rebirths
+  rugby-kicker-pro.html  goal-kicking career: pull back to aim, wind, 40 levels in 4 stadiums, stars, ring and timed levels, upgrades (built for CrazyGames)
   rugby-kicker.html  aim then power bar: kick a rugby ball as high as you can for Wins, goals pay double, upgrades, 11 stadiums up to the Galaxy Arena
   drop-goal-hero.html  proper rugby kicking: 3D-jointed players, phase play into a drop goal with the defence rushing, touchline conversions off a tee with power/accuracy meters; 2003 World Cup final scenario, Conversion mode and Career, upgrades, 6 stadiums
   iron-command.html  base-building war game (Red Alert style): MCV, power, ore, tanks, soldiers, helicopters, ships (Naval Yard, gunboats, destroyers/subs, cruisers, transports), wide rivers with bridges, sea and island maps, walls, towers, superweapons, fog of war, 14-mission campaign, skirmish, and "Play together" co-op (one device hosts via Supabase Realtime, others join with a 4-letter room code); saves the battle in progress

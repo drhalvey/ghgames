@@ -29,6 +29,7 @@
     "size-simulator": { title: "Size Simulator", keys: ["sizesim-save"] },
     "steal-an-animal": { title: "Steal an Animal", keys: ["stealanimal-save"] },
     "rugby-kicker": { title: "Rugby Kicker", keys: ["rugbykicker-save"] },
+    "rugby-kicker-pro": { title: "Rugby Kicker Pro", keys: ["rugbykickerpro-save"] },
     "drop-goal-hero": { title: "Drop Goal Hero", keys: ["dropgoal-save"] },
     "runway-stars": { title: "Runway Stars", keys: ["runwaystars-save"] },
     "plains-of-abraham": { title: "Plains of Abraham", keys: ["plains-save"] },

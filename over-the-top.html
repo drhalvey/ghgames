@@ -84,13 +84,26 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
 .gasmask{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:1}
 .gasmask svg{position:absolute;inset:0;width:100%;height:100%}
 .warn{position:absolute;left:50%;top:34%;transform:translateX(-50%);font-family:var(--display);font-size:clamp(30px,6vw,56px);color:#ff4040;text-shadow:0 3px 0 #000,0 0 20px rgba(0,0,0,.9);pointer-events:none;opacity:0;z-index:3;white-space:nowrap}
-.zl{position:absolute;right:14px;top:46%;font-family:var(--display);font-size:24px;color:#fff;text-shadow:0 2px 3px #000;pointer-events:none}
+.pop{position:absolute;left:calc(50% + 34px);top:calc(50% - 30px);font-weight:900;font-size:20px;text-shadow:0 2px 3px #000;pointer-events:none;opacity:0;z-index:3;white-space:nowrap}
+.pop.go{animation:popUp .9s ease-out}
+@keyframes popUp{0%{opacity:1;transform:translateY(0) scale(1.15)}70%{opacity:1}100%{opacity:0;transform:translateY(-34px) scale(1)}}
+.keys{position:absolute;right:10px;top:10px;z-index:3;pointer-events:none;background:rgba(10,9,8,.55);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:6px 9px;font-weight:800;font-size:12.5px;line-height:1.75;color:#e9e3d4;text-shadow:0 1px 2px #000}
+.keys div{display:flex;align-items:center;gap:7px;white-space:nowrap;transition:opacity .2s}
+.keys .k{display:inline-block;min-width:22px;padding:0 6px;border-radius:6px;background:#f3eee2;color:#1b1814;text-shadow:none;font-weight:900;font-size:11.5px;line-height:19px;text-align:center;box-shadow:0 2px 0 #8d8676}
+.keys .hot{color:#ffd24d}
+.keys .hot .k{background:#ffd24d;animation:keyPulse .7s ease-in-out infinite alternate}
+.keys .off{opacity:.35}
+@keyframes keyPulse{from{transform:scale(1)}to{transform:scale(1.18)}}
+.zl{position:absolute;right:14px;top:62%;font-family:var(--display);font-size:24px;color:#fff;text-shadow:0 2px 3px #000;pointer-events:none}
 /* reload ring */
 .ring{z-index:3;position:absolute;left:50%;top:50%;width:84px;height:84px;margin:-42px 0 0 -42px;pointer-events:none;display:none}
 .ring circle{fill:none;stroke-width:7}
 .ring .bg{stroke:rgba(0,0,0,.5)}
 .ring .fg{stroke:#f2c14e;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
 .ringTxt{z-index:3;position:absolute;left:50%;top:calc(50% + 50px);transform:translateX(-50%);font-weight:900;font-size:15px;color:#fff;text-shadow:0 2px 3px #000;pointer-events:none;white-space:nowrap;display:none;background:rgba(0,0,0,.45);padding:3px 10px;border-radius:10px}
+/* the stripper clip / charger loading animation */
+.clipAnim{position:absolute;left:50%;bottom:118px;width:min(300px,46vw);transform:translateX(-50%);pointer-events:none;display:none;z-index:3;filter:drop-shadow(0 4px 8px rgba(0,0,0,.7));background:rgba(15,13,10,.55);border-radius:16px;padding:6px 8px 2px}
+.clipAnim svg{display:block;width:100%;height:auto;overflow:visible}
 /* rounds in the HUD */
 .rounds{display:flex;gap:3px;justify-content:center;margin:5px 0 2px;flex-wrap:nowrap}
 .rounds i{display:block;width:8px;height:22px;border-radius:4px 4px 1px 1px;background:linear-gradient(90deg,#c9962f,#f3d27a 45%,#b8862b);box-shadow:0 1px 2px #000;transition:opacity .1s,transform .15s}
@@ -142,6 +155,8 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
 .help{color:var(--muted);font-weight:800;font-size:13px;line-height:1.5;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:10px 14px}
 .help b{color:var(--ink)}
 .stars{font-size:34px;letter-spacing:4px}
+.k2{display:inline-block;min-width:26px;padding:0 7px;border-radius:6px;background:#f3eee2;color:#1b1814;font-weight:900;font-size:13px;line-height:22px;margin:2px 0;box-shadow:0 2px 0 #8d8676}
+#pauseHelp{line-height:1.6}
 </style>
 <link rel="canonical" href="https://ghgames.au/over-the-top.html">
 <meta name="description" content="The Western Front, 1916 to 1918. Hold the line on the machine gun, or fix bayonets and go over the top. British or German.">
@@ -178,6 +193,20 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
     <div class="zl" id="zLabel"></div>
     <svg class="ring" id="ring" viewBox="0 0 84 84"><circle class="bg" cx="42" cy="42" r="34"/><circle class="fg" id="ringFg" cx="42" cy="42" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6"/></svg>
     <div class="ringTxt" id="ringTxt"></div>
+    <div class="clipAnim" id="clipAnim"><svg viewBox="0 0 230 150"><defs>
+      <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7dc8a"/><stop offset=".45" stop-color="#d6a640"/><stop offset="1" stop-color="#8a6420"/></linearGradient>
+      <linearGradient id="nick" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eeeae0"/><stop offset=".5" stop-color="#b9b3a3"/><stop offset="1" stop-color="#77715f"/></linearGradient>
+      <linearGradient id="steel" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a5d61"/><stop offset=".5" stop-color="#a7abb0"/><stop offset="1" stop-color="#4a4d51"/></linearGradient>
+      <clipPath id="aboveWell"><rect x="0" y="-80" width="230" height="174"/></clipPath></defs>
+      <g id="clipRounds" clip-path="url(#aboveWell)"></g>
+      <g id="clipStrip"><rect x="60" y="20" width="9" height="74" rx="2" fill="url(#steel)"/><rect x="58" y="20" width="13" height="4" fill="#45484c"/><rect x="58" y="90" width="13" height="4" fill="#45484c"/></g>
+      <rect x="0" y="100" width="54" height="34" rx="4" fill="#4b2f19"/><rect x="186" y="101" width="44" height="28" rx="4" fill="#4b2f19"/>
+      <rect x="50" y="94" width="138" height="40" rx="3" fill="#1b1b1b"/><rect x="74" y="92" width="80" height="6" fill="#050505"/>
+      <rect x="54" y="80" width="5" height="16" fill="#2a2a2a"/><rect x="70" y="80" width="5" height="16" fill="#2a2a2a"/>
+      <g id="clipBolt"><rect x="168" y="86" width="42" height="9" rx="3" fill="#3a3c3f"/><circle cx="208" cy="104" r="7" fill="#3a3c3f"/><rect x="204" y="92" width="7" height="13" fill="#3a3c3f"/></g>
+      <g id="clipThumb"><path d="M60 -6 q22 -30 58 -8 q10 8 2 14 l-56 2 q-8 0 -4 -8z" fill="#d6a47e" stroke="#8d5f3c" stroke-width="1.5"/><path d="M86 -14 q14 -4 24 4" stroke="#b9805a" stroke-width="2" fill="none"/></g>
+      <text id="clipTxt" x="115" y="148" text-anchor="middle" font-family="Nunito,Arial" font-weight="900" font-size="13" fill="#fff" stroke="#000" stroke-width="3" paint-order="stroke"></text>
+    </svg></div>
     <div class="xhair" id="xhair" hidden></div>
     <div class="dmg" id="dmg"></div>
     <div class="dust" id="dust"></div>
@@ -185,6 +214,8 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
     <div class="gasmask" id="gasmask"><svg viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice"><defs><mask id="eyes"><rect x="-50" y="-50" width="260" height="200" fill="white"/><ellipse cx="52" cy="47" rx="27" ry="25" fill="black"/><ellipse cx="108" cy="47" rx="27" ry="25" fill="black"/></mask></defs><rect x="-50" y="-50" width="260" height="200" fill="#14130f" mask="url(#eyes)"/><ellipse cx="52" cy="47" rx="27" ry="25" fill="none" stroke="#3b3a32" stroke-width="3"/><ellipse cx="108" cy="47" rx="27" ry="25" fill="none" stroke="#3b3a32" stroke-width="3"/><ellipse cx="52" cy="47" rx="26" ry="24" fill="rgba(200,190,140,.12)"/><ellipse cx="108" cy="47" rx="26" ry="24" fill="rgba(200,190,140,.12)"/></svg></div>
     <div class="warn" id="warn"></div>
     <div class="banner" id="banner"></div>
+    <div class="pop" id="pop"></div>
+    <div class="keys" id="keys"></div>
     <div class="hint" id="hint"></div>
 
     <div class="touch" id="touch" hidden>
@@ -198,6 +229,7 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
       <div class="tb" id="tArty">SOS<br>FLARE</div>
       <div class="tb" id="tMask">MASK</div>
       <div class="tb" id="tCharge" style="background:rgba(160,40,30,.6)">BOMB<br>TANK</div>
+      <div class="tb" id="tUse" style="background:rgba(40,90,40,.65)">USE<br>GUN</div>
       <div class="tb" id="tPause">II</div>
     </div>
 
@@ -221,7 +253,9 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
         <button class="choice" data-diff="veteran"><b>Veteran</b><small>Brutal. Score x2</small></button>
       </div>
       <div class="scen" id="scen"></div>
-      <button class="bb" id="startBtn">Into the trench<small id="startSub"></small></button>
+      <div class="row"><button class="bb" id="startBtn">Into the trench<small id="startSub"></small></button><button class="bb alt" id="contBtn" hidden>Carry on<small id="contSub"></small></button></div>
+      <div class="lbl">Your rank</div>
+      <div class="scen" id="rankBox"></div>
       <div class="lbl">Your medals</div>
       <div class="medals" id="medals"></div>
       <div class="hist" id="startHist"></div>
@@ -256,8 +290,8 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
   </div>
 
   <div class="help" id="help">
-    <b>Computer:</b> click the battlefield to grab the mouse (Esc lets go). Mouse looks and aims (it slows a little when you are on a target). <b>Zoom:</b> mouse wheel, or right click / Z to step through. <b>Machine gun:</b> hold left click or Space to fire; zoom right in for the telescopic sight, R reload the belt, A fires an SOS flare for your artillery, C ducks below the parapet (do it when shells or bombs come), M gas mask, G throws a bomb bundle at a close tank. Each battle tells its own day: the Somme for the German gunner, Operation Michael for the British.
-    <b>Rifleman:</b> WASD move, Shift sprint, C duck (ducking inside a shell hole hides you from the machine guns), left click fire, right click (or wheel) to look down the iron sights, R reload, F bayonet, G throw a bomb.<br>
+    <b>Computer:</b> click the battlefield to grab the mouse (Esc lets go). Mouse looks and aims (it slows a little when you are on a target). <b>Zoom:</b> mouse wheel, or right click / Z to step through. <b>Machine gun:</b> hold left click or Space to fire; zoom right in for the telescopic sight, R reload the belt, A fires an SOS flare for your artillery, C ducks below the parapet (do it when shells or bombs come), M gas mask, G throws a bomb bundle at a close tank. Planes can be shot down: aim ahead of them. Each battle tells its own day: the Somme for the German gunner, Operation Michael for the British.
+    <b>Rifleman:</b> WASD move, Shift sprint, C duck (ducking inside a shell hole hides you from the machine guns), left click fire, right click (or wheel) to look down the iron sights, R reload, F bayonet, G throw a bomb. Once you hold their trench, E turns their machine gun round.<br>
     <b>iPad / phone:</b> drag on the right side to aim, pinch with two fingers to zoom (or tap the zoom button), left thumb stick to move, buttons for everything else.
   </div>
   <div id="lb"></div>
@@ -397,6 +431,8 @@ const sfx = {
   grunt(vol, pan) { if (shoutBudget > 6) return; shoutBudget++; const f = rnd(150, 230); tone(f, 0.22, "sawtooth", 0.05 * vol, 0, f * 0.7, pan); noise(0.15, 800, "bandpass", 0.08 * vol, 2, 0, pan); },
   swish() { noise(0.18, 2600, "bandpass", 0.3, 1.2); tone(300, 0.15, "triangle", 0.06, 0, 120); },
   throwB() { noise(0.15, 1200, "bandpass", 0.15, 1); },
+  streak() { tone(660, 0.1, "triangle", 0.08); tone(880, 0.1, "triangle", 0.08, 0.09); tone(1320, 0.18, "triangle", 0.08, 0.18); },
+  distantMG(pan) { const n = 6 + Math.floor(Math.random() * 10), v = rnd(0.03, 0.07); for (let i = 0; i < n; i++) noise(0.05, 1000, "lowpass", v, 0.7, i * 0.12, pan); },
   bounce() { tone(260, 0.05, "triangle", 0.05); },
   clank() { tone(240, 0.09, "square", 0.08); noise(0.1, 1600, "bandpass", 0.3, 2); },
   boxThump() { noise(0.22, 320, "lowpass", 0.45); tone(90, 0.15, "sine", 0.3, 0, 60); },
@@ -483,6 +519,8 @@ sky.renderOrder = -10; sky.frustumCulled = false; scene.add(sky);
 scene.fog = new THREE.Fog(0x9c988c, 70, 360);
 // weather and light that change through the day: fog, night
 const ATM_DEF = { near: 70, far: 360, col: 0x9c988c, hemi: 0.9, sun: 0.62, top: 0x56606c, mid: 0x9c9a90, bot: 0xa59c86 };
+const ATM_SUN = { near: 90, far: 430, col: 0xb3b5ad, hemi: 1.0, sun: 0.95, top: 0x5b80a8, mid: 0xaebfcc, bot: 0xb0a890 }; // 1 July 1916 was a hot, clear morning
+const ATM_FOG = { near: 5, far: 64, col: 0xb7b4ab, top: 0xa8a7a1, mid: 0xb7b4ab, bot: 0xb7b4ab, hemi: 1.0, sun: 0.3 };
 const ATM_NIGHT = { near: 12, far: 150, col: 0x0c0e14, hemi: 0.11, sun: 0.03, top: 0x030408, mid: 0x0b0d12, bot: 0x0e1015 };
 const toAtm = o => { const a = Object.assign({}, ATM_DEF, o); for (const k of ["col", "top", "mid", "bot"]) a[k] = new THREE.Color(a[k]); return a; };
 let ATM = toAtm({}), ATM_T = toAtm({});
@@ -714,7 +752,7 @@ const MUD = (() => {
 // ======================================================================
 const SMAT = new THREE.MeshLambertMaterial({ vertexColors: true });
 const SKIN = 0xd6a47e;
-const SPHERE = new THREE.SphereGeometry(1, 10, 7), DOME = new THREE.SphereGeometry(1, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), CYL = new THREE.CylinderGeometry(1, 1, 1, 14);
+const SPHERE = new THREE.SphereGeometry(1, 10, 7), HEAD = new THREE.SphereGeometry(1, 16, 12), DOME = new THREE.SphereGeometry(1, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), CYL = new THREE.CylinderGeometry(1, 1, 1, 14);
 function bodyGeo(sd, kind) { // kind: "rifle" (bayonet fixed, held for the charge) or "gunner" (hands forward on the gun)
   const P = [], s = SIDES[sd];
   P.push([BOX, s.coat, mat4(0, 1.16, 0, 0, 0, 0, 0.42, 0.58, 0.25)]);
@@ -724,7 +762,14 @@ function bodyGeo(sd, kind) { // kind: "rifle" (bayonet fixed, held for the charg
   P.push([BOX, s.web, mat4(0, 1.22, -0.19, 0, 0, 0, 0.32, 0.34, 0.14)]);
   P.push([BOX, s.web, mat4(0.12, 1.2, 0.13, 0, 0, 0.5, 0.05, 0.5, 0.02)]);
   P.push([BOX, s.web, mat4(-0.12, 1.2, 0.13, 0, 0, -0.5, 0.05, 0.5, 0.02)]);
-  P.push([SPHERE, SKIN, mat4(0, 1.57, 0.01, 0, 0, 0, 0.115, 0.125, 0.115)]);
+  P.push([HEAD, SKIN, mat4(0, 1.57, 0.01, 0, 0, 0, 0.112, 0.128, 0.115)]);
+  P.push([BOX, 0xc8926a, mat4(0, 1.555, 0.118, 0.25, 0, 0, 0.032, 0.05, 0.035)]);                                   // nose
+  P.push([SPHERE, 0x2a1d14, mat4(0.042, 1.6, 0.1, 0, 0, 0, 0.016, 0.012, 0.01)]); P.push([SPHERE, 0x2a1d14, mat4(-0.042, 1.6, 0.1, 0, 0, 0, 0.016, 0.012, 0.01)]); // eyes
+  P.push([BOX, 0x6e4a32, mat4(0.042, 1.625, 0.105, 0, 0, 0, 0.04, 0.01, 0.012)]); P.push([BOX, 0x6e4a32, mat4(-0.042, 1.625, 0.105, 0, 0, 0, 0.04, 0.01, 0.012)]); // brows
+  P.push([BOX, 0x9a5e48, mat4(0, 1.515, 0.105, 0, 0, 0, 0.045, 0.01, 0.01)]);                                        // mouth
+  P.push([SPHERE, SKIN, mat4(0.112, 1.575, 0, 0, 0, 0, 0.02, 0.035, 0.025)]); P.push([SPHERE, SKIN, mat4(-0.112, 1.575, 0, 0, 0, 0, 0.02, 0.035, 0.025)]); // ears
+  P.push([CYL, s.coat2, mat4(0, 1.455, 0, 0, 0, 0, 0.1, 0.07, 0.1)]);                                                // collar
+  P.push([BOX, 0x3b2f22, mat4(0, 1.5, 0.0, 0, 0, 0, 0.23, 0.012, 0.012)]);                                          // chin strap
   if (s.helmet === "brodie") {
     P.push([DOME, s.helm, mat4(0, 1.615, 0, 0, 0, 0, 0.135, 0.085, 0.135)]);
     P.push([CYL, s.helm, mat4(0, 1.62, 0, 0, 0, 0, 0.215, 0.022, 0.215)]);
@@ -936,6 +981,7 @@ addEventListener("keydown", e => {
   if (e.code === "KeyF") bayonet();
   if (e.code === "KeyG") { if (G.mode === "mg") throwCharge(); else grenade(); }
   if (e.code === "KeyM") toggleMask();
+  if (e.code === "KeyE") useGun();
   if (e.code === "KeyP") pause(true);
 });
 addEventListener("keyup", e => { keys[e.code] = false; if (e.code === "Space" && G && G.mode === "mg") IN.fire = false; });
@@ -1019,6 +1065,7 @@ function touchButton(id, down, pid) {
   if (id === "tArty") callArty();
   if (id === "tMask") toggleMask();
   if (id === "tCharge") throwCharge();
+  if (id === "tUse") useGun();
   if (id === "tPause") pause(true);
 }
 function showTouch() {
@@ -1027,7 +1074,7 @@ function showTouch() {
   const mg = G.mode === "mg";
   const place = (id, r, b, show) => { const el = $(id); el.style.display = show ? "flex" : "none"; el.style.right = r + "px"; el.style.bottom = b + "px"; };
   place("tFire", 22, 22, true); place("tAim", 124, 30, true); place("tReload", 30, 124, true);
-  place("tBay", 108, 108, !mg); place("tGren", 186, 24, !mg); place("tCrouch", mg ? 108 : 116, mg ? 108 : 186, true); place("tArty", 186, 24, mg); place("tMask", 116, 190, mg && G.scen === "spring"); place("tCharge", 192, 108, false);
+  place("tBay", 108, 108, !mg); place("tGren", 186, 24, !mg); place("tCrouch", mg ? 108 : 116, mg ? 108 : 186, true); place("tArty", 186, 24, mg); place("tMask", 116, 190, mg && G.scen === "spring"); place("tCharge", 192, 108, false); place("tUse", 192, 108, false);
   $("tCrouch").innerHTML = "DUCK"; $("tCrouch").classList.remove("on"); $("tMask").classList.remove("on");
   const tp = $("tPause"); tp.style.right = "auto"; tp.style.left = "12px"; tp.style.bottom = "auto"; tp.style.top = "84px"; tp.style.width = tp.style.height = "44px";
   $("joy").style.display = mg ? "none" : "block";
@@ -1039,19 +1086,19 @@ function showTouch() {
 const ZOOMS = { mg: [52, 26, 13], rifle: [62, 30] };
 function setZoom(i) {
   if (!G || G.over) return;
-  const L = ZOOMS[G.mode]; G.zl = clamp(i, 0, L.length - 1);
+  const L = Z(); G.zl = clamp(i, 0, L.length - 1);
   if (G.mode === "rifle") IN.aim = G.zl > 0;
   zoomUI();
 }
 function zoomStep(d) { if (G) setZoom((G.zl || 0) + d); }
-function zoomToggle() { if (!playing()) return; const n = ZOOMS[G.mode].length; setZoom(G.zl >= n - 1 ? 0 : G.zl + 1); sfx.click(); }
+function zoomToggle() { if (!playing()) return; const n = Z().length; setZoom(G.zl >= n - 1 ? 0 : G.zl + 1); sfx.click(); }
 function zoomUI() {
   const b = $("tAim");
   if (G.mode === "mg") { b.innerHTML = ["ZOOM<br>1x", "ZOOM<br>2x", "ZOOM<br>4x"][G.zl]; $("zLabel").textContent = G.zl ? ["", "2x", "4x"][G.zl] : ""; }
-  else { b.innerHTML = G.zl ? "HIP" : "AIM"; $("zLabel").textContent = ""; }
+  else { b.innerHTML = G.zl === 0 ? "AIM" : (G.zl === 1 && G.scope ? "SCOPE" : "HIP"); $("zLabel").textContent = G.zl === 2 ? "scope" : ""; }
   b.classList.toggle("on", G.zl > 0);
 }
-function lookScale() { return (camera.fov / ZOOMS[G.mode][0]) * (G.onTarget ? 0.6 : 1); }
+function lookScale() { return (camera.fov / Z()[0]) * (G.onTarget ? 0.6 : 1); }
 // gentle aim assist: if a target is very near the middle of the screen, the shot goes to him
 function assistDir(ox, oy, oz, dx, dy, dz, list, cone) {
   let best = null, ba = cone;
@@ -1071,7 +1118,7 @@ function spreadDir(dx, dy, dz, spread) {
   const a = rnd(0, Math.PI * 2), r = Math.sqrt(Math.random()) * spread; yaw += Math.cos(a) * r; pit += Math.sin(a) * r;
   return [-Math.sin(yaw) * Math.cos(pit), Math.sin(pit), -Math.cos(yaw) * Math.cos(pit)];
 }
-function assistCone() { return (usedTouch ? 2.6 : 1.6) * D2R * (camera.fov / ZOOMS[G.mode][0]) * G.D.assist; }
+function assistCone() { return (usedTouch ? 2.6 : 1.6) * D2R * (camera.fov / Z()[0]) * G.D.assist; }
 function targets() { return units.filter(s => G.mode === "mg" ? s.team === "them" : (s.team === "them" || s.team === "nest")); }
 function checkOnTarget() {
   const d = new THREE.Vector3(); camera.getWorldDirection(d);
@@ -1121,22 +1168,23 @@ function clearWorld() {
   if (G && G.tanks) { for (const t of G.tanks) scene.remove(t.m); G.tanks.length = 0; }
   if (G && G.ebombs) { for (const b of G.ebombs) scene.remove(b.m); G.ebombs.length = 0; }
   if (G && G.gas) { clearClouds(G.gas); clearClouds(G.smoke); }
-  flareL.intensity = 0; setAtmos({}, true);
+  flareL.intensity = 0; setAtmos({}, true); clearPlanes();
   for (const id of ["dust", "gasTint", "gasmask", "warn"]) $(id).style.opacity = 0;
 }
 let playerS = null;
 const grenades = [], shells = [];
 
-function startGame() {
-  audio();
+function startGame(cont) {
+  audio(); cont = typeof cont === "number" ? cont : 0;
   clearWorld();
   const D = DIFFS[S.diff], side = S.side, foe = FOE[side];
-  G = { mode: S.job, side, foe, D, t: 0, over: false, paused: false, score: 0, kills: 0, shots: 0, hits: 0, yaw: 0, pitch: 0, zoom: false, shake: 0, dmgT: 0, msgT: 0 };
+  const rk = rankIdx(rankPts());
+  G = { warned: {}, rank: rk, scope: rk >= 3, warnTxt: "", mode: S.job, side, foe, D, t: 0, over: false, paused: false, score: 0, kills: 0, shots: 0, hits: 0, yaw: 0, pitch: 0, zoom: false, shake: 0, dmgT: 0, msgT: 0 };
   IN.fire = false; IN.aim = false; IN.look.x = IN.look.y = 0;
   ["startOv", "endOv", "pauseOv"].forEach(id => $(id).hidden = true);
   $("hud").hidden = false; $("xhair").hidden = false;
   WIRE_OWN.gaps = WIRE_OWN.gaps0.slice(); setAtmos({}, true);
-  if (G.mode === "mg") startMG(); else startRifle();
+  if (G.mode === "mg") startMG(cont); else startRifle();
   G.zl = 0; G.onTarget = false; G.tgtT = 0; buildRounds(); drawSights(); zoomUI(); ring(null);
   showTouch(); S.battles++; save();
   if (!usedTouch && stage.requestPointerLock) { wantLock = true; try { const r = stage.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {} }
@@ -1150,24 +1198,25 @@ const GUN_Z = -1.55; // where the gun sits on your parapet
 const BATTLES = {
   somme: { title: "The Somme", date: "1 July 1916", foe: "brit", waves: [
     { name: "7:30 am · The whistles blow", sub: "A week of shelling ends with the Hawthorn Ridge mine. Then they walk towards you.", mine: true, barrage: 14, line: { n: 110, lines: 4, walk: 1.35, chargeZ: -32 } },
-    { name: "8:30 am · The second wave", sub: "Smoke drifts over no man's land. Lewis gun teams and a sniper come with them.", barrage: 8, smoke: true, line: { n: 90, lines: 3, walk: 1.5, chargeZ: -38 }, lmg: 2, snipers: 1 },
+    { planes: 1, name: "8:30 am · The second wave", sub: "Smoke drifts over no man's land. Lewis gun teams, a sniper and an RFC plane come with them.", barrage: 8, smoke: true, line: { n: 90, lines: 3, walk: 1.5, chargeZ: -38 }, lmg: 2, snipers: 1 },
     { name: "Afternoon · Bombing parties", sub: "Men with Mills bombs crawl from hole to hole. Duck when one lands.", barrage: 6, line: { n: 40, lines: 2, walk: 1.6, chargeZ: -42 }, bombers: 4, lmg: 2, snipers: 2 },
     { name: "Night · Trench raid", sub: "Pitch dark. Your flares go up every few seconds. Raiders crawl and rush.", night: true, storm: { groups: 5, size: 4 }, bombers: 4 },
-    { name: "15 September 1916 · Flers", sub: "Something new is coming: tanks. Bullets bounce off them.", creep: true, line: { n: 80, lines: 3, walk: 1.7, chargeZ: -45 }, lmg: 2, snipers: 1, tanks: [1, 2, 3] }
+    { planes: 2, name: "15 September 1916 · Flers", sub: "Something new is coming: tanks. Bullets bounce off them. Planes overhead too.", creep: true, line: { n: 80, lines: 3, walk: 1.7, chargeZ: -45 }, lmg: 2, snipers: 1, tanks: [1, 2, 3] }
   ] },
   spring: { title: "Operation Michael", date: "21 March 1918", foe: "ger", waves: [
     { name: "4:40 am · The hurricane bombardment", sub: "Five hours of shells and gas, squeezed into a few seconds. Mask on, then thick fog.", barrage: 18, gas: 0.45, fog: [4, 58], storm: { groups: 7, size: 5 }, lmg: 2 },
-    { name: "9:40 am · Out of the fog", sub: "The fog is lifting. A creeping barrage rolls towards you with stormtroopers right behind it.", fog: [12, 90], fogEnd: [35, 220], creep: true, storm: { groups: 5, size: 5 }, line: { n: 50, lines: 2, walk: 2.0, chargeZ: -55 }, lmg: 2 },
+    { planes: 1, name: "9:40 am · Out of the fog", sub: "The fog is lifting. A creeping barrage rolls towards you with stormtroopers right behind it.", fog: [12, 90], fogEnd: [35, 220], creep: true, storm: { groups: 5, size: 5 }, line: { n: 50, lines: 2, walk: 2.0, chargeZ: -55 }, lmg: 2 },
     { name: "Midday · The A7V tanks", sub: "German tanks: bullets bounce off. Use the guns, AP rounds or a bundle of bombs.", line: { n: 60, lines: 2, walk: 2.0, chargeZ: -55 }, snipers: 2, tanks: [1, 2, 2] },
-    { name: "Afternoon · Gas and bombers", sub: "More gas shells, then bombers crawling up close.", barrage: 10, gas: 0.6, bombers: 5, lmg: 3, storm: { groups: 3, size: 4 } },
-    { name: "Evening · The last push", sub: "Everything they have left.", creep: true, line: { n: 90, lines: 3, walk: 2.1, chargeZ: -55 }, storm: { groups: 5, size: 5 }, lmg: 2, snipers: 1, tanks: [0, 1, 2] }
+    { planes: 1, name: "Afternoon · Gas and bombers", sub: "More gas shells, then bombers crawling up close.", barrage: 10, gas: 0.6, bombers: 5, lmg: 3, storm: { groups: 3, size: 4 } },
+    { planes: 2, name: "Evening · The last push", sub: "Everything they have left.", creep: true, line: { n: 90, lines: 3, walk: 2.1, chargeZ: -55 }, storm: { groups: 5, size: 5 }, lmg: 2, snipers: 1, tanks: [0, 1, 2] }
   ] }
 };
 const DI = () => ["recruit", "regular", "veteran"].indexOf(S.diff);
-function startMG() {
+function cpKey() { return S.side + "-" + S.diff; }
+function startMG(cont) {
   const D = G.D, sd = SIDES[G.side];
   G.scen = G.side === "ger" ? "somme" : "spring"; G.battle = BATTLES[G.scen]; G.waves = G.battle.waves;
-  Object.assign(G, { hp: D.hp, breaches: 0, wave: 0, phase: "brief", phaseT: 1.5, spawnQ: [], belt: 250, belts: D.belts, ap: D.ap, apLoaded: false, reloadT: 0, relDur: 3.6, heat: 0, jamT: 0, cont: 0, shotAcc: 0, arty: 3, artyT: 0, charges: D.charges,
+  Object.assign(G, { hp: D.hp, breaches: 0, wave: 0, phase: "brief", phaseT: 1.5, spawnQ: [], belt: 250, belts: D.belts, ap: D.ap, apLoaded: false, planeQ: 0, reloadT: 0, relDur: 3.6, heat: 0, jamT: 0, cont: 0, shotAcc: 0, arty: 3 + (G.rank >= 5 ? 1 : 0), artyT: 0, charges: D.charges + (G.rank >= 2 ? 1 : 0),
     rate: sd.rpm / 60, waveClean: true, duck: false, duckK: 0, gunDownT: 0, mask: false, maskK: 0, gasHurtT: 0, gasCough: 0, gas: [], smoke: [], tanks: [], ebombs: [], creep: null, barrageT: 0, runner: null, runnerT: 45, no2: null, no2T: 0,
     dust: 0, flare: null, flareT: 3, warned: {}, supp: 0, warnTxt: "", tankSnd: 0 });
   WIRE_OWN.gaps = WIRE_OWN.gaps0.slice();
@@ -1176,10 +1225,11 @@ function startMG() {
   for (const x of [-3.2, 3.6, -7, 8]) { const s = soldier(G.side, "rifle", x, zOwn(x) - 0.62, "us"); s.face = Math.PI; s.y = -0.95; s.state = "mate"; units.push(s); }
   spawnNo2();
   banner(G.battle.title, G.battle.date + " · " + (G.scen === "somme" ? "you are a German machine gunner" : "you are a British machine gunner"), 3);
+  if (cont) { G.wave = cont; G.phase = "clear"; G.phaseT = 2.5; G.continued = true; banner(G.battle.title, "Carrying on from wave " + (cont + 1), 2.5); }
 }
 function spawnNo2() {
-  const x = -0.95, z = mgGun.position.z + 0.75, s = soldier(G.side, "gunner", x, z, "crew");
-  s.face = Math.PI; s.pose = "crouch"; s.y = H(x, z); s.state = "no2"; units.push(s); G.no2 = s;
+  const x = mgGun.position.x - 1.75, z = mgGun.position.z + 0.95, s = soldier(G.side, "gunner", x, z, "crew");
+  s.face = Math.atan2(mgGun.position.x - 0.25 - x, mgGun.position.z - z); s.pose = "crouch"; s.y = H(x, z); s.state = "no2"; units.push(s); G.no2 = s;
 }
 function mgEye() { return { x: 0, y: mgGun.position.y + 0.24, z: mgGun.position.z + 0.95 }; }
 function waveDef() { return G.waves[G.wave - 1]; }
@@ -1189,7 +1239,7 @@ function nextWave() {
   banner("Wave " + G.wave + " of " + G.waves.length, w.name, 3.6);
   hint(w.sub, 4.5);
   // the weather and light for this part of the day
-  if (w.night) setAtmos(ATM_NIGHT); else if (w.fog) setAtmos({ near: w.fog[0], far: w.fog[1], col: 0xb7b4ab, top: 0xa8a7a1, mid: 0xb7b4ab, bot: 0xb7b4ab, hemi: 1.0, sun: 0.3 }); else setAtmos({});
+  if (w.night) setAtmos(ATM_NIGHT); else if (w.fog) setAtmos(Object.assign({}, ATM_FOG, { near: w.fog[0], far: w.fog[1] })); else setAtmos(G.scen === "somme" && G.wave <= 3 ? ATM_SUN : {});
   if (w.night) G.flareT = 2;
 }
 function startBarrage(w) {
@@ -1216,6 +1266,7 @@ function startAttack(w) {
   for (let i = 0; i < Math.round((w.snipers || 0) * (0.5 + cm * 0.6)); i++) q.push({ at: t0 + rnd(0, 20), kind: "sniper" });
   for (let i = 0; i < Math.round((w.bombers || 0) * cm); i++) { const gx = rnd(-40, 40), at = t0 + rnd(0, 25); for (let k = 0; k < 3; k++) q.push({ at: at + k * 0.5, kind: "bomber", x: gx + rnd(-3, 3) }); }
   if (w.tanks) for (let i = 0; i < w.tanks[di]; i++) q.push({ at: t0 + 2 + i * 9, kind: "tank", x: -40 + 80 * (w.tanks[di] === 1 ? 0.5 : i / (w.tanks[di] - 1)) + rnd(-5, 5) });
+  for (let i = 0; i < Math.max(w.planes ? 1 : 0, Math.round((w.planes || 0) * (0.5 + cm * 0.5))); i++) q.push({ at: t0 + rnd(12, 40) + i * 14, kind: "plane" });
   if (w.creep) { G.creep = { z: -L + 16, sp: 1.7, acc: 0 }; hint("Creeping barrage! The shells walk towards you. Duck when they reach your trench.", 4); }
   if (w.smoke) for (let i = 0; i < 9; i++) addCloud(G.smoke, rnd(-60, 60), rnd(-72, -46), 0xb9b4aa, 0.5, rnd(35, 45), 14);
   if (w.snipers && !G.warned.sniper) { G.warned.sniper = 1; setTimeout(() => G && !G.over && hint("Snipers are out there. Watch for a glint, then duck!", 3.5), 6000); }
@@ -1224,6 +1275,7 @@ function startAttack(w) {
 function spawnFoe(e) {
   const k = e.kind;
   if (k === "tank") { spawnTank(e.x); return; }
+  if (k === "plane") { spawnPlane(); return; }
   if (k === "sniper") { // crawled out in the dark; already lying in a shell hole
     const c = nearCrater(rnd(-50, 50), -90, -112, -66, 60) || { x: rnd(-50, 50), z: rnd(-105, -70), r: 2 };
     const s = soldier(G.foe, "rifle", c.x, c.z - c.r * 0.3, "them"); s.role = "sniper"; s.state = "snipe"; s.pose = "prone"; s.face = 0; s.y = H(s.x, s.z); s.fireT = rnd(4, 8); units.push(s); return;
@@ -1269,14 +1321,51 @@ function callArty() {
   for (const t of tks) for (let i = 0; i < 4; i++) shells.push({ x: t.x + rnd(-5, 5), z: t.z + rnd(-4, 6) + 4, t: 3 + k++ * 0.25, ours: true, follow: t });
   if (n) { const zc = zs / n; for (let i = 0; i < 11; i++) shells.push({ x: -55 + i * 11 + rnd(-3, 3), z: zc + rnd(-7, 7), t: 3 + k++ * 0.2 + rnd(0, 0.3), ours: true }); }
 }
+// the loading drill for the rifle, drawn big: clip into the guide, thumb pushes the rounds down, empty clip flies off
+let clipBuilt = "";
+function buildClip(brit) {
+  const tip = brit ? "url(#nick)" : "url(#nick)", L = brit ? 92 : 98;
+  let h = ""; for (let i = 0; i < 5; i++) { const y = 26 + i * 13;
+    h += `<g class="rd" data-i="${i}"><rect x="62" y="${y}" width="6" height="12" rx="1" fill="#9a7222"/><rect x="66" y="${y + 1}" width="${L - 26}" height="10" fill="url(#brass)"/><path d="M${66 + L - 26} ${y + 1} l7 2 v6 l-7 2 z" fill="url(#brass)"/><path d="M${73 + L - 26} ${y + 3} h14 q10 3 0 6 h-14 z" fill="${tip}"/></g>`; }
+  $("clipRounds").innerHTML = h; clipBuilt = brit ? "b" : "g";
+}
+function clipAnim(st) {
+  const el = $("clipAnim");
+  if (!st) { el.style.display = "none"; return; }
+  if (clipBuilt !== (st.brit ? "b" : "g")) buildClip(st.brit);
+  el.style.display = "block";
+  // which clip and how far down it is
+  const perClip = st.single ? 1 : 5, n = st.single ? st.need : Math.min(5, st.need - 5 * st.clipIdx);
+  const kk = clamp(st.k - 5 * st.clipIdx, 0, n), clipIn = st.single ? 1 : clamp(st.inK, 0, 1), out = clamp(st.outK, 0, 1);
+  const rds = $("clipRounds").children;
+  for (let i = 0; i < 5; i++) { // only the rounds in this clip; the stack slides down into the magazine
+    const show = st.single ? i === 4 && kk < n : i >= 5 - n;
+    rds[i].style.display = show ? "" : "none";
+    const dy = st.single ? (kk % 1) * 26 - (1 - clipIn) * 60 : kk * 13 - (1 - clipIn) * 70;
+    rds[i].setAttribute("transform", `translate(0 ${dy.toFixed(1)})`);
+  }
+  $("clipStrip").style.display = st.single ? "none" : "";
+  $("clipStrip").setAttribute("transform", `translate(${(out * 30).toFixed(1)} ${(-(1 - clipIn) * 70 - out * 90).toFixed(1)}) rotate(${(out * 40).toFixed(0)} 64 56)`);
+  $("clipStrip").style.opacity = 1 - out;
+  const thumbY = st.single ? 24 + 4 * 13 + (kk % 1) * 26 : 24 + (5 - n) * 13 + kk * 13; // resting on the top round
+  $("clipThumb").style.display = kk < n && clipIn >= 1 ? "" : "none";
+  $("clipThumb").setAttribute("transform", `translate(4 ${thumbY.toFixed(1)})`);
+  $("clipBolt").setAttribute("transform", `translate(${(st.boltK * -26).toFixed(1)} 0)`);
+  $("clipTxt").textContent = st.label;
+}
+function popScore(t, cm) {
+  const el = $("pop"); el.textContent = t; el.style.color = cm >= 3 ? "#ff6a3d" : cm >= 2 ? "#ffb347" : cm > 1 ? "#ffe07a" : "#fff";
+  el.classList.remove("go"); void el.offsetWidth; el.classList.add("go");
+}
 function hurtPlayer(n, why) {
   G.hp -= n; G.dmgT = 0.6; G.shake = Math.max(G.shake, 0.4); sfx.hit();
   if (why) hint(why, 2);
-  if (G.hp <= 0) endGame(false, G.mode === "mg" ? "Your gun team has been knocked out." : "You've been hit. Stretcher bearers carry you back to your own trench.");
+  if (G.hp <= 0) endGame(false, G.mode === "mg" ? "Your gun team has been knocked out." : G.phase === "hold" ? "You took their trench, but you were hit holding it." : "You've been hit. Stretcher bearers carry you back to your own trench.");
 }
 const ROLE_PTS = { sniper: 40, lmg: 25, lmgmate: 15, bomber: 20 };
 function killUnit(s, by) {
   if (!s.alive) return;
+  if (s.team === "them" || s.team === "nest") puff(s.x, s.y + 1.25 * SC, s.z, { c: 0x8f8368, vy: 0.6, s0: 0.25, s1: 0.9, life: 0.7, a: 0.7 });
   s.alive = false; s.deathT = 0; s.fall = s.team === "them" && G.mode === "mg" ? -1 : (Math.random() < 0.6 ? -1 : 1); s.pose = s.pose === "prone" ? "prone" : "stand";
   if (s.pose === "prone") s.fall = 0.05;
   const d = Math.hypot(s.x - camera.position.x, s.z - camera.position.z);
@@ -1285,7 +1374,11 @@ function killUnit(s, by) {
   if (by === "player") {
     G.kills++; G.hits++;
     let pts = ROLE_PTS[s.role] || 10; if (G.mode === "mg" && s.z > -30) pts += 5;
-    G.score += Math.round(pts * G.D.mult);
+    // kills in quick succession build a streak, and a streak multiplies the score
+    if (G.t - (G.lastKill == null ? -9 : G.lastKill) < 2.6) G.combo++; else G.combo = 1; G.lastKill = G.t; G.bestCombo = Math.max(G.bestCombo || 0, G.combo);
+    const cm = G.combo >= 20 ? 3 : G.combo >= 10 ? 2 : G.combo >= 5 ? 1.5 : 1, got = Math.round(pts * G.D.mult * cm);
+    G.score += got; popScore("+" + got + (cm > 1 ? "  ×" + cm : ""), cm);
+    if ([5, 10, 20, 35, 50, 75, 100].includes(G.combo)) { banner(G.combo + " in a row!", "Streak bonus ×" + cm, 1.5); sfx.streak(); }
     const x = $("xhair"); x.classList.add("hit"); clearTimeout(killUnit.t); killUnit.t = setTimeout(() => x.classList.remove("hit"), 120); sfx.tick();
   }
 }
@@ -1316,11 +1409,14 @@ function mgShot() {
   const res = shoot(eye.x, eye.y, eye.z, dx, dy, dz, foes, usedTouch ? 0.15 : 0.05);
   // tanks stop bullets
   const th = rayTanks(eye, dx, dy, dz, res.t);
-  const endT = th ? th.t : res.t;
+  const pl = rayPlanes(eye, dx, dy, dz, th ? th.t : res.t, usedTouch ? 1.5 : 0.5);
+  const endT = pl ? pl.t : th ? th.t : res.t;
   if (G.shots % 3 === 0) tracer(mz.x, mz.y, mz.z, dx, dy, dz, endT);
   muzzle(mz.x, mz.y, mz.z, true); flashL.position.copy(mz); flashL.intensity = 2.2;
   sfx.mg(0); G.shake = Math.max(G.shake, G.zl ? 0.02 : 0.05);
-  if (th) { hitTank(th.tank, eye.x + dx * th.t, eye.y + dy * th.t, eye.z + dz * th.t); }
+  if (G.shots % 2 === 0) { const c = new THREE.Vector3(0.1, 0.0, 0.12); mgGun.localToWorld(c); puff(c.x, c.y, c.z, { c: 0xe0b24a, add: true, vx: Math.cos(G.yaw) * rnd(1.2, 2) , vz: -Math.sin(G.yaw) * rnd(1.2, 2), vy: rnd(1.5, 2.6), g: 9.8, s0: 0.035, s1: 0.035, life: 0.55, a: 1 }); }
+  if (pl) hitPlane(pl.p, 1, eye.x + dx * pl.t, eye.y + dy * pl.t, eye.z + dz * pl.t);
+  else if (th) { hitTank(th.tank, eye.x + dx * th.t, eye.y + dy * th.t, eye.z + dz * th.t); }
   else {
     const hx = eye.x + dx * res.t, hz = eye.z + dz * res.t;
     if (res.s) killUnit(res.s, "player");
@@ -1525,7 +1621,9 @@ function throwBomb(s) {
 // ---------- your trench: crew, runner, flares ----------
 function updTrench(dt) {
   if ((!G.no2 || !G.no2.alive) && G.no2T > 0) { G.no2T -= dt; if (G.no2T <= 0) { spawnNo2(); hint("A new No. 2 has got to the gun", 2.5); } }
-  if (G.no2 && G.no2.alive) { G.no2.pose = "crouch"; G.no2.face = Math.PI + (G.reloadT > 0 ? Math.sin(G.t * 6) * 0.3 : 0); }
+  if (G.no2 && G.no2.alive) { const n2 = G.no2; n2.pose = "crouch"; n2.face = Math.atan2(mgGun.position.x - 0.25 - n2.x, mgGun.position.z - n2.z) + (G.reloadT > 0 ? Math.sin(G.t * 6) * 0.25 : Math.sin(G.t * 0.7) * 0.08); }
+  // never let the camera sit inside a crewman
+  for (const s of units) if (s.team === "crew" && s.alive) { const d = Math.hypot(s.x - camera.position.x, s.y + 1.1 - camera.position.y, s.z - camera.position.z); s.root.visible = d > 1.15; }
   // the ammo runner brings two boxes along the trench
   G.runnerT -= dt;
   if (!G.runner && G.runnerT <= 0) {
@@ -1558,16 +1656,17 @@ function updMG(dt) {
   G.maskK = clamp(G.maskK + (G.mask ? dt : -dt) * 1.3, 0, 1);
   G.gunDownT = Math.max(0, G.gunDownT - dt); G.dust = Math.max(0, G.dust - dt * 0.5); G.supp = Math.max(0, G.supp - dt * 0.6); G.warnTxt = "";
   // aim
-  G.yaw = clamp(G.yaw - IN.look.x, -58 * D2R, 58 * D2R); G.pitch = clamp(G.pitch - IN.look.y, -14 * D2R, 9 * D2R); IN.look.x = IN.look.y = 0;
+  G.yaw = clamp(G.yaw - IN.look.x, -58 * D2R, 58 * D2R); G.pitch = clamp(G.pitch - IN.look.y, -14 * D2R, 40 * D2R); IN.look.x = IN.look.y = 0;
   mgGun.rotation.set(G.pitch, G.yaw, 0, "YXZ"); mgGun.userData.mount.rotation.set(-G.pitch, 0, 0);
   if (G.gunDownT > 0) mgGun.rotation.z = 0.7 * Math.min(1, G.gunDownT / 1.5);
   const busy = G.reloadT > 0 || G.jamT > 0 || G.gunDownT > 0 || G.duckK > 0.3;
-  const zi = busy ? 0 : G.zl, fovT = ZOOMS.mg[zi];
+  const zi = busy ? 0 : G.zl, fovT = Z()[zi];
   camera.fov += (fovT - camera.fov) * Math.min(1, dt * 14); if (Math.abs(fovT - camera.fov) < 0.05) camera.fov = fovT; camera.updateProjectionMatrix();
   G.tilt = (G.tilt || 0) + (((G.reloadT > 0 || G.gunDownT > 0) ? 0.3 : 0) - (G.tilt || 0)) * Math.min(1, dt * 7);
   const cy = G.yaw, cp = G.pitch;
   _v.set(-Math.sin(cy) * Math.cos(cp), Math.sin(cp), -Math.cos(cy) * Math.cos(cp));
-  const back = 1.25 + 0.45 * G.duckK; camera.position.set(mgGun.position.x - _v.x * back, mgGun.position.y + 0.4 - 1.0 * G.duckK, mgGun.position.z - _v.z * back);
+  const back = 1.25 + 0.25 * G.duckK, side = 0.6 * G.duckK;
+  camera.position.set(mgGun.position.x - _v.x * back + Math.cos(cy) * side, mgGun.position.y + 0.4 - 0.95 * G.duckK, mgGun.position.z - _v.z * back - Math.sin(cy) * side);
   const lp = cp - G.tilt + 0.35 * G.duckK; camera.lookAt(camera.position.x - Math.sin(cy) * Math.cos(lp), camera.position.y + Math.sin(lp), camera.position.z - Math.cos(cy) * Math.cos(lp));
   const scoped = camera.fov < 38;
   mgGun.visible = !scoped; $("scope").style.opacity = scoped ? 1 : 0; $("xhair").hidden = scoped || busy;
@@ -1598,7 +1697,7 @@ function updMG(dt) {
   } else if (G.phase === "attack") {
     const cap = COARSE ? 70 : 105;
     let alive = aliveFoes();
-    for (let i = G.spawnQ.length - 1; i >= 0; i--) if (G.t >= G.spawnQ[i].at && (alive < cap || G.spawnQ[i].kind === "tank")) { spawnFoe(G.spawnQ[i]); G.spawnQ.splice(i, 1); alive++; }
+    for (let i = G.spawnQ.length - 1; i >= 0; i--) if (G.t >= G.spawnQ[i].at && (alive < cap || G.spawnQ[i].kind === "tank" || G.spawnQ[i].kind === "plane")) { spawnFoe(G.spawnQ[i]); G.spawnQ.splice(i, 1); alive++; }
     if (G.creep) {
       const c = G.creep; c.z += c.sp * dt; c.acc += dt * D.barrage * 1.3;
       while (c.acc >= 1) { c.acc--; shells.push({ x: rnd(-60, 60), z: c.z + rnd(-4, 4), t: 1.0, ours: false }); }
@@ -1613,7 +1712,8 @@ function updMG(dt) {
     } else G.lastT = 0;
     if (!G.spawnQ.length && alive === 0 && !liveTanks().length && !G.creep) {
       G.phase = "clear"; G.phaseT = 7; const bonus = Math.round(100 * G.wave * D.mult) + (G.waveClean ? Math.round(60 * D.mult) : 0); G.score += bonus;
-      if (G.wave >= G.waves.length) { endGame(true, "You held the line through the whole battle."); return; }
+      if (G.wave >= G.waves.length) { if (S.cp) delete S.cp[cpKey()]; save(); endGame(true, "You held the line through the whole battle."); return; }
+      S.cp = S.cp || {}; S.cp[cpKey()] = G.wave; save();
       const heal = Math.min([3, 2, 1][DI()], D.hp - G.hp); G.hp += heal;
       banner("Wave " + G.wave + " beaten!", "+" + bonus + " pts" + (heal ? " · stretcher bearers patch you up (+" + heal + " ❤️)" : "") + " · a breather before the next", 2.8);
       if (G.reloadT <= 0 && G.belt < 125 && G.belts > 0) beltReload();
@@ -1621,7 +1721,7 @@ function updMG(dt) {
   } else if (G.phase === "clear") { G.phaseT -= dt; if (G.phaseT <= 0) nextWave(); }
   const w = waveDef();
   if (w && w.fogEnd && G.phase === "attack") { ATM_T.near += (w.fogEnd[0] - ATM_T.near) * dt * 0.02; ATM_T.far += (w.fogEnd[1] - ATM_T.far) * dt * 0.02; }
-  updTrench(dt); updTanks(dt); updEBombs(dt);
+  updTrench(dt); updTanks(dt); updEBombs(dt); updPlanes(dt);
   updClouds(G.gas, dt, 0.9, 0.35); updClouds(G.smoke, dt, 0.5, 0.6);
   // gas in your gun pit?
   let inGas = false; for (const c of G.gas) if (c.t < c.life - 4 && Math.hypot(mgGun.position.x - c.x, mgGun.position.z - c.z) < c.r * 0.9) inGas = true;
@@ -1761,12 +1861,172 @@ function stormTarget(s) {
 }
 
 // ======================================================================
+// aircraft: strafing runs over the trenches, and you can shoot them down
+// ======================================================================
+const planes = [];
+function planeModel(side) { // who flies it decides the paint and markings
+  const P2 = [], brit = side === "brit", top = brit ? 0x5c5b3b : 0x6e6f4c, dark = 0x2a2a2a;
+  P2.push([BOX, top, mat4(0, 0, 0, 0, 0, 0, 0.9, 0.95, 5.6)]);
+  P2.push([CYL, dark, mat4(0, 0, 2.95, Math.PI / 2, 0, 0, 0.52, 0.45, 0.52)]);
+  P2.push([BOX, top, mat4(0, 1.05, 0.6, 0, 0, 0, 8.6, 0.08, 1.45)]);
+  P2.push([BOX, top, mat4(0, -0.3, 0.45, 0, 0, 0, 7.6, 0.08, 1.35)]);
+  for (const sx of [-2.8, 2.8, -0.6, 0.6]) P2.push([BOX, 0x3b3328, mat4(sx, 0.38, 0.55, 0, 0, 0, 0.06, 1.35, 0.06)]);
+  P2.push([BOX, top, mat4(0, 0.1, -2.75, 0, 0, 0, 2.7, 0.06, 0.85)]);
+  P2.push([BOX, top, mat4(0, 0.55, -2.9, 0, 0, 0, 0.06, 0.95, 0.8)]);
+  for (const sx of [-0.6, 0.6]) P2.push([CYL, dark, mat4(sx, -1.05, 1.2, 0, 0, Math.PI / 2, 0.32, 0.1, 0.32)]);
+  P2.push([BOX, 0x1d1d1d, mat4(0, 0.62, 1.7, 0, 0, 0, 0.35, 0.12, 0.6)]);
+  if (brit) { // RFC roundels
+    for (const sx of [-3.1, 3.1]) { P2.push([CYL, 0x1f3d8a, mat4(sx, 1.1, 0.6, 0, 0, 0, 0.6, 0.02, 0.6)]); P2.push([CYL, 0xf1efe6, mat4(sx, 1.115, 0.6, 0, 0, 0, 0.4, 0.02, 0.4)]); P2.push([CYL, 0xc0262d, mat4(sx, 1.13, 0.6, 0, 0, 0, 0.2, 0.02, 0.2)]); }
+    for (const sz of [-1.2]) { P2.push([BOX, 0xc0262d, mat4(0, 0.55, -2.92, 0, 0, 0, 0.07, 0.3, 0.25)]); }
+  } else { // black crosses
+    for (const sx of [-3.0, 3.0]) { P2.push([BOX, 0xf1efe6, mat4(sx, 1.1, 0.6, 0, 0, 0, 1.0, 0.02, 1.0)]); P2.push([BOX, 0x111111, mat4(sx, 1.12, 0.6, 0, 0, 0, 0.9, 0.02, 0.24)]); P2.push([BOX, 0x111111, mat4(sx, 1.12, 0.6, 0, 0, 0, 0.24, 0.02, 0.9)]); }
+    P2.push([BOX, 0x111111, mat4(0.035, 0.55, -2.9, 0, 0, 0, 0.02, 0.5, 0.15)]);
+  }
+  const g = new THREE.Group(), m = new THREE.Mesh(mergeParts(P2), SMAT); m.castShadow = true; g.add(m);
+  const prop = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.1, 0.06), lam(0x3a2a1a)); prop.position.set(0, 0, 3.25); g.add(prop); g.userData.prop = prop;
+  scene.add(g); return g;
+}
+// a plane flies from their side, dives along a line through the target, strafes it, then turns for another pass
+function spawnPlane() {
+  const tgt = G.mode === "mg" ? { x: mgGun.position.x, z: mgGun.position.z } : { x: P.x, z: P.z };
+  const p = { m: planeModel(G.foe), alive: true, hp: [14, 20, 28][DI()], pass: 0, fall: 0, roll: 0, osc: null, gain: null };
+  aimPlane(p, tgt, true); planes.push(p);
+  if (!G.warned.plane) { G.warned.plane = 1; banner("Aircraft!", G.mode === "mg" ? "Shoot it down, or DUCK when it strafes you" : "Get into a shell hole and DUCK, or shoot it down", 3); }
+  // the engine: a buzzing note that rises and falls as it passes
+  const a = audio(); if (a) { try { const o = a.createOscillator(), f = a.createBiquadFilter(), g = a.createGain(); o.type = "sawtooth"; o.frequency.value = 95; f.type = "lowpass"; f.frequency.value = 700; g.gain.value = 0; o.connect(f); f.connect(g); g.connect(MASTER); o.start(); p.osc = o; p.gain = g; } catch (e) {} }
+}
+function aimPlane(p, tgt, first) {
+  const fromFoe = first || Math.random() < 0.6, side = rnd(-25, 25);
+  const sx = tgt.x + side, sz = fromFoe ? tgt.z - 380 : tgt.z + 300;
+  const dx = tgt.x - sx, dz = tgt.z - sz, d = Math.hypot(dx, dz);
+  Object.assign(p, { x: sx, z: sz, y: 70, ux: dx / d, uz: dz / d, tx: tgt.x, tz: tgt.z, sp: 46, fireAcc: 0 });
+}
+function rayPlanes(o, dx, dy, dz, maxT, extra) {
+  let best = null;
+  for (const p of planes) {
+    if (!p.alive) continue;
+    const vx = p.x - o.x, vy = p.y - o.y, vz = p.z - o.z, t = vx * dx + vy * dy + vz * dz; if (t < 0 || t > maxT) continue;
+    const cx = o.x + dx * t - p.x, cy = o.y + dy * t - p.y, cz = o.z + dz * t - p.z, r = 3.8 + (extra || 0);
+    if (cx * cx + cy * cy + cz * cz < r * r && (!best || t < best.t)) best = { p, t };
+  }
+  return best;
+}
+function hitPlane(p, dmg, x, y, z) {
+  puff(x, y, z, { c: 0xffe08a, add: true, s0: 0.5, s1: 1, life: 0.08, a: 1 });
+  p.hp -= dmg; if (Math.random() < 0.3) sfx.thunk();
+  if (p.hp <= 0 && p.alive) {
+    p.alive = false; G.score += Math.round(250 * G.D.mult); G.kills++;
+    banner("Plane shot down!", "+" + Math.round(250 * G.D.mult) + " pts", 2.2); sfx.streak();
+    say(G.side === "brit" ? "Got him! He's going down!" : "Abgeschossen!", G.side === "ger");
+  }
+}
+function updPlanes(dt) {
+  const tgt = G.mode === "mg" ? { x: mgGun.position.x, z: mgGun.position.z } : { x: P.x, z: P.z };
+  for (let i = planes.length - 1; i >= 0; i--) {
+    const p = planes[i];
+    if (p.alive) {
+      p.x += p.ux * p.sp * dt; p.z += p.uz * p.sp * dt;
+      const along = (p.x - p.tx) * p.ux + (p.z - p.tz) * p.uz; // negative before the target, positive after
+      p.y = clamp(13 + Math.abs(along) * 0.17, 13, 70);
+      // the strafe: bullets walk along the ground ahead of the plane, towards you
+      if (along > -170 && along < -20) {
+        p.fireAcc += dt * 14;
+        while (p.fireAcc >= 1) {
+          p.fireAcc--;
+          const ix = p.x + p.ux * (-along * 0.55) + rnd(-1.2, 1.2), iz = p.z + p.uz * (-along * 0.55) + rnd(-1.2, 1.2);
+          if (Math.random() < 0.5) dirt(ix, iz);
+          if (Math.random() < 0.25) { const dx = ix - p.x, dy = H(ix, iz) - p.y, dz = iz - p.z, d = Math.hypot(dx, dy, dz); tracer(p.x + p.ux * 3, p.y, p.z + p.uz * 3, dx / d, dy / d, dz / d, d); }
+          const dP = Math.hypot(ix - tgt.x, iz - tgt.z);
+          if (dP < 2.5) {
+            if (G.mode === "mg") incoming(0.1, "Strafed by the plane! DUCK when it dives", p);
+            else if (Math.random() < 0.1 * covered(null, true)) hurtPlayer(1, "Strafed! Get down in a shell hole");
+          }
+          for (const s of units) if (s.alive && s.team === "us" && Math.hypot(s.x - ix, s.z - iz) < 1.3 && Math.random() < 0.08) killUnit(s, "plane");
+        }
+        if (along > -120 && along < -40 && (G.mode !== "mg" || G.duckK < 0.5)) G.warnTxt = G.mode === "mg" ? "PLANE! DUCK (C)" : "PLANE! GET DOWN";
+        if (Math.random() < dt * 14) sfx.mgFar(clamp(40 / Math.hypot(p.x - camera.position.x, p.z - camera.position.z), 0.1, 0.9), clamp((p.x - camera.position.x) / 50, -0.8, 0.8));
+      }
+      if (along > 300) { p.pass++; if (p.pass >= 3) { p.gone = true; } else aimPlane(p, tgt, false); }
+      p.m.position.set(p.x, p.y, p.z); p.m.rotation.set(along < 0 && along > -170 ? 0.08 : (along > 0 ? -0.25 : 0), Math.atan2(p.ux, p.uz), Math.sin(G.t * 1.3 + i) * 0.1);
+    } else { // falling in smoke
+      p.fall += dt; p.x += p.ux * p.sp * dt * 0.8; p.z += p.uz * p.sp * dt * 0.8; p.y -= (6 + p.fall * 9.8) * dt; p.roll += dt * 4;
+      p.m.position.set(p.x, p.y, p.z); p.m.rotation.set(0.5, Math.atan2(p.ux, p.uz), p.roll);
+      if (Math.random() < dt * 30) puff(p.x, p.y, p.z, { c: Math.random() < 0.3 ? 0xff8a3a : 0x2a2a2a, add: false, vy: 0.5, s0: 1, s1: 4, life: 3, a: 0.8 });
+      if (p.y < H(p.x, p.z) + 0.5) { boom(p.x, p.z, true); p.gone = true; }
+    }
+    p.m.userData.prop.rotation.z += dt * 60;
+    if (p.gain) { const d = Math.hypot(p.x - camera.position.x, p.y - camera.position.y, p.z - camera.position.z), rv = ((p.x - camera.position.x) * p.ux + (p.z - camera.position.z) * p.uz) / Math.max(1, d);
+      p.gain.gain.value = S.mute ? 0 : clamp(45 / d, 0, 0.16); p.osc.frequency.value = (p.alive ? 105 : 80) * (1 - rv * 0.12); }
+    if (p.gone) removePlane(p, i);
+  }
+}
+function removePlane(p, i) { scene.remove(p.m); if (p.osc) { try { p.osc.stop(); } catch (e) {} } planes.splice(i, 1); }
+function clearPlanes() { for (let i = planes.length - 1; i >= 0; i--) removePlane(planes[i], i); }
+
+// ======================================================================
+// career rank: earned across every battle, with something unlocked on the way
+// ======================================================================
+const RANKS = {
+  brit: ["Private", "Lance Corporal", "Corporal", "Sergeant", "Second Lieutenant", "Lieutenant", "Captain", "Major"],
+  ger: ["Musketier", "Gefreiter", "Unteroffizier", "Feldwebel", "Leutnant", "Oberleutnant", "Hauptmann", "Major"]
+};
+const RANK_PTS = [0, 60, 150, 300, 550, 900, 1400, 2200];
+const UNLOCKS = { 2: "one extra bomb in every battle", 3: "a telescopic sight for your rifle (zoom in 3 steps)", 5: "one extra SOS flare as a gunner" };
+function rankPts() { return (S.kills || 0) + (S.wins || 0) * 40; }
+function rankIdx(pts) { let i = 0; while (i + 1 < RANK_PTS.length && pts >= RANK_PTS[i + 1]) i++; return i; }
+function rankName(i, side) { return RANKS[side || S.side][i]; }
+function Z() { return G.mode === "mg" ? ZOOMS.mg : (G.scope ? [62, 30, 11] : ZOOMS.rifle); }
+
+// ======================================================================
+// the captured machine gun: once their trench is yours, turn their gun round
+// ======================================================================
+function nearNest() { if (!G.nests) return null; return G.nests.find(n => n.dead && Math.hypot(n.x - P.x, n.z - P.z) < 3.2) || null; }
+function useGun() {
+  if (!playing() || G.mode !== "rifle" || G.phase !== "hold") return;
+  if (G.onGun) { // let go of it
+    G.onGun = null; playerS.root.visible = true; G.yaw = 0; G.camSet = false; hint("Back on your rifle", 1.2); return;
+  }
+  const n = nearNest(); if (!n) { hint("Get next to one of their silenced machine guns first"); return; }
+  G.onGun = n; G.capBelt = G.capBelt == null ? 500 : G.capBelt; G.capAcc = 0; G.yaw = 0; G.pitch = 0.02;
+  const gz = zEn(n.x) - 1.85; n.gun.position.set(n.x, H(n.x, gz) + 0.5, gz); n.gun.rotation.set(0, 0, 0);
+  playerS.root.visible = false; sfx.clank();
+  banner("Their gun is yours!", "Turned round on the counter-attack · E / GUN to let go", 2.4);
+}
+function updCaptured(dt) {
+  const n = G.onGun, g = n.gun;
+  G.yaw = clamp(G.yaw - IN.look.x, -1.05, 1.05); G.pitch = clamp(G.pitch - IN.look.y, -0.25, 0.65); IN.look.x = IN.look.y = 0;
+  g.rotation.set(G.pitch, G.yaw, 0, "YXZ"); g.userData.mount.rotation.set(-G.pitch, 0, 0);
+  const dx0 = -Math.sin(G.yaw) * Math.cos(G.pitch), dy0 = Math.sin(G.pitch), dz0 = -Math.cos(G.yaw) * Math.cos(G.pitch);
+  camera.position.set(g.position.x - dx0 * 1.25, g.position.y + 0.4, g.position.z - dz0 * 1.25);
+  camera.lookAt(camera.position.x + dx0, camera.position.y + dy0, camera.position.z + dz0);
+  const fovT = G.zl > 0 ? 26 : 52; camera.fov += (fovT - camera.fov) * Math.min(1, dt * 14); camera.updateProjectionMatrix();
+  P.x = n.x; P.z = zEn(n.x) - 0.6; P.y = H(P.x, P.z); playerS.x = P.x; playerS.z = P.z;
+  $("xhair").hidden = false; $("sights").style.opacity = 0; $("scope").style.opacity = 0;
+  if (IN.fire && G.capBelt > 0) {
+    G.capAcc += dt * 8.2;
+    while (G.capAcc >= 1 && G.capBelt > 0) {
+      G.capAcc--; G.capBelt--; G.shots++;
+      const e = camera.position, foes = units.filter(s => s.team === "them");
+      let dx = dx0, dy = dy0, dz = dz0; const as = assistDir(e.x, e.y, e.z, dx, dy, dz, foes, assistCone()); if (as) { dx = as[0]; dy = as[1]; dz = as[2]; }
+      [dx, dy, dz] = spreadDir(dx, dy, dz, 0.35 * D2R);
+      const res = shoot(e.x, e.y, e.z, dx, dy, dz, foes, usedTouch ? 0.15 : 0.05), pl = rayPlanes(e, dx, dy, dz, res.t);
+      const mz = new THREE.Vector3(0, 0, -1.05); g.localToWorld(mz);
+      if (G.shots % 3 === 0) tracer(mz.x, mz.y, mz.z, dx, dy, dz, pl ? pl.t : res.t);
+      muzzle(mz.x, mz.y, mz.z, true); flashL.position.copy(mz); flashL.intensity = 2; sfx.mg(0); G.shake = Math.max(G.shake, 0.05);
+      if (pl) hitPlane(pl.p, 1, e.x + dx * pl.t, e.y + dy * pl.t, e.z + dz * pl.t);
+      else if (res.s) killUnit(res.s, "player"); else if (res.ground) dirt(e.x + dx * res.t, e.z + dz * res.t);
+    }
+    if (G.capBelt <= 0) hint("Their gun is empty! E / GUN to let go and use your rifle", 2.5);
+  } else G.capAcc = 1;
+}
+
+// ======================================================================
 // MODE 2: rifleman, over the top
 // ======================================================================
 const P = { x: 0, z: 0, y: 0, crouch: false, stam: 100, mag: 10, res: 90, boltT: 0, reloadT: 0, bayT: 0, lungeT: 0, gren: 3, inWireT: 0 };
 function startRifle() {
   const D = G.D, sd = SIDES[G.side];
-  Object.assign(P, { x: 0.5, z: zOwn(0.5) + 0.05, crouch: false, stam: 100, mag: sd.mag, res: 90, boltT: 0, reloadT: 0, bayT: 0, lungeT: 0, gren: D.grenades, inWireT: 0 });
+  Object.assign(P, { x: 0.5, z: zOwn(0.5) + 0.05, crouch: false, stam: 100, mag: sd.mag, res: 90, boltT: 0, reloadT: 0, bayT: 0, lungeT: 0, gren: D.grenades + (G.rank >= 2 ? 1 : 0), inWireT: 0 });
   P.y = H(P.x, P.z);
   Object.assign(G, { hp: D.php, phase: "wait", waitT: 7, nests: [], shellT: 6, seen: 0, mates: 0, toldGap: false, defKilled: 0 });
   // you
@@ -1788,8 +2048,9 @@ function startRifle() {
     const crew = soldier(G.foe, "gunner", nx, zEn(nx) + 0.55, "nest"); crew.y = -0.95; crew.face = 0; crew.state = "gun"; units.push(crew);
     G.nests.push({ x: nx, z: gz, gun, crew, left: D.crews, downT: 0, dead: false, ang: rnd(-0.3, 0.3), phase: rnd(0, 6), burstT: rnd(1, 3), fireOn: false, belt: 250, beltT: 0, track: 0, shotAcc: 0, n: 0 });
   }
-  G.yaw = 0; G.pitch = 0.02;
-  banner(G.side === "brit" ? "The Somme · 7:28 am" : "21 March 1918 · 9:40 am", "Wait for the whistle", 2.6);
+  G.yaw = 0; G.pitch = 0.02; G.creepR = null; G.liftT = 0; G.counterQ = []; G.holdT = 0;
+  setAtmos(G.side === "brit" ? ATM_SUN : ATM_FOG, true);
+  banner(G.side === "brit" ? "The Somme · 7:28 am" : "21 March 1918 · 9:40 am", G.side === "brit" ? "A clear, hot morning. Wait for the whistle" : "Thick fog. Wait for the whistle", 2.6);
   setTimeout(() => { if (G && !G.over && G.phase === "wait") { sayLine(G.side, "fix"); sfx.reload(); } }, 2500);
 }
 function toggleCrouch() { if (!playing()) return; if (G.mode === "mg") { toggleDuck(); return; } P.crouch = !P.crouch; $("tCrouch").classList.toggle("on", P.crouch); }
@@ -1797,7 +2058,7 @@ function rifleReload() {
   const sd = SIDES[G.side];
   if (P.reloadT > 0 || P.mag >= sd.mag || P.res <= 0) return;
   const need = Math.min(sd.mag - P.mag, P.res);
-  P.reloadT = G.side === "brit" ? (need > 5 ? 2.5 : 1.3) : (P.mag === 0 ? 1.5 : need * 0.42);
+  P.reloadT = G.side === "brit" ? (need > 5 ? 2.9 : 1.6) : (P.mag === 0 ? 1.8 : need * 0.45);
   P.reloadTot = P.reloadT; P.reloadN = need; P.reloadDone = 0; P.magStart = P.mag; sfx.boltOpen(); if (Math.random() < 0.3) sayLine(G.side, "reload");
 }
 function camDir() { return { x: -Math.sin(G.yaw) * Math.cos(G.pitch), y: Math.sin(G.pitch), z: -Math.cos(G.yaw) * Math.cos(G.pitch) }; }
@@ -1808,7 +2069,7 @@ function fireRifle() {
   if (P.mag <= 0) { sfx.click(); rifleReload(); return; }
   P.mag--; P.boltT = sd.bolt; G.shots++;
   const moving = Math.abs(IN.mx) + Math.abs(IN.my) > 0.1 || keys.KeyW || keys.KeyA || keys.KeyS || keys.KeyD;
-  let spread = (IN.aim ? sd.ads : sd.spread) * (moving ? 1.8 : 1) * D2R; if (P.crouch) spread *= 0.75;
+  let spread = (IN.aim ? sd.ads * (G.zl === 2 ? 0.45 : 1) : sd.spread) * (moving ? 1.8 : 1) * D2R; if (P.crouch) spread *= 0.75;
   const e = camera.position, cd = camDir(), foes = targets();
   let dx = cd.x, dy = cd.y, dz = cd.z;
   const as = assistDir(e.x, e.y, e.z, dx, dy, dz, foes, assistCone());
@@ -1821,7 +2082,9 @@ function fireRifle() {
   sfx.rifle(1, 0); setTimeout(() => G && !G.over && sfx.bolt(), 120);
   G.shake = Math.max(G.shake, IN.aim ? 0.05 : 0.12); G.pitch += 0.005;
   const sg = $("sights"); sg.classList.add("kick"); setTimeout(() => sg.classList.remove("kick"), 110);
-  if (res.s) { if (res.s.team === "nest") hitNestCrew(res.s); else { killUnit(res.s, "player"); G.defKilled++; } }
+  const pl = rayPlanes(e, dx, dy, dz, res.t, usedTouch ? 1.5 : 0.5);
+  if (pl) hitPlane(pl.p, 4, e.x + dx * pl.t, e.y + dy * pl.t, e.z + dz * pl.t);
+  else if (res.s) { if (res.s.team === "nest") hitNestCrew(res.s); else { killUnit(res.s, "player"); G.defKilled++; } }
   else if (res.ground) dirt(e.x + dx * res.t, e.z + dz * res.t);
   if (P.mag === 0) setTimeout(() => { if (G && !G.over && P.mag === 0) rifleReload(); }, 450);
 }
@@ -1899,10 +2162,16 @@ function covered(s, isP) { // how much of you their fire can see: 0 hidden .. 1 
   const c = crater(x, z, 0.8);
   if (c && low) return 0.04; if (c) return 0.55; if (low) return 0.55; return 1;
 }
+function rifleWarn() { const wn = $("warn"); wn.textContent = G.warnTxt; wn.style.opacity = G.warnTxt ? (0.6 + 0.4 * Math.abs(Math.sin(G.t * 6))) : 0; }
 function updRifle(dt) {
   const D = G.D, sd = SIDES[G.side];
+  G.warnTxt = "";
+  const nn = G.phase === "hold" && (G.onGun || nearNest());
+  $("tUse").style.display = usedTouch && nn ? "flex" : "none"; $("tUse").innerHTML = G.onGun ? "LET<br>GO" : "USE<br>GUN";
+  if (G.onGun) { updCaptured(dt); updPlanes(dt); if (G.phase === "hold") updHold(dt); updComrades(dt); updDefenders(dt); rifleWarn(); return; }
+  if (nn && !G.toldGun) { G.toldGun = true; hint("Their machine gun! Press E / USE GUN to turn it round on them", 3.5); }
   // look
-  G.yaw -= IN.look.x; G.pitch = clamp(G.pitch - IN.look.y, -0.7, 0.6); IN.look.x = IN.look.y = 0;
+  G.yaw -= IN.look.x; G.pitch = clamp(G.pitch - IN.look.y, -0.7, 0.95); IN.look.x = IN.look.y = 0;
   // countdown to the whistle
   if (G.phase === "wait") {
     G.waitT -= dt;
@@ -1913,6 +2182,10 @@ function updRifle(dt) {
       G.phase = "attack"; sfx.whistle(0.2, 0); setTimeout(() => sfx.whistle(0.08, -0.6), 250); setTimeout(() => sfx.whistle(0.06, 0.7), 600);
       banner("Over the top!", "Shell hole to shell hole. DUCK in a hole when the gun sweeps.", 3.2); sayLine(G.side, "over");
       setTimeout(() => G && !G.over && sfx.hurrah(0.9, 0), 900);
+      // your own guns lay a barrage that walks ahead of you towards their trench
+      G.creepR = { z: zOwn(0) - 34, sp: G.side === "brit" ? 1.7 : 1.9, acc: 0, done: false };
+      G.planeTimes = [rnd(16, 26), rnd(48, 62), rnd(80, 95)].slice(0, [1, 2, 3][DI()]).map(t => G.t + t);
+      setTimeout(() => G && !G.over && hint("Your barrage walks ahead of you. Follow it about 20 m behind: it keeps their heads down", 4), 3500);
     }
   }
   // move
@@ -1942,10 +2215,10 @@ function updRifle(dt) {
   else { const head = P.y + (P.crouch ? 1.15 : 1.62) * SC; cx = P.x - d.x * 3.6 + rx * 0.95; cy = head + 0.75 - d.y * 3.6; cz = P.z - d.z * 3.6 + rz * 0.95; cy = Math.max(cy, H(cx, cz) + 0.35); }
   if (!G.camSet) { G.camSet = true; camera.position.set(cx, cy, cz); }
   camera.position.lerp(_v2.set(cx, cy, cz), Math.min(1, dt * 18)); camera.lookAt(camera.position.x + d.x, camera.position.y + d.y, camera.position.z + d.z);
-  const fovT = ZOOMS.rifle[sightsOn ? 1 : 0]; camera.fov += (fovT - camera.fov) * Math.min(1, dt * 14); if (Math.abs(fovT - camera.fov) < 0.05) camera.fov = fovT; camera.updateProjectionMatrix();
+  const fovT = Z()[sightsOn ? G.zl : 0]; camera.fov += (fovT - camera.fov) * Math.min(1, dt * 14); if (Math.abs(fovT - camera.fov) < 0.05) camera.fov = fovT; camera.updateProjectionMatrix();
   const inSights = sightsOn && camera.fov < 46;
   playerS.root.visible = !(sightsOn && camera.fov < 52);
-  $("sights").style.opacity = inSights ? 1 : 0; $("xhair").hidden = inSights || P.reloadT > 0;
+  $("sights").style.opacity = inSights && G.zl === 1 ? 1 : 0; $("scope").style.opacity = inSights && G.zl === 2 ? 1 : 0; $("xhair").hidden = inSights || P.reloadT > 0;
   $("xhair").classList.toggle("busy", P.boltT > 0);
   // reloading: turn the rifle to the side and push rounds in one at a time
   playerS.pivot.rotation.y = P.reloadT > 0 ? 0.55 + Math.sin(G.t * 14) * 0.06 : 0;
@@ -1953,14 +2226,31 @@ function updRifle(dt) {
     P.reloadT -= dt;
     const prog = clamp(1 - P.reloadT / P.reloadTot, 0, 1), loaded = Math.floor(P.reloadN * clamp((prog - 0.15) / 0.75, 0, 1));
     while (P.reloadDone < loaded) { P.reloadDone++; P.mag++; P.res--; sfx.round(); }
-    const brit = G.side === "brit";
-    ring(prog, brit ? (P.reloadN > 5 ? (P.reloadDone < 5 ? "Charger 1 of 2" : "Charger 2 of 2") : "Charger in") : (P.magStart === 0 ? "Stripper clip" : "Single rounds"));
-    if (P.reloadT <= 0) { while (P.reloadDone < P.reloadN) { P.reloadDone++; P.mag++; P.res--; } P.reloadT = 0; ring(null); sfx.bolt(); }
+    const brit = G.side === "brit", single = !brit && P.magStart > 0, kc = P.reloadN * clamp((prog - 0.15) / 0.75, 0, 1);
+    const clipIdx = single ? 0 : Math.min(Math.floor(kc / 5 - 1e-6), Math.ceil(P.reloadN / 5) - 1), seg = single ? 1 : clamp(kc - clipIdx * 5, 0, 5);
+    clipAnim({ brit, single, need: P.reloadN, k: kc, clipIdx: Math.max(0, clipIdx), inK: clamp(prog / 0.15, 0, 1) + (clipIdx > 0 ? 1 : 0), outK: single ? 0 : (prog > 0.9 ? (prog - 0.9) / 0.1 : 0), boltK: prog < 0.08 ? prog / 0.08 : prog > 0.92 ? 1 - (prog - 0.92) / 0.08 : 1,
+      label: single ? "Single rounds into the magazine" : (brit ? "Charger " + (Math.max(0, clipIdx) + 1) + " of " + Math.ceil(P.reloadN / 5) + ": thumb the rounds down" : "Stripper clip: thumb all 5 down") });
+    if (!single && clipIdx > 0 && !P.clip2) { P.clip2 = true; sfx.clank(); }
+    ring(null); // the big clip drawing replaces the ring here
+    if (P.reloadT <= 0) { while (P.reloadDone < P.reloadN) { P.reloadDone++; P.mag++; P.res--; } P.reloadT = 0; ring(null); clipAnim(null); P.clip2 = false; sfx.bolt(); }
   }
   // rifle timing
   if (P.boltT > 0) P.boltT -= dt;
   if (P.bayT > 0) P.bayT -= dt;
+  if (G.planeTimes) for (let i = G.planeTimes.length - 1; i >= 0; i--) if (G.t >= G.planeTimes[i]) { G.planeTimes.splice(i, 1); spawnPlane(); }
+  if (G.phase !== "wait") updPlanes(dt);
+  rifleWarn();
+  if (G.phase === "hold") { updHold(dt); updComrades(dt); updDefenders(dt); return; }
   if (G.phase !== "attack") { updComrades(dt); updDefenders(dt); return; }
+  if (G.side === "ger" && ATM_T.far < 300) { ATM_T.far += dt * 2.2; ATM_T.near += dt * 0.35; } // the fog burns off
+  const c = G.creepR;
+  if (c && !c.done) {
+    c.z -= c.sp * dt; c.acc += dt * 2.6;
+    while (c.acc >= 1) { c.acc--; shells.push({ x: rnd(-62, 62), z: c.z + rnd(-4, 4), t: 1.0, ours: true, field: true }); }
+    if (P.z < c.z + 12 && !G.toldClose) { G.toldClose = true; hint("Too close to your own barrage! Hang back", 2.5); }
+    if (c.z < zEn(0) - 14) { c.done = true; G.liftT = 7; banner("The barrage has lifted!", "Rush their trench before they get back on the guns!", 2.6); sayLine(G.side, "go"); }
+  }
+  if (G.liftT > 0) G.liftT -= dt;
   // their shells
   G.shellT -= dt;
   if (G.shellT <= 0) {
@@ -1972,9 +2262,43 @@ function updRifle(dt) {
   updComrades(dt); updDefenders(dt); updNests(dt);
   // victory: guns quiet and you are in their trench
   const inTheirs = P.z - zEn(P.x) < 1.2;
-  if (inTheirs && G.nests.every(n => n.dead)) {
-    endGame(true, "Their trench is yours. The " + (G.foe === "ger" ? "Germans" : "British") + " nearby put their hands up.");
-  } else if (inTheirs && !G.toldNests) { G.toldNests = true; hint("You're in their trench! Now knock out the machine guns", 3); }
+  if (inTheirs && G.nests.every(n => n.dead)) startHold(); else if (inTheirs && !G.toldNests) { G.toldNests = true; hint("You're in their trench! Now knock out the machine guns", 3); }
+}
+// once the trench is taken they counter-attack from behind their lines; hold on
+function startHold() {
+  G.phase = "hold"; G.holdT = 50; G.score += Math.round(300 * G.D.mult);
+  const n = [10, 16, 24][DI()];
+  for (let i = 0; i < n; i++) G.counterQ.push({ at: G.t + 4 + Math.floor(i / 4) * 5 + rnd(0, 2), x: clamp(P.x + rnd(-35, 35), -60, 60) });
+  banner("Trench taken!", "Now hold it! A counter-attack is coming from behind their lines", 3.2);
+  say(G.side === "brit" ? "Counter-attack! Hold them, lads!" : "Gegenangriff! Haltet die Stellung!", G.side === "ger");
+}
+function updHold(dt) {
+  G.holdT -= dt;
+  for (let i = G.counterQ.length - 1; i >= 0; i--) if (G.t >= G.counterQ[i].at) {
+    const e = G.counterQ[i]; G.counterQ.splice(i, 1);
+    const s = soldier(G.foe, "rifle", e.x, -L - rnd(38, 55), "them"); s.role = "counter"; s.state = "advance"; s.walk = rnd(2.0, 2.6) * G.D.walkF; s.fireT = rnd(2, 5); s.face = 0; units.push(s);
+  }
+  const left = units.filter(u => u.alive && u.role === "counter").length;
+  if (G.holdT <= 0 && !G.counterQ.length) {
+    for (const u of units) if (u.alive && u.role === "counter") { release(u); u.gone = true; }
+    endGame(true, "You took their trench and held it against the counter-attack."); return;
+  }
+  if (G.holdT <= 0 && left === 0) G.counterQ.length = 0;
+}
+function updCounter(s, dt) {
+  const D = G.D, tz = zEn(s.x) - 0.7, dz = tz - s.z, d = Math.hypot(P.x - s.x, P.z - s.z);
+  if (dz < 0.6) { s.role = "line"; s.state = "melee"; return; }
+  s.fireT -= dt;
+  if (s.fireT <= 0 && d > 6) { // stop and fire at you
+    s.fireT = rnd(3, 5.5); s.pauseT = 0.8;
+    sfx.rifleFar(clamp(20 / d, 0.1, 0.8), clamp((s.x - camera.position.x) / 50, -0.8, 0.8)); muzzle(s.x, s.y + 1.25 * SC, s.z + 1, false);
+    if (Math.random() < D.rifleAcc * covered(null, true) * (d < 30 ? 1 : clamp(30 / d, 0.3, 1))) hurtPlayer(1, "Counter-attack fire! Keep low");
+    else if (Math.random() < 0.4) sfx.snap(rnd(-0.5, 0.5));
+  }
+  if (s.pauseT > 0) { s.pauseT -= dt; s.speed = 0; }
+  else { const sp = dz < 22 ? D.charge : s.walk; s.speed = sp; s.z += Math.min(dz, sp * dt); s.x += clamp((P.x - s.x) * 0.05, -0.6, 0.6) * dt; s.cut = false; }
+  s.face = 0; s.y = H(s.x, s.z); s.pose = "stand";
+  if (dz < 22 && !s.yelled) { s.yelled = true; if (Math.random() < 0.3) sfx.hurrah(0.5, 0); }
 }
 function updComrades(dt) {
   const D = G.D;
@@ -2018,11 +2342,12 @@ function updComrades(dt) {
   G.mates = alive;
 }
 function pickTarget(s) {
-  const ze = zEn(s.x);
-  if (s.z - 16 < ze + 6) { s.tx = s.x + rnd(-1, 1); s.tz = zEn(s.tx) + 0.2; return; }
+  const ze = zEn(s.x), lim = G.creepR && !G.creepR.done ? G.creepR.z + 18 : -1e9;
+  if (s.z - 16 < ze + 6 && lim < -1e8) { s.tx = s.x + rnd(-1, 1); s.tz = zEn(s.tx) + 0.2; return; }
   const c = nearCrater(s.x, s.z, s.z - 28, s.z - 7, 12);
   if (c) { s.tx = c.x + rnd(-c.r * 0.4, c.r * 0.4); s.tz = c.z + rnd(-c.r * 0.3, c.r * 0.3); }
   else { s.tx = s.x + rnd(-3, 3); s.tz = s.z - rnd(9, 15); }
+  if (s.tz < lim) { s.tz = Math.min(s.z, lim + rnd(0, 4)); }
   // through the gaps in your own wire
   if (s.tz < WIRE_OWN.z1 + 2 && s.z > WIRE_OWN.z0) { let bg = WIRE_OWN.gaps[0]; for (const g of WIRE_OWN.gaps) if (Math.abs(g - s.x) < Math.abs(bg - s.x)) bg = g; s.tx = bg + rnd(-1, 1); s.tz = Math.min(s.tz, WIRE_OWN.z0 - 1); }
   // through the gaps in their wire
@@ -2035,6 +2360,7 @@ function updDefenders(dt) {
     if (s.team !== "them") continue;
     if (!s.alive) { poseSoldier(s, dt); continue; }
     s.t -= dt;
+    if (s.role === "counter") { updCounter(s, dt); poseSoldier(s, dt); continue; }
     const pdist = Math.hypot(P.x - s.x, P.z - s.z);
     // close fighting when someone gets into the trench
     let close = null, cd = 6;
@@ -2055,7 +2381,7 @@ function updDefenders(dt) {
       poseSoldier(s, dt); continue;
     }
     // pop up over the parapet, aim, fire, duck
-    if (s.state === "down") { s.lift = 0; s.y = -1.6; s.z = zEn(s.x) - 0.1; s.speed = 0; s.pose = "crouch"; if (s.t <= 0 && G.phase === "attack") { s.state = "up"; s.t = rnd(1.0, 2.0); } }
+    if (s.state === "down") { s.lift = 0; s.y = -1.6; s.z = zEn(s.x) - 0.1; s.speed = 0; s.pose = "crouch"; const hide = (G.creepR && !G.creepR.done && G.creepR.z - zEn(s.x) < 22) || G.liftT > 0; if (s.t <= 0 && G.phase === "attack" && !hide) { s.state = "up"; s.t = rnd(1.0, 2.0); } }
     else if (s.state === "up") {
       s.y = -0.75; s.z = zEn(s.x) + 0.62; s.face = 0;
       if (s.t <= 0) {
@@ -2083,6 +2409,7 @@ function updNests(dt) {
   const D = G.D;
   for (const n of G.nests) {
     const crew = n.crew;
+    n.shelter = (G.creepR && !G.creepR.done && G.creepR.z - n.z < 24) || G.liftT > 0;
     if (n.dead) { if (crew.alive) killUnit(crew, "x"); poseSoldier(crew, dt); continue; }
     if (n.downT > 0) { // the next man crawls up to the gun
       n.downT -= dt; poseSoldier(crew, dt);
@@ -2100,6 +2427,7 @@ function updNests(dt) {
     const turn = 0.5 * dt; n.ang += clamp(target - n.ang, -turn, turn);
     n.gun.rotation.set(0, Math.PI + n.ang, 0);
     // bursts and belts
+    if (n.shelter) { n.fireOn = false; crew.root.visible = false; continue; } crew.root.visible = true; // sheltering in the dugout from your barrage
     if (n.beltT > 0) { n.beltT -= dt; if (n.beltT <= 0) n.belt = 250; continue; }
     n.burstT -= dt;
     if (n.burstT <= 0) { n.fireOn = !n.fireOn; n.burstT = n.fireOn ? rnd(2.2, 3.6) : rnd(0.7, 1.4); }
@@ -2154,7 +2482,7 @@ function updShells(dt) {
     for (const s of units) {
       if (!s.alive || s.team === "me" || s.team === "nest") continue; if (G.mode === "mg" && s.team !== "them") continue;
       const d = Math.hypot(s.x - sh.x, s.z - sh.z), inC = !!crater(s.x, s.z, 0.8);
-      if (d < (s.pose === "prone" || inC ? 2.2 : 4)) killUnit(s, sh.ours ? "player" : "shell");
+      if (d < (s.pose === "prone" || inC ? 2.2 : 4)) killUnit(s, sh.ours && G.mode === "mg" ? "player" : "shell");
       else if (d < 9) s.sup += 2;
     }
     if (G.mode === "rifle") {
@@ -2167,7 +2495,45 @@ function updShells(dt) {
 // ======================================================================
 // HUD
 // ======================================================================
+// the key legend in the corner: what each key does right now, with the one you need lit up
+let keysHtml = "";
+function keyRows() {
+  const w = G.warnTxt || "";
+  if (G.mode === "mg") {
+    const tankNear = liveTanks().some(t => Math.hypot(t.x - mgGun.position.x, t.z - mgGun.position.z) < 36);
+    return [
+      ["Click / Space", "Fire", G.duck ? "off" : ""],
+      ["R", "Reload belt", G.belt === 0 && G.belts > 0 && G.reloadT <= 0 ? "hot" : ""],
+      ["C", G.duck ? "Get back up" : "Duck down", /DUCK|PLANE|BOMB/.test(w) && !G.duck ? "hot" : (G.duck && !w ? "hot" : "")],
+      ["Wheel / Z", "Zoom", ""],
+      ["A", "SOS flare (" + G.arty + " left)", G.arty <= 0 ? "off" : (liveTanks().length && G.artyT <= 0 ? "hot" : "")],
+      G.scen === "spring" ? ["M", G.mask ? "Take mask off" : "Gas mask", /GAS/.test(w) && !G.mask ? "hot" : ""] : null,
+      (G.tanks.length || (waveDef() && waveDef().tanks)) ? ["G", "Bomb bundle at tank (" + G.charges + ")", G.charges <= 0 ? "off" : tankNear ? "hot" : "off"] : null,
+      ["P / Esc", "Pause", ""]
+    ].filter(Boolean);
+  }
+  const sd = SIDES[G.side], near = units.some(s => s.alive && (s.team === "them" || s.team === "nest") && Math.hypot(s.x - P.x, s.z - P.z) < 4);
+  if (G.onGun) return [["Click", "Fire their gun", ""], ["Wheel / Z", "Zoom", ""], ["E", "Let go of the gun", G.capBelt <= 0 ? "hot" : ""], ["P / Esc", "Pause", ""]];
+  return [
+    ["W A S D", "Move", ""], ["Shift", "Sprint", ""], ["Click", "Fire", ""],
+    ["Right click", G.scope ? "Sights, then scope" : "Look down the sights", ""],
+    ["R", "Reload", P.mag === 0 && P.reloadT <= 0 ? "hot" : ""],
+    ["C", P.crouch ? "Stand up" : "Duck (hides you in a shell hole)", /PLANE/.test(w) && !P.crouch ? "hot" : ""],
+    ["F", "Bayonet", near ? "hot" : ""],
+    ["G", "Throw " + sd.bomb + " (" + P.gren + ")", P.gren <= 0 ? "off" : ""],
+    G.phase === "hold" ? ["E", "Turn their machine gun round", nearNest() ? "hot" : "off"] : null,
+    ["P / Esc", "Pause", ""]
+  ].filter(Boolean);
+}
+function drawKeys() {
+  const el = $("keys");
+  if (usedTouch || !G || G.over) { el.style.display = "none"; return; }
+  const h = keyRows().map(([k, t, c]) => `<div class="${c}"><span class="k">${k}</span>${t}</div>`).join("");
+  if (h !== keysHtml) { keysHtml = h; el.innerHTML = h; }
+  el.style.display = "block";
+}
 function hud() {
+  drawKeys();
   const D = G.D, sd = SIDES[G.side];
   $("hScore").textContent = G.score.toLocaleString();
   const maxHp = G.mode === "mg" ? D.hp : D.php;
@@ -2182,8 +2548,8 @@ function hud() {
     $("hStamWrap").style.display = "none";
   } else {
     const left = G.nests.filter(n => !n.dead).length;
-    $("hObj").innerHTML = `Machine guns silenced: ${2 - left} / 2${left ? "" : " · now get into their trench!"}<small>Your section: ${G.mates} men · ${sd.bomb}s: ${P.gren}${P.crouch ? " · DUCKING" : ""}</small>`;
-    $("aT").textContent = `${sd.rifle} ${P.mag}/${sd.mag}`; showRounds(P.mag);
+    $("hObj").innerHTML = G.phase === "hold" ? `HOLD THE TRENCH: ${Math.max(0, Math.ceil(G.holdT))} s · they are coming from behind their lines` + `<small>Your section: ${G.mates} men · ${sd.bomb}s: ${P.gren}</small>` : `Machine guns silenced: ${2 - left} / 2${left ? "" : " · now get into their trench!"}<small>Your section: ${G.mates} men · ${sd.bomb}s: ${P.gren}${P.crouch ? " · DUCKING" : ""}</small>`;
+    $("aT").textContent = G.onGun ? `Captured ${SIDES[G.foe].mg} · ${G.capBelt} rounds` : `${sd.rifle} ${P.mag}/${sd.mag}`; showRounds(P.mag);
     $("aSub").textContent = P.reloadT > 0 ? "Reloading…" : P.mag === 0 ? "Empty! R / RELOAD" : `${P.res} rounds in your pouches`;
     $("hHeatWrap").style.display = "none"; $("hStamWrap").style.display = "block";
     const st = $("hStam"); st.style.width = P.stam + "%"; st.style.background = P.stam < 25 ? "#e0383f" : "#d8c46a";
@@ -2197,13 +2563,14 @@ function hud() {
 function pause(on) {
   if (!G || G.over) return;
   G.paused = on; $("pauseOv").hidden = !on;
-  if (on) { wantLock = false; if (document.exitPointerLock && locked) document.exitPointerLock(); IN.fire = false; if (window.speechSynthesis) speechSynthesis.cancel(); }
-  $("pauseHelp").textContent = usedTouch ? "" : "Click the battlefield after you carry on to grab the mouse again.";
+  if (on) { for (const p of planes) if (p.gain) p.gain.gain.value = 0; wantLock = false; if (document.exitPointerLock && locked) document.exitPointerLock(); IN.fire = false; if (window.speechSynthesis) speechSynthesis.cancel(); }
+  $("pauseHelp").innerHTML = usedTouch ? "" : "<b>Keys</b><br>" + keyRows().map(([k, t]) => `<span class="k2">${k}</span> ${t}`).join("<br>") + "<br><br>Click the battlefield after you carry on to grab the mouse again.";
 }
 $("resumeBtn").onclick = () => { pause(false); if (!usedTouch && stage.requestPointerLock) { wantLock = true; try { const r = stage.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {} } };
 $("quitBtn").onclick = () => { if (G) { G.over = true; } clearWorld(); G = null; $("pauseOv").hidden = true; menu(); };
 function endGame(win, text) {
   if (G.over) return; G.over = true; IN.fire = false;
+  const rankBefore = rankIdx(rankPts());
   wantLock = false; if (document.exitPointerLock && locked) document.exitPointerLock();
   const D = G.D, sd = SIDES[G.side];
   let stars = 0;
@@ -2218,19 +2585,21 @@ function endGame(win, text) {
   let medalTxt = "";
   const di = ["recruit", "regular", "veteran"].indexOf(S.diff);
   if (win && !S.medals[G.side][di]) { S.medals[G.side][di] = 1; medalTxt = `${sd.icons[di]} New medal: <b>${sd.medals[di]}</b>`; }
+  const rankAfter = rankIdx(rankPts() + (win ? 0 : 0));
+  if (rankAfter > rankBefore) medalTxt += (medalTxt ? "<br>" : "") + `⭐ Promoted to <b>${rankName(rankAfter, G.side)}</b>!` + (UNLOCKS[rankAfter] ? ` Unlocked: ${UNLOCKS[rankAfter]}.` : "");
   save();
   $("endTitle").textContent = win ? (G.mode === "mg" ? "The line held!" : "Trench taken!") : (G.mode === "mg" ? "The line has fallen" : "Wounded");
   $("endStars").textContent = win ? "★".repeat(stars) + "☆".repeat(3 - stars) : "";
   $("endText").textContent = text;
   const acc = G.shots ? Math.round(100 * G.hits / G.shots) : 0;
-  const st = [["Score", G.score.toLocaleString()], ["Best (" + sd.name + " " + (G.mode === "mg" ? "gunner" : "rifleman") + ")", Math.max(prevBest, G.score).toLocaleString()], ["Enemies down", G.kills], ["Shots fired", G.shots + " (" + acc + "% hit)"]];
+  const st = [["Score", G.score.toLocaleString()], ["Best streak", (G.bestCombo || 0) + " in a row"], ["Best (" + sd.name + " " + (G.mode === "mg" ? "gunner" : "rifleman") + ")", Math.max(prevBest, G.score).toLocaleString()], ["Enemies down", G.kills], ["Shots fired", G.shots + " (" + acc + "% hit)"]];
   if (G.mode === "mg") st.push(["Waves held", (win ? G.wave : Math.max(0, G.wave - 1)) + " / " + G.waves.length]);
-  else st.push(["Guns silenced", G.nests.filter(n => n.dead).length + " / 2"], ["Your section left", G.mates + " / 15"]);
+  else st.push(["Guns silenced", G.nests.filter(n => n.dead).length + " / 2"], ["Your section left", G.mates + " / 15"], ["Trench", G.phase === "hold" ? (win ? "Taken and held" : "Taken, then lost") : "Not reached"]);
   $("endStats").innerHTML = st.map(([a, b]) => `<div class="stat"><span>${a}</span><b>${b}</b></div>`).join("");
   $("endMedal").hidden = !medalTxt; $("endMedal").innerHTML = medalTxt;
   const somme = (G.side === "brit") === (G.mode === "rifle");
   $("endHist").innerHTML = (somme ? HIST.somme : HIST.spring) + "<br><br>" + HIST.guns;
-  setTimeout(() => { $("endOv").hidden = false; $("hud").hidden = true; $("xhair").hidden = true; $("touch").hidden = true; clearAimUI(); }, win ? 1600 : 1200);
+  setTimeout(() => { $("endOv").hidden = false; $("hud").hidden = true; $("xhair").hidden = true; $("touch").hidden = true; $("keys").style.display = "none"; clearAimUI(); clearPlanes(); for (const id of ["dust", "gasTint", "gasmask", "warn"]) $(id).style.opacity = 0; }, win ? 1600 : 1200);
   if (win) { banner(G.mode === "mg" ? "The line held!" : "Trench taken!", "", 2); sfx.whistle(0.12, 0); }
   if (window.Leaderboard && Leaderboard.getName && Leaderboard.getName() && G.score > 0) Leaderboard.submit(G.score).then(() => { if (window.PhatCoin) PhatCoin.leaderboard(Leaderboard.getName(), "desc"); }).catch(() => {});
   if (win && window.PhatCoin) PhatCoin.earn("win", Math.min(5, stars + 2), G.mode === "mg" ? "holding the line" : "taking the trench");
@@ -2241,7 +2610,7 @@ $("menuBtn").onclick = () => { clearWorld(); G = null; menu(); };
 // ======================================================================
 // menu
 // ======================================================================
-function clearAimUI() { $("scope").style.opacity = 0; $("sights").style.opacity = 0; $("zLabel").textContent = ""; ring(null); }
+function clearAimUI() { clipAnim(null); $("scope").style.opacity = 0; $("sights").style.opacity = 0; $("zLabel").textContent = ""; ring(null); }
 function menu() {
   clearAimUI();
   $("startOv").hidden = false; $("endOv").hidden = true; $("hud").hidden = true; $("xhair").hidden = true; $("touch").hidden = true;
@@ -2252,6 +2621,12 @@ function menu() {
   $("scen").innerHTML = `<b>${sc.where}</b><p>${sc.text}</p>`;
   $("startSub").textContent = (S.job === "mg" ? sd.mg : sd.rifle + " and bayonet") + " · " + DIFFS[S.diff].name;
   $("medals").innerHTML = sd.medals.map((m, i) => `<div class="medal ${S.medals[S.side][i] ? "got" : ""}" title="Win on ${["Recruit", "Regular", "Veteran"][i]}">${sd.icons[i]} ${m}<br><small style="color:var(--muted)">win on ${["Recruit", "Regular", "Veteran"][i]}</small></div>`).join("");
+  const rp = rankPts(), ri = rankIdx(rp), nx = RANK_PTS[ri + 1];
+  $("rankBox").innerHTML = `<b>${rankName(ri)}</b> · ${rp} points` + (nx ? ` · next: ${rankName(ri + 1)} at ${nx}` : " · top rank!") +
+    `<div class="bar"><i style="width:${nx ? Math.round(100 * (rp - RANK_PTS[ri]) / (nx - RANK_PTS[ri])) : 100}%;background:#f2c14e"></i></div>` +
+    `<p style="margin-top:6px">1 point per enemy down, 40 per battle won.` + Object.keys(UNLOCKS).map(k => `<br>${ri >= k ? "✅" : "🔒"} ${rankName(+k)}: ${UNLOCKS[k]}`).join("") + `</p>`;
+  const cp = S.cp && S.cp[cpKey()];
+  $("contBtn").hidden = !(S.job === "mg" && cp > 0); $("contSub").textContent = cp ? "from wave " + (cp + 1) + " of 5 · " + DIFFS[S.diff].name : "";
   const somme = (S.side === "brit") === (S.job === "rifle");
   $("startHist").innerHTML = somme ? HIST.somme : HIST.spring;
   // a slow camera drift over no man's land behind the menu
@@ -2262,6 +2637,7 @@ document.querySelectorAll("[data-side]").forEach(b => b.onclick = () => { S.side
 document.querySelectorAll("[data-job]").forEach(b => b.onclick = () => { S.job = b.dataset.job; save(); menu(); sfx.click(); });
 document.querySelectorAll("[data-diff]").forEach(b => b.onclick = () => { S.diff = b.dataset.diff; save(); menu(); sfx.click(); });
 $("startBtn").onclick = () => { menuCam = false; startGame(); };
+$("contBtn").onclick = () => { menuCam = false; startGame(S.cp[cpKey()]); };
 $("muteBtn").onclick = () => { S.mute = !S.mute; save(); $("muteBtn").textContent = S.mute ? "🔇" : "🔊"; if (S.mute && window.speechSynthesis) speechSynthesis.cancel(); if (AC) { if (S.mute) AC.suspend(); else AC.resume(); } };
 $("muteBtn").textContent = S.mute ? "🔇" : "🔊";
 $("fsBtn").onclick = () => { try { if (document.fullscreenElement) document.exitFullscreen(); else if (stage.requestFullscreen) stage.requestFullscreen(); else if (stage.webkitRequestFullscreen) stage.webkitRequestFullscreen(); } catch (e) {} };
@@ -2270,7 +2646,7 @@ document.addEventListener("visibilitychange", () => { if (document.hidden && pla
 // ======================================================================
 // main loop
 // ======================================================================
-let last = performance.now(), ambT = 3;
+let last = performance.now(), ambT = 3, qT = 0, qN = 0, qLevel = 0;
 function step(dt) {
   G.t += dt; G.dmgT = Math.max(0, G.dmgT - dt);
   G.tgtT -= dt; if (G.tgtT <= 0) { G.tgtT = 0.06; checkOnTarget(); }
@@ -2280,10 +2656,12 @@ function step(dt) {
 }
 function frame(now) {
   requestAnimationFrame(frame);
-  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const raw = (now - last) / 1000, dt = Math.min(0.05, raw); last = now;
+  // if the device struggles, quietly lower the quality
+  if (G && !G.paused && !G.over && raw < 1) { qT += raw; qN++; if (qT > 4) { const fps = qN / qT; qT = 0; qN = 0; if (fps < 36 && qLevel < 3) { qLevel++; if (qLevel === 1) renderer.setPixelRatio(Math.max(1, renderer.getPixelRatio() - 0.5)); else if (qLevel === 2) sun.castShadow = false; else renderer.setPixelRatio(0.8); resize(); } } }
   if (G && !G.paused && !G.over) {
     step(dt);
-    ambT -= dt; if (ambT <= 0) { ambT = rnd(3, 8); sfx.rumble(); }
+    ambT -= dt; if (ambT <= 0) { ambT = rnd(3, 8); if (Math.random() < 0.55) sfx.rumble(); else sfx.distantMG(rnd(-0.9, 0.9)); }
   } else if (G && G.over) {
     // keep the world moving a little behind the end screen
     for (const s of units) if (!s.alive) poseSoldier(s, dt);
@@ -2311,7 +2689,7 @@ if (window.Leaderboard) {
   if (Leaderboard.getName() && S.top >= 1) Leaderboard.submit(S.top).catch(() => {});
 }
 // test hook
-window.__ott = { get G() { return G; }, P, units, startGame, S, IN, bayonet, grenade, endGame, sim(sec) { for (let i = 0; i < sec * 30 && G && !G.over && !G.paused; i++) { step(1 / 30); updParts(1 / 30); updTracers(1 / 30); } }, info: () => renderer.info.render };
+window.__ott = { get G() { return G; }, P, units, planes, spawnPlane, useGun, startGame, S, IN, bayonet, grenade, endGame, killUnit, sim(sec) { for (let i = 0; i < sec * 30 && G && !G.over && !G.paused; i++) { step(1 / 30); updParts(1 / 30); updTracers(1 / 30); } }, info: () => renderer.info.render };
 })();
 </script>
 </body>

@@ -234,6 +234,7 @@ h3{font-family:var(--display);font-weight:400;font-size:30px;margin:0 0 4px;colo
 </div>
 
 <script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
 <script src="leaderboard.js"></script>
 <script>
 (function(){
@@ -481,11 +482,19 @@ function person(shirt, shorts){
   var legL=limb(-0.13,0.8,0.8,sock,0.16), legR=limb(0.13,0.8,0.8,sock,0.16);
   var armL=limb(-0.36,1.52,0.62,skin,0.12), armR=limb(0.36,1.52,0.62,skin,0.12);
   [torso,hips,head].forEach(function(m){ m.castShadow=true; });
-  g.userData={legL:legL,legR:legR,armL:armL,armR:armR};
+  g.userData={legL:legL,legR:legR,armL:armL,armR:armR,head:head,torso:torso,hips:hips};
   scene.add(g); return g;
 }
 var kicker = person(0x1d6fd1, 0xffffff);
 var defender = person(0xd13b3b, 0x222222); defender.visible=false;
+// accessories (gear.js): the player's Changing Room gear on the kicker (not on the defender)
+try {
+  if (window.Gear) {
+    var kud = kicker.userData, kskin = [kud.torso, kud.hips];
+    [kud.legL, kud.legR, kud.armL, kud.armR].forEach(function (l) { l.traverse(function (o) { if (o.isMesh) kskin.push(o); }); });
+    Gear.dress(kicker, { forward: "z", head: kud.head, torso: kud.torso, height: 1.96, feet: 0, body: kskin });
+  }
+} catch (e) {}
 
 // confetti
 var CONF=260, confGeo=new THREE.PlaneGeometry(0.16,0.1), confMesh=new THREE.InstancedMesh(confGeo, new THREE.MeshBasicMaterial({ side:THREE.DoubleSide, vertexColors:false }), CONF);

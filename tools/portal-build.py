@@ -29,7 +29,7 @@ def build(slug, crazy=False):
         stub_done = True
         return '<script src="portal-stubs.js"></script>'
     s = re.sub(r'<script src="(?:%s)"[^>]*></script>' % "|".join(re.escape(x) for x in SHARED), repl, s)
-    s = re.sub(r'<script src="https://cdn\.jsdelivr\.net/npm/@supabase[^"]*"></script>\s*', "", s)
+    s = re.sub(r'<script src="(?:https://cdn\.jsdelivr\.net/npm/@supabase|vendor/supabase-)[^"]*"></script>\s*', "", s)
     s = re.sub(r'<link rel="(?:manifest|canonical)"[^>]*>\s*', "", s)
     s = re.sub(r'<meta property="og:url"[^>]*>\s*', "", s)
     # links to the arcade or other games: hide them

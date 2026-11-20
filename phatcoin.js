@@ -115,7 +115,7 @@
       var p = orig.apply(L, arguments);
       Promise.resolve(p).then(function () {
         var nick = ""; try { nick = localStorage.getItem("ghgames_nick") || ""; } catch (e) {}
-        if (nick && token()) setTimeout(function () { leaderboard(nick, L._dir || "desc"); }, 1200);
+        if (nick && token()) setTimeout(function () { leaderboard(nick, L._dir || "desc", L._game); }, 1200);
       });
       return p;
     };
@@ -158,9 +158,10 @@
     }, function () { toast("Can't reach the internet", "Try again soon"); return false; });
   }
 
-  function leaderboard(nick, dir) {
+  function leaderboard(nick, dir, game) {
     if (!token() || !nick) return Promise.resolve(0);
-    return rpc("gh_pc_leaderboard", { p_token: token(), p_game: GAME, p_nick: nick, p_dir: dir || "desc" }).then(function (r) {
+    // game: the leaderboard's own id (e.g. cube-merge-v2), which can differ from this page's data-game
+    return rpc("gh_pc_leaderboard", { p_token: token(), p_game: game || GAME, p_nick: nick, p_dir: dir || "desc" }).then(function (r) {
       setBal(r && r.balance);
       if (r && r.amount > 0) toast("+" + r.amount + " PhatCoin", "You're #" + r.rank + " on today's leaderboard!");
       return (r && r.amount) || 0;

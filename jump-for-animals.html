@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Jump for Animals · Free 3D jump simulator game | GH Games</title>
+<meta property="og:title" content="Jump for Animals 3D · GH Games">
+<meta property="og:description" content="Jump to get jump power, leap over giant walls and collect 25 rarities of animals that earn you money. Buy items from a pencil to a black hole for huge jump multis, then rebirth for x5, x25, x125 and more.">
+<meta property="og:image" content="https://ghgames.au/og/jump-for-animals.png">
+<meta property="og:url" content="https://ghgames.au/jump-for-animals.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f1a33">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Games">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="jump-for-animals"></script>
+<script src="phatcoin.js" data-game="jump-for-animals" data-pill="none"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<link rel="stylesheet" href="arcade3d.css">
+<style>
+#joy{position:absolute;width:124px;height:124px;border-radius:50%;border:3px solid rgba(255,255,255,.55);background:rgba(255,255,255,.12);display:none;transform:translate(-50%,-50%);pointer-events:none;z-index:14}
+#knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(255,255,255,.7)}
+.dock{position:absolute;right:10px;top:84px;display:flex;flex-direction:column;gap:8px;z-index:15}
+.dock button{font-size:22px;width:50px;height:50px;border-radius:14px;border:2px solid rgba(255,255,255,.35);background:rgba(0,0,0,.45);color:#fff;cursor:pointer;position:relative}
+.dock button.glow{border-color:var(--gold);box-shadow:0 0 14px var(--gold)}
+#bJump{position:absolute;right:18px;bottom:18px;z-index:16;width:132px;height:132px;border-radius:50%;border:4px solid #fff;background:radial-gradient(circle at 35% 30%,#9fe0ff,#2f8fe0);color:#08294a;font-family:var(--display);font-size:24px;line-height:1.05;cursor:pointer;box-shadow:0 7px 0 #1d5fa0,0 12px 20px rgba(0,0,0,.4);touch-action:none}
+#bJump small{display:block;font-family:var(--body);font-weight:900;font-size:13px}
+#bJump.down{transform:translateY(4px) scale(.96);box-shadow:0 3px 0 #1d5fa0}
+#big{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:15;pointer-events:none;text-align:center;font-family:var(--display);color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.55);line-height:1}
+#big b{font-size:clamp(26px,5vw,44px);font-weight:400}
+#big small{display:block;font-family:var(--body);font-weight:900;font-size:13px;color:#9fe0ff}
+#next{display:block;font-family:var(--body);font-weight:900;font-size:13px;color:#ffe27a;margin-top:3px}
+#cash{position:absolute;left:12px;bottom:14px;z-index:15;pointer-events:none;font-family:var(--display);color:#7dffb0;font-size:clamp(20px,3.4vw,30px);text-shadow:0 3px 0 rgba(0,0,0,.55);line-height:1}
+#cash small{display:block;font-family:var(--body);font-weight:900;font-size:13px;color:#fff}
+.pop{position:absolute;z-index:17;pointer-events:none;font-family:var(--display);font-size:22px;color:#fff;text-shadow:0 2px 0 #1d5fa0,0 0 8px rgba(0,0,0,.6);animation:up .8s ease-out forwards;white-space:nowrap}
+@keyframes up{from{transform:translate(-50%,0);opacity:1}to{transform:translate(-50%,-80px);opacity:0}}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.tabs button{font-family:var(--body);font-weight:900;font-size:14px;background:var(--panel2);color:var(--ink);border:2px solid var(--line);border-radius:12px;padding:6px 12px;cursor:pointer}
+.tabs button.on{background:var(--gold);color:#3b2200;border-color:#ffe27a}
+.ubox{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:10px 14px;width:min(620px,100%);text-align:left;max-height:min(56vh,440px);overflow:auto}
+.up{display:flex;align-items:center;gap:8px;background:var(--panel2);border-radius:12px;padding:8px 10px;margin:6px 0}
+.up.own{outline:2px solid var(--green)}
+.up.best{outline:3px solid var(--gold)}
+.up .ic{font-size:26px;width:38px;text-align:center;flex:none}
+.up .tx{flex:1;font-weight:800;font-size:14px;line-height:1.25}
+.up .tx b{font-size:16px;color:var(--gold)}
+.up .tx small{display:block;color:var(--muted);font-weight:700}
+.up .btn{flex:none}
+.an{display:flex;align-items:center;gap:10px;background:var(--panel2);border-radius:12px;padding:7px 10px;margin:5px 0;font-weight:800;font-size:14px}
+.an .sw{width:30px;height:30px;border-radius:8px;flex:none;box-shadow:0 0 10px currentColor}
+.an .tx{flex:1;line-height:1.25}
+.an .tx small{display:block;color:var(--muted);font-weight:700}
+.an .n{font-family:var(--display);font-size:20px;color:var(--gold);min-width:44px;text-align:right}
+.an.lock{opacity:.55}
+.rules{text-align:left;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.35;background:#0b1430;border-radius:10px;padding:8px 10px;white-space:pre;overflow:auto;color:#cfe0ff;margin:6px 0}
+@media (max-width:700px){#bJump{width:100px;height:100px;font-size:19px;right:12px;bottom:12px}#bJump small{font-size:11px}.dock{top:10px;right:8px;flex-direction:row;gap:5px}.dock button{width:40px;height:40px;font-size:18px;border-radius:11px}#big{top:58px}#cash{bottom:10px}}
+</style>
+<link rel="canonical" href="https://ghgames.au/jump-for-animals.html">
+<meta name="description" content="Jump to get jump power, leap over giant walls and collect 25 rarities of animals that earn you money. Buy items from a pencil to a black hole for huge jump multis, then rebirth for x5, x25, x125 and more.">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "VideoGame", "name": "Jump for Animals", "url": "https://ghgames.au/jump-for-animals.html", "description": "Jump to get jump power, leap over giant walls and collect 25 rarities of animals that earn you money. Buy items from a pencil to a black hole for huge jump multis, then rebirth for x5, x25, x125 and more.", "image": "https://ghgames.au/og/jump-for-animals.png", "genre": "Simulator", "gamePlatform": "Web browser", "operatingSystem": "Any", "applicationCategory": "Game", "inLanguage": "en-GB", "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "AUD"}, "publisher": {"@type": "Organization", "name": "GH Games", "url": "https://ghgames.au/"}}</script>
+</head>
+<body>
+<div class="wrap">
+  <div class="links"><a class="home" href="index.html">← GH Games</a></div>
+  <div class="top">
+    <h1>Jump for Animals<small>3D</small></h1>
+    <div class="hud">
+      <div class="chip"><span>Jump power</span><b id="hJ">0</b></div>
+      <div class="chip"><span>Money</span><b id="hM">$0</b></div>
+      <div class="chip"><span>Per second</span><b id="hS">$0</b></div>
+      <div class="chip"><span>Item</span><b id="hI">none</b></div>
+      <div class="chip"><span>Rebirth</span><b id="hR">0 (x1)</b></div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="ingame"><button id="bHome">☰</button><button id="bFs">⛶</button><button id="bMute">🔊</button></div>
+    <div id="big"><b id="bigJ">0</b><small>jump power</small><span id="next"></span></div>
+    <div id="cash"><span id="cashN">$0</span><small id="cashS">+$0 a second</small></div>
+    <div class="toast" id="toast"></div>
+    <div id="joy"><div id="knob"></div></div>
+    <div class="dock">
+      <button id="dShop" title="Shop">🛒</button>
+      <button id="dAni" title="Animals">🐾</button>
+      <button id="dReb" title="Rebirth">🔁</button>
+      <button id="dStart" title="Back to the start">🏠</button>
+    </div>
+    <button id="bJump">JUMP<small id="jAmt">+1 power</small></button>
+
+    <div class="ov" id="ovTitle">
+      <h2>JUMP FOR<br>ANIMALS</h2>
+      <p>Every jump gives you jump power. Jump over the giant walls: the higher the wall, the rarer the animal behind it and the more money it makes. Spend money on items from a pencil to a black hole for huge jump multis, then jump the purple Rebirth Wall for x5 every rebirth!</p>
+      <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bTShop">Shop</button></div>
+      <div class="stats" id="tStats"></div>
+    </div>
+
+    <div class="ov" id="ovMenu" hidden>
+      <h2 id="mH">SHOP</h2>
+      <div class="tabs" id="mTabs"></div>
+      <div class="ubox" id="mBody"></div>
+      <div class="row"><button class="btn small" id="bMenuX">Back to jumping</button></div>
+    </div>
+
+    <div class="ov" id="ovReb" hidden>
+      <h2>REBIRTH?</h2>
+      <p id="rebTxt"></p>
+      <div class="row"><button class="btn pink" id="bRebYes">Rebirth!</button><button class="btn alt small" id="bRebNo">Not yet</button></div>
+    </div>
+  </div>
+
+  <p class="help">Press JUMP (or Space, or click the game) to jump. Every jump adds jump power, and the more jump power you have, the higher you go. Move with W A S D or the arrow keys, drag the screen to look around (the mouse wheel zooms). On iPad: drag the left side to move, drag the right side to look, tap JUMP. Run at a wall and jump: if your jump power is at least the number on the wall, you fly over it and win the animal behind it. Animals earn money every second, even while you jump. 🛒 Shop: items multiply the power you get from each jump (your best item counts), and Auto Jump jumps for you. 🐾 Animals: all 25 rarities. 🔁 Rebirth: jump the purple Rebirth Wall behind the start. Each rebirth gives x5 jump power and money (x1, x5, x25, x125, x625 and so on, 10 rebirths max) but resets your jump power, money and items. You keep your animals and Auto Jump. 🏠 takes you back to the start so you can collect the animals again. Your game saves by itself.</p>
+  <div id="lb"></div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
+<script src="arcade3d.js"></script>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const THREE=window.THREE;
+const SAVE="jfa-save";
+const fmt=n=>A3.fmt(n);
+const money$=n=>"$"+A3.fmt(n);
+const nice=v=>{if(v<100)return Math.round(v);const e=Math.pow(10,Math.floor(Math.log10(v))-1);return Math.round(v/e)*e;};
+
+/* ---------- George's spec (20/11/2026) ----------
+   Jump to get jump power. Jump over walls: the higher the wall, the better the rarity and the more money it makes.
+   25 rarities. Items multiply jump power: pencil $1 x5, pillow $100 x17, steel backpack $25M x50, black hole $1 sextillion.
+   10 rebirths max, x1 x5 x25 x125 x625 and so on (x5 each).
+   Rebirth Wall: starts as tall as wall 15 and needs 10 times more every rebirth. */
+const RAR=[
+  ["Common","#c9cfdc","Mouse"],["Uncommon","#7fe08a","Bunny"],["Rare","#4aa8ff","Frog"],["Super Rare","#3ad6d0","Duck"],
+  ["Epic","#b06bff","Kitten"],["Super Epic","#d24bff","Puppy"],["Legendary","#ffc93c","Piglet"],["Mythic","#ff3d6a","Lamb"],
+  ["Godly","#fff27a","Pony"],["Secret","#2b2b2b","Penguin"],["Divine","#fff6d8","Kangaroo"],["Celestial","#9fe0ff","Panda"],
+  ["Cosmic","#7a5cff","Giraffe"],["Galactic","#ff7ae0","Elephant"],["Ancient","#c8a165","Lion"],["Eternal","#ff9a3c","Tiger"],
+  ["Omega","#e0f4ff","Polar Bear"],["Infinity","#3a6ad0","Whale"],["Quantum","#ff5a1a","Phoenix"],["Ultra","#3ad07a","Dragon"],
+  ["Prismatic","#ffffff","Unicorn"],["Shadow","#6a4aa0","Griffin"],["Rainbow","#ff6fa3","Pegasus"],["Void","#5a1a8a","Kraken"],
+  ["Supreme","#ffd700","Star Kangaroo"]];
+const NR=RAR.length;            // 25
+const REQ=[],RATE=[];
+for(let k=0;k<NR;k++){
+  REQ.push(nice(k<=14?10*Math.pow(2e5,k/14):2e6*Math.pow(10,k-14)));   // jump power to clear wall k
+  RATE.push(nice(Math.pow(10,k<=14?k*1.4:19.6+(k-14)*3)));              // $ a second per animal
+}
+const MAXREB=10;
+const rebReq=r=>REQ[14+Math.min(r,MAXREB-1)];       // Rebirth Wall: wall 15's height, x10 every rebirth
+const rebMult=r=>Math.pow(5,r);
+
+const ITEMS=[
+  ["✏️","Pencil",1,5],["🛏️","Pillow",100,17],["👟","Spring Shoes",5e3,25],["🦘","Pogo Stick",2e5,35],
+  ["🎒","Steel Backpack",25e6,50],["🥾","Rocket Boots",2e9,70],["🚀","Jetpack",2.5e11,100],["⛈️","Thunder Cloud",4e13,140],
+  ["🌈","Rainbow Cape",8e15,200],["🌙","Moon Rock",2e18,280],["🕳️","Black Hole",1e21,400],["🪄","Galaxy Wand",5e23,560],
+  ["💥","Supernova",3e26,800],["🌀","Wormhole",2e29,1150],["🎆","Big Bang",2e32,1650],["🫙","Universe in a Jar",3e35,2400],
+  ["🗝️","Multiverse Key",5e38,3500],["♾️","Infinity Spring",1e42,5000],["⭐","Star Forge",1e45,7500],["⏳","Time Machine",1e48,11000],
+  ["👑","Cosmic Crown",1e51,16000],["🌌","The Everything",1e55,25000]];
+const AUTOMAX=10,autoCost=a=>100*Math.pow(40,a);
+const PENMAX=100;
+
+/* ---------- save ---------- */
+const S=A3.save(SAVE,{v:1,jp:0,money:0,reb:0,items:[],auto:0,cnt:new Array(NR).fill(0),found:[],bestJP:0,bestWall:-1,jumps:0,buck:0});
+if(!Array.isArray(S.cnt)||S.cnt.length!==NR)S.cnt=new Array(NR).fill(0);
+if(!Array.isArray(S.items))S.items=[];
+if(!Array.isArray(S.found))S.found=[];
+function save(){A3.store(SAVE,S);}
+setInterval(save,5000);addEventListener("pagehide",save);
+
+const bestItem=()=>S.items.length?Math.max.apply(null,S.items):-1;
+const itemMult=()=>{const b=bestItem();return b<0?1:ITEMS[b][3];};
+const gain=()=>itemMult()*rebMult(S.reb);
+const perSec=()=>{let s=0;for(let k=0;k<NR;k++)s+=S.cnt[k]*RATE[k];return s*rebMult(S.reb);};
+const penSize=()=>S.cnt.reduce((a,b)=>a+b,0);
+
+/* ---------- 3D ---------- */
+const stage=$("stage");
+const view=A3.view(stage,{fov:58,far:1400,sky:["#5eb8ff","#e0f4ff"],fog:["#e0f4ff",140,520],shadowSize:40});
+if(!view)return;
+const {scene,camera,lights}=view;
+const COARSE=matchMedia("(pointer:coarse)").matches;
+const parts=A3.particles(scene);
+function mPlain(hex,o){return new THREE.MeshStandardMaterial(Object.assign({color:new THREE.Color(hex).convertSRGBToLinear(),roughness:.7,metalness:0},o||{}));}
+function bx(w,h,d,mat){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.castShadow=true;m.receiveShadow=true;return m;}
+function limb(parent,w,h,d,mat,px,py){const pv=new THREE.Group();pv.position.set(px,py,0);const b=bx(w,h,d,mat);b.position.y=-h/2;pv.add(b);parent.add(pv);return pv;}
+
+/* ---------- animals: our own blocky critters ---------- */
+const matC={};
+function am(hex,glow){const k=hex+(glow||0);if(!matC[k])matC[k]=new THREE.MeshStandardMaterial({color:new THREE.Color(hex).convertSRGBToLinear(),roughness:.6,emissive:glow?new THREE.Color(hex).convertSRGBToLinear():0x000000,emissiveIntensity:glow||0});return matC[k];}
+const SPEC=[
+  {c:"#b8b8c4",ear:"round",s:.6},{c:"#f4f4f4",ear:"long",s:.7},{c:"#5fd35a",ear:"none",eyes:"top",flat:1,s:.7},{c:"#ffd84a",ear:"none",beak:"#ff9a1a",wing:1,s:.7},
+  {c:"#ff9a3c",ear:"point",tail:1,s:.75},{c:"#b07a4a",ear:"flop",tail:1,s:.85},{c:"#ffa8c0",ear:"point",snout:"#ff7fa3",s:.9},{c:"#ffffff",ear:"flop",fluff:1,head:"#3a3a3a",s:.9},
+  {c:"#8a5a3a",ear:"point",mane:"#3a2414",long:1,s:1.1},{c:"#222a3a",ear:"none",belly:"#ffffff",beak:"#ff9a1a",up:1,s:.85},{c:"#c88a4a",ear:"long",tail:1,up:1,s:1.05},{c:"#ffffff",ear:"round",earC:"#222222",patch:1,s:1.05},
+  {c:"#f2c14e",ear:"point",neck:1,spots:"#9a5a1a",long:1,s:1.1},{c:"#9aa0aa",ear:"big",trunk:1,s:1.3},{c:"#e0a040",ear:"round",mane:"#8a4a10",tail:1,s:1.15},{c:"#ff8a1a",ear:"round",stripes:1,tail:1,s:1.15},
+  {c:"#f6fbff",ear:"round",s:1.3},{c:"#3a6ad0",ear:"none",whale:1,s:1.4},{c:"#ff5a1a",ear:"none",beak:"#ffd23f",wing:2,glow:.5,s:1.1},{c:"#3ad07a",ear:"horn",wing:2,tail:1,s:1.3},
+  {c:"#ffffff",ear:"point",horn:1,mane:"#ff6fa3",long:1,s:1.2},{c:"#6a4aa0",ear:"point",beak:"#ffd23f",wing:2,tail:1,s:1.25},{c:"#ffffff",ear:"point",wing:2,mane:"#7fe3ff",long:1,s:1.25},{c:"#5a1a8a",ear:"none",kraken:1,glow:.3,s:1.3},
+  {c:"#ffd700",ear:"long",tail:1,up:1,glow:.55,s:1.35}];
+function makeAnimal(k){
+  const sp=SPEC[k],g=new THREE.Group(),inner=new THREE.Group();g.add(inner);
+  const m=am(sp.c,sp.glow),eye=am("#111111"),hm=sp.head?am(sp.head):m;
+  const add=(w,h,d,mat,x,y,z)=>{const b=bx(w,h,d,mat);b.position.set(x,y,z);inner.add(b);return b;};
+  if(sp.whale){add(1.1,.8,1.8,m,0,.6,0);add(.9,.25,1.3,am("#dfe8ff"),0,.27,0.05);add(.9,.12,.4,m,0,.75,-1.05).rotation.x=.4;
+    for(const s of[-1,1])add(.5,.08,.3,m,s*.7,.4,.3);for(const s of[-1,1])add(.08,.1,.08,eye,s*.4,.75,.75);}
+  else if(sp.kraken){add(1,1,1,m,0,1.1,0);for(let i=0;i<6;i++){const a=i/6*Math.PI*2;const t=add(.2,.8,.2,am("#8a3ac0",.3),Math.sin(a)*.4,.4,Math.cos(a)*.4);t.rotation.x=Math.cos(a)*.4;t.rotation.z=-Math.sin(a)*.4;}
+    for(const s of[-1,1])add(.16,.2,.06,am("#ffffff",.6),s*.22,1.2,.5);}
+  else{
+    const up=sp.up?1:0,L=sp.long?.6:.38;
+    const body=add(.7,sp.flat?.4:.6,up?.6:.95,m,0,L+.3+(up?.2:0),0);if(up)body.scale.y=1.5;
+    if(sp.fluff){add(.85,.7,1.05,am("#ffffff"),0,L+.32,0);}
+    if(sp.belly)add(.55,.7,.1,am(sp.belly),0,L+.5,.32);
+    if(sp.stripes)for(const z of[-.3,0,.3])add(.72,.62,.08,am("#2a1a10"),0,L+.3,z);
+    if(sp.spots)for(const p of[[.36,.1],[.36,-.25],[-.36,0]])add(.03,.18,.18,am(sp.spots),p[0],L+.38,p[1]);
+    const legM=up?m:m;
+    for(const x of[-.22,.22])for(const z of(up?[.05]:[-.32,.32]))add(.18,L+(up?.3:0),.18,legM,x,(L+(up?.3:0))/2,z);
+    const hy=sp.neck?L+1.5:L+.65+(up?.55:0),hz=sp.neck?.5:(up?.2:.55);
+    if(sp.neck)add(.25,1.1,.25,m,0,L+.95,.4);
+    const head=add(.55,.5,.5,hm,0,hy,hz);
+    if(sp.eyes==="top"){for(const s of[-1,1])add(.16,.16,.16,am("#ffffff"),s*.18,hy+.3,hz+.1);}
+    for(const s of[-1,1])add(.08,.1,.05,eye,s*.14,hy+.06,hz+.26);
+    if(sp.beak)add(.22,.12,.25,am(sp.beak),0,hy-.05,hz+.35);
+    if(sp.snout)add(.26,.18,.12,am(sp.snout),0,hy-.08,hz+.3);
+    if(sp.trunk){const t=add(.16,.7,.16,m,0,hy-.4,hz+.33);t.rotation.x=.25;}
+    if(sp.patch)for(const s of[-1,1])add(.16,.16,.04,am("#222222"),s*.14,hy+.06,hz+.25);
+    const eC=sp.earC?am(sp.earC):m;
+    if(sp.ear==="round")for(const s of[-1,1])add(.18,.18,.08,eC,s*.2,hy+.3,hz);
+    if(sp.ear==="long")for(const s of[-1,1])add(.12,.5,.08,eC,s*.13,hy+.45,hz-.05);
+    if(sp.ear==="point")for(const s of[-1,1]){const e=add(.14,.2,.08,eC,s*.17,hy+.32,hz);e.rotation.z=s*-.3;}
+    if(sp.ear==="flop")for(const s of[-1,1])add(.1,.3,.2,eC,s*.31,hy-.02,hz);
+    if(sp.ear==="big")for(const s of[-1,1])add(.08,.55,.5,eC,s*.33,hy+.05,hz-.05);
+    if(sp.ear==="horn")for(const s of[-1,1]){const e=add(.08,.3,.08,am("#fff2b0"),s*.16,hy+.38,hz-.05);e.rotation.x=-.4;}
+    if(sp.horn){const h=new THREE.Mesh(new THREE.ConeGeometry(.08,.45,8),am("#ffd23f",.4));h.position.set(0,hy+.42,hz+.15);h.rotation.x=.5;inner.add(h);}
+    if(sp.mane)add(.2,.35,.6,am(sp.mane),0,hy+.1,hz-.3);
+    if(sp.tail){const t=add(.12,.12,.5,m,0,L+.45,-.65);t.rotation.x=-.5;}
+    if(sp.wing)for(const s of[-1,1]){const w=add(sp.wing===2?.9:.4,.06,.5,sp.wing===2&&k===22?am("#7fe3ff",.3):m,s*(sp.wing===2?.75:.42),L+.5,0);w.rotation.z=s*.35;w.userData.wing=s;}
+  }
+  inner.scale.setScalar(sp.s);
+  g.userData={k,inner};
+  if(k>=8){const ring=new THREE.Mesh(new THREE.TorusGeometry(.75*sp.s,.05,6,24),am(RAR[k][1],.8));ring.rotation.x=Math.PI/2;ring.position.y=.05;g.add(ring);g.userData.ring=ring;}
+  return g;
+}
+
+/* ---------- player: blocky kid in a springy jumpsuit ---------- */
+const faceT=A3.canvasTex(128,128,g=>{g.fillStyle="#f2c39b";g.fillRect(0,0,128,128);
+  g.fillStyle="#1b1b2b";g.beginPath();g.ellipse(44,58,8,11,0,0,7);g.ellipse(84,58,8,11,0,0,7);g.fill();
+  g.fillStyle="#fff";g.beginPath();g.arc(47,54,3,0,7);g.arc(87,54,3,0,7);g.fill();
+  g.strokeStyle="#7a2a2a";g.lineWidth=6;g.lineCap="round";g.beginPath();g.arc(64,74,22,.25*Math.PI,.75*Math.PI);g.stroke();});
+const shirtT=A3.canvasTex(128,128,g=>{g.fillStyle="#2f8fe0";g.fillRect(0,0,128,128);g.fillStyle="#fff";g.font="bold 70px Arial";g.textAlign="center";g.textBaseline="middle";g.fillText("⇧",64,70);});
+const av=new THREE.Group(),avB=new THREE.Group();av.add(avB);scene.add(av);
+const legL=limb(avB,.4,.9,.42,mPlain("#22335a"),-.22,.9),legR=limb(avB,.4,.9,.42,mPlain("#2a3d6a"),.22,.9);
+let armL,armR,headM,torsoM;
+{const sh=mPlain("#2f8fe0"),sk=mPlain("#f2c39b");
+  torsoM=new THREE.Mesh(new THREE.BoxGeometry(.9,.9,.48),[sh,sh,sh,sh,new THREE.MeshStandardMaterial({map:shirtT,roughness:.7}),sh]);torsoM.position.y=1.35;torsoM.castShadow=true;avB.add(torsoM);
+  armL=limb(avB,.3,.85,.3,sk,-.62,1.76);armR=limb(avB,.3,.85,.3,sk,.62,1.76);
+  headM=new THREE.Mesh(new THREE.BoxGeometry(.66,.62,.62),[sk,sk,sk,sk,new THREE.MeshStandardMaterial({map:faceT,roughness:.7}),sk]);headM.position.y=2.12;headM.castShadow=true;avB.add(headM);
+  const hair=bx(.7,.16,.66,mPlain("#5a3418"));hair.position.set(0,2.4,-.02);avB.add(hair);}
+try{if(window.Gear){const ms=[];avB.traverse(o=>{if(o.isMesh&&o.position.y<2)ms.push(o);});Gear.dress(av,{forward:"z",head:headM,torso:torsoM,body:ms});}}catch(e){}
+let itemSprite=null,itemShown=-2;
+function showItem(){const b=bestItem();if(b===itemShown)return;itemShown=b;if(itemSprite){avB.remove(itemSprite);itemSprite=null;}
+  if(b>=0){itemSprite=A3.label(ITEMS[b][0],{size:.75});itemSprite.position.set(.75,1.35,-.15);avB.add(itemSprite);}}
+const tagCv=document.createElement("canvas");tagCv.width=512;tagCv.height=96;
+const tagTex=new THREE.CanvasTexture(tagCv);tagTex.encoding=THREE.sRGBEncoding;
+const tag=new THREE.Sprite(new THREE.SpriteMaterial({map:tagTex,transparent:true,depthWrite:false}));tag.scale.set(4.2,.8,1);scene.add(tag);
+let tagTxt="";
+function drawTag(t){if(t===tagTxt)return;tagTxt=t;const g=tagCv.getContext("2d");g.clearRect(0,0,512,96);g.font="900 54px Nunito, Arial Black, Arial";g.textAlign="center";g.textBaseline="middle";
+  g.lineWidth=10;g.strokeStyle="rgba(10,20,50,.9)";g.strokeText(t,256,50);g.fillStyle="#9fe0ff";g.fillText(t,256,50);tagTex.needsUpdate=true;}
+
+/* ---------- the world ---------- */
+const TW=9,GAP=17,Z0=20;          // half track width, gap between walls, first wall
+const wallZ=k=>Z0+k*GAP;
+const endZ=wallZ(NR-1)+GAP;
+const visH=v=>1.2+2.4*Math.log10(1+Math.max(0,v));   // how tall a wall (or a jump) of this much power looks
+const REBZ=-16;
+const world=new THREE.Group();scene.add(world);
+const walls=[];let rebWall=null;
+const pen={x0:-TW-24,x1:-TW-4,z0:-12,z1:12};
+function buildWorld(){
+  const len=endZ+60;
+  const gr=A3.ground(len+260,"#6fd06a","#62c45c",Math.round((len+260)/2));gr.position.set(0,0,len/2-40);world.add(gr);
+  const track=new THREE.Mesh(new THREE.PlaneGeometry(TW*2,len+20),mPlain("#e8d9b0",{roughness:.95}));track.rotation.x=-Math.PI/2;track.position.set(0,.02,len/2-30);track.receiveShadow=true;world.add(track);
+  const railM=mPlain("#ffffff",{metalness:.2});
+  for(const s of[-1,1]){const e=bx(.6,1.2,len+20,railM);e.position.set(s*(TW+.3),.6,len/2-30);world.add(e);}
+  const st=A3.cyl(3.5,3.5,.25,mPlain("#ffffff"),28);st.position.set(0,.12,0);world.add(st);
+  const sl=A3.label("🦘 JUMP FOR ANIMALS",{size:1.2,color:"#ffd23f",stroke:"#3a1d00"});sl.position.set(0,7.5,9);world.add(sl);
+  for(let k=0;k<NR;k++){
+    const z=wallZ(k),need=REQ[k],hh=visH(need),col=RAR[k][1];
+    const mat=new THREE.MeshStandardMaterial({color:new THREE.Color(col).convertSRGBToLinear(),roughness:.45,metalness:.15,emissive:k>=17?new THREE.Color(col).convertSRGBToLinear():0x000000,emissiveIntensity:k>=17?.25:0});
+    const m=new THREE.Mesh(new THREE.BoxGeometry(TW*2,hh,1.2),mat);m.position.set(0,hh/2,z);m.castShadow=true;m.receiveShadow=true;world.add(m);
+    const cap=bx(TW*2+.4,.35,1.6,mPlain("#ffffff"));cap.position.set(0,hh+.17,z);world.add(cap);
+    const lb=A3.label("🦘 "+fmt(need)+" jump",{size:1.25,color:"#fff",stroke:"#1b1b2b",bg:"rgba(20,10,40,.8)"});lb.position.set(0,2.5,z-.9);world.add(lb);
+    const rl=A3.label(RAR[k][0]+" "+RAR[k][2],{size:.85,color:col==="#2b2b2b"?"#dddddd":col,stroke:"#111",bg:"rgba(20,10,40,.6)"});rl.position.set(0,1.25,z-.9);world.add(rl);
+    // the prize behind the wall
+    const pz=z+GAP/2,ped=A3.cyl(1.6,1.9,.6,mPlain(col==="#2b2b2b"?"#555555":col,{metalness:.3}),20);ped.position.set(-TW+2.6,.3,pz);world.add(ped);
+    const an=makeAnimal(k);an.position.set(-TW+2.6,.6,pz);an.scale.setScalar(1.3);world.add(an);
+    const pl=A3.label("$"+fmt(RATE[k])+"/s",{size:.8,color:"#7dffb0",stroke:"#0b2a14"});pl.position.set(-TW+2.6,3.4,pz);world.add(pl);
+    walls.push({k,z,need,hh,m,mat,an,ok:false});
+  }
+  // the end of the track: a giant trophy
+  const tz=endZ;const base=A3.box(6,1,6,mPlain("#8a5a10",{metalness:.4}));base.position.set(0,.5,tz);world.add(base);
+  const cup=A3.cyl(2.2,1.2,3,mPlain("#ffd23f",{metalness:.7,roughness:.3}),20);cup.position.set(0,3.5,tz);world.add(cup);
+  const el=A3.label("You jumped every wall! 🏆",{size:1.2,color:"#fff",stroke:"#1b1b2b"});el.position.set(0,7,tz);world.add(el);
+  // the Rebirth Wall behind the start
+  const rbm=new THREE.MeshStandardMaterial({color:new THREE.Color("#a24bff").convertSRGBToLinear(),roughness:.35,metalness:.3,emissive:new THREE.Color("#7a2adf").convertSRGBToLinear(),emissiveIntensity:.35});
+  const rm=new THREE.Mesh(new THREE.BoxGeometry(TW*2,1,1.2),rbm);rm.castShadow=true;world.add(rm);
+  for(const s of[-1,1]){const e=bx(.6,1.2,14,railM);e.position.set(s*(TW+.3),.6,REBZ-4);world.add(e);}
+  const back=bx(TW*2+1.2,1.2,.6,railM);back.position.set(0,.6,REBZ-11);world.add(back);
+  const portal=new THREE.Mesh(new THREE.TorusGeometry(2.4,.3,10,36),mPlain("#ff6fa3",{emissive:new THREE.Color("#ff6fa3").convertSRGBToLinear(),emissiveIntensity:.6}));portal.position.set(0,2.8,REBZ-7);world.add(portal);
+  rebWall={m:rm,mat:rbm,portal,lb:null,lbTxt:""};
+  // the animal pen beside the start
+  const fM=mPlain("#a8743a");
+  for(const x of[pen.x0,pen.x1]){const f=bx(.3,1,pen.z1-pen.z0,fM);f.position.set(x,.5,(pen.z0+pen.z1)/2);world.add(f);}
+  for(const z of[pen.z0,pen.z1]){const f=bx(pen.x1-pen.x0,1,.3,fM);f.position.set((pen.x0+pen.x1)/2,.5,z);world.add(f);}
+  const pg=new THREE.Mesh(new THREE.PlaneGeometry(pen.x1-pen.x0,pen.z1-pen.z0),mPlain("#8ee07a"));pg.rotation.x=-Math.PI/2;pg.position.set((pen.x0+pen.x1)/2,.03,(pen.z0+pen.z1)/2);world.add(pg);
+  const penL=A3.label("🐾 Your animals",{size:1.1,color:"#fff",stroke:"#1b1b2b"});penL.position.set((pen.x0+pen.x1)/2,2.2,pen.z1+.5);world.add(penL);
+  // trees
+  const R=A3.seeded(77),dm=mPlain("#3fa34d",{flatShading:true}),tm=mPlain("#7a5a3a");
+  for(let k=0;k<70;k++){const s=k%2?1:-1,x=s*(TW+6+R()*30),z=-30+R()*(len+40),sc=1+R()*1.8;
+    if(x<pen.x1+3&&x>pen.x0-3&&z>pen.z0-3&&z<pen.z1+3)continue;
+    const t=A3.cyl(.35*sc,.45*sc,2.4*sc,tm,8);t.position.set(x,1.2*sc,z);world.add(t);
+    const l=new THREE.Mesh(new THREE.IcosahedronGeometry(1.5*sc,0),dm);l.position.set(x,2.6*sc+1,z);l.castShadow=true;world.add(l);}
+  // floating clouds
+  const cm=mPlain("#ffffff",{roughness:1});
+  for(let k=0;k<26;k++){const c=new THREE.Group();for(let j=0;j<4;j++){const b=new THREE.Mesh(new THREE.SphereGeometry(2+R()*2,10,8),cm);b.position.set(j*2.6,R()*1.2,R()*2);c.add(b);}
+    c.position.set((R()-.5)*160,18+R()*40,-40+R()*(len+60));world.add(c);}
+}
+function refreshRebWall(){
+  const max=S.reb>=MAXREB,need=rebReq(S.reb),hh=max?visH(REQ[NR-1]):visH(need);
+  rebWall.need=need;rebWall.hh=hh;rebWall.max=max;
+  rebWall.m.scale.y=hh;rebWall.m.position.set(0,hh/2,REBZ);
+  const txt=max?"🔁 MAX REBIRTHS! x"+fmt(rebMult(S.reb)):"🔁 REBIRTH WALL  🦘 "+fmt(need)+" jump";
+  if(txt!==rebWall.lbTxt){rebWall.lbTxt=txt;if(rebWall.lb)world.remove(rebWall.lb);rebWall.lb=A3.label(txt,{size:1.2,color:"#fff",stroke:"#2a0a4a",bg:"rgba(60,10,90,.85)"});world.add(rebWall.lb);}
+  rebWall.lb.position.set(0,Math.min(hh*.5+.8,4.4),REBZ+.9);
+}
+function refreshWalls(){
+  for(const w of walls){const ok=S.jp>=w.need;if(ok!==w.ok){w.ok=ok;w.mat.transparent=ok;w.mat.opacity=ok?.55:1;
+    if(ok&&started){A3.sfx("pop");A3.toast("✅ You can jump the "+RAR[w.k][0]+" wall now!",1500);}}}
+}
+
+/* pen animals: the best 18 wander about */
+const penG=new THREE.Group();scene.add(penG);
+let penSig="";
+function rebuildPen(){
+  const list=[];for(let k=NR-1;k>=0&&list.length<18;k--)for(let i=0;i<S.cnt[k]&&list.length<18;i++)list.push(k);
+  const sig=list.join(",");if(sig===penSig)return;penSig=sig;
+  while(penG.children.length)penG.remove(penG.children[0]);
+  const R=A3.seeded(5);
+  list.forEach(k=>{const a=makeAnimal(k);a.scale.setScalar(1.5);a.position.set(A3.lerp(pen.x0+2,pen.x1-2,R()),0,A3.lerp(pen.z0+2,pen.z1-2,R()));a.userData.tx=a.position.x;a.userData.tz=a.position.z;a.userData.t=R()*3;penG.add(a);});
+}
+/* followers: the newest animal you won hops along behind you */
+const folG=new THREE.Group();scene.add(folG);
+function addFollower(k){const a=makeAnimal(k);a.position.set(P.x,0,P.z-2);folG.add(a);if(folG.children.length>5)folG.remove(folG.children[0]);}
+
+/* ---------- player ---------- */
+const P={x:0,y:0,z:0,vx:0,vz:0,vy:0,g:30,face:0,ground:true,walk:0,apex:0};
+const cam={yaw:0,pitch:.32,dist:13};
+let camPos=null,camD=13;const camTgt=new THREE.Vector3();
+let mode="title",started=false,got=new Set(),lastJumpT=0;
+function toStart(){P.x=0;P.z=0;P.y=0;P.vx=P.vz=P.vy=0;P.face=0;P.ground=true;got=new Set();while(folG.children.length)folG.remove(folG.children[0]);}
+function popText(txt,x,y,col){const pops=document.querySelectorAll(".pop");if(pops.length>10)pops[0].remove();
+  const e=document.createElement("div");e.className="pop";e.textContent=txt;e.style.left=x+"px";e.style.top=y+"px";if(col)e.style.color=col;stage.appendChild(e);setTimeout(()=>e.remove(),820);}
+
+/* every jump = jump power */
+function addPower(n){S.jp+=n;if(S.jp>S.bestJP)S.bestJP=S.jp;}
+function jump(ev,auto){
+  if(mode!=="play")return;
+  const now=performance.now();if(!auto&&now-lastJumpT<110)return;if(!auto)lastJumpT=now;
+  const g=gain();addPower(g);S.jumps++;
+  if(!auto){
+    const r=stage.getBoundingClientRect();let x,y;
+    if(ev&&ev.clientX>0){x=ev.clientX-r.left+(Math.random()-.5)*30;y=ev.clientY-r.top-20;}else{const b=$("bJump").getBoundingClientRect();x=b.left-r.left+b.width/2;y=b.top-r.top;}
+    popText("+"+fmt(g)+" 🦘",x,y);
+  }
+  if(P.ground&&!auto){
+    const h=visH(S.jp)+.7,T=.75+.022*h;   // apex height and time in the air
+    P.apex=h;P.g=8*h/(T*T);P.vy=4*h/T;P.ground=false;A3.sfx("jump");avB.scale.set(1.15,.85,1.15);
+  }
+}
+{const b=$("bJump");
+  b.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();b.classList.add("down");jump(e);});
+  const off=()=>b.classList.remove("down");b.addEventListener("pointerup",off);b.addEventListener("pointerleave",off);b.addEventListener("pointercancel",off);}
+addEventListener("keydown",e=>{if(e.target&&e.target.tagName==="INPUT")return;const k=(e.key||"").toLowerCase();
+  if((k===" "||k==="j")&&!e.repeat)jump(null);});
+
+/* ---------- touch + mouse ---------- */
+const cv=view.renderer.domElement,touch={jx:0,jy:0};
+let joyId=null,joyO=null,lookId=null,lookLast=null,downAt=null;
+cv.addEventListener("pointerdown",e=>{
+  const r=stage.getBoundingClientRect(),lx=e.clientX-r.left,ly=e.clientY-r.top;
+  if(e.pointerType==="touch"&&lx<r.width*.45&&joyId===null){joyId=e.pointerId;joyO={x:lx,y:ly};const j=$("joy");j.style.left=lx+"px";j.style.top=ly+"px";j.style.display="block";$("knob").style.transform="";}
+  else if(lookId===null){lookId=e.pointerId;lookLast={x:e.clientX,y:e.clientY};downAt={x:e.clientX,y:e.clientY,t:performance.now(),touch:e.pointerType==="touch"};}
+  try{cv.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();});
+cv.addEventListener("pointermove",e=>{
+  if(e.pointerId===joyId){const r=stage.getBoundingClientRect();let dx=e.clientX-r.left-joyO.x,dy=e.clientY-r.top-joyO.y;const d=Math.hypot(dx,dy),M=56;if(d>M){dx*=M/d;dy*=M/d;}
+    touch.jx=dx/M;touch.jy=-dy/M;$("knob").style.transform="translate("+dx+"px,"+dy+"px)";}
+  else if(e.pointerId===lookId){const dx=e.clientX-lookLast.x,dy=e.clientY-lookLast.y;lookLast={x:e.clientX,y:e.clientY};cam.yaw-=dx*.0065;cam.pitch=A3.clamp(cam.pitch+dy*.0045,.05,1.3);}});
+function endPtr(e){
+  if(e.pointerId===joyId){joyId=null;touch.jx=touch.jy=0;$("joy").style.display="none";}
+  if(e.pointerId===lookId){lookId=null;
+    if(downAt&&!downAt.touch&&Math.hypot(e.clientX-downAt.x,e.clientY-downAt.y)<6&&performance.now()-downAt.t<400&&mode==="play")jump(e);downAt=null;}}
+cv.addEventListener("pointerup",endPtr);cv.addEventListener("pointercancel",endPtr);
+cv.addEventListener("wheel",e=>{e.preventDefault();cam.dist=A3.clamp(cam.dist*(1+e.deltaY*.001),6,60);},{passive:false});
+cv.addEventListener("contextmenu",e=>e.preventDefault());
+A3.fullscreen($("bFs"),stage);
+$("bMute").onclick=()=>{$("bMute").textContent=A3.mute(!A3.mute())?"🔇":"🔊";};$("bMute").textContent=A3.mute()?"🔇":"🔊";
+$("bHome").onclick=()=>{mode="title";$("ovTitle").hidden=false;$("ovMenu").hidden=true;titleStats();};
+$("dStart").onclick=()=>{if(mode!=="play")return;toStart();A3.sfx("whoosh");A3.toast("🏠 Back to the start. Jump the walls again to win more animals!",1800);};
+
+/* ---------- winning an animal ---------- */
+function winAnimal(k){
+  S.cnt[k]++;
+  // the pen holds 100: the least rare go first
+  let tot=penSize();for(let j=0;j<NR&&tot>PENMAX;j++){while(S.cnt[j]>0&&tot>PENMAX){S.cnt[j]--;tot--;}}
+  const isNew=S.found.indexOf(k)<0;if(isNew)S.found.push(k);
+  if(k>S.bestWall){S.bestWall=k;A3.best(Math.floor(S.bestJP));}
+  addFollower(k);
+  parts.burst(new THREE.Vector3(P.x,P.y+1.5,P.z),RAR[k][1],30,7);A3.sfx("coin");
+  A3.toast((isNew?"🆕 NEW! ":"")+"You won a "+RAR[k][0]+" "+RAR[k][2]+"! +$"+fmt(RATE[k]*rebMult(S.reb))+" a second",2200);
+  if(isNew&&k>=4)A3.win(Math.min(5,1+Math.floor(k/5)),"finding a "+RAR[k][0]+" "+RAR[k][2]+" in Jump for Animals");
+  rebuildPen();save();
+}
+
+/* ---------- step ---------- */
+function stepPlayer(dt){
+  let ix=(A3.keys["arrowright"]||A3.keys["d"]?1:0)-(A3.keys["arrowleft"]||A3.keys["a"]?1:0)+touch.jx;
+  let iz=(A3.keys["arrowup"]||A3.keys["w"]?1:0)-(A3.keys["arrowdown"]||A3.keys["s"]?1:0)+touch.jy;
+  if(mode!=="play"){ix=iz=0;}
+  const il=Math.hypot(ix,iz);if(il>1){ix/=il;iz/=il;}
+  const fx=Math.sin(cam.yaw),fz=Math.cos(cam.yaw),rx=-Math.cos(cam.yaw),rz=Math.sin(cam.yaw);
+  const wx=fx*iz+rx*ix,wz=fz*iz+rz*ix,run=11;
+  P.vx+=(wx*run-P.vx)*Math.min(1,dt*12);P.vz+=(wz*run-P.vz)*Math.min(1,dt*12);
+  if(Math.hypot(wx,wz)>.1){const tf=Math.atan2(wx,wz);let d=tf-P.face;d=Math.atan2(Math.sin(d),Math.cos(d));P.face+=d*Math.min(1,dt*14);}
+  if(!P.ground){P.vy-=P.g*dt;P.y+=P.vy*dt;if(P.y<=0){P.y=0;P.vy=0;P.ground=true;avB.scale.set(1.12,.88,1.12);}}
+  const ox=P.x,oz=P.z;P.x+=P.vx*dt;P.z+=P.vz*dt;
+  const hw=.5;
+  P.x=A3.clamp(P.x,-TW+hw,TW-hw);
+  P.z=A3.clamp(P.z,REBZ-10,endZ+6);
+  // walls only stop you going forwards; walking back is always allowed
+  for(const w of walls){const front=w.z-.6-hw,back=w.z+.6+hw;
+    if(oz<=front+1e-6&&P.z>front){
+      const ok=S.jp>=w.need&&!P.ground&&P.y>=w.hh*.6;
+      if(!ok){P.z=front;P.vz=Math.min(0,P.vz);
+        if(!w.warn||performance.now()-w.warn>2500){w.warn=performance.now();A3.sfx("hit");
+          A3.toast(S.jp>=w.need?"⬆️ Jump right at the wall to fly over it!":"🦘 You need "+fmt(w.need)+" jump power for this wall. Keep jumping!",2000);}}
+    }
+    if(P.z>back&&oz<=back&&!got.has(w.k)){got.add(w.k);winAnimal(w.k);}
+  }
+  // the Rebirth Wall, behind the start
+  {const front=REBZ+.6+hw;
+    if(oz>=front-1e-6&&P.z<front){
+      const ok=!rebWall.max&&S.jp>=rebWall.need&&!P.ground&&P.y>=rebWall.hh*.6;
+      if(ok){P.z=REBZ-3;P.vx=P.vz=0;askRebirth();}
+      else{P.z=front;P.vz=Math.max(0,P.vz);
+        if(!rebWall.warn||performance.now()-rebWall.warn>2500){rebWall.warn=performance.now();A3.sfx("hit");
+          A3.toast(rebWall.max?"🔁 You have done all "+MAXREB+" rebirths!":S.jp>=rebWall.need?"⬆️ Jump right at the Rebirth Wall to rebirth!":"🔁 You need "+fmt(rebWall.need)+" jump power to rebirth.",2200);}}}}
+  if(P.z<REBZ-1&&mode==="play"&&$("ovReb").hidden){P.z=2;}
+  if(P.z>=endZ-3){A3.sfx("win");A3.toast("🏆 You jumped every wall! Back to the start.",2400);toStart();}
+  // stepping back on the start pad starts a fresh run
+  if(Math.hypot(P.x,P.z)<3&&got.size&&P.ground){got=new Set();}
+  P.walk+=Math.hypot(P.vx,P.vz)*dt*1.4;
+}
+
+/* ---------- HUD ---------- */
+function nextWall(){for(const w of walls)if(S.jp<w.need)return w;return null;}
+function hud(){
+  $("hJ").textContent=fmt(S.jp);$("bigJ").textContent=fmt(S.jp);
+  $("hM").textContent=money$(S.money);$("cashN").textContent=money$(S.money);
+  const ps=perSec();$("hS").textContent=money$(ps);$("cashS").textContent="+"+money$(ps)+" a second · "+penSize()+" animals";
+  const b=bestItem();$("hI").textContent=b<0?"none":ITEMS[b][0]+" x"+fmt(ITEMS[b][3]);
+  $("hR").textContent=S.reb+" (x"+fmt(rebMult(S.reb))+")";
+  $("jAmt").textContent="+"+fmt(gain())+" power";
+  const nw=nextWall();$("next").textContent=nw?"next wall: "+fmt(nw.need)+" ("+RAR[nw.k][0]+")":"you can jump every wall! 🎉";
+  $("dReb").classList.toggle("glow",S.reb<MAXREB&&S.jp>=rebReq(S.reb));
+  const nb=ITEMS.findIndex((it,i)=>i>b&&S.money>=it[2]);$("dShop").classList.toggle("glow",nb>=0||(S.auto<AUTOMAX&&S.money>=autoCost(S.auto)));
+  drawTag(fmt(S.jp)+" 🦘");
+}
+
+/* ---------- menu ---------- */
+let tab="shop";
+const TABS=[["shop","🛒 Shop"],["ani","🐾 Animals"],["reb","🔁 Rebirth"]];
+function openMenu(t){tab=t||tab;mode="menu";$("ovMenu").hidden=false;$("ovTitle").hidden=true;drawMenu();}
+$("bMenuX").onclick=()=>{$("ovMenu").hidden=true;mode="play";started=true;save();};
+$("dShop").onclick=()=>openMenu("shop");$("dAni").onclick=()=>openMenu("ani");$("dReb").onclick=()=>openMenu("reb");
+$("bTShop").onclick=()=>openMenu("shop");
+function drawMenu(){
+  $("mTabs").innerHTML=TABS.map(([k,n])=>`<button class="${k===tab?"on":""}" data-t="${k}">${n}</button>`).join("");
+  $("mTabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;drawMenu();});
+  $("mH").textContent={shop:"SHOP",ani:"ANIMALS",reb:"REBIRTH"}[tab];
+  let h=`<div class="stats" style="margin-bottom:6px"><div>💵 Money <b>${money$(S.money)}</b></div><div>🦘 Jump power <b>${fmt(S.jp)}</b></div><div>⚡ Per jump <b>+${fmt(gain())}</b></div></div>`;
+  if(tab==="shop"){
+    const best=bestItem();
+    h+=`<p class="help">Items multiply the jump power from every jump. Only your best item counts. Items reset when you rebirth.</p>`;
+    h+=`<div class="row" style="margin:6px 0"><button class="btn small green" data-a="max">Buy the best I can afford</button></div>`;
+    h+=`<div class="up"><div class="ic">🤖</div><div class="tx"><b>Auto Jump ${S.auto}/${AUTOMAX}</b><small>${S.auto?"Jumps for you "+S.auto+" time"+(S.auto>1?"s":"")+" a second. ":""}Each level adds 1 jump a second. Kept when you rebirth.</small></div>`+
+      `<button class="btn small" data-a="auto" ${S.auto<AUTOMAX&&S.money>=autoCost(S.auto)?"":"disabled"}>${S.auto>=AUTOMAX?"MAX":money$(autoCost(S.auto))}</button></div>`;
+    ITEMS.forEach((it,i)=>{const own=S.items.indexOf(i)>=0;
+      h+=`<div class="up ${i===best?"best":own?"own":""}"><div class="ic">${it[0]}</div><div class="tx"><b>${it[1]}</b><small>x${fmt(it[3])} jump power${i===best?" · using this one":""}</small></div>`+
+        (own?`<button class="btn small" disabled>Owned</button>`:`<button class="btn small" data-a="item${i}" ${S.money>=it[2]?"":"disabled"}>${money$(it[2])}</button>`)+`</div>`;});
+  }else if(tab==="ani"){
+    h+=`<p class="help">Jump a wall to win the animal behind it. The higher the wall, the rarer the animal and the more money it makes. Your pen holds ${PENMAX} animals (the least rare make room). You keep your animals when you rebirth. Rebirth x${fmt(rebMult(S.reb))} on all money.</p>`;
+    for(let k=NR-1;k>=0;k--){const f=S.found.indexOf(k)>=0,c=RAR[k][1];
+      h+=`<div class="an ${f?"":"lock"}"><div class="sw" style="background:${c};color:${c}"></div><div class="tx">${k+1}. ${RAR[k][0]} ${f?RAR[k][2]:"???"}<small>Wall ${k+1}: ${fmt(REQ[k])} jump power · $${fmt(RATE[k])} a second each</small></div><div class="n">${S.cnt[k]}</div></div>`;}
+  }else{
+    const max=S.reb>=MAXREB,need=rebReq(S.reb);
+    h+=`<div class="up"><div class="ic">🔁</div><div class="tx"><b>${max?"All "+MAXREB+" rebirths done!":"Rebirth "+(S.reb+1)+" of "+MAXREB}</b><small>Now x${fmt(rebMult(S.reb))} jump power and money${max?"":", after this x"+fmt(rebMult(S.reb+1))}.</small>`+
+      (max?"":`<small>Jump the purple Rebirth Wall behind the start. You need ${fmt(need)} jump power (you have ${fmt(S.jp)}).</small>`)+
+      `<small>Resets jump power, money and items. Keeps animals and Auto Jump.</small></div>`+(max?"":`<button class="btn small pink" data-a="goreb" ${S.jp>=need?"":"disabled"}>Take me there</button>`)+`</div>`;
+    h+=`<div class="rules">George's rebirths
+`+Array.from({length:MAXREB},(_,r)=>" rebirth "+String(r+1).padStart(2)+"   x"+fmt(rebMult(r+1)).padEnd(8)+"  needs "+fmt(rebReq(r))+" jump"+(r<S.reb?"  ✅":"")).join("\n")+`
+
+ The Rebirth Wall starts as tall as wall 15
+ and needs 10 times more every rebirth.</div>`;
+  }
+  $("mBody").innerHTML=h;
+  $("mBody").querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>act(b.dataset.a));
+  hud();
+}
+function buyItem(i){if(S.items.indexOf(i)>=0||S.money<ITEMS[i][2])return 0;S.money-=ITEMS[i][2];S.items.push(i);showItem();return 1;}
+function act(a){
+  let ok=0;
+  if(a==="auto"){if(S.auto<AUTOMAX&&S.money>=autoCost(S.auto)){S.money-=autoCost(S.auto);S.auto++;ok=1;}}
+  else if(a==="max"){let any=1;while(any){any=0;const b=bestItem();for(let i=ITEMS.length-1;i>b;i--)if(S.money>=ITEMS[i][2]){ok+=buyItem(i);any=1;break;}}}
+  else if(a.startsWith("item")){const i=+a.slice(4);ok=buyItem(i);if(ok)A3.toast(ITEMS[i][0]+" "+ITEMS[i][1]+(i===bestItem()?"! Now x"+fmt(ITEMS[i][3])+" jump power":""),1800);}
+  else if(a==="goreb"){$("ovMenu").hidden=true;mode="play";P.x=0;P.z=REBZ+5;P.y=0;P.ground=true;cam.yaw=Math.PI;A3.toast("🔁 Run at the purple wall and jump!",2200);return;}
+  if(ok){A3.sfx("coin");save();}else A3.sfx("click");
+  drawMenu();
+}
+
+/* ---------- rebirth ---------- */
+function askRebirth(){
+  mode="menu";$("ovReb").hidden=false;
+  $("rebTxt").innerHTML=`Rebirth ${S.reb+1}: everything goes <b>x${fmt(rebMult(S.reb+1))}</b> (now x${fmt(rebMult(S.reb))}).<br>Your jump power, money and items go back to zero. You keep your ${penSize()} animals and Auto Jump.`;
+}
+$("bRebNo").onclick=()=>{$("ovReb").hidden=true;mode="play";P.z=REBZ+4;cam.yaw=0;};
+$("bRebYes").onclick=()=>{
+  if(S.reb>=MAXREB||S.jp<rebReq(S.reb)){$("ovReb").hidden=true;mode="play";P.z=REBZ+4;return;}
+  S.reb++;S.jp=0;S.money=0;S.items=[];showItem();
+  $("ovReb").hidden=true;mode="play";toStart();cam.yaw=0;refreshWalls();refreshRebWall();
+  A3.sfx("win");parts.burst(new THREE.Vector3(0,2,0),"#ff6fa3",80,10);
+  A3.toast("🔁 REBIRTH "+S.reb+"! Now x"+fmt(rebMult(S.reb))+" jump power and money",3200);
+  try{if(window.PhatCoin)PhatCoin.earn("rebirth",25,"rebirth "+S.reb+" in Jump for Animals");}catch(e){}
+  A3.best(Math.floor(S.bestJP));save();hud();
+};
+
+/* ---------- special players (George): a one-off head start ---------- */
+function specialStart(){
+  const isS=n=>{n=(n||"").trim().toLowerCase();return n==="buckasnuncle"||n==="guide dog"||n==="guidedog";};
+  let nick="",acct="";try{nick=(window.Leaderboard&&Leaderboard.getName())||localStorage.getItem("ghgames_nick")||"";acct=localStorage.getItem("ghacct_user")||"";}catch(e){}
+  if((!isS(nick)&&!isS(acct))||S.buck)return;
+  S.buck=1;const bh=10;if(S.items.indexOf(bh)<0)S.items.push(bh);S.cnt[10]+=1;if(S.found.indexOf(10)<0)S.found.push(10);S.money+=1e9;
+  showItem();rebuildPen();save();
+  setTimeout(()=>{A3.sfx("win");A3.toast("⭐ Special player: a Black Hole, a Divine Kangaroo and $1B!",3800);},800);
+}
+
+/* ---------- title ---------- */
+function titleStats(){$("tStats").innerHTML=`<div>Jump power <b>${fmt(S.jp)}</b></div><div>Money <b>${money$(S.money)}</b></div><div>Animals <b>${penSize()}</b></div><div>Rebirths <b>${S.reb}/${MAXREB}</b></div>`;}
+$("bPlay").onclick=()=>{$("ovTitle").hidden=true;mode="play";started=true;A3.sfx("click");if(S.jumps===0)setTimeout(()=>A3.toast("🦘 Press JUMP to get jump power, then jump over the first wall!",3600),300);};
+
+/* ---------- frame ---------- */
+let hudT=0,autoAcc=0,coinT=0;
+function update(dt,t){
+  // money from your animals, all the time
+  S.money+=perSec()*dt;
+  if(S.auto>0&&mode!=="title"){autoAcc+=S.auto*dt;const n=Math.floor(autoAcc);if(n>0){autoAcc-=n;addPower(gain()*n);S.jumps+=n;}}
+  stepPlayer(dt);
+  av.position.set(P.x,P.y,P.z);av.rotation.y=P.face;
+  avB.scale.x=A3.lerp(avB.scale.x,1,Math.min(1,dt*10));avB.scale.y=A3.lerp(avB.scale.y,1,Math.min(1,dt*10));avB.scale.z=A3.lerp(avB.scale.z,1,Math.min(1,dt*10));
+  const mv=Math.hypot(P.vx,P.vz)>.5,sw=mv&&P.ground?Math.sin(P.walk)*.7:0;
+  legL.rotation.x=sw;legR.rotation.x=-sw;armL.rotation.x=P.ground?-sw*.8:-2.6;armR.rotation.x=P.ground?sw*.8:-2.6;
+  tag.position.set(P.x,P.y+3.2,P.z);
+  // followers
+  folG.children.forEach((m,k)=>{const n=folG.children.length,ang=P.face+Math.PI,d=2.2+(n-1-k)*1.6;
+    const tx=P.x+Math.sin(ang)*d,tz=P.z+Math.cos(ang)*d;m.position.x=A3.lerp(m.position.x,tx,Math.min(1,dt*5));m.position.z=A3.lerp(m.position.z,tz,Math.min(1,dt*5));
+    m.position.y=Math.max(P.y*.6,0)+Math.abs(Math.sin(t*7+k))*.4;m.rotation.y=P.face;});
+  // pen animals wander
+  penG.children.forEach((m,k)=>{const u=m.userData;u.t-=dt;if(u.t<=0){u.t=2+Math.random()*3;u.tx=A3.lerp(pen.x0+2,pen.x1-2,Math.random());u.tz=A3.lerp(pen.z0+2,pen.z1-2,Math.random());}
+    const dx=u.tx-m.position.x,dz=u.tz-m.position.z,d=Math.hypot(dx,dz);
+    if(d>.2){m.position.x+=dx/d*dt*1.6;m.position.z+=dz/d*dt*1.6;m.rotation.y=Math.atan2(dx,dz);m.position.y=Math.abs(Math.sin(t*8+k))*.25;}else m.position.y=0;
+    if(u.ring)u.ring.rotation.z+=dt;});
+  coinT-=dt;if(coinT<=0&&penG.children.length){coinT=.6;const m=penG.children[Math.floor(Math.random()*penG.children.length)];parts.burst(m.position.clone().add(new THREE.Vector3(0,1.5,0)),"#7dff8a",3,2,.6);}
+  for(const w of walls){w.an.rotation.y+=dt*.8;w.an.position.y=.6+Math.abs(Math.sin(t*3+w.k))*.3;}
+  rebWall.portal.rotation.z+=dt*1.5;
+  // camera rises with your jumps
+  if(mode==="title")cam.yaw+=dt*.12;
+  if(A3.keys["q"])cam.yaw+=dt*2.2;if(A3.keys["e"])cam.yaw-=dt*2.2;
+  camD=A3.lerp(camD,cam.dist+Math.min(40,P.y*.45),1-Math.exp(-dt*3));
+  const cp=Math.cos(cam.pitch);
+  camTgt.set(P.x,P.y*.75+1.6,P.z);
+  const want=new THREE.Vector3(camTgt.x-Math.sin(cam.yaw)*cp*camD,camTgt.y+Math.sin(cam.pitch)*camD,camTgt.z-Math.cos(cam.yaw)*cp*camD);
+  if(!camPos)camPos=want.clone();else camPos.lerp(want,1-Math.exp(-dt*10));
+  camera.position.copy(camPos);camera.lookAt(camTgt);
+  lights.sun.position.set(P.x+14,P.y+30,P.z-10);lights.sun.target.position.set(P.x,P.y,P.z+6);
+  parts.update(dt);
+  hudT-=dt;if(hudT<=0){hudT=.15;hud();refreshWalls();if(mode==="menu"&&!$("ovMenu").hidden&&Math.random()<.12)refreshMenuButtons();}
+  view.render();
+}
+function refreshMenuButtons(){$("mBody").querySelectorAll("button[data-a]").forEach(b=>{const a=b.dataset.a;
+  if(a.startsWith("item"))b.disabled=S.money<ITEMS[+a.slice(4)][2];else if(a==="auto")b.disabled=!(S.auto<AUTOMAX&&S.money>=autoCost(S.auto));});}
+
+/* ---------- start ---------- */
+buildWorld();refreshRebWall();refreshWalls();rebuildPen();showItem();toStart();titleStats();hud();
+specialStart();
+A3.loop(update);
+if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"jump-for-animals",dir:"desc",unit:"jump power",title:"Jump for Animals: highest jump power"});
+window.__jfa={S,P,REQ,RATE,ITEMS,rebReq,jump,act,openMenu,winAnimal,walls,get mode(){return mode;},set mode(v){mode=v;},refreshWalls,refreshRebWall,askRebirth,cam};
+})();
+</script>
+
+<section class="gh-about" aria-label="About Jump for Animals" style="max-width:1040px;margin:28px auto 0;padding:20px 22px;border-radius:18px;background:rgba(255,255,255,.05);box-shadow:0 0 0 1px rgba(255,255,255,.1);color:#e9ecf5;font:600 15px/1.55 Nunito,system-ui,-apple-system,Segoe UI,sans-serif;text-align:left;user-select:text;-webkit-user-select:text">
+<style>.gh-about h2{font:400 22px/1.2 "Lilita One",system-ui,sans-serif;margin:0 0 8px;color:#ffcc33}.gh-about h3{font-size:16px;margin:16px 0 6px;color:#fff}.gh-about p{margin:0 0 8px}.gh-about ol{margin:0;padding-left:22px}.gh-about li{margin:3px 0}.gh-about nav{display:flex;flex-wrap:wrap;gap:8px}.gh-about nav a{color:#ffcc33;font-weight:800;text-decoration:none;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.08)}.gh-about nav a:hover{background:rgba(255,255,255,.16)}</style>
+<h2>About Jump for Animals</h2>
+<p>Jump for Animals is a 3D jump simulator: every jump makes your jumps bigger, and every giant wall you clear wins you an animal that earns money.</p>
+<h3>How to play</h3>
+<ol><li>Jump to build up jump power.</li><li>Run at a wall and jump over it once your jump power beats the number on the wall.</li><li>Win the animal behind each wall: 25 rarities, from a Common Mouse to a Supreme Star Kangaroo.</li><li>Spend the money your animals make on items, from a pencil to a black hole, for bigger jump multis.</li><li>Jump the purple Rebirth Wall for x5 jump power and money, up to 10 rebirths.</li></ol>
+<p style="margin-top:12px">Jump for Animals is free to play in your browser on iPad, phone or computer, with nothing to download. Make a free GH Games account to save your progress online, earn PhatCoin and climb the leaderboard.</p>
+<h3>More free games</h3>
+<nav><a href="plus-one-height.html">+1 Height Per Click</a><a href="sky-bounce.html">Sky Bounce</a><a href="wall-hop.html">Wall Hop Pets</a><a href="sky-high-splat.html">Sky High Splat</a><a href="./">All GH Games</a></nav>
+</section>
+</body>
+</html>

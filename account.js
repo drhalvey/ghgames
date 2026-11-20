@@ -74,6 +74,7 @@
     "duel-masters": { title: "Duel Masters", keys: ["duelmasters-save"] },
     "parry-panic": { title: "Parry Panic", keys: ["parrypanic-save"] },
     "sky-high-splat": { title: "Sky High Splat", keys: ["skysplat-save"] },
+    "jump-for-animals": { title: "Jump for Animals", keys: ["jfa-save"] },
   };
 
   var TOKEN = "ghacct_token", USER = "ghacct_user", NICK = "ghgames_nick";

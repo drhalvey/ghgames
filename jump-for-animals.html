@@ -88,13 +88,14 @@
       <button id="dShop" title="Shop">🛒</button>
       <button id="dAni" title="Animals">🐾</button>
       <button id="dReb" title="Rebirth">🔁</button>
+      <button id="dBest" title="Go to the highest wall you can jump">⏩</button>
       <button id="dStart" title="Back to the start">🏠</button>
     </div>
     <button id="bJump">JUMP<small id="jAmt">+1 power</small></button>
 
     <div class="ov" id="ovTitle">
       <h2>JUMP FOR<br>ANIMALS</h2>
-      <p>Every jump gives you jump power. Jump over the giant walls: the higher the wall, the rarer the animal behind it and the more money it makes. Spend money on items from a pencil to a black hole for huge jump multis, then jump the purple Rebirth Wall for x5 every rebirth!</p>
+      <p>Every jump gives you jump power. Jump over the giant walls: the higher the wall, the rarer the animal behind it and the more money it makes. Spend money on items from a pencil to a black hole for huge jump multis, then jump the purple Rebirth Wall (wall 15, then 10 more walls each time) for x5 every rebirth!</p>
       <div class="row"><button class="btn" id="bPlay">Play</button><button class="btn alt" id="bTShop">Shop</button></div>
       <div class="stats" id="tStats"></div>
     </div>
@@ -113,7 +114,7 @@
     </div>
   </div>
 
-  <p class="help">Press JUMP (or Space, or click the game) to jump. Every jump adds jump power, and the more jump power you have, the higher you go. Move with W A S D or the arrow keys, drag the screen to look around (the mouse wheel zooms). On iPad: drag the left side to move, drag the right side to look, tap JUMP. Run at a wall and jump: if your jump power is at least the number on the wall, you fly over it and win the animal behind it. Animals earn money every second, even while you jump. 🛒 Shop: items multiply the power you get from each jump (your best item counts), and Auto Jump jumps for you. 🐾 Animals: all 25 rarities. 🔁 Rebirth: jump the purple Rebirth Wall behind the start. Each rebirth gives x5 jump power and money (x1, x5, x25, x125, x625 and so on, 10 rebirths max) but resets your jump power, money and items. You keep your animals and Auto Jump. 🏠 takes you back to the start so you can collect the animals again. Your game saves by itself.</p>
+  <p class="help">Press JUMP (or Space, or click the game) to jump. Every jump adds jump power, and the more jump power you have, the higher you go. Move with W A S D or the arrow keys, drag the screen to look around (the mouse wheel zooms). On iPad: drag the left side to move, drag the right side to look, tap JUMP. Run at a wall and jump: if your jump power is at least the number on the wall, you fly over it and win the animal behind it. Animals earn money every second, even while you jump. 🛒 Shop: items multiply the power you get from each jump (your best item counts), and Auto Jump jumps for you. 🐾 Animals: all 25 rarities. 🔁 Rebirth: jump the purple Rebirth Wall. Rebirth 1 is wall 15, then 10 more walls each time (25, 35 and so on up to wall 105). Each rebirth gives x5 jump power and money (x1, x5, x25, x125, x625 and so on, 10 rebirths max) but resets your jump power, money and items. You keep your animals and Auto Jump. ⏩ takes you to the highest wall you can jump. 🏠 takes you back to the start so you can collect the animals again. Your game saves by itself.</p>
   <div id="lb"></div>
 </div>
 
@@ -135,7 +136,7 @@ const nice=v=>{if(v<100)return Math.round(v);const e=Math.pow(10,Math.floor(Math
    Jump to get jump power. Jump over walls: the higher the wall, the better the rarity and the more money it makes.
    25 rarities. Items multiply jump power: pencil $1 x5, pillow $100 x17, steel backpack $25M x50, black hole $1 sextillion.
    10 rebirths max, x1 x5 x25 x125 x625 and so on (x5 each).
-   Rebirth Wall: starts as tall as wall 15 and needs 10 times more every rebirth. */
+   Rebirths (George picked on 20/11/2026): rebirth 1 needs wall 15, then 10 more walls each rebirth (25, 35 ... 105). */
 const RAR=[
   ["Common","#c9cfdc","Mouse"],["Uncommon","#7fe08a","Bunny"],["Rare","#4aa8ff","Frog"],["Super Rare","#3ad6d0","Duck"],
   ["Epic","#b06bff","Kitten"],["Super Epic","#d24bff","Puppy"],["Legendary","#ffc93c","Piglet"],["Mythic","#ff3d6a","Lamb"],
@@ -144,14 +145,18 @@ const RAR=[
   ["Omega","#e0f4ff","Polar Bear"],["Infinity","#3a6ad0","Whale"],["Quantum","#ff5a1a","Phoenix"],["Ultra","#3ad07a","Dragon"],
   ["Prismatic","#ffffff","Unicorn"],["Shadow","#6a4aa0","Griffin"],["Rainbow","#ff6fa3","Pegasus"],["Void","#5a1a8a","Kraken"],
   ["Supreme","#ffd700","Star Kangaroo"]];
-const NR=RAR.length;            // 25
-const REQ=[],RATE=[];
-for(let k=0;k<NR;k++){
-  REQ.push(nice(k<=14?10*Math.pow(2e5,k/14):2e6*Math.pow(10,k-14)));   // jump power to clear wall k
-  RATE.push(nice(Math.pow(10,k<=14?k*1.4:19.6+(k-14)*3)));              // $ a second per animal
-}
+const NR=RAR.length;            // 25 rarities
 const MAXREB=10;
-const rebReq=r=>REQ[14+Math.min(r,MAXREB-1)];       // Rebirth Wall: wall 15's height, x10 every rebirth
+const NW=15+10*(MAXREB-1);         // 105 walls (George: rebirth 1 at wall 15, then 10 more walls each rebirth)
+const REQ=[],RATE=[],WR=[];
+for(let w=0;w<NW;w++){
+  REQ.push(nice(w<=14?10*Math.pow(2e5,w/14):2e6*Math.pow(10,(w-14)/10)));   // jump power to clear wall w
+  RATE.push(nice(Math.pow(10,w<=14?w*1.4:19.6+(w-14)*.33)));                // $ a second for an animal from wall w
+  WR.push(w<=14?w:15+Math.floor((w-15)/9));                                   // its rarity: walls 1-15 one each, then 9 walls per rarity
+}
+const rebWallIdx=r=>14+10*Math.min(r,MAXREB-1);     // rebirth 1 = wall 15, rebirth 2 = wall 25 ... rebirth 10 = wall 105
+const rebReq=r=>REQ[rebWallIdx(r)];
+const wallsOfRar=k=>{const a=[];for(let w=0;w<NW;w++)if(WR[w]===k)a.push(w);return a;};
 const rebMult=r=>Math.pow(5,r);
 
 const ITEMS=[
@@ -165,8 +170,10 @@ const AUTOMAX=10,autoCost=a=>100*Math.pow(40,a);
 const PENMAX=100;
 
 /* ---------- save ---------- */
-const S=A3.save(SAVE,{v:1,jp:0,money:0,reb:0,items:[],auto:0,cnt:new Array(NR).fill(0),found:[],bestJP:0,bestWall:-1,jumps:0,buck:0});
-if(!Array.isArray(S.cnt)||S.cnt.length!==NR)S.cnt=new Array(NR).fill(0);
+const S=A3.save(SAVE,{v:1,jp:0,money:0,reb:0,items:[],auto:0,cnt:new Array(NW).fill(0),found:[],bestJP:0,bestWall:-1,jumps:0,buck:0,rready:-1});
+if(!Array.isArray(S.cnt))S.cnt=new Array(NW).fill(0);
+if(S.cnt.length===NR&&!S.v2){const c=new Array(NW).fill(0);S.cnt.forEach((n,k)=>{c[k<=14?k:wallsOfRar(k)[0]]+=n;});S.cnt=c;S.bestWall=-1;}   // first version counted by rarity
+while(S.cnt.length<NW)S.cnt.push(0);S.v2=1;
 if(!Array.isArray(S.items))S.items=[];
 if(!Array.isArray(S.found))S.found=[];
 function save(){A3.store(SAVE,S);}
@@ -175,7 +182,8 @@ setInterval(save,5000);addEventListener("pagehide",save);
 const bestItem=()=>S.items.length?Math.max.apply(null,S.items):-1;
 const itemMult=()=>{const b=bestItem();return b<0?1:ITEMS[b][3];};
 const gain=()=>itemMult()*rebMult(S.reb);
-const perSec=()=>{let s=0;for(let k=0;k<NR;k++)s+=S.cnt[k]*RATE[k];return s*rebMult(S.reb);};
+const perSec=()=>{let s=0;for(let w=0;w<NW;w++)if(S.cnt[w])s+=S.cnt[w]*RATE[w];return s*rebMult(S.reb);};
+const rarCount=k=>{let n=0;for(let w=0;w<NW;w++)if(WR[w]===k)n+=S.cnt[w];return n;};
 const penSize=()=>S.cnt.reduce((a,b)=>a+b,0);
 
 /* ---------- 3D ---------- */
@@ -272,79 +280,82 @@ function drawTag(t){if(t===tagTxt)return;tagTxt=t;const g=tagCv.getContext("2d")
 /* ---------- the world ---------- */
 const TW=9,GAP=17,Z0=20;          // half track width, gap between walls, first wall
 const wallZ=k=>Z0+k*GAP;
-const endZ=wallZ(NR-1)+GAP;
+const endZ=wallZ(NW-1)+GAP;
 const visH=v=>1.2+2.4*Math.log10(1+Math.max(0,v));   // how tall a wall (or a jump) of this much power looks
-const REBZ=-16;
 const world=new THREE.Group();scene.add(world);
-const walls=[];let rebWall=null;
+const walls=[],cull=[];
 const pen={x0:-TW-24,x1:-TW-4,z0:-12,z1:12};
+const rarCol=k=>RAR[k][1]==="#2b2b2b"?"#555555":RAR[k][1];
+function chunk(z){const i=Math.floor(z/120);if(!cull[i]){const g=new THREE.Group();world.add(g);cull[i]=g;}return cull[i];}
 function buildWorld(){
   const len=endZ+60;
   const gr=A3.ground(len+260,"#6fd06a","#62c45c",Math.round((len+260)/2));gr.position.set(0,0,len/2-40);world.add(gr);
   const track=new THREE.Mesh(new THREE.PlaneGeometry(TW*2,len+20),mPlain("#e8d9b0",{roughness:.95}));track.rotation.x=-Math.PI/2;track.position.set(0,.02,len/2-30);track.receiveShadow=true;world.add(track);
   const railM=mPlain("#ffffff",{metalness:.2});
   for(const s of[-1,1]){const e=bx(.6,1.2,len+20,railM);e.position.set(s*(TW+.3),.6,len/2-30);world.add(e);}
+  const back=bx(TW*2+1.2,1.2,.6,railM);back.position.set(0,.6,-12);world.add(back);
   const st=A3.cyl(3.5,3.5,.25,mPlain("#ffffff"),28);st.position.set(0,.12,0);world.add(st);
   const sl=A3.label("🦘 JUMP FOR ANIMALS",{size:1.2,color:"#ffd23f",stroke:"#3a1d00"});sl.position.set(0,7.5,9);world.add(sl);
-  for(let k=0;k<NR;k++){
-    const z=wallZ(k),need=REQ[k],hh=visH(need),col=RAR[k][1];
+  const capM=mPlain("#ffffff");
+  for(let w=0;w<NW;w++){
+    const k=WR[w],z=wallZ(w),need=REQ[w],hh=visH(need),col=RAR[k][1],G=chunk(z);
     const mat=new THREE.MeshStandardMaterial({color:new THREE.Color(col).convertSRGBToLinear(),roughness:.45,metalness:.15,emissive:k>=17?new THREE.Color(col).convertSRGBToLinear():0x000000,emissiveIntensity:k>=17?.25:0});
-    const m=new THREE.Mesh(new THREE.BoxGeometry(TW*2,hh,1.2),mat);m.position.set(0,hh/2,z);m.castShadow=true;m.receiveShadow=true;world.add(m);
-    const cap=bx(TW*2+.4,.35,1.6,mPlain("#ffffff"));cap.position.set(0,hh+.17,z);world.add(cap);
-    const lb=A3.label("🦘 "+fmt(need)+" jump",{size:1.25,color:"#fff",stroke:"#1b1b2b",bg:"rgba(20,10,40,.8)"});lb.position.set(0,2.5,z-.9);world.add(lb);
-    const rl=A3.label(RAR[k][0]+" "+RAR[k][2],{size:.85,color:col==="#2b2b2b"?"#dddddd":col,stroke:"#111",bg:"rgba(20,10,40,.6)"});rl.position.set(0,1.25,z-.9);world.add(rl);
+    const m=new THREE.Mesh(new THREE.BoxGeometry(TW*2,hh,1.2),mat);m.position.set(0,hh/2,z);m.castShadow=true;m.receiveShadow=true;G.add(m);
+    const cap=bx(TW*2+.4,.35,1.6,capM);cap.position.set(0,hh+.17,z);G.add(cap);
+    const lb=A3.label("Wall "+(w+1)+"  🦘 "+fmt(need)+" jump",{size:1.25,color:"#fff",stroke:"#1b1b2b",bg:"rgba(20,10,40,.8)"});lb.position.set(0,2.5,z-.9);G.add(lb);
+    const rl=A3.label(RAR[k][0]+" "+RAR[k][2],{size:.85,color:col==="#2b2b2b"?"#dddddd":col,stroke:"#111",bg:"rgba(20,10,40,.6)"});rl.position.set(0,1.25,z-.9);G.add(rl);
     // the prize behind the wall
-    const pz=z+GAP/2,ped=A3.cyl(1.6,1.9,.6,mPlain(col==="#2b2b2b"?"#555555":col,{metalness:.3}),20);ped.position.set(-TW+2.6,.3,pz);world.add(ped);
-    const an=makeAnimal(k);an.position.set(-TW+2.6,.6,pz);an.scale.setScalar(1.3);world.add(an);
-    const pl=A3.label("$"+fmt(RATE[k])+"/s",{size:.8,color:"#7dffb0",stroke:"#0b2a14"});pl.position.set(-TW+2.6,3.4,pz);world.add(pl);
-    walls.push({k,z,need,hh,m,mat,an,ok:false});
+    const pz=z+GAP/2,ped=A3.cyl(1.6,1.9,.6,mPlain(rarCol(k),{metalness:.3}),20);ped.position.set(-TW+2.6,.3,pz);G.add(ped);
+    const an=makeAnimal(k);an.position.set(-TW+2.6,.6,pz);an.scale.setScalar(1.3);G.add(an);
+    const pl=A3.label("$"+fmt(RATE[w])+"/s",{size:.8,color:"#7dffb0",stroke:"#0b2a14"});pl.position.set(-TW+2.6,3.4,pz);G.add(pl);
+    walls.push({w,k,z,need,hh,m,mat,an,ok:false});
   }
   // the end of the track: a giant trophy
-  const tz=endZ;const base=A3.box(6,1,6,mPlain("#8a5a10",{metalness:.4}));base.position.set(0,.5,tz);world.add(base);
-  const cup=A3.cyl(2.2,1.2,3,mPlain("#ffd23f",{metalness:.7,roughness:.3}),20);cup.position.set(0,3.5,tz);world.add(cup);
-  const el=A3.label("You jumped every wall! 🏆",{size:1.2,color:"#fff",stroke:"#1b1b2b"});el.position.set(0,7,tz);world.add(el);
-  // the Rebirth Wall behind the start
-  const rbm=new THREE.MeshStandardMaterial({color:new THREE.Color("#a24bff").convertSRGBToLinear(),roughness:.35,metalness:.3,emissive:new THREE.Color("#7a2adf").convertSRGBToLinear(),emissiveIntensity:.35});
-  const rm=new THREE.Mesh(new THREE.BoxGeometry(TW*2,1,1.2),rbm);rm.castShadow=true;world.add(rm);
-  for(const s of[-1,1]){const e=bx(.6,1.2,14,railM);e.position.set(s*(TW+.3),.6,REBZ-4);world.add(e);}
-  const back=bx(TW*2+1.2,1.2,.6,railM);back.position.set(0,.6,REBZ-11);world.add(back);
-  const portal=new THREE.Mesh(new THREE.TorusGeometry(2.4,.3,10,36),mPlain("#ff6fa3",{emissive:new THREE.Color("#ff6fa3").convertSRGBToLinear(),emissiveIntensity:.6}));portal.position.set(0,2.8,REBZ-7);world.add(portal);
-  rebWall={m:rm,mat:rbm,portal,lb:null,lbTxt:""};
+  const tz=endZ,TG=chunk(tz);const base=A3.box(6,1,6,mPlain("#8a5a10",{metalness:.4}));base.position.set(0,.5,tz);TG.add(base);
+  const cup=A3.cyl(2.2,1.2,3,mPlain("#ffd23f",{metalness:.7,roughness:.3}),20);cup.position.set(0,3.5,tz);TG.add(cup);
+  const el=A3.label("You jumped all "+NW+" walls! 🏆",{size:1.2,color:"#fff",stroke:"#1b1b2b"});el.position.set(0,7,tz);TG.add(el);
+  // the rebirth marker: a purple band, a portal and a sign on this rebirth's wall
+  const rg=new THREE.Group();world.add(rg);
+  const band=new THREE.Mesh(new THREE.BoxGeometry(TW*2+.6,1,1.5),mPlain("#a24bff",{emissive:new THREE.Color("#a24bff").convertSRGBToLinear(),emissiveIntensity:.5}));rg.add(band);
+  const portal=new THREE.Mesh(new THREE.TorusGeometry(2.4,.3,10,36),mPlain("#ff6fa3",{emissive:new THREE.Color("#ff6fa3").convertSRGBToLinear(),emissiveIntensity:.6}));portal.position.set(0,3,GAP/2);rg.add(portal);
+  rebMark={g:rg,band,portal,lb:null,lbTxt:""};
   // the animal pen beside the start
   const fM=mPlain("#a8743a");
   for(const x of[pen.x0,pen.x1]){const f=bx(.3,1,pen.z1-pen.z0,fM);f.position.set(x,.5,(pen.z0+pen.z1)/2);world.add(f);}
   for(const z of[pen.z0,pen.z1]){const f=bx(pen.x1-pen.x0,1,.3,fM);f.position.set((pen.x0+pen.x1)/2,.5,z);world.add(f);}
   const pg=new THREE.Mesh(new THREE.PlaneGeometry(pen.x1-pen.x0,pen.z1-pen.z0),mPlain("#8ee07a"));pg.rotation.x=-Math.PI/2;pg.position.set((pen.x0+pen.x1)/2,.03,(pen.z0+pen.z1)/2);world.add(pg);
   const penL=A3.label("🐾 Your animals",{size:1.1,color:"#fff",stroke:"#1b1b2b"});penL.position.set((pen.x0+pen.x1)/2,2.2,pen.z1+.5);world.add(penL);
-  // trees
-  const R=A3.seeded(77),dm=mPlain("#3fa34d",{flatShading:true}),tm=mPlain("#7a5a3a");
-  for(let k=0;k<70;k++){const s=k%2?1:-1,x=s*(TW+6+R()*30),z=-30+R()*(len+40),sc=1+R()*1.8;
+  // trees and clouds, in chunks so far-away ones are not drawn
+  const R=A3.seeded(77),dm=mPlain("#3fa34d",{flatShading:true}),tm=mPlain("#7a5a3a"),cm=mPlain("#ffffff",{roughness:1});
+  for(let k=0;k<Math.round(len/7);k++){const s=k%2?1:-1,x=s*(TW+6+R()*30),z=-30+R()*(len+40),sc=1+R()*1.8;
     if(x<pen.x1+3&&x>pen.x0-3&&z>pen.z0-3&&z<pen.z1+3)continue;
-    const t=A3.cyl(.35*sc,.45*sc,2.4*sc,tm,8);t.position.set(x,1.2*sc,z);world.add(t);
-    const l=new THREE.Mesh(new THREE.IcosahedronGeometry(1.5*sc,0),dm);l.position.set(x,2.6*sc+1,z);l.castShadow=true;world.add(l);}
-  // floating clouds
-  const cm=mPlain("#ffffff",{roughness:1});
-  for(let k=0;k<26;k++){const c=new THREE.Group();for(let j=0;j<4;j++){const b=new THREE.Mesh(new THREE.SphereGeometry(2+R()*2,10,8),cm);b.position.set(j*2.6,R()*1.2,R()*2);c.add(b);}
-    c.position.set((R()-.5)*160,18+R()*40,-40+R()*(len+60));world.add(c);}
+    const G=chunk(Math.max(0,z));
+    const t=A3.cyl(.35*sc,.45*sc,2.4*sc,tm,8);t.position.set(x,1.2*sc,z);G.add(t);
+    const l=new THREE.Mesh(new THREE.IcosahedronGeometry(1.5*sc,0),dm);l.position.set(x,2.6*sc+1,z);l.castShadow=true;G.add(l);}
+  for(let k=0;k<Math.round(len/25);k++){const c=new THREE.Group();for(let j=0;j<4;j++){const b=new THREE.Mesh(new THREE.SphereGeometry(2+R()*2,10,8),cm);b.position.set(j*2.6,R()*1.2,R()*2);c.add(b);}
+    const z=-40+R()*(len+60);c.position.set((R()-.5)*160,18+R()*40,z);chunk(Math.max(0,z)).add(c);}
 }
+let rebMark=null;
+function cullWorld(){const i0=Math.floor(P.z/120);cull.forEach((g,i)=>{if(g)g.visible=i>=i0-2&&i<=i0+4;});}
 function refreshRebWall(){
-  const max=S.reb>=MAXREB,need=rebReq(S.reb),hh=max?visH(REQ[NR-1]):visH(need);
-  rebWall.need=need;rebWall.hh=hh;rebWall.max=max;
-  rebWall.m.scale.y=hh;rebWall.m.position.set(0,hh/2,REBZ);
-  const txt=max?"🔁 MAX REBIRTHS! x"+fmt(rebMult(S.reb)):"🔁 REBIRTH WALL  🦘 "+fmt(need)+" jump";
-  if(txt!==rebWall.lbTxt){rebWall.lbTxt=txt;if(rebWall.lb)world.remove(rebWall.lb);rebWall.lb=A3.label(txt,{size:1.2,color:"#fff",stroke:"#2a0a4a",bg:"rgba(60,10,90,.85)"});world.add(rebWall.lb);}
-  rebWall.lb.position.set(0,Math.min(hh*.5+.8,4.4),REBZ+.9);
+  const max=S.reb>=MAXREB,wi=rebWallIdx(S.reb),wl=walls[wi];
+  rebMark.g.visible=!max;
+  if(max)return;
+  rebMark.g.position.set(0,0,wl.z);rebMark.band.position.set(0,wl.hh+.6,0);
+  const txt="🔁 REBIRTH WALL: jump wall "+(wi+1)+" to rebirth (x"+fmt(rebMult(S.reb+1))+")";
+  if(txt!==rebMark.lbTxt){rebMark.lbTxt=txt;if(rebMark.lb)rebMark.g.remove(rebMark.lb);rebMark.lb=A3.label(txt,{size:1.1,color:"#fff",stroke:"#2a0a4a",bg:"rgba(60,10,90,.85)"});rebMark.g.add(rebMark.lb);}
+  rebMark.lb.position.set(0,3.75,-1);
 }
 function refreshWalls(){
   for(const w of walls){const ok=S.jp>=w.need;if(ok!==w.ok){w.ok=ok;w.mat.transparent=ok;w.mat.opacity=ok?.55:1;
-    if(ok&&started){A3.sfx("pop");A3.toast("✅ You can jump the "+RAR[w.k][0]+" wall now!",1500);}}}
+    if(ok&&started){A3.sfx("pop");A3.toast("✅ You can jump wall "+(w.w+1)+" ("+RAR[w.k][0]+") now!",1500);}}}
 }
 
 /* pen animals: the best 18 wander about */
 const penG=new THREE.Group();scene.add(penG);
 let penSig="";
 function rebuildPen(){
-  const list=[];for(let k=NR-1;k>=0&&list.length<18;k--)for(let i=0;i<S.cnt[k]&&list.length<18;i++)list.push(k);
+  const list=[];for(let w=NW-1;w>=0&&list.length<18;w--)for(let i=0;i<S.cnt[w]&&list.length<18;i++)list.push(WR[w]);
   const sig=list.join(",");if(sig===penSig)return;penSig=sig;
   while(penG.children.length)penG.remove(penG.children[0]);
   const R=A3.seeded(5);
@@ -407,18 +418,23 @@ cv.addEventListener("contextmenu",e=>e.preventDefault());
 A3.fullscreen($("bFs"),stage);
 $("bMute").onclick=()=>{$("bMute").textContent=A3.mute(!A3.mute())?"🔇":"🔊";};$("bMute").textContent=A3.mute()?"🔇":"🔊";
 $("bHome").onclick=()=>{mode="title";$("ovTitle").hidden=false;$("ovMenu").hidden=true;titleStats();};
+$("dBest").onclick=()=>{if(mode!=="play")return;let b=-1;for(const w of walls)if(S.jp>=w.need)b=w.w;
+  if(b<0){A3.toast("🦘 Jump a few times first, then try again!",1800);return;}
+  P.x=0;P.z=walls[b].z-6;P.y=0;P.vy=0;P.ground=true;cam.yaw=0;got=new Set();A3.sfx("whoosh");
+  A3.toast("⏩ Wall "+(b+1)+": run at it and jump!",1800);};
 $("dStart").onclick=()=>{if(mode!=="play")return;toStart();A3.sfx("whoosh");A3.toast("🏠 Back to the start. Jump the walls again to win more animals!",1800);};
 
 /* ---------- winning an animal ---------- */
-function winAnimal(k){
-  S.cnt[k]++;
-  // the pen holds 100: the least rare go first
-  let tot=penSize();for(let j=0;j<NR&&tot>PENMAX;j++){while(S.cnt[j]>0&&tot>PENMAX){S.cnt[j]--;tot--;}}
+function winAnimal(w){
+  const k=WR[w];
+  S.cnt[w]++;
+  // the pen holds 100: animals from the lowest walls go first
+  let tot=penSize();for(let j=0;j<NW&&tot>PENMAX;j++){while(S.cnt[j]>0&&tot>PENMAX){S.cnt[j]--;tot--;}}
   const isNew=S.found.indexOf(k)<0;if(isNew)S.found.push(k);
-  if(k>S.bestWall){S.bestWall=k;A3.best(Math.floor(S.bestJP));}
+  if(w>S.bestWall){S.bestWall=w;A3.best(Math.floor(S.bestJP));}
   addFollower(k);
   parts.burst(new THREE.Vector3(P.x,P.y+1.5,P.z),RAR[k][1],30,7);A3.sfx("coin");
-  A3.toast((isNew?"🆕 NEW! ":"")+"You won a "+RAR[k][0]+" "+RAR[k][2]+"! +$"+fmt(RATE[k]*rebMult(S.reb))+" a second",2200);
+  A3.toast((isNew?"🆕 NEW! ":"")+"Wall "+(w+1)+": a "+RAR[k][0]+" "+RAR[k][2]+"! +$"+fmt(RATE[w]*rebMult(S.reb))+" a second",2200);
   if(isNew&&k>=4)A3.win(Math.min(5,1+Math.floor(k/5)),"finding a "+RAR[k][0]+" "+RAR[k][2]+" in Jump for Animals");
   rebuildPen();save();
 }
@@ -437,7 +453,7 @@ function stepPlayer(dt){
   const ox=P.x,oz=P.z;P.x+=P.vx*dt;P.z+=P.vz*dt;
   const hw=.5;
   P.x=A3.clamp(P.x,-TW+hw,TW-hw);
-  P.z=A3.clamp(P.z,REBZ-10,endZ+6);
+  P.z=A3.clamp(P.z,-10,endZ+6);
   // walls only stop you going forwards; walking back is always allowed
   for(const w of walls){const front=w.z-.6-hw,back=w.z+.6+hw;
     if(oz<=front+1e-6&&P.z>front){
@@ -446,17 +462,10 @@ function stepPlayer(dt){
         if(!w.warn||performance.now()-w.warn>2500){w.warn=performance.now();A3.sfx("hit");
           A3.toast(S.jp>=w.need?"⬆️ Jump right at the wall to fly over it!":"🦘 You need "+fmt(w.need)+" jump power for this wall. Keep jumping!",2000);}}
     }
-    if(P.z>back&&oz<=back&&!got.has(w.k)){got.add(w.k);winAnimal(w.k);}
+    if(P.z>back&&oz<=back&&!got.has(w.w)){got.add(w.w);winAnimal(w.w);
+      // George: rebirth 1 at wall 15, then 10 more walls each rebirth
+      if(S.reb<MAXREB&&w.w===rebWallIdx(S.reb)){S.rready=S.reb;askRebirth();}}
   }
-  // the Rebirth Wall, behind the start
-  {const front=REBZ+.6+hw;
-    if(oz>=front-1e-6&&P.z<front){
-      const ok=!rebWall.max&&S.jp>=rebWall.need&&!P.ground&&P.y>=rebWall.hh*.6;
-      if(ok){P.z=REBZ-3;P.vx=P.vz=0;askRebirth();}
-      else{P.z=front;P.vz=Math.max(0,P.vz);
-        if(!rebWall.warn||performance.now()-rebWall.warn>2500){rebWall.warn=performance.now();A3.sfx("hit");
-          A3.toast(rebWall.max?"🔁 You have done all "+MAXREB+" rebirths!":S.jp>=rebWall.need?"⬆️ Jump right at the Rebirth Wall to rebirth!":"🔁 You need "+fmt(rebWall.need)+" jump power to rebirth.",2200);}}}}
-  if(P.z<REBZ-1&&mode==="play"&&$("ovReb").hidden){P.z=2;}
   if(P.z>=endZ-3){A3.sfx("win");A3.toast("🏆 You jumped every wall! Back to the start.",2400);toStart();}
   // stepping back on the start pad starts a fresh run
   if(Math.hypot(P.x,P.z)<3&&got.size&&P.ground){got=new Set();}
@@ -473,7 +482,7 @@ function hud(){
   $("hR").textContent=S.reb+" (x"+fmt(rebMult(S.reb))+")";
   $("jAmt").textContent="+"+fmt(gain())+" power";
   const nw=nextWall();$("next").textContent=nw?"next wall: "+fmt(nw.need)+" ("+RAR[nw.k][0]+")":"you can jump every wall! 🎉";
-  $("dReb").classList.toggle("glow",S.reb<MAXREB&&S.jp>=rebReq(S.reb));
+  $("dReb").classList.toggle("glow",S.reb<MAXREB&&(S.rready===S.reb||S.jp>=rebReq(S.reb)));
   const nb=ITEMS.findIndex((it,i)=>i>b&&S.money>=it[2]);$("dShop").classList.toggle("glow",nb>=0||(S.auto<AUTOMAX&&S.money>=autoCost(S.auto)));
   drawTag(fmt(S.jp)+" 🦘");
 }
@@ -501,18 +510,18 @@ function drawMenu(){
         (own?`<button class="btn small" disabled>Owned</button>`:`<button class="btn small" data-a="item${i}" ${S.money>=it[2]?"":"disabled"}>${money$(it[2])}</button>`)+`</div>`;});
   }else if(tab==="ani"){
     h+=`<p class="help">Jump a wall to win the animal behind it. The higher the wall, the rarer the animal and the more money it makes. Your pen holds ${PENMAX} animals (the least rare make room). You keep your animals when you rebirth. Rebirth x${fmt(rebMult(S.reb))} on all money.</p>`;
-    for(let k=NR-1;k>=0;k--){const f=S.found.indexOf(k)>=0,c=RAR[k][1];
-      h+=`<div class="an ${f?"":"lock"}"><div class="sw" style="background:${c};color:${c}"></div><div class="tx">${k+1}. ${RAR[k][0]} ${f?RAR[k][2]:"???"}<small>Wall ${k+1}: ${fmt(REQ[k])} jump power · $${fmt(RATE[k])} a second each</small></div><div class="n">${S.cnt[k]}</div></div>`;}
+    for(let k=NR-1;k>=0;k--){const f=S.found.indexOf(k)>=0,c=RAR[k][1],ws=wallsOfRar(k),w0=ws[0],w1=ws[ws.length-1];
+      h+=`<div class="an ${f?"":"lock"}"><div class="sw" style="background:${c};color:${c}"></div><div class="tx">${k+1}. ${RAR[k][0]} ${f?RAR[k][2]:"???"}<small>${w0===w1?"Wall "+(w0+1):"Walls "+(w0+1)+" to "+(w1+1)}: from ${fmt(REQ[w0])} jump power · $${fmt(RATE[w0])}${w0===w1?"":" to $"+fmt(RATE[w1])} a second each</small></div><div class="n">${rarCount(k)}</div></div>`;}
   }else{
-    const max=S.reb>=MAXREB,need=rebReq(S.reb);
+    const max=S.reb>=MAXREB,need=rebReq(S.reb),wi=rebWallIdx(S.reb),ready=!max&&S.rready===S.reb;
     h+=`<div class="up"><div class="ic">🔁</div><div class="tx"><b>${max?"All "+MAXREB+" rebirths done!":"Rebirth "+(S.reb+1)+" of "+MAXREB}</b><small>Now x${fmt(rebMult(S.reb))} jump power and money${max?"":", after this x"+fmt(rebMult(S.reb+1))}.</small>`+
-      (max?"":`<small>Jump the purple Rebirth Wall behind the start. You need ${fmt(need)} jump power (you have ${fmt(S.jp)}).</small>`)+
-      `<small>Resets jump power, money and items. Keeps animals and Auto Jump.</small></div>`+(max?"":`<button class="btn small pink" data-a="goreb" ${S.jp>=need?"":"disabled"}>Take me there</button>`)+`</div>`;
+      (max?"":ready?`<small>You jumped wall ${wi+1}, so you can rebirth now!</small>`:`<small>Jump over wall ${wi+1} (the purple Rebirth Wall). It needs ${fmt(need)} jump power (you have ${fmt(S.jp)}).</small>`)+
+      `<small>Resets jump power, money and items. Keeps animals and Auto Jump.</small></div>`+(max?"":ready?`<button class="btn small pink" data-a="rebnow">Rebirth!</button>`:`<button class="btn small pink" data-a="goreb" ${S.jp>=need?"":"disabled"}>Take me there</button>`)+`</div>`;
     h+=`<div class="rules">George's rebirths
-`+Array.from({length:MAXREB},(_,r)=>" rebirth "+String(r+1).padStart(2)+"   x"+fmt(rebMult(r+1)).padEnd(8)+"  needs "+fmt(rebReq(r))+" jump"+(r<S.reb?"  ✅":"")).join("\n")+`
+`+Array.from({length:MAXREB},(_,r)=>" rebirth "+String(r+1).padStart(2)+"   x"+fmt(rebMult(r+1)).padEnd(8)+"  jump wall "+String(rebWallIdx(r)+1).padStart(3)+"  ("+fmt(rebReq(r))+" jump)"+(r<S.reb?"  ✅":"")).join("\n")+`
 
- The Rebirth Wall starts as tall as wall 15
- and needs 10 times more every rebirth.</div>`;
+ Rebirth 1 at wall 15, then 10 more walls
+ every rebirth, up to wall ${NW}.</div>`;
   }
   $("mBody").innerHTML=h;
   $("mBody").querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>act(b.dataset.a));
@@ -524,7 +533,8 @@ function act(a){
   if(a==="auto"){if(S.auto<AUTOMAX&&S.money>=autoCost(S.auto)){S.money-=autoCost(S.auto);S.auto++;ok=1;}}
   else if(a==="max"){let any=1;while(any){any=0;const b=bestItem();for(let i=ITEMS.length-1;i>b;i--)if(S.money>=ITEMS[i][2]){ok+=buyItem(i);any=1;break;}}}
   else if(a.startsWith("item")){const i=+a.slice(4);ok=buyItem(i);if(ok)A3.toast(ITEMS[i][0]+" "+ITEMS[i][1]+(i===bestItem()?"! Now x"+fmt(ITEMS[i][3])+" jump power":""),1800);}
-  else if(a==="goreb"){$("ovMenu").hidden=true;mode="play";P.x=0;P.z=REBZ+5;P.y=0;P.ground=true;cam.yaw=Math.PI;A3.toast("🔁 Run at the purple wall and jump!",2200);return;}
+  else if(a==="goreb"){$("ovMenu").hidden=true;mode="play";P.x=0;P.z=walls[rebWallIdx(S.reb)].z-6;P.y=0;P.ground=true;cam.yaw=0;got=new Set();A3.toast("🔁 Run at the purple wall and jump!",2200);return;}
+  else if(a==="rebnow"){$("ovMenu").hidden=true;askRebirth();return;}
   if(ok){A3.sfx("coin");save();}else A3.sfx("click");
   drawMenu();
 }
@@ -534,9 +544,9 @@ function askRebirth(){
   mode="menu";$("ovReb").hidden=false;
   $("rebTxt").innerHTML=`Rebirth ${S.reb+1}: everything goes <b>x${fmt(rebMult(S.reb+1))}</b> (now x${fmt(rebMult(S.reb))}).<br>Your jump power, money and items go back to zero. You keep your ${penSize()} animals and Auto Jump.`;
 }
-$("bRebNo").onclick=()=>{$("ovReb").hidden=true;mode="play";P.z=REBZ+4;cam.yaw=0;};
+$("bRebNo").onclick=()=>{$("ovReb").hidden=true;mode="play";A3.toast("🔁 You can rebirth any time from the 🔁 button once you have jumped wall "+(rebWallIdx(S.reb)+1),2600);};
 $("bRebYes").onclick=()=>{
-  if(S.reb>=MAXREB||S.jp<rebReq(S.reb)){$("ovReb").hidden=true;mode="play";P.z=REBZ+4;return;}
+  if(S.reb>=MAXREB||S.rready!==S.reb){$("ovReb").hidden=true;mode="play";return;}
   S.reb++;S.jp=0;S.money=0;S.items=[];showItem();
   $("ovReb").hidden=true;mode="play";toStart();cam.yaw=0;refreshWalls();refreshRebWall();
   A3.sfx("win");parts.burst(new THREE.Vector3(0,2,0),"#ff6fa3",80,10);
@@ -582,7 +592,7 @@ function update(dt,t){
     if(u.ring)u.ring.rotation.z+=dt;});
   coinT-=dt;if(coinT<=0&&penG.children.length){coinT=.6;const m=penG.children[Math.floor(Math.random()*penG.children.length)];parts.burst(m.position.clone().add(new THREE.Vector3(0,1.5,0)),"#7dff8a",3,2,.6);}
   for(const w of walls){w.an.rotation.y+=dt*.8;w.an.position.y=.6+Math.abs(Math.sin(t*3+w.k))*.3;}
-  rebWall.portal.rotation.z+=dt*1.5;
+  rebMark.portal.rotation.z+=dt*1.5;cullWorld();
   // camera rises with your jumps
   if(mode==="title")cam.yaw+=dt*.12;
   if(A3.keys["q"])cam.yaw+=dt*2.2;if(A3.keys["e"])cam.yaw-=dt*2.2;
@@ -614,7 +624,7 @@ window.__jfa={S,P,REQ,RATE,ITEMS,rebReq,jump,act,openMenu,winAnimal,walls,get mo
 <h2>About Jump for Animals</h2>
 <p>Jump for Animals is a 3D jump simulator: every jump makes your jumps bigger, and every giant wall you clear wins you an animal that earns money.</p>
 <h3>How to play</h3>
-<ol><li>Jump to build up jump power.</li><li>Run at a wall and jump over it once your jump power beats the number on the wall.</li><li>Win the animal behind each wall: 25 rarities, from a Common Mouse to a Supreme Star Kangaroo.</li><li>Spend the money your animals make on items, from a pencil to a black hole, for bigger jump multis.</li><li>Jump the purple Rebirth Wall for x5 jump power and money, up to 10 rebirths.</li></ol>
+<ol><li>Jump to build up jump power.</li><li>Run at a wall and jump over it once your jump power beats the number on the wall.</li><li>Win the animal behind each of the 105 walls: 25 rarities, from a Common Mouse to a Supreme Star Kangaroo.</li><li>Spend the money your animals make on items, from a pencil to a black hole, for bigger jump multis.</li><li>Jump the purple Rebirth Wall (wall 15, then 10 more walls each rebirth) for x5 jump power and money, up to 10 rebirths and 105 walls.</li></ol>
 <p style="margin-top:12px">Jump for Animals is free to play in your browser on iPad, phone or computer, with nothing to download. Make a free GH Games account to save your progress online, earn PhatCoin and climb the leaderboard.</p>
 <h3>More free games</h3>
 <nav><a href="plus-one-height.html">+1 Height Per Click</a><a href="sky-bounce.html">Sky Bounce</a><a href="wall-hop.html">Wall Hop Pets</a><a href="sky-high-splat.html">Sky High Splat</a><a href="./">All GH Games</a></nav>

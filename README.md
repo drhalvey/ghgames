@@ -64,7 +64,7 @@ Open any `index.html` in a browser right now to play — nothing needs to be onl
 
 ## 3D versions and Classic copies (October 2026)
 
-Every game is now 3D (three.js r128, kept locally in `vendor/three.min.js`, no CDN). The 2D version of each is kept as `<name>-classic.html`, linked from the top of the 3D page; it uses the same save key and `data-game`, so progress is shared and online games still mix 3D and Classic players. Seven Years' War's 2D copy is `seven-years-war-2d.html`, because `seven-years-war-classic.html` was already its own older game. If a device cannot run WebGL, the 3D page shows a link to the Classic.
+Every game is now 3D (three.js r128, kept locally in `vendor/three.min.js`, no CDN; Supabase's browser library is `vendor/supabase-2.119.0.js` and the big-number library `vendor/break_infinity-2.0.0.min.js`, also local since 20/11/2026). The 2D version of each is kept as `<name>-classic.html`, linked from the top of the 3D page; it uses the same save key and `data-game`, so progress is shared and online games still mix 3D and Classic players. Seven Years' War's 2D copy is `seven-years-war-2d.html`, because `seven-years-war-classic.html` was already its own older game. If a device cannot run WebGL, the 3D page shows a link to the Classic.
 New games: build them 3D from the start (save-your-rabbit.html is a good pattern: sky dome, studded blocks, blocky characters, follow camera, joystick on iPad).
 
 ## Arcade classics (October 2026, reworked 22 October)
@@ -149,7 +149,7 @@ Make a free [GitHub](https://github.com) account, then a new **public** reposito
 ## PhatCoin (the arcade coin, the heart of the site)
 
 - One coin for all of GH Games, stored in the player's account (`pc_wallets`, every change logged in `pc_log`, all credits go through `pc_credit`).
-- Earned (server-capped, so a game can't overpay): **playing any game 2 a minute** (only while someone is touching the screen), win up to 5 (one per 8 s), rebirth 25 (one a minute), daily bonus 20 rising 10 a day in a row to 100 (Perth days), today's top 10 once a day per game (100/50/20, checked automatically after every leaderboard score), **invites** (see below). Most from play in one day: 1000.
+- Earned (server-capped, so a game can't overpay): **playing any game 2 a minute** (only while someone is touching the screen), win up to 5 (one per 8 s), rebirth 25 (one a minute), daily bonus 20 rising 10 a day in a row to 100 (Perth days), today's top 10 once a day per game (100/50/20, checked automatically after every leaderboard score; since 20/11/2026 only scores posted while logged in count, through `gh_score_submit`, see `sql/2026-11-20-leaderboard-rewards.sql`), **invites** (see below). Most from play in one day: 1000.
 - Not logged in: up to 200 sit in a pocket on that device and move into the account on first log-in.
 - **Level** = floor(sqrt(PhatCoin earned ever / 25)) + 1. Spending never lowers it.
 - **Shop** (`shop_items`, me.html): avatars, frames, name colours and 3 paid site themes (Gold Rush, Galaxy, Jungle; the old 4 themes stay free). Prices live in the `shop_items` table, so change a price or add an item there with no code change (new avatar emoji go in `AVATARS` in account.js; new frames/colours need CSS in account.js).

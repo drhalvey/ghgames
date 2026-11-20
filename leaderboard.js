@@ -249,8 +249,16 @@
       if (isNaN(score) || score < 0) return Promise.resolve();
       if (submitCfg.max != null && score > submitCfg.max) return Promise.resolve();
       if (submitCfg.min != null && score < submitCfg.min) return Promise.resolve();
-      return api(TABLE, { method: "POST", body: JSON.stringify({ game: submitCfg.game, name: name, score: score }) })
-        .then(function () { refreshAll(); }).catch(function () {});
+      var row = { game: submitCfg.game, name: name, score: score };
+      function direct() { return api(TABLE, { method: "POST", body: JSON.stringify(row) }); }
+      // Logged in: post through gh_score_submit so the score is stamped with the account
+      // (only those scores earn leaderboard PhatCoin). Falls back to a plain post.
+      var tok = ""; try { tok = localStorage.getItem("ghacct_token") || ""; } catch (e) {}
+      var send = tok
+        ? api("rpc/gh_score_submit", { method: "POST", body: JSON.stringify({ p_token: tok, p_game: row.game, p_name: name, p_score: score }) })
+            .then(null, direct)
+        : direct();
+      return send.then(function () { refreshAll(); }).catch(function () {});
     },
 
     // standalone shared nickname bar (used on the hub / homepage)
@@ -267,7 +275,9 @@
       injectCSS();
       var box = el(opts.el); if (!box) return;
       var cfg = { game: opts.game, dir: opts.dir || "desc", unit: opts.unit || "", max: opts.max, min: opts.min };
-      if (opts.showNick !== false) submitCfg = cfg; // game pages submit; hub boards don't
+      if (opts.showNick !== false) { // game pages submit; hub boards don't
+        submitCfg = cfg; Leaderboard._game = cfg.game; Leaderboard._dir = cfg.dir;
+      }
       var dirNote = cfg.dir === "asc" ? "fastest wins" : "highest wins";
       box.className = "lb";
       box.innerHTML =

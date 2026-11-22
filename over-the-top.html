@@ -315,7 +315,8 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
       <div class="stats" id="endStats"></div>
       <div id="endMedal" class="scen" hidden></div>
       <div class="row">
-        <button class="bb" id="againBtn">Go again</button>
+        <button class="bb" id="retryBtn" hidden>Retry this wave<small id="retrySub"></small></button>
+        <button class="bb" id="againBtn">Go again<small id="againSub"></small></button>
         <button class="bb alt" id="menuBtn">Change side or job</button>
       </div>
       <div class="hist" id="endHist"></div>
@@ -429,7 +430,7 @@ const HIST = {
 // ======================================================================
 // audio
 // ======================================================================
-let AC = null, NB = null, MASTER = null;
+let AC = null, NB = null, MASTER = null, EARS = null;
 try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
 function audio() {
   if (S.mute) return null;
@@ -439,7 +440,7 @@ function audio() {
       const len = AC.sampleRate * 2; NB = AC.createBuffer(1, len, AC.sampleRate);
       const ch = NB.getChannelData(0); for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
       const comp = AC.createDynamicsCompressor(); comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 6; comp.attack.value = 0.002; comp.release.value = 0.2;
-      MASTER = AC.createGain(); MASTER.gain.value = 0.8; MASTER.connect(comp); comp.connect(AC.destination);
+      MASTER = AC.createGain(); MASTER.gain.value = 0.8; EARS = AC.createBiquadFilter(); EARS.type = "lowpass"; EARS.frequency.value = 20000; MASTER.connect(EARS); EARS.connect(comp); comp.connect(AC.destination);
     } catch (e) { AC = null; return null; }
   }
   if (AC.state === "suspended") AC.resume();
@@ -520,6 +521,39 @@ const sfx = {
   boltOpen() { noise(0.05, 2000, "bandpass", 0.25, 3); tone(900, 0.04, "square", 0.05); }
 };
 setInterval(() => { shoutBudget = Math.max(0, shoutBudget - 3); }, 1000);
+// shellfire sounds: the shell coming in, the burst (heard a moment late when it is far off, as sound is slower than light), the far guns
+Object.assign(sfx, {
+  incoming(kind, d, dur, pan) {
+    const a = audio(); if (!a || d > 140) return;
+    const t = a.currentTime, v = clamp(26 / (d + 6), 0.08, 1.2), heavy = kind === "heavy", shr = kind === "shrap";
+    const f0 = heavy ? 1250 : shr ? 2100 : 2600, f1 = heavy ? 330 : shr ? 1300 : 900, len = heavy ? dur : Math.min(dur, kind === "field" ? 0.55 : 0.8), st = t + dur - len;
+    const o = a.createOscillator(), g = a.createGain(); o.type = "sine"; o.frequency.setValueAtTime(f0, st); o.frequency.exponentialRampToValueAtTime(f1, st + len);
+    g.gain.setValueAtTime(0.0001, st); g.gain.exponentialRampToValueAtTime(0.05 * v, st + len * 0.92); g.gain.exponentialRampToValueAtTime(0.0001, st + len);
+    o.connect(g); g.connect(out(pan)); o.start(st); o.stop(st + len + 0.05);
+    // the rush of air, loudest for the heavies ("like an express train")
+    const s = a.createBufferSource(); s.buffer = NB; const f = a.createBiquadFilter(); f.type = "bandpass"; f.Q.value = heavy ? 2.5 : 4; f.frequency.setValueAtTime(f0 * 0.8, st); f.frequency.exponentialRampToValueAtTime(f1 * 0.9, st + len);
+    const g2 = a.createGain(); g2.gain.setValueAtTime(0.0001, st); g2.gain.exponentialRampToValueAtTime((heavy ? 0.28 : 0.14) * v, st + len * 0.95); g2.gain.exponentialRampToValueAtTime(0.0001, st + len + 0.02);
+    s.connect(f); f.connect(g2); g2.connect(out(pan)); s.start(st, Math.random()); s.stop(st + len + 0.05);
+  },
+  blast(kind, d, pan) {
+    const dl = Math.min(0.5, d / 343), heavy = kind === "heavy", small = kind === "bomb", v = clamp(40 / (d + 10), 0.1, 1) * (heavy ? 1.15 : small ? 0.7 : 1);
+    const lp = clamp(5200 / (1 + d * 0.06), 160, 2600); // far bursts lose their crack and only thump
+    if (kind === "shrap") { noise(0.09, 3800, "bandpass", 0.55 * v, 1.2, dl, pan); noise(0.9, 600, "lowpass", 0.35 * v, 0.7, dl, pan); for (let i = 0; i < 6; i++) noise(0.05, 2500, "bandpass", 0.06 * v, 3, dl + 0.2 + Math.random() * 0.4, pan); return; }
+    noise(0.07, lp, "lowpass", 0.75 * v, 0.7, dl, pan);
+    noise(heavy ? 2.4 : 1.5, heavy ? 180 : 240, "lowpass", 0.95 * v, 0.7, dl, pan);
+    tone(heavy ? 46 : 58, heavy ? 1.4 : 0.9, "sine", 0.85 * v, dl, 20, pan);
+    if (heavy) tone(34, 1.8, "sine", 0.5 * v, dl + 0.05, 16, pan);
+    if (d < 45) for (let i = 0; i < (heavy ? 12 : 7); i++) noise(0.05, 900 + Math.random() * 1200, "bandpass", 0.07 * v, 2, dl + 0.45 + Math.random() * 1.5, pan); // earth pattering down
+  },
+  gunFar(pan) { const v = rnd(0.05, 0.13); noise(0.7, 140, "lowpass", v, 0.7, 0, pan); tone(42, 0.5, "sine", v * 0.8, 0, 26, pan); },
+  splash(v, pan) { noise(0.9, 1600, "lowpass", 0.35 * v, 0.7, 0.1, pan); noise(1.6, 3000, "bandpass", 0.08 * v, 1, 0.6, pan); }
+});
+// a shell bursting very close leaves your ears ringing for a moment
+function deafen(k) {
+  const a = audio(); if (!a || !EARS) return; const t = a.currentTime, f = EARS.frequency;
+  f.cancelScheduledValues(t); f.setValueAtTime(Math.max(350, 2600 * (1 - k)), t); f.exponentialRampToValueAtTime(20000, t + 1 + k * 1.8);
+  tone(3300, 1.2 + k, "sine", 0.02 * k);
+}
 
 // shouted orders, in the browser's own English or German voice
 const VOICES = { en: null, de: null };
@@ -587,7 +621,10 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(800, 24, 12), new THREE.Shad
 }));
 sky.renderOrder = -10; sky.frustumCulled = false; scene.add(sky);
 // fields and mud far beyond the battle, so the world doesn't end when you fly high
-{ const far = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshLambertMaterial({ color: 0x6e6a4e })); far.rotation.x = -Math.PI / 2; far.position.set(0, -0.7, -60); far.receiveShadow = false; scene.add(far); }
+{ // a big flat apron with a hole where the battlefield mesh lies, so it never shows through the deep shell holes
+  const sh = new THREE.Shape([new THREE.Vector2(-1500, -1500), new THREE.Vector2(1500, -1500), new THREE.Vector2(1500, 1500), new THREE.Vector2(-1500, 1500)]);
+  sh.holes.push(new THREE.Path([new THREE.Vector2(-123, -48), new THREE.Vector2(-123, 188), new THREE.Vector2(123, 188), new THREE.Vector2(123, -48)]));
+  const far = new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshLambertMaterial({ color: 0x6e6a4e })); far.rotation.x = -Math.PI / 2; far.position.y = -0.7; far.receiveShadow = false; scene.add(far); }
 scene.fog = new THREE.Fog(0x9c988c, 70, 360);
 // weather and light that change through the day: fog, night
 const ATM_DEF = { near: 70, far: 360, col: 0x9c988c, hemi: 0.9, sun: 0.62, top: 0x56606c, mid: 0x9c9a90, bot: 0xa59c86 };
@@ -666,13 +703,15 @@ function addCrater(x, z, r, dep) {
 }
 {
   const R = mulberry(1916);
+  // no man's land after months of shelling: holes on holes, lip to lip, small ones inside the rims of big ones
   let n = 0, tries = 0;
-  while (n < 95 && tries++ < 4000) {
-    const x = -XW - 10 + R() * (2 * XW + 20), z = -L + 7 + R() * (L - 14), r = 1.8 + R() * 2.8;
+  while (n < 290 && tries++ < 14000) {
+    const q = R(), r = q < 0.5 ? 1.4 + R() * 1.1 : q < 0.92 ? 2.5 + R() * 1.7 : 4.2 + R() * 2.2;
+    const x = -XW - 25 + R() * (2 * XW + 50), z = -L + 7 + R() * (L - 14);
     if (z > -6 - r || z < -L + 6 + r) continue;
-    let ok = true; for (const c of CR) { const d = Math.hypot(c.x - x, c.z - z); if (d < (c.r + r) * 0.75) { ok = false; break; } }
+    let ok = true; for (const c of CR) { const d = Math.hypot(c.x - x, c.z - z); if (d < (c.r + r) * 0.52 || d < Math.max(c.r, r) * 0.72) { ok = false; break; } }
     if (!ok) continue;
-    addCrater(x, z, r, 0.55 + r * 0.22 + R() * 0.25); n++;
+    addCrater(x, z, r, 0.45 + r * 0.23 + R() * 0.25); n++;
   }
   // a few big mine craters and old shell holes further out
   addCrater(-58, -78, 7, 2.2); addCrater(52, -64, 5.5, 1.8);
@@ -701,35 +740,48 @@ function H(x, z) {
   const dO = zOwn(x) - z, dE = z - zEn(x);
   const nf = Math.min(sstep(1.5, 4, Math.abs(dO)), sstep(1.5, 4, Math.abs(dE)));
   const n = 0.22 * Math.sin(x * 0.21 + z * 0.13) + 0.16 * Math.sin(x * 0.07 - z * 0.19 + 1.3) + 0.1 * Math.sin(x * 0.5 + z * 0.43) + 0.6 * Math.sin(z * 0.012 + 0.4) * Math.sin(x * 0.02);
-  return n * nf + trenchProf(dO) + trenchProf(dE) + craterH(x, z);
+  // churned, lumpy ground between the lines: heaps of thrown-up earth, ruts and puddled hollows
+  const nml = sstep(-L + 4, -L + 14, z) * (1 - sstep(-14, -4, z));
+  const churn = nml * (0.13 * Math.sin(x * 1.13 + z * 0.87) * Math.sin(x * 0.71 - z * 1.29 + 0.6) + 0.07 * Math.sin(x * 2.1 - z * 1.7 + 2.0));
+  return n * nf + churn + trenchProf(dO) + trenchProf(dE) + craterH(x, z);
 }
 
 // ---------- the ground mesh: fine rows where the trenches are, coarse elsewhere ----------
 const MUD = (() => {
+  // churned Western Front mud: wet and dark in patches, pale chalk and flints thrown up, clods, splinters and stones
   const N = 512, [c, g] = cnv(N, N), R = mulberry(7);
-  g.fillStyle = "#8a7a62"; g.fillRect(0, 0, N, N);
-  for (let i = 0; i < 9000; i++) { const x = R() * N, y = R() * N, s = 1 + R() * 6; g.fillStyle = R() < 0.5 ? "rgba(50,38,26," + (0.08 + R() * 0.14).toFixed(2) + ")" : "rgba(190,175,150," + (0.05 + R() * 0.1).toFixed(2) + ")"; g.beginPath(); g.ellipse(x, y, s, s * (0.4 + R() * 0.6), R() * 3, 0, 7); g.fill(); }
-  for (let i = 0; i < 260; i++) { g.strokeStyle = "rgba(40,30,20,.18)"; g.lineWidth = 1 + R() * 2; g.beginPath(); const x = R() * N, y = R() * N; g.moveTo(x, y); g.quadraticCurveTo(x + R() * 30 - 15, y + R() * 30 - 15, x + R() * 50 - 25, y + R() * 50 - 25); g.stroke(); }
+  g.fillStyle = "#7a7062"; g.fillRect(0, 0, N, N);
+  const wrap = (x, y, m, fn) => { for (const ox of [0, -N, N]) for (const oy of [0, -N, N]) { const X = x + ox, Y = y + oy; if (X > -m && X < N + m && Y > -m && Y < N + m) fn(X, Y); } };
+  const blob = (x, y, s, col) => { const s2 = s * (0.45 + R() * 0.55), a = R() * 3; wrap(x, y, s * 2, (X, Y) => { g.fillStyle = col; g.beginPath(); g.ellipse(X, Y, s, s2, a, 0, 7); g.fill(); }); };
+  for (let i = 0; i < 70; i++) { const x = R() * N, y = R() * N, s = 25 + R() * 60; wrap(x, y, s, (X, Y) => { const gr = g.createRadialGradient(X, Y, 1, X, Y, s); const w = R() < 0.6; gr.addColorStop(0, w ? "rgba(45,38,30,.35)" : "rgba(170,160,140,.22)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(X - s, Y - s, s * 2, s * 2); }); }
+  for (let i = 0; i < 7000; i++) { const x = R() * N, y = R() * N, s = 1 + R() * 5, k = R(); blob(x, y, s, k < 0.5 ? "rgba(40,33,25," + (0.1 + R() * 0.2).toFixed(2) + ")" : k < 0.92 ? "rgba(150,138,118," + (0.06 + R() * 0.1).toFixed(2) + ")" : "rgba(200,195,182," + (0.08 + R() * 0.12).toFixed(2) + ")"); }
+  // clods with a lit top and a shadow underneath
+  for (let i = 0; i < 520; i++) { const x = R() * N, y = R() * N, s = 2 + R() * 5; blob(x + 1, y + s * 0.5, s, "rgba(25,20,15,.35)"); blob(x, y, s, "rgba(" + (95 + R() * 30 | 0) + "," + (85 + R() * 25 | 0) + "," + (68 + R() * 20 | 0) + ",.9)"); blob(x - s * 0.25, y - s * 0.3, s * 0.45, "rgba(160,150,130,.22)"); }
+  // flints and chalk lumps
+  for (let i = 0; i < 220; i++) { const x = R() * N, y = R() * N, s = 1 + R() * 2; blob(x, y, s, R() < 0.5 ? "rgba(205,200,188,.55)" : "rgba(70,72,74,.55)"); }
+  // splinters, roots and old ruts
+  for (let i = 0; i < 260; i++) { const x = R() * N, y = R() * N, l = 6 + R() * 22, a = R() * 6.3, wood = R() < 0.35; wrap(x, y, l, (X, Y) => { g.strokeStyle = wood ? "rgba(150,120,80,.5)" : "rgba(30,24,18,.25)"; g.lineWidth = wood ? 1 + R() * 1.5 : 1 + R() * 2.5; g.beginPath(); g.moveTo(X, Y); g.quadraticCurveTo(X + Math.cos(a) * l * 0.5 + R() * 6 - 3, Y + Math.sin(a) * l * 0.5 + R() * 6 - 3, X + Math.cos(a) * l, Y + Math.sin(a) * l); g.stroke(); }); }
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); return t;
 })();
 {
   const xs = [], zs = [];
-  const XS = COARSE ? 1.25 : 0.9;
+  const XS = COARSE ? 1.25 : 0.9, ZN = COARSE ? 0.95 : 0.7; // rows are closer in no man's land so the small shell holes keep their shape
   for (let x = -XW - 50; x <= XW + 50 + 0.01; x += XS) xs.push(x);
   const fine = (z, c) => Math.abs(z - c) < 4.4;
-  for (let z = 50; z >= -L - 70;) { zs.push(z); z -= (fine(z, 0) || fine(z, -L)) ? 0.2 : 1.1; }
+  for (let z = 50; z >= -L - 70;) { zs.push(z); z -= (fine(z, 0) || fine(z, -L)) ? 0.2 : (z < 6 && z > -L - 6) ? ZN : 1.1; }
   const nx = xs.length, nz = zs.length, n = nx * nz;
   const pos = new Float32Array(n * 3), col = new Float32Array(n * 3), uv = new Float32Array(n * 2);
-  const cA = new THREE.Color(0x8c7c5f), cWet = new THREE.Color(0x4c3f30), cDry = new THREE.Color(0x9a8b6c), cGrass = new THREE.Color(0x6f7350), tmp = new THREE.Color();
+  const cA = new THREE.Color(0xa49680), cWet = new THREE.Color(0x4a4034), cChalk = new THREE.Color(0xc8c2b2), cDry = new THREE.Color(0xb2a68e), cGrass = new THREE.Color(0x7d8260), tmp = new THREE.Color();
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
     const x = xs[i], z = zs[j], h = H(x, z), k = j * nx + i;
     pos[k * 3] = x; pos[k * 3 + 1] = h; pos[k * 3 + 2] = z; uv[k * 2] = x / 7; uv[k * 2 + 1] = z / 7;
-    // colour: wet and dark down in holes and trenches, paler on the lips, a little grass far behind the lines
-    const lip = clamp(h * 1.2, 0, 1), low = clamp(-h * 0.9, 0, 1);
-    tmp.copy(cA).lerp(cDry, lip * 0.7).lerp(cWet, low);
+    // colour: wet and dark down in holes and trenches, chalky spoil thrown up on the lips, a little grass far behind the lines
+    const lip = clamp(h * 1.2, 0, 1), low = clamp(-h * 0.75, 0, 1);
+    const ch = craterH(x, z), spoil = clamp(ch * 2.2, 0, 1) * (0.55 + 0.45 * Math.sin(x * 0.9 + z * 1.3));
+    tmp.copy(cA).lerp(cDry, lip * 0.5).lerp(cChalk, clamp(spoil, 0, 1) * 0.6).lerp(cWet, low);
     const behind = Math.max(sstep(8, 30, z), sstep(-L - 8, -L - 35, z));
     tmp.lerp(cGrass, behind * 0.55);
-    const v = 0.9 + 0.2 * Math.sin(x * 1.7 + z * 2.3) * Math.sin(x * 0.37 - z * 0.81);
+    const v = 0.88 + 0.22 * Math.sin(x * 1.7 + z * 2.3) * Math.sin(x * 0.37 - z * 0.81) - 0.1 * Math.max(0, Math.sin(x * 0.11 + 1) * Math.sin(z * 0.13));
     col[k * 3] = tmp.r * v; col[k * 3 + 1] = tmp.g * v; col[k * 3 + 2] = tmp.b * v;
   }
   const idx = new (n > 65000 ? Uint32Array : Uint16Array)((nx - 1) * (nz - 1) * 6); let o = 0;
@@ -739,13 +791,32 @@ const MUD = (() => {
   g.setIndex(new THREE.BufferAttribute(idx, 1)); g.computeVertexNormals();
   const m = new THREE.Mesh(g, lam(0xffffff, { map: MUD, vertexColors: true })); m.receiveShadow = true; scene.add(m);
 }
-// muddy water lying in the deeper shell holes
+// muddy water lying in the shell holes: the surface is cut to the real shore of each hole, and reflects the grey sky
+const WATER = [];
+const waterU = { sky: skyU.mid, top: skyU.top, deep: { value: new THREE.Color(0x34352a) }, lit: { value: 1 }, t: { value: 0 }, sunDir: { value: SUN_DIR } };
 {
-  const wm = new THREE.MeshPhongMaterial({ color: 0x5a5548, shininess: 80, specular: 0x8a8a80, transparent: true, opacity: 0.85 });
-  for (const c of CR) if (c.dep > 1.25) {
-    const w = new THREE.Mesh(new THREE.CircleGeometry(c.r * 0.45, 18), wm); w.rotation.x = -Math.PI / 2;
-    w.position.set(c.x, H(c.x, c.z) + c.dep * 0.18, c.z); scene.add(w);
+  const R = mulberry(51), pos = [], idx = [], A = 22;
+  for (const c of CR) {
+    if (c.r < 2.3 || R() < 0.25) continue; // small holes are too coarse in the ground mesh to hold a pond
+    let bot = H(c.x, c.z); for (let i = 0; i < 6; i++) { const a = i * 1.05; bot = Math.min(bot, H(c.x + Math.cos(a) * c.r * 0.2, c.z + Math.sin(a) * c.r * 0.2)); }
+    const lvl = bot + c.dep * (0.42 + R() * 0.2), rad = []; let ok = true;
+    for (let i = 0; i < A && ok; i++) {
+      const a = i / A * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a); let r = 0.1;
+      while (r < c.r * 1.3 && H(c.x + ca * r, c.z + sa * r) < lvl) r += 0.12;
+      if (r >= c.r * 1.3) ok = false; else rad.push(r + 0.3);
+    }
+    if (!ok) continue;
+    const b0 = pos.length / 3; pos.push(c.x, lvl, c.z);
+    for (let i = 0; i < A; i++) { const a = i / A * Math.PI * 2; pos.push(c.x + Math.cos(a) * rad[i], lvl, c.z + Math.sin(a) * rad[i]); idx.push(b0, b0 + 1 + (i + 1) % A, b0 + 1 + i); }
+    WATER.push({ x: c.x, z: c.z, y: lvl, r: Math.min(...rad) });
   }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+  const m = new THREE.Mesh(g, new THREE.ShaderMaterial({
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog]), fog: true,
+    vertexShader: "varying vec3 vW;\n#include <fog_pars_vertex>\nvoid main(){vec4 w=modelMatrix*vec4(position,1.0);vW=w.xyz;vec4 mvPosition=viewMatrix*w;gl_Position=projectionMatrix*mvPosition;\n#include <fog_vertex>\n}",
+    fragmentShader: "uniform vec3 sky;uniform vec3 top;uniform vec3 deep;uniform float lit;uniform float t;uniform vec3 sunDir;varying vec3 vW;\n#include <fog_pars_fragment>\nvoid main(){vec3 V=normalize(cameraPosition-vW);vec2 p=vW.xz;float r1=sin(p.x*2.3+t*0.9)*cos(p.y*1.9-t*0.7),r2=sin((p.x+p.y)*4.1-t*1.6),r3=sin(p.x*7.3-p.y*6.1+t*2.2);vec3 N=normalize(vec3(r1*0.03+r2*0.014+r3*0.008,1.0,r2*0.018-r1*0.024));float fr=0.06+0.6*pow(1.0-max(dot(N,V),0.0),5.0);vec3 R=reflect(-V,N);vec3 sk=mix(sky,top,smoothstep(0.02,0.4,R.y))*0.62;float sp=pow(max(dot(R,sunDir),0.0),90.0);vec3 c=mix(deep*lit,sk,fr)+sp*0.25*lit;gl_FragColor=vec4(c,1.0);\n#include <fog_fragment>\n}"
+  }));
+  Object.assign(m.material.uniforms, waterU); m.receiveShadow = false; scene.add(m);
 }
 // sandbags along both parapets, duckboards along both floors
 {
@@ -770,48 +841,101 @@ const MUD = (() => {
   bags.instanceMatrix.needsUpdate = true; if (bags.instanceColor) bags.instanceColor.needsUpdate = true;
   scene.add(bags, boards);
 }
-// barbed wire: pickets and coils
+// barbed wire: belts of coiled concertina on wooden and iron pickets, aprons pegged down to the ground, knife rests and loose tangles
 {
-  const posts = [], pts = [];
+  const posts = [], pts = [], R = mulberry(77);
+  const gapAt = (w, x, m) => { for (const g of w.gaps) if (Math.abs(x - g) < w.gw + m) return true; return false; };
   for (const w of [WIRE_OWN, WIRE_EN]) {
     for (const zr of [w.z0 + 0.6, (w.z0 + w.z1) / 2, w.z1 - 0.6]) {
       let prev = null;
-      for (let x = -XW - 30; x <= XW + 30; x += 2.4) {
-        let gap = false; for (const g of w.gaps) if (Math.abs(x - g) < w.gw + 0.6) gap = true;
-        if (gap) { prev = null; continue; }
-        const z = zr + Math.sin(x * 1.3) * 0.3, y = H(x, z);
-        posts.push([x, y, z]);
+      for (let x = -XW - 30; x <= XW + 30; x += 2.2 + R() * 0.6) {
+        if (gapAt(w, x, 0.6) || R() < 0.06) { prev = null; continue; } // a few panels blown away by shells
+        const z = zr + Math.sin(x * 1.3) * 0.3 + (R() - 0.5) * 0.25, y = H(x, z), ph = 0.85 + R() * 0.35;
+        posts.push([x, y, z, ph, R() < 0.4]);
         if (prev) {
-          const [px, py, pz] = prev, N = 40;
+          const [px, py, pz, pph] = prev, N = 40, rr = 0.32 + R() * 0.12, sag = R() * 0.15;
           for (let i = 0; i < N; i++) {
             const t0 = i / N, t1 = (i + 1) / N;
-            const f = t => { const a = t * Math.PI * 2 * 6; return [px + (x - px) * t + Math.cos(a) * 0.08, py + (y - py) * t + 0.45 + Math.sin(a) * 0.38, pz + (z - pz) * t + Math.cos(a) * 0.38]; };
+            const f = t => { const a = t * Math.PI * 2 * 6, s0 = Math.sin(t * Math.PI); return [px + (x - px) * t + Math.cos(a) * 0.08, py + (y - py) * t + 0.42 - sag * s0 + Math.sin(a) * rr, pz + (z - pz) * t + Math.cos(a) * rr]; };
             pts.push(...f(t0), ...f(t1));
           }
-          pts.push(px, py + 0.95, pz, x, y + 0.95, z, px, py + 0.5, pz, x, y + 0.5, z);
+          pts.push(px, py + pph, pz, x, y + ph, z, px, py + 0.5, pz, x, y + 0.5, z);
+          // apron wires running down to pegs in the ground in front and behind
+          if (zr !== (w.z0 + w.z1) / 2) { const s = zr < (w.z0 + w.z1) / 2 ? -1 : 1, pz2 = z + s * 1.3; pts.push(x, y + ph, z, x + 0.4, H(x + 0.4, pz2) + 0.05, pz2, px, py + pph, pz, x - 0.4, H(x - 0.4, pz2) + 0.05, pz2); }
         }
-        prev = [x, y, z];
+        prev = [x, y, z, ph];
       }
     }
+    // loose tangles lying in the belt
+    for (let i = 0; i < 70; i++) {
+      const x = -XW - 25 + R() * (2 * XW + 50), z = w.z0 + 0.3 + R() * (w.z1 - w.z0 - 0.6); if (gapAt(w, x, 0.8)) continue;
+      const y = H(x, z) + 0.15, L2 = 1.5 + R() * 2.5, rr = 0.25 + R() * 0.3, M = 18;
+      for (let k = 0; k < M; k++) { const f = t => [x + t * L2 + Math.cos(t * 30) * 0.1, y + rr + Math.sin(t * 30 + k) * rr * 0.9, z + Math.cos(t * 30) * rr]; pts.push(...f(k / M), ...f((k + 1) / M)); }
+    }
+    // knife rests: X-shaped trestles wrapped in wire, dragged into the belt
+    for (let i = 0; i < 12; i++) {
+      const x = -XW - 20 + R() * (2 * XW + 40), z = w.z0 - 0.5 + R() * (w.z1 - w.z0 + 1); if (gapAt(w, x, 1.2)) continue;
+      const y = H(x, z), l = 1.6;
+      for (const e of [-l / 2, l / 2]) { posts.push([x + e, y - 0.05, z - 0.35, 1.0, false, 0.6]); posts.push([x + e, y - 0.05, z + 0.35, 1.0, false, -0.6]); }
+      for (let k = 0; k < 16; k++) { const t0 = k / 16, t1 = (k + 1) / 16, f = t => { const a = t * Math.PI * 8; return [x - l / 2 + t * l, y + 0.45 + Math.sin(a) * 0.38, z + Math.cos(a) * 0.38]; }; pts.push(...f(t0), ...f(t1)); }
+      pts.push(x - l / 2, y + 0.85, z, x + l / 2, y + 0.85, z);
+    }
   }
-  const pm = new THREE.InstancedMesh(new THREE.BoxGeometry(0.06, 1.1, 0.06), lam(0x3b3128), posts.length);
-  posts.forEach((p, i) => pm.setMatrixAt(i, mat4(p[0], p[1] + 0.5, p[2], rnd(-0.12, 0.12), 0, rnd(-0.12, 0.12))));
+  const pm = new THREE.InstancedMesh(new THREE.BoxGeometry(0.06, 1, 0.06), lam(0xffffff), posts.length), pc = new THREE.Color();
+  posts.forEach((p, i) => { const tilt = p[5] || 0; pm.setMatrixAt(i, mat4(p[0], p[1] + p[3] / 2 - 0.05, p[2], rnd(-0.14, 0.14) + tilt, 0, rnd(-0.14, 0.14), p[4] ? 0.8 : 1, p[3], p[4] ? 0.8 : 1)); pm.setColorAt(i, p[4] ? pc.setHex(0x3e3530) : pc.setHex(0x4a3a2a)); });
   pm.castShadow = true; scene.add(pm);
   const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
-  scene.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0x2c2722 })));
+  scene.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0x3a2b20 })));
   // white tape marking the gaps in your own wire
   for (const g of WIRE_OWN.gaps) for (const s of [-1, 1]) {
     const t = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 4.2), new THREE.MeshBasicMaterial({ color: 0xe8e2d0 })); const x = g + s * WIRE_OWN.gw;
     t.position.set(x, H(x, -15) + 0.12, -15); scene.add(t);
   }
 }
-// shattered trees, ruins far behind each line
+// shattered trees, ruins far behind each line, and the junk of war lying in no man's land (all merged into a few meshes)
+const CYL6 = new THREE.CylinderGeometry(0.5, 0.5, 1, 6), CYL8 = new THREE.CylinderGeometry(0.5, 0.5, 1, 8), CONE4 = new THREE.CylinderGeometry(0, 0.5, 1, 4);
+const HALFDOME = new THREE.SphereGeometry(0.5, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2);
 {
-  const bark = lam(0x2f2821), stone = lam(0x8c857a), R = mulberry(11);
-  const tree = (x, z, h) => { const y = H(x, z); const t = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.28, h, 6), bark); t.position.set(x, y + h / 2 - 0.2, z); t.rotation.z = R() * 0.3 - 0.15; t.castShadow = true; scene.add(t);
-    if (R() < 0.7) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.1, h * 0.4, 5), bark); b.position.set(x + 0.4, y + h * 0.7, z); b.rotation.z = -0.9; scene.add(b); } };
-  for (let i = 0; i < 26; i++) { const back = R() < 0.5; tree(rnd(-XW - 40, XW + 40), back ? rnd(8, 60) : rnd(-L - 60, -L - 8), 2 + R() * 7); }
-  for (let i = 0; i < 6; i++) tree(rnd(-XW, XW), rnd(-L + 25, -25), 1.5 + R() * 3);
+  const stone = lam(0x8c857a), R = mulberry(11), parts = [], junk = [];
+  const rr = (a, b) => a + R() * (b - a);
+  // a tree trunk smashed by shellfire: stripped bark, a jagged top of pale splinters, a stub or two of branch
+  const tree = (x, z, h, r) => {
+    const y = H(x, z) - 0.25, lean = rr(-0.12, 0.12), ry = R() * 6.3, bark = R() < 0.5 ? 0x3a332b : 0x4a4238;
+    parts.push([CYL6, bark, mat4(x, y + h / 2, z, 0, ry, lean, r * 2, h, r * 2)]);
+    const top = y + h - 0.05, tx = x + Math.sin(lean) * -h / 2;
+    const nS = 4 + (R() * 3 | 0);
+    for (let i = 0; i < nS; i++) { const a = i / nS * 6.3 + R(), l = rr(0.25, 1.2) * Math.min(1, r * 4); parts.push([CONE4, R() < 0.6 ? 0x9c8a6a : 0x6e604c, mat4(tx + Math.cos(a) * r * 0.55, top + l / 2, z + Math.sin(a) * r * 0.55, rr(-0.2, 0.2), a, rr(-0.25, 0.25), r * 0.7, l, r * 0.5)]); }
+    if (h > 2.5) { const nb = R() * 3 | 0; for (let i = 0; i < nb; i++) { const bh = y + h * rr(0.45, 0.85), a = R() * 6.3, bl = rr(0.5, 1.8); parts.push([CYL6, bark, mat4(x + Math.cos(a) * bl * 0.4, bh, z + Math.sin(a) * bl * 0.4, 0, -a, rr(0.7, 1.2), r * 0.5, bl, r * 0.5)]); } }
+  };
+  for (let i = 0; i < 46; i++) { const back = R() < 0.5; tree(rr(-XW - 45, XW + 45), back ? rr(9, 70) : rr(-L - 70, -L - 9), rr(2.5, 9.5), rr(0.14, 0.3)); }
+  for (let i = 0; i < 24; i++) { const x = rr(-XW - 20, XW + 20), z = rr(-L + 22, -22); if (inWire(x, z)) continue; tree(x, z, rr(0.5, 3.4), rr(0.13, 0.32)); }
+  // fallen trunks
+  for (let i = 0; i < 12; i++) { const x = rr(-XW - 20, XW + 20), z = rr(-L + 22, -22), l = rr(2, 5.5), r = rr(0.12, 0.25); parts.push([CYL6, 0x3d362d, mat4(x, H(x, z) + r * 0.5, z, Math.PI / 2, R() * 6.3, 0, r * 2, l, r * 2)]); }
+  // junk lying in no man's land: nothing gruesome, just the litter of months of fighting
+  const sink = (x, z, d) => H(x, z) - (d || 0);
+  const KINDS = [
+    (x, z) => { // a broken duckboard, half sunk and tilted
+      const a = R() * 6.3, y = sink(x, z, 0.05), t = rr(-0.25, 0.25), l = rr(1.2, 2.2);
+      for (const s of [-0.22, 0.22]) parts.push([BOX, 0x6e5a40, mat4(x + Math.cos(a) * s, y + 0.06, z - Math.sin(a) * s, t, a, 0, 0.07, 0.07, l)]);
+      for (let k = 0; k < l / 0.3; k++) if (R() < 0.75) parts.push([BOX, 0x7d6748, mat4(x + Math.sin(a) * (k * 0.3 - l / 2), y + 0.11 + Math.sin(t) * (k * 0.3 - l / 2) * -1, z + Math.cos(a) * (k * 0.3 - l / 2), t, a + rr(-0.15, 0.15), 0, 0.55, 0.03, 0.1)]);
+    },
+    (x, z) => { const a = R() * 6.3, y = sink(x, z, 0.12), bend = rr(0.1, 0.35), col = R() < 0.5 ? 0x4e4a43 : 0x4a3a2e; // a sheet of corrugated iron, buckled
+      parts.push([BOX, col, mat4(x, y + 0.1, z, rr(-0.2, 0.2), a, bend * 0.4, 1.0, 0.025, 0.75)]); parts.push([BOX, col, mat4(x + Math.cos(a) * 0.9, y + 0.1 + bend * 0.35, z - Math.sin(a) * 0.9, 0, a, -bend, 0.9, 0.025, 0.75)]); },
+    (x, z) => { const y = sink(x, z, 0.15), c = R() < 0.5 ? 0x4e4a40 : 0x6a4a30; parts.push([CYL8, c, mat4(x, y + 0.4, z, rr(-0.3, 0.3) + (R() < 0.5 ? 1.5 : 0), R() * 6.3, 0, 0.55, 0.85, 0.55)]); }, // a barrel
+    (x, z) => { const a = R() * 6.3, y = sink(x, z, 0.08); parts.push([BOX, R() < 0.5 ? 0x4f4b32 : 0x5a4630, mat4(x, y + 0.14, z, rr(-0.2, 0.2), a, rr(-0.2, 0.2), 0.75, 0.28, 0.4)]); }, // an ammunition box
+    (x, z) => { const y = sink(x, z, 0.02), brit = R() < 0.5; parts.push([HALFDOME, brit ? 0x5a5a3c : 0x5c6152, mat4(x, y + 0.02, z, rr(-0.5, 0.5), R() * 6.3, rr(-0.5, 0.5), brit ? 0.42 : 0.34, brit ? 0.22 : 0.3, brit ? 0.42 : 0.36)]); if (brit) parts.push([CYL8, 0x55553a, mat4(x, y + 0.02, z, 0, 0, 0, 0.62, 0.015, 0.62)]); }, // a dropped helmet
+    (x, z) => { const a = R() * 6.3, y = sink(x, z, 0.02); parts.push([BOX, 0x2e2e2e, mat4(x, y + 0.04, z, 0, a, rr(-0.1, 0.1), 0.04, 0.04, 0.8)]); parts.push([BOX, 0x6a4a2c, mat4(x + Math.sin(a) * 0.55, y + 0.05, z + Math.cos(a) * 0.55, 0, a, 0, 0.06, 0.09, 0.42)]); }, // a rifle lying in the mud
+    (x, z) => { for (let k = 0; k < 6; k++) { const xx = x + rr(-0.8, 0.8), zz = z + rr(-0.8, 0.8); junk.push([CYL6, 0xa0803e, mat4(xx, sink(xx, zz, 0) + 0.04, zz, Math.PI / 2 + rr(-0.3, 0.3), R() * 6.3, 0, 0.09, 0.32, 0.09)]); } }, // spent brass shell cases
+    (x, z) => { const y = sink(x, z, 0.2), tx = rr(-0.5, 0.5), tz = rr(-0.5, 0.5); parts.push([CYL8, 0x55534c, mat4(x, y + 0.2, z, tx, 0, tz, 0.15, 0.5, 0.15)]); parts.push([CONE4, 0x4a4842, mat4(x - Math.sin(tz) * 0.3, y + 0.5, z + Math.sin(tx) * 0.3, tx, 0, tz, 0.15, 0.2, 0.15)]); }, // a dud shell nose-down in the mud
+    (x, z) => { for (let k = 0; k < 4; k++) { const xx = x + rr(-0.6, 0.6), zz = z + rr(-0.6, 0.6); parts.push([BOX, 0x8a7a56, mat4(xx, sink(xx, zz, 0) + 0.08, zz, rr(-0.3, 0.3), R() * 6.3, rr(-0.3, 0.3), 0.5, 0.18, 0.3)]); } }, // spilt sandbags
+    (x, z) => { const y = sink(x, z, 0.1); for (let k = 0; k < 3; k++) parts.push([BOX, 0x5e4a34, mat4(x + rr(-0.4, 0.4), y + 0.4, z + rr(-0.4, 0.4), rr(-0.6, 0.6), R() * 6.3, rr(-0.6, 0.6), 0.07, rr(0.6, 1.2), 0.07)]); }, // splintered stakes
+    (x, z) => { const y = sink(x, z, 0.3), a = R() * 6.3, r = 0.55; for (let k = 0; k < 7; k++) { const b = k / 7 * 6.3; parts.push([BOX, 0x5a4632, mat4(x + Math.cos(a) * Math.cos(b) * r, y + 0.35 + Math.sin(b) * r, z - Math.sin(a) * Math.cos(b) * r, b, a + Math.PI / 2, 0, 0.08, 0.36, 0.08)]); } parts.push([CYL8, 0x4a3a2a, mat4(x, y + 0.35, z, 0, a, Math.PI / 2, 0.16, 0.12, 0.16)]); } // a broken wagon wheel
+  ];
+  const nJ = COARSE ? 110 : 170;
+  for (let i = 0; i < nJ; i++) { const x = rr(-XW - 20, XW + 20), z = rr(-L + 6, -6); if (Math.abs(z - zOwn(x)) < 3.5 || Math.abs(z - zEn(x)) < 3.5) continue; KINDS[R() * KINDS.length | 0](x, z); }
+  const mat = lam(0xffffff, { vertexColors: true });
+  const tm = new THREE.Mesh(mergeParts(parts), mat); tm.castShadow = !COARSE; tm.receiveShadow = true; scene.add(tm);
+  if (junk.length) { const bm = new THREE.Mesh(mergeParts(junk), new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 60, specular: 0x665533 })); scene.add(bm); }
   const ruin = (x, z) => {
     for (let i = 0; i < 7; i++) { const w = 2 + R() * 5, h = 1 + R() * 6; const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.7), stone); b.position.set(x + rnd(-12, 12), H(x, z) + h / 2 - 0.3, z + rnd(-8, 8)); b.rotation.y = R() < 0.5 ? 0 : Math.PI / 2; b.castShadow = true; scene.add(b); }
     const tw = new THREE.Mesh(new THREE.BoxGeometry(4, 13, 4), stone); tw.position.set(x + 6, H(x, z) + 5.5, z - 4); scene.add(tw);
@@ -1098,6 +1222,166 @@ function muzzle(x, y, z, big) { puff(x, y, z, { c: 0xffd080, add: true, s0: big 
 // drifting battlefield smoke
 const DRIFT = [];
 for (let i = 0; i < 14; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: PUFF, transparent: true, depthWrite: false, color: 0xb5b0a4, opacity: 0.18 })); sp.scale.set(rnd(20, 40), rnd(6, 10), 1); sp.position.set(rnd(-XW, XW), rnd(2, 5), rnd(-L, 0)); scene.add(sp); DRIFT.push(sp); }
+// low mist lying in the hollows of no man's land
+for (let i = 0; i < (COARSE ? 10 : 18); i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: PUFF, transparent: true, depthWrite: false, color: 0xcfcbc0, opacity: rnd(0.1, 0.2) })); sp.scale.set(rnd(22, 42), rnd(2.2, 3.6), 1); sp.position.set(rnd(-XW, XW), rnd(0.4, 1.2), rnd(-L + 12, -14)); scene.add(sp); DRIFT.push(sp); }
+
+// ======================================================================
+// shellfire: one cheap particle system for earth, smoke and water (one draw call), fresh crater marks, and the shell itself
+// ======================================================================
+const FX = (() => {
+  const N = COARSE ? 700 : 1400;
+  // texture atlas: left a soft, lumpy smoke puff, right a hard clod of earth
+  const [c, g] = cnv(128, 64), R = mulberry(5);
+  for (let i = 0; i < 9; i++) { const x = 32 + (R() - 0.5) * 22, y = 32 + (R() - 0.5) * 22, r = 10 + R() * 12; const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, "rgba(255,255,255,.55)"); gr.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
+  g.fillStyle = "#fff"; g.beginPath(); for (let i = 0; i < 9; i++) { const a = i / 9 * 6.3, r = 14 + R() * 14; g[i ? "lineTo" : "moveTo"](96 + Math.cos(a) * r, 32 + Math.sin(a) * r); } g.closePath(); g.fill();
+  const tex = new THREE.CanvasTexture(c);
+  const base = new THREE.PlaneGeometry(1, 1), geo = new THREE.InstancedBufferGeometry();
+  geo.index = base.index; geo.setAttribute("position", base.attributes.position); geo.setAttribute("uv", base.attributes.uv);
+  const off = new Float32Array(N * 3), col = new Float32Array(N * 4), sz = new Float32Array(N * 3);
+  const aOff = new THREE.InstancedBufferAttribute(off, 3), aCol = new THREE.InstancedBufferAttribute(col, 4), aSz = new THREE.InstancedBufferAttribute(sz, 3);
+  for (const a of [aOff, aCol, aSz]) a.setUsage(THREE.DynamicDrawUsage);
+  geo.setAttribute("iOff", aOff); geo.setAttribute("iCol", aCol); geo.setAttribute("iSz", aSz); geo.instanceCount = N;
+  const U = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { map: { value: null }, lit: { value: 1 } }]); U.map.value = tex;
+  const mat = new THREE.ShaderMaterial({
+    uniforms: U, fog: true, transparent: true, depthWrite: false,
+    vertexShader: "attribute vec3 iOff;attribute vec4 iCol;attribute vec3 iSz;varying vec2 vUv;varying vec4 vC;\n#include <fog_pars_vertex>\nvoid main(){vec4 mvPosition=modelViewMatrix*vec4(iOff,1.0);float cs=cos(iSz.z),sn=sin(iSz.z);vec2 q=vec2(cs*position.x-sn*position.y,sn*position.x+cs*position.y);mvPosition.xy+=q*abs(iSz.x);gl_Position=projectionMatrix*mvPosition;vUv=vec2((uv.x+step(iSz.x,0.0))*0.5,uv.y);vC=iCol;\n#include <fog_vertex>\n}",
+    fragmentShader: "uniform sampler2D map;uniform float lit;varying vec2 vUv;varying vec4 vC;\n#include <fog_pars_fragment>\nvoid main(){float a=texture2D(map,vUv).a*vC.a;if(a<0.01)discard;gl_FragColor=vec4(vC.rgb*lit,a);\n#include <fog_fragment>\n}"
+  });
+  const mesh = new THREE.Mesh(geo, mat); mesh.frustumCulled = false; mesh.renderOrder = 2; scene.add(mesh);
+  // particle state
+  const P = { x: new Float32Array(N), y: new Float32Array(N), z: new Float32Array(N), vx: new Float32Array(N), vy: new Float32Array(N), vz: new Float32Array(N), age: new Float32Array(N), life: new Float32Array(N), s0: new Float32Array(N), s1: new Float32Array(N), a: new Float32Array(N), g: new Float32Array(N), drag: new Float32Array(N), rot: new Float32Array(N), vr: new Float32Array(N), floor: new Float32Array(N), clod: new Uint8Array(N), on: new Uint8Array(N) };
+  let next = 0, wind = 0.8;
+  const cl = new THREE.Color();
+  function add(x, y, z, o) {
+    const i = next; next = (next + 1) % N;
+    P.x[i] = x; P.y[i] = y; P.z[i] = z; P.vx[i] = o.vx || 0; P.vy[i] = o.vy || 0; P.vz[i] = o.vz || 0;
+    P.age[i] = -(o.delay || 0); P.life[i] = o.life || 1; P.s0[i] = o.s0 || 0.5; P.s1[i] = o.s1 == null ? P.s0[i] : o.s1; P.a[i] = o.a == null ? 0.85 : o.a;
+    P.g[i] = o.g || 0; P.drag[i] = o.drag || 0; P.rot[i] = Math.random() * 6.3; P.vr[i] = o.vr || rnd(-0.4, 0.4); P.floor[i] = o.floor == null ? -999 : o.floor; P.clod[i] = o.clod ? 1 : 0; P.on[i] = 1;
+    cl.set(o.c || 0x777066); const v = o.cv ? 1 + rnd(-o.cv, o.cv) : 1; col[i * 4] = cl.r * v; col[i * 4 + 1] = cl.g * v; col[i * 4 + 2] = cl.b * v; col[i * 4 + 3] = 0;
+  }
+  function update(dt) {
+    U.lit.value = clamp(0.2 + hemi.intensity * 0.9, 0.25, 1.05);
+    for (let i = 0; i < N; i++) {
+      if (!P.on[i]) continue;
+      P.age[i] += dt; const t = P.age[i];
+      if (t < 0) { sz[i * 3] = 0; col[i * 4 + 3] = 0; continue; }
+      const k = t / P.life[i];
+      if (k >= 1) { P.on[i] = 0; sz[i * 3] = 0; col[i * 4 + 3] = 0; continue; }
+      const dr = Math.max(0, 1 - P.drag[i] * dt);
+      P.vx[i] = P.vx[i] * dr + (P.clod[i] ? 0 : wind * dt * 0.3); P.vz[i] *= dr; P.vy[i] = P.vy[i] * dr - P.g[i] * dt;
+      P.x[i] += P.vx[i] * dt; P.y[i] += P.vy[i] * dt; P.z[i] += P.vz[i] * dt; P.rot[i] += P.vr[i] * dt;
+      if (P.clod[i] && P.floor[i] < -900 && P.vy[i] < 0 && P.g[i] > 0) { const gy = H(P.x[i], P.z[i]); if (P.y[i] < gy) P.floor[i] = gy; }
+      if (P.y[i] < P.floor[i]) { P.y[i] = P.floor[i]; P.vx[i] = P.vy[i] = P.vz[i] = 0; P.g[i] = 0; P.vr[i] = 0; }
+      off[i * 3] = P.x[i]; off[i * 3 + 1] = P.y[i]; off[i * 3 + 2] = P.z[i];
+      const s = P.s0[i] + (P.s1[i] - P.s0[i]) * Math.sqrt(k);
+      sz[i * 3] = P.clod[i] ? -s : s; sz[i * 3 + 2] = P.rot[i];
+      col[i * 4 + 3] = P.a[i] * (P.clod[i] ? (k > 0.85 ? (1 - k) / 0.15 : 1) : Math.min(1, t * 8) * (1 - k) * (1 - k * 0.3));
+    }
+    aOff.needsUpdate = true; aCol.needsUpdate = true; aSz.needsUpdate = true;
+  }
+  function clear() { P.on.fill(0); sz.fill(0); for (let i = 0; i < N; i++) col[i * 4 + 3] = 0; aSz.needsUpdate = true; aCol.needsUpdate = true; }
+  return { add, update, clear, setWind: w => { wind = w; } };
+})();
+
+// fresh shell holes: dark, scorched earth thrown out in a ring, laid over the ground so they follow its shape
+const SCARS = (() => {
+  const M = COARSE ? 36 : 64, G = 7, VN = G * G;
+  const [c, g] = cnv(128, 128), R = mulberry(9);
+  const gr = g.createRadialGradient(64, 64, 4, 64, 64, 62); gr.addColorStop(0, "rgba(20,16,12,1)"); gr.addColorStop(0.4, "rgba(34,27,20,.95)"); gr.addColorStop(0.62, "rgba(55,45,34,.85)"); gr.addColorStop(0.82, "rgba(70,60,46,.4)"); gr.addColorStop(1, "rgba(80,68,52,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 160; i++) { const a = R() * 6.3, d = 20 + R() * 40, s = 1 + R() * 4; g.fillStyle = R() < 0.7 ? "rgba(40,32,24,.8)" : "rgba(150,140,120,.6)"; g.beginPath(); g.arc(64 + Math.cos(a) * d, 64 + Math.sin(a) * d, s * (1 - d / 80), 0, 7); g.fill(); }
+  for (let i = 0; i < 26; i++) { const a = R() * 6.3, d0 = 20 + R() * 10, d1 = 40 + R() * 22; g.strokeStyle = "rgba(35,28,20,.45)"; g.lineWidth = 1 + R() * 3; g.beginPath(); g.moveTo(64 + Math.cos(a) * d0, 64 + Math.sin(a) * d0); g.lineTo(64 + Math.cos(a) * d1, 64 + Math.sin(a) * d1); g.stroke(); }
+  const tex = new THREE.CanvasTexture(c);
+  const pos = new Float32Array(M * VN * 3), uv = new Float32Array(M * VN * 2), nor = new Float32Array(M * VN * 3), idx = [];
+  for (let m = 0; m < M; m++) for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) {
+    const k = m * VN + j * G + i; uv[k * 2] = i / (G - 1); uv[k * 2 + 1] = j / (G - 1); pos[k * 3 + 1] = -60; nor[k * 3 + 1] = 1;
+    if (i < G - 1 && j < G - 1) idx.push(k, k + G, k + 1, k + 1, k + G, k + G + 1);
+  }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); geo.setAttribute("normal", new THREE.BufferAttribute(nor, 3)); geo.setIndex(idx);
+  const mesh = new THREE.Mesh(geo, lam(0xffffff, { map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
+  mesh.frustumCulled = false; mesh.receiveShadow = true; mesh.renderOrder = 1; scene.add(mesh);
+  let n = 0;
+  function add(x, z, r) {
+    const m = n; n = (n + 1) % M; const a = Math.random() * 6.3, ca = Math.cos(a), sa = Math.sin(a);
+    for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) {
+      const k = m * VN + j * G + i, u = (i / (G - 1) * 2 - 1) * r, v = (j / (G - 1) * 2 - 1) * r, xx = x + u * ca - v * sa, zz = z + u * sa + v * ca;
+      pos[k * 3] = xx; pos[k * 3 + 1] = H(xx, zz) + 0.03; pos[k * 3 + 2] = zz;
+    }
+    geo.attributes.position.needsUpdate = true;
+  }
+  function clear() { for (let k = 0; k < M * VN; k++) pos[k * 3 + 1] = -60; geo.attributes.position.needsUpdate = true; n = 0; }
+  return { add, clear };
+})();
+
+// which kind of shell: whizz-bangs from field guns, heavy "coal boxes" that throw up black earth, shrapnel bursting in the air
+function shellKind(sh) {
+  if (sh.gas) return "gas";
+  const r = Math.random();
+  if (sh.ours) return r < 0.45 ? "shrap" : r < 0.9 ? "field" : "heavy";
+  return r < 0.35 ? "heavy" : r < 0.8 ? "field" : "shrap";
+}
+function inWater(x, z) { for (const w of WATER) if (Math.hypot(x - w.x, z - w.z) < w.r) return w; return null; }
+// the explosion you see; sizes are in metres
+function blast(x, z, kind) {
+  const y = H(x, z), heavy = kind === "heavy", small = kind === "bomb", sc = heavy ? 1.45 : small ? 0.55 : 1;
+  if (kind === "shrap") { // bursts in the air; the balls kick up the ground underneath
+    const by = y + rnd(9, 16), bx = x + rnd(-2, 2), bz = z + rnd(2, 5);
+    puff(bx, by, bz, { c: 0xffd890, add: true, s0: 2, s1: 4, life: 0.12, a: 1 });
+    for (let i = 0; i < 7; i++) FX.add(bx + rnd(-0.6, 0.6), by + rnd(-0.4, 0.4), bz + rnd(-0.6, 0.6), { c: i < 2 ? 0x55504a : 0xe2ded4, cv: 0.06, vx: rnd(-1.2, 1.2), vy: rnd(-0.3, 0.5), vz: rnd(-1.2, 1.2), drag: 1.5, s0: 1.2, s1: rnd(4, 6.5), life: rnd(5, 8), a: 0.85 });
+    for (let i = 0; i < 14; i++) { const xx = x + rnd(-6, 6), zz = z + rnd(-5, 7), yy = H(xx, zz); FX.add(xx, yy + 0.1, zz, { delay: rnd(0.1, 0.35), c: 0x5a4a38, vx: rnd(-0.5, 0.5), vy: rnd(2, 4.5), vz: rnd(-0.5, 0.5), g: 10, s0: 0.25, s1: 0.8, life: rnd(0.5, 0.9), a: 0.9 }); }
+    return;
+  }
+  const w = !small && inWater(x, z);
+  puff(x, y + 1, z, { c: 0xffb050, add: true, s0: 3 * sc, s1: 6.5 * sc, life: 0.16, a: 1 });
+  if (w) { // straight into a flooded hole: a tall plume of muddy water
+    for (let i = 0; i < 26; i++) FX.add(x + rnd(-0.6, 0.6), w.y + 0.2, z + rnd(-0.6, 0.6), { c: i % 3 ? 0x8f8a7c : 0xd2cec2, cv: 0.08, vx: rnd(-1.6, 1.6), vy: rnd(10, 20) * sc, vz: rnd(-1.6, 1.6), g: 11, drag: 0.3, s0: 0.8, s1: 2.6, life: rnd(1.6, 2.4), a: 0.9 });
+    for (let i = 0; i < 20; i++) FX.add(x, w.y + 0.3, z, { clod: true, c: 0xa8a497, vx: rnd(-5, 5), vy: rnd(6, 14), vz: rnd(-5, 5), g: 11, s0: 0.12, s1: 0.18, life: 2, a: 0.9, floor: w.y });
+    for (let i = 0; i < 6; i++) FX.add(x + rnd(-1, 1), w.y + 1, z + rnd(-1, 1), { delay: 0.5, c: 0xb3aea2, vy: rnd(0.3, 0.8), drag: 1, s0: 2, s1: 7, life: rnd(4, 6), a: 0.4 });
+    return;
+  }
+  // the column of earth: fast in the middle, spreading as it climbs, then falling back
+  const nCol = heavy ? 40 : small ? 10 : 28;
+  for (let i = 0; i < nCol; i++) { const sp = rnd(0.4, 2.6) * sc, a = Math.random() * 6.3, up = i / nCol; FX.add(x + rnd(-0.6, 0.6), y + 0.3, z + rnd(-0.6, 0.6), { c: heavy ? (i % 3 ? 0x231e19 : 0x3a3027) : (i % 3 ? 0x43372a : 0x625240), cv: 0.12, vx: Math.cos(a) * sp, vy: (4 + up * 16) * (heavy ? 1.25 : small ? 0.6 : 1), vz: Math.sin(a) * sp, g: 9.8, drag: 0.6, s0: 1.2 * sc, s1: rnd(3.4, 5.6) * sc, life: rnd(1.8, 2.8) * (small ? 0.7 : 1), a: 0.97 }); }
+  // clods and stones raining down
+  const nCl = heavy ? 34 : small ? 10 : 22;
+  for (let i = 0; i < nCl; i++) { const a = Math.random() * 6.3, sp = rnd(1.5, 7) * sc; FX.add(x, y + 0.4, z, { clod: true, c: 0x3a3026, cv: 0.25, vx: Math.cos(a) * sp, vy: rnd(5, 17) * sc, vz: Math.sin(a) * sp, g: 12, s0: rnd(0.1, 0.3) * sc, life: rnd(2.2, 3.2), a: 1, vr: rnd(-6, 6) }); }
+  // the blast ring of dust racing out along the ground
+  const nR = heavy ? 14 : small ? 6 : 10;
+  for (let i = 0; i < nR; i++) { const a = i / nR * 6.3 + rnd(-0.2, 0.2), sp = rnd(7, 11) * sc; FX.add(x + Math.cos(a), y + 0.4, z + Math.sin(a), { c: 0x8a806e, vx: Math.cos(a) * sp, vy: 0.4, vz: Math.sin(a) * sp, drag: 2.6, s0: 0.8 * sc, s1: 3.6 * sc, life: rnd(1.2, 1.9), a: 0.55 }); }
+  // the smoke that hangs about afterwards and drifts off on the wind
+  const nS = heavy ? 9 : small ? 3 : 6;
+  for (let i = 0; i < nS; i++) FX.add(x + rnd(-1.5, 1.5), y + rnd(1, 3.5) * sc, z + rnd(-1.5, 1.5), { delay: rnd(0.25, 0.7), c: heavy ? 0x3a3530 : 0x77706a, cv: 0.08, vx: rnd(-0.4, 0.4), vy: rnd(0.4, 1.2), vz: rnd(-0.4, 0.4), drag: 0.4, s0: 2 * sc, s1: rnd(7, 11) * sc, life: rnd(6, 10), a: heavy ? 0.6 : 0.45 });
+  SCARS.add(x, z, heavy ? 4.6 : small ? 1.6 : 3.2);
+}
+// smouldering fires out in no man's land and behind their line
+const SMOKERS = [{ x: -36, z: -71 }, { x: 24, z: -44 }, { x: 58, z: -96 }, { x: -12, z: -L - 24 }, { x: -64, z: -30 }];
+let smokeT = 0;
+function updSmokers(dt) {
+  smokeT -= dt; if (smokeT > 0) return; smokeT = COARSE ? 0.55 : 0.35;
+  for (const s of SMOKERS) FX.add(s.x + rnd(-0.5, 0.5), H(s.x, s.z) + 0.4, s.z + rnd(-0.5, 0.5), { c: Math.random() < 0.5 ? 0x3e3a36 : 0x5a5550, vy: rnd(1, 1.8), vx: rnd(0.3, 0.8), drag: 0.15, s0: 0.8, s1: rnd(5, 8), life: rnd(7, 10), a: 0.4 });
+}
+// the guns themselves, firing far away: a rolling drumfire and flickers on the horizon
+let drumT = 0;
+function updDrumfire(dt, theirs, ours) {
+  drumT -= dt; if (drumT > 0 || (!theirs && !ours)) return; drumT = rnd(0.12, 0.45);
+  const far = theirs && (!ours || Math.random() < 0.5);
+  sfx.gunFar(rnd(-0.9, 0.9));
+  if (Math.random() < 0.5) { const x = rnd(-160, 160), z = far ? rnd(-L - 220, -L - 140) : rnd(120, 220); puff(x, rnd(1, 4), z, { c: 0xffb060, add: true, s0: rnd(6, 12), s1: 16, life: 0.12, a: 0.5 }); }
+}
+// shells landing far off for show (they hurt nobody), and your own guns pounding their trench before the whistle
+let G_fxT = 2;
+function shellAmbience(dt) {
+  if (!G || G.mode === "plane" || G.raid) return;
+  const prep = G.mode === "rifle" && G.phase === "wait";
+  updDrumfire(dt, G.phase === "barrage" || !!G.creep, prep || !!(G.creepR && !G.creepR.done));
+  G_fxT -= dt; if (G_fxT > 0) return;
+  G_fxT = prep ? rnd(0.45, 1.0) : rnd(3, 7);
+  let x, z;
+  if (prep) { x = rnd(-70, 70); z = zEn(x) + rnd(-6, 16); }
+  else { x = (Math.random() < 0.5 ? -1 : 1) * rnd(45, 95); z = rnd(-L - 30, -12); }
+  if (Math.hypot(x - camera.position.x, z - camera.position.z) < 35) return;
+  shells.push({ x, z, t: 1.0, ours: prep, fx: true });
+}
 
 // ======================================================================
 // input
@@ -1317,7 +1601,7 @@ function clearWorld() {
   for (const n of nestGuns) scene.remove(n); nestGuns = [];
   if (playerS) { if (window.Gear && Gear.undress) try { Gear.undress(playerS.root); } catch (e) {} release(playerS); playerS = null; }
   for (const g of grenades) scene.remove(g.m); grenades.length = 0;
-  shells.length = 0;
+  shells.length = 0; FX.clear(); SCARS.clear(); G_fxT = 2;
   if (G && G.tanks) { for (const t of G.tanks) scene.remove(t.m); G.tanks.length = 0; }
   if (G && G.ebombs) { for (const b of G.ebombs) scene.remove(b.m); G.ebombs.length = 0; }
   if (G && G.gas) { clearClouds(G.gas); clearClouds(G.smoke); }
@@ -2668,11 +2952,16 @@ function grenade() {
   grenades.push({ m, x, y, z, vx: d.x * sp, vy: d.y * sp + 4.5, vz: d.z * sp, t: 0, fuse: 2.6, rest: false });
   hint(sd.bomb + " away!", 1.2);
 }
-function boom(x, z, big) {
-  dirt(x, z, true);
-  const d = Math.hypot(x - camera.position.x, z - camera.position.z);
-  sfx.boom(clamp(40 / (d + 10), 0.15, 1), clamp((x - camera.position.x) / 60, -0.8, 0.8));
-  G.shake = Math.max(G.shake, clamp(1.2 - d / 60, 0, 0.9)); flashL.position.set(x, H(x, z) + 2, z); flashL.intensity = 4;
+function boom(x, z, big, kind) {
+  kind = kind || (big ? "field" : "bomb");
+  blast(x, z, kind);
+  const d = Math.hypot(x - camera.position.x, z - camera.position.z), pan = clamp((x - camera.position.x) / 60, -0.8, 0.8);
+  if (kind !== "bomb" && kind !== "shrap" && inWater(x, z)) sfx.splash(clamp(40 / (d + 10), 0.15, 1), pan);
+  sfx.blast(kind, d, pan);
+  const heavy = kind === "heavy", air = kind === "shrap";
+  G.shake = Math.max(G.shake, clamp((heavy ? 1.6 : air ? 0.6 : 1.2) - d / (heavy ? 70 : 60), 0, heavy ? 1.3 : 0.9));
+  if (!air && d < (heavy ? 14 : 9)) deafen(clamp(1 - d / (heavy ? 14 : 9), 0.2, 1) * (G.mode === "mg" && G.duckK > 0.5 ? 0.6 : 1));
+  flashL.position.set(x, H(x, z) + 2, z); flashL.intensity = heavy ? 6 : 4;
 }
 function updGrenades(dt) {
   for (let i = grenades.length - 1; i >= 0; i--) {
@@ -3135,14 +3424,16 @@ function updTankJob(dt) {
 function updShells(dt) {
   for (let i = shells.length - 1; i >= 0; i--) {
     const sh = shells[i]; sh.t -= dt;
-    if (!sh.whistled && sh.t < 1.1) { sh.whistled = true; const d = Math.hypot(sh.x - camera.position.x, sh.z - camera.position.z); sfx.shellIn(clamp(30 / (d + 5), 0.3, 1.5)); }
+    if (!sh.kind) sh.kind = shellKind(sh);
+    if (!sh.whistled && sh.t < 1.1) { sh.whistled = true; const d = Math.hypot(sh.x - camera.position.x, sh.z - camera.position.z); sfx.incoming(sh.kind, d, Math.max(0.2, sh.t), clamp((sh.x - camera.position.x) / 50, -0.8, 0.8)); }
     if (sh.t > 0) continue;
     shells.splice(i, 1);
     if (sh.gas) { // a gas shell: a pop, then a cloud
       dirt(sh.x, sh.z); sfx.thud(1, 0); const d0 = Math.hypot(sh.x - camera.position.x, sh.z - camera.position.z); noise(0.3, 500, "lowpass", clamp(20 / d0, 0.1, 0.6));
       addCloud(G.gas, sh.x, sh.z, 0xb9c25a, 0.42, rnd(24, 32), 9); continue;
     }
-    boom(sh.x, sh.z, true);
+    boom(sh.x, sh.z, true, sh.kind);
+    if (sh.fx) continue; // only for show: far off, hurts nobody
     if (G.mode === "mg") {
       if (!sh.ours) blastMG(sh.x, sh.z, sh.power || 1);
       for (const t of G.tanks) if (t.alive && Math.hypot(t.x - sh.x, t.z - sh.z) < 5.5) { t.hp -= 70 / G.D.tankHp; if (t.hp <= 0) killTank(t, sh.ours ? "player" : "x"); }
@@ -3305,6 +3596,10 @@ function endGame(win, text) {
   $("endStats").innerHTML = st.map(([a, b]) => `<div class="stat"><span>${a}</span><b>${b}</b></div>`).join("");
   $("endMedal").hidden = !medalTxt; $("endMedal").innerHTML = medalTxt;
   $("endHist").innerHTML = histFor(G.side, job) + "<br><br>" + HIST.guns;
+  // straight back in at the wave you fell on (machine gunner only; uses the same checkpoint as Carry on)
+  const cpW = job === "mg" && !win && S.cp ? (S.cp[cpKey()] || 0) : 0;
+  $("retryBtn").hidden = !(cpW > 0); $("retrySub").textContent = cpW > 0 ? "wave " + (cpW + 1) + " of " + G.waves.length + " · score starts at 0" : "";
+  $("againBtn").classList.toggle("alt", cpW > 0); $("againSub").textContent = cpW > 0 ? "from wave 1" : "";
   const thisGame = G;
   setTimeout(() => { if (G !== thisGame) return; $("endOv").hidden = false; $("hud").hidden = true; $("xhair").hidden = true; $("touch").hidden = true; $("keys").style.display = "none"; clearAimUI(); clearPlanes(); for (const id of ["dust", "gasTint", "gasmask", "warn", "peri"]) $(id).style.opacity = 0; if (myEngine) myEngine.g.gain.value = 0; for (const f of fighters) if (f.snd) f.snd.g.gain.value = 0; }, win ? 1600 : 1200);
   if (win) { banner(TITLES[job][0], "", 2); sfx.whistle(0.12, 0); }
@@ -3319,6 +3614,7 @@ function histFor(side, job) {
   return (side === "brit") === (job === "rifle") ? HIST.somme : HIST.spring;
 }
 $("againBtn").onclick = () => startGame();
+$("retryBtn").onclick = () => { const w = S.cp && S.cp[cpKey()]; startGame(w > 0 ? w : 0); };
 $("menuBtn").onclick = () => { clearWorld(); G = null; menu(); };
 
 // ======================================================================
@@ -3397,6 +3693,7 @@ function frame(now) {
   if (G && !G.paused && !G.over) {
     step(dt);
     ambT -= dt; if (ambT <= 0) { ambT = rnd(3, 8); if (Math.random() < 0.55) sfx.rumble(); else sfx.distantMG(rnd(-0.9, 0.9)); }
+    shellAmbience(dt);
   } else if (G && G.over) {
     // keep the world moving a little behind the end screen
     for (const s of units) if (!s.alive) poseSoldier(s, dt);
@@ -3409,7 +3706,8 @@ function frame(now) {
   if (G && G.shake > 0) { camera.position.x += rnd(-1, 1) * G.shake * 0.08; camera.position.y += rnd(-1, 1) * G.shake * 0.08; G.shake = Math.max(0, G.shake - dt * 1.8); }
   flashL.intensity = Math.max(0, flashL.intensity - dt * 30);
   if (!G || G.paused || G.over) updAtmos(dt);
-  updParts(dt); updTracers(dt); sky.position.copy(camera.position);
+  updParts(dt); updTracers(dt); FX.update(dt); waterU.t.value += dt; waterU.lit.value = clamp(hemi.intensity * 1.1, 0.15, 1); sky.position.copy(camera.position);
+  updSmokers(dt);
   for (const sp of DRIFT) { sp.position.x += dt * 0.6; if (sp.position.x > XW + 30) sp.position.x = -XW - 30; }
   // keep shadows sharp around the action
   if (G && (G.mode === "rifle" || G.mode === "tank")) aimSun(P.x, P.z - 12, 45); else if (G && G.mode === "plane") aimSun(F.x, F.z - 20, 95); else aimSun(0, -60, 95);

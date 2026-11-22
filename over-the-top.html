@@ -315,7 +315,8 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
       <div class="stats" id="endStats"></div>
       <div id="endMedal" class="scen" hidden></div>
       <div class="row">
-        <button class="bb" id="againBtn">Go again</button>
+        <button class="bb" id="retryBtn" hidden>Retry this wave<small id="retrySub"></small></button>
+        <button class="bb" id="againBtn">Go again<small id="againSub"></small></button>
         <button class="bb alt" id="menuBtn">Change side or job</button>
       </div>
       <div class="hist" id="endHist"></div>
@@ -3236,6 +3237,10 @@ function endGame(win, text) {
   $("endStats").innerHTML = st.map(([a, b]) => `<div class="stat"><span>${a}</span><b>${b}</b></div>`).join("");
   $("endMedal").hidden = !medalTxt; $("endMedal").innerHTML = medalTxt;
   $("endHist").innerHTML = histFor(G.side, job) + "<br><br>" + HIST.guns;
+  // straight back in at the wave you fell on (machine gunner only; uses the same checkpoint as Carry on)
+  const cpW = job === "mg" && !win && S.cp ? (S.cp[cpKey()] || 0) : 0;
+  $("retryBtn").hidden = !(cpW > 0); $("retrySub").textContent = cpW > 0 ? "wave " + (cpW + 1) + " of " + G.waves.length + " · score starts at 0" : "";
+  $("againBtn").classList.toggle("alt", cpW > 0); $("againSub").textContent = cpW > 0 ? "from wave 1" : "";
   const thisGame = G;
   setTimeout(() => { if (G !== thisGame) return; $("endOv").hidden = false; $("hud").hidden = true; $("xhair").hidden = true; $("touch").hidden = true; $("keys").style.display = "none"; clearAimUI(); clearPlanes(); for (const id of ["dust", "gasTint", "gasmask", "warn", "peri"]) $(id).style.opacity = 0; if (myEngine) myEngine.g.gain.value = 0; for (const f of fighters) if (f.snd) f.snd.g.gain.value = 0; }, win ? 1600 : 1200);
   if (win) { banner(TITLES[job][0], "", 2); sfx.whistle(0.12, 0); }
@@ -3250,6 +3255,7 @@ function histFor(side, job) {
   return (side === "brit") === (job === "rifle") ? HIST.somme : HIST.spring;
 }
 $("againBtn").onclick = () => startGame();
+$("retryBtn").onclick = () => { const w = S.cp && S.cp[cpKey()]; startGame(w > 0 ? w : 0); };
 $("menuBtn").onclick = () => { clearWorld(); G = null; menu(); };
 
 // ======================================================================

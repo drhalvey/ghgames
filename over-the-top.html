@@ -83,6 +83,10 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
 .gasTint{position:absolute;inset:0;pointer-events:none;opacity:0;background:rgba(170,180,80,.6);transition:opacity .6s;z-index:1}
 .gasmask{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:1}
 .gasmask svg{position:absolute;inset:0;width:100%;height:100%}
+/* while aiming, the mask swaps to one big eyepiece pressed to the sight, so the sight stays clear */
+.gasmask .one{display:none}
+.gasmask.aim .two{display:none}
+.gasmask.aim .one{display:block}
 .warn{position:absolute;left:50%;top:34%;transform:translateX(-50%);font-family:var(--display);font-size:clamp(30px,6vw,56px);color:#ff4040;text-shadow:0 3px 0 #000,0 0 20px rgba(0,0,0,.9);pointer-events:none;opacity:0;z-index:3;white-space:nowrap}
 .pop{position:absolute;left:calc(50% + 34px);top:calc(50% - 30px);font-weight:900;font-size:20px;text-shadow:0 2px 3px #000;pointer-events:none;opacity:0;z-index:3;white-space:nowrap}
 .pop.go{animation:popUp .9s ease-out}
@@ -230,7 +234,7 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
     <div class="dmg" id="dmg"></div>
     <div class="dust" id="dust"></div>
     <div class="gasTint" id="gasTint"></div>
-    <div class="gasmask" id="gasmask"><svg viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice"><defs><mask id="eyes"><rect x="-50" y="-50" width="260" height="200" fill="white"/><ellipse cx="52" cy="47" rx="27" ry="25" fill="black"/><ellipse cx="108" cy="47" rx="27" ry="25" fill="black"/></mask></defs><rect x="-50" y="-50" width="260" height="200" fill="#14130f" mask="url(#eyes)"/><ellipse cx="52" cy="47" rx="27" ry="25" fill="none" stroke="#3b3a32" stroke-width="3"/><ellipse cx="108" cy="47" rx="27" ry="25" fill="none" stroke="#3b3a32" stroke-width="3"/><ellipse cx="52" cy="47" rx="26" ry="24" fill="rgba(200,190,140,.12)"/><ellipse cx="108" cy="47" rx="26" ry="24" fill="rgba(200,190,140,.12)"/></svg></div>
+    <div class="gasmask" id="gasmask"><svg class="one" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><defs><mask id="eye1" maskUnits="userSpaceOnUse" x="-500" y="-500" width="1100" height="1100"><rect x="-500" y="-500" width="1100" height="1100" fill="white"/><circle cx="50" cy="50" r="47.5" fill="black"/></mask></defs><rect x="-500" y="-500" width="1100" height="1100" fill="#14130f" mask="url(#eye1)"/><circle cx="50" cy="50" r="47.5" fill="none" stroke="#3b3a32" stroke-width="2"/><circle cx="50" cy="50" r="46.3" fill="none" stroke="rgba(200,190,140,.22)" stroke-width="1.2"/></svg><svg class="two" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice"><defs><mask id="eyes"><rect x="-50" y="-50" width="260" height="200" fill="white"/><ellipse cx="52" cy="47" rx="27" ry="25" fill="black"/><ellipse cx="108" cy="47" rx="27" ry="25" fill="black"/></mask></defs><rect x="-50" y="-50" width="260" height="200" fill="#14130f" mask="url(#eyes)"/><ellipse cx="52" cy="47" rx="27" ry="25" fill="none" stroke="#3b3a32" stroke-width="3"/><ellipse cx="108" cy="47" rx="27" ry="25" fill="none" stroke="#3b3a32" stroke-width="3"/><ellipse cx="52" cy="47" rx="26" ry="24" fill="rgba(200,190,140,.12)"/><ellipse cx="108" cy="47" rx="26" ry="24" fill="rgba(200,190,140,.12)"/></svg></div>
     <div class="warn" id="warn"></div>
     <div class="banner" id="banner"></div>
     <div class="pop" id="pop"></div>
@@ -1978,6 +1982,7 @@ function updMG(dt) {
   $("dust").style.opacity = (G.dust * 0.75).toFixed(2);
   $("gasTint").style.opacity = inGas ? (G.maskK > 0.95 ? 0.15 : 0.35) : 0;
   $("gasmask").style.opacity = G.maskK.toFixed(2);
+  $("gasmask").classList.toggle("aim", $("scope").style.opacity === "1" || $("sights").style.opacity === "1" || G.periK > 0.5);
   const wn = $("warn"); wn.textContent = G.warnTxt; wn.style.opacity = G.warnTxt ? (0.6 + 0.4 * Math.abs(Math.sin(G.t * 6))) : 0;
   const tk = liveTanks().some(t => Math.hypot(t.x - mgGun.position.x, t.z - mgGun.position.z) < 36);
   $("tCharge").style.display = usedTouch && tk && G.charges > 0 ? "flex" : "none";

@@ -517,6 +517,7 @@ const sfx = {
   breathe() { noise(0.7, 450, "lowpass", 0.08, 0.7); noise(0.9, 380, "lowpass", 0.06, 0.7, 1.0); },
   cloth() { noise(0.35, 1500, "bandpass", 0.12, 0.8); },
   engine(v, pan) { noise(0.9, 110, "lowpass", 0.35 * v, 0.7, 0, pan); for (let i = 0; i < 3; i++) noise(0.05, 1400, "bandpass", 0.07 * v, 3, i * 0.3, pan); },
+  boltFar(vol, pan, delay) { const d = delay || 0; noise(0.04, 2300, "bandpass", 0.2 * vol, 3, d, pan); tone(1300, 0.03, "square", 0.04 * vol, d, 0, pan); noise(0.05, 1900, "bandpass", 0.2 * vol, 3, d + 0.22, pan); tone(1000, 0.03, "square", 0.04 * vol, d + 0.22, 0, pan); },
   boltOpen() { noise(0.05, 2000, "bandpass", 0.25, 3); tone(900, 0.04, "square", 0.05); }
 };
 setInterval(() => { shoutBudget = Math.max(0, shoutBudget - 3); }, 1000);
@@ -980,13 +981,21 @@ function bodyGeo(sd, kind) { // kind: "rifle" (bayonet fixed, held for the charg
     between(P, [-0.24, 1.38, 0], [-0.12, 1.18, 0.42], 0.1, s.coat);
     P.push([SPHERE, SKIN, mat4(0.12, 1.18, 0.44, 0, 0, 0, 0.05)]); P.push([SPHERE, SKIN, mat4(-0.12, 1.18, 0.44, 0, 0, 0, 0.05)]);
   } else {
-    between(P, [0.24, 1.38, 0], [0.15, 1.02, 0.08], 0.1, s.coat);
+    // the right arm is its own mesh (armGeo) so it can work the bolt
     between(P, [-0.24, 1.38, 0], [0.03, 1.13, 0.42], 0.1, s.coat);
-    P.push([SPHERE, SKIN, mat4(0.15, 1.02, 0.1, 0, 0, 0, 0.05)]); P.push([SPHERE, SKIN, mat4(0.03, 1.13, 0.44, 0, 0, 0, 0.05)]);
+    P.push([SPHERE, SKIN, mat4(0.03, 1.13, 0.44, 0, 0, 0, 0.05)]);
+    between(P, [0.095, 1.07, 0.21], [0.14, 1.06, 0.22], 0.022, 0x2b2b2b);                               // bolt handle
+    P.push([SPHERE, 0x2b2b2b, mat4(0.145, 1.06, 0.22, 0, 0, 0, 0.028)]);                                  // bolt knob
     between(P, [0.17, 0.98, -0.2], [0.02, 1.15, 0.62], 0.065, 0x6b4425);                              // stock and woodwork
     between(P, [0.03, 1.15, 0.45], [-0.005, 1.215, 0.98], 0.03, 0x2b2b2b);                             // barrel
     between(P, [-0.005, 1.215, 0.98], [-0.025, 1.265, sd === "ger" ? 1.48 : 1.42], 0.022, 0xc9cdd2, 0.035); // bayonet
   }
+  return mergeParts(P);
+}
+function armGeo(sd) { // built from the shoulder, so it swings there
+  const P = [];
+  between(P, [0, 0, 0], [-0.09, -0.36, 0.08], 0.1, SIDES[sd].coat);
+  P.push([SPHERE, SKIN, mat4(-0.09, -0.36, 0.1, 0, 0, 0, 0.055)]);
   return mergeParts(P);
 }
 function legGeo(sd) {
@@ -994,7 +1003,7 @@ function legGeo(sd) {
   return mergeParts([[BOX, s.coat2, mat4(0, -0.24, 0, 0, 0, 0, 0.16, 0.48, 0.18)], [BOX, s.leg2, mat4(0, -0.64, 0, 0, 0, 0, 0.15, 0.34, 0.17)], [BOX, 0x241d17, mat4(0, -0.82, 0.04, 0, 0, 0, 0.15, 0.07, 0.25)]]);
 }
 const GEO = {};
-for (const sd of ["brit", "ger"]) GEO[sd] = { rifle: bodyGeo(sd, "rifle"), gunner: bodyGeo(sd, "gunner"), leg: legGeo(sd) };
+for (const sd of ["brit", "ger"]) GEO[sd] = { rifle: bodyGeo(sd, "rifle"), gunner: bodyGeo(sd, "gunner"), leg: legGeo(sd), arm: armGeo(sd) };
 
 const POOL = [];
 function soldier(sd, kind, x, z, team) {
@@ -1004,14 +1013,17 @@ function soldier(sd, kind, x, z, team) {
     const body = new THREE.Mesh(GEO[sd][kind], SMAT); body.castShadow = true;
     const lL = new THREE.Mesh(GEO[sd].leg, SMAT), lR = new THREE.Mesh(GEO[sd].leg, SMAT); lL.castShadow = lR.castShadow = true;
     lL.position.set(-0.1, 0.86, 0); lR.position.set(0.1, 0.86, 0); pivot.add(body, lL, lR); scene.add(root);
-    root.scale.setScalar(SC); s = { root, pivot, body, lL, lR, sd, kind }; POOL.push(s);
+    let arm = null; if (kind === "rifle") { arm = new THREE.Mesh(GEO[sd].arm, SMAT); arm.position.set(0.24, 1.38, 0); pivot.add(arm); }
+    root.scale.setScalar(SC); s = { root, pivot, body, lL, lR, arm, sd, kind }; POOL.push(s);
   }
-  Object.assign(s, { gone: false, role: "line", buddy: null, cs: 0, glint: false, thrown: false, throws: 0, acc: 0, cut: false, chargeZ: -50, walk: 1.5, coverT: 0, burstT: 0, on: false, state: "idle", used: true, team, x, z, y: H(x, z), face: 0, speed: 0, phase: Math.random() * 7, pose: "stand", state: "idle", alive: true, deathT: 0, fall: 1, t: 0, sup: 0, fireT: rnd(1, 4), tx: x, tz: z, lift: 0 });
+  Object.assign(s, { gone: false, role: "line", buddy: null, cs: 0, glint: false, thrown: false, throws: 0, acc: 0, cut: false, chargeZ: -50, walk: 1.5, coverT: 0, burstT: 0, on: false, state: "idle", used: true, team, x, z, y: H(x, z), face: 0, speed: 0, phase: Math.random() * 7, pose: "stand", state: "idle", alive: true, deathT: 0, fall: 1, t: 0, sup: 0, fireT: rnd(1, 4), tx: x, tz: z, lift: 0, mag: null, boltT: 0, boltDur: 1, relT: 0, relDur: 1, kick: 0, shots: 0, burst: 3 });
+  if (s.arm) s.arm.rotation.set(0, 0, 0);
   s.root.visible = true; s.root.position.set(x, s.y, z); s.pivot.rotation.set(0, 0, 0); s.pivot.position.set(0, 0, 0); s.lL.rotation.set(0, 0, 0); s.lR.rotation.set(0, 0, 0);
   return s;
 }
 function release(s) { s.used = false; s.alive = false; s.root.visible = false; }
-function poseSoldier(s, dt) {
+function poseSoldier(s, dt) { poseBody(s, dt); if (s.arm) poseArm(s, dt); }
+function poseBody(s, dt) {
   s.root.position.set(s.x, s.y + s.lift, s.z); s.root.rotation.y = s.face;
   const p = s.pivot;
   if (!s.alive) { // falling down, then sinking into the mud
@@ -1029,6 +1041,47 @@ function poseSoldier(s, dt) {
   s.lL.rotation.x = sw; s.lR.rotation.x = -sw;
   p.rotation.x = s.speed > 3 ? 0.22 : (s.cut ? 0.4 : 0.05 * mv);
   p.position.y = Math.abs(Math.cos(s.phase)) * 0.05 * mv;
+}
+// ---------- computer riflemen: aimed fire, working the bolt between shots, chargers when empty ----------
+// Lee-Enfield: 10 rounds, a quick bolt (the "mad minute" was 15+ aimed rounds a minute). Mauser Gewehr 98: 5 rounds, a stiffer bolt.
+const AIR = { brit: { mag: 10, bolt: 0.75, aim: [0.9, 1.8], clip: 2.2 }, ger: { mag: 5, bolt: 1.0, aim: [1.4, 2.6], clip: 2.6 } };
+const AI_GAP = { brit: 1.95, ger: 3.2 }, DEF_GAP = { brit: 2.6, ger: 2.9 }; // average seconds between shots, reloads included (used to keep each side's damage per minute the same as before)
+let rifleBudget = 0, boltBudget = 0;
+setInterval(() => { rifleBudget = 0; boltBudget = 0; }, 250);
+function aiFire(s, mx, my, mz) { // one aimed shot: bang, flash, kick, then the bolt; returns seconds until the next shot
+  const r = AIR[s.sd]; if (s.mag == null) s.mag = r.mag;
+  const dd = Math.hypot(s.x - camera.position.x, s.y - camera.position.y, s.z - camera.position.z), pan = clamp((s.x - camera.position.x) / 50, -0.8, 0.8);
+  if (rifleBudget < 6 || dd < 25) { rifleBudget++; sfx.rifleFar(clamp(24 / dd, 0.06, 0.85), pan); }
+  muzzle(mx, my, mz, false); s.kick = 1; s.mag--;
+  if (s.mag <= 0) { // empty: bolt back, chargers in, bolt home
+    s.mag = r.mag; s.relDur = s.relT = r.clip * Math.ceil(r.mag / 5) * rnd(0.85, 1.15); s.boltT = 0;
+    return s.relT + rnd(r.aim[0], r.aim[1]);
+  }
+  s.boltDur = s.boltT = r.bolt * rnd(0.9, 1.15); s.ejected = false;
+  if (dd < 32 && boltBudget < 3) { boltBudget++; sfx.boltFar(clamp(10 / dd, 0.1, 0.9), pan, s.boltDur * 0.3); }
+  return s.boltT + rnd(r.aim[0], r.aim[1]);
+}
+function poseArm(s, dt) {
+  const a = s.arm, p = s.pivot;
+  if (!s.alive) { a.rotation.set(0, 0, 0); p.position.z = 0; return; }
+  let rx = 0, rz = 0;
+  if (s.boltT > 0) {
+    s.boltT = Math.max(0, s.boltT - dt);
+    const k = 1 - s.boltT / s.boltDur;
+    // hand up to the bolt, lift, pull back (out flies the empty case), push forward, turn down, hand back to the grip
+    rx = k < 0.18 ? -0.42 * k / 0.18 : k < 0.3 ? -0.42 : k < 0.5 ? -0.42 + 0.36 * (k - 0.3) / 0.2 : k < 0.68 ? -0.06 - 0.36 * (k - 0.5) / 0.18 : k < 0.8 ? -0.42 : -0.42 * (1 - (k - 0.8) / 0.2);
+    rz = 0.2 * (k < 0.18 ? 0 : k < 0.3 ? (k - 0.18) / 0.12 : k < 0.68 ? 1 : k < 0.8 ? 1 - (k - 0.68) / 0.12 : 0);
+    if (k > 0.45 && !s.ejected) { s.ejected = true;
+      if (Math.hypot(s.x - camera.position.x, s.z - camera.position.z) < 45) { const c = Math.cos(s.face), sn = Math.sin(s.face); puff(s.x + c * 0.3 + sn * 0.3, s.y + s.lift + (s.pose === "prone" ? 0.4 : 1.4), s.z - sn * 0.3 + c * 0.3, { c: 0xffd060, add: true, vx: c * 1.4, vy: 1.6, vz: -sn * 1.4, g: 6, s0: 0.07, s1: 0.05, life: 0.45, a: 1 }); } }
+  } else if (s.relT > 0) { // thumbing rounds down from the charger
+    s.relT = Math.max(0, s.relT - dt);
+    const k = 1 - s.relT / s.relDur;
+    rx = k < 0.1 ? -0.5 * k / 0.1 : k > 0.9 ? -0.5 * (1 - k) / 0.1 : -0.5 + 0.1 * Math.abs(Math.sin(k * 22));
+    rz = 0.12;
+  }
+  a.rotation.x += (rx - a.rotation.x) * Math.min(1, dt * 30); a.rotation.z += (rz - a.rotation.z) * Math.min(1, dt * 30);
+  p.position.z = -s.kick * 0.06;
+  if (s.kick > 0) { p.rotation.x -= s.kick * 0.18; s.kick = Math.max(0, s.kick - dt * 7); }
 }
 // hit testing: each soldier is a capsule from feet to head
 function capsule(s, out) {
@@ -1612,7 +1665,7 @@ function startMG(cont) {
   Object.assign(P, { x: 1.2, z: zOwn(1.2), y: 0, crouch: false, stam: 100, mag: sd.mag, res: 60 + (has("belts") ? 40 : 0), boltT: 0, reloadT: 0, bayT: 0, lungeT: 0, lmg: false });
   mgGun = mgModel(G.side); scene.add(mgGun);
   mgGun.position.set(0, H(0, zOwn(0) + GUN_Z) + 0.62, zOwn(0) + GUN_Z);
-  for (const x of [-3.2, 3.6, -7, 8]) { const s = soldier(G.side, "rifle", x, zOwn(x) - 0.62, "us"); s.face = Math.PI; s.y = -0.95; s.state = "mate"; units.push(s); }
+  for (const x of COARSE ? [-3.2, 3.6, -7, 8, -12, 13] : [-3.2, 3.6, -7, 8, -12, 13, -18, 19]) { const s = soldier(G.side, "rifle", x, zOwn(x) - 0.62, "us"); s.face = Math.PI; s.y = -0.95; s.state = "mate"; s.fireT = rnd(0.5, 3); units.push(s); }
   spawnNo2();
   banner(G.battle.title, G.battle.date + " · " + (G.scen === "somme" ? "you are a German machine gunner" : "you are a British machine gunner"), 3);
   if (cont) { G.wave = cont; G.phase = "clear"; G.phaseT = 2.5; G.continued = true; banner(G.battle.title, "Carrying on from wave " + (cont + 1), 2.5); }
@@ -2031,6 +2084,22 @@ function throwBomb(s) {
 function updTrench(dt) {
   if ((!G.no2 || !G.no2.alive) && G.no2T > 0) { G.no2T -= dt; if (G.no2T <= 0) { spawnNo2(); hint("A new No. 2 has got to the gun", 2.5); } }
   if (G.no2 && G.no2.alive) { const n2 = G.no2; n2.pose = "crouch"; n2.face = Math.atan2(mgGun.position.x - 0.25 - n2.x, mgGun.position.z - n2.z) + (G.reloadT > 0 ? Math.sin(G.t * 6) * 0.25 : Math.sin(G.t * 0.7) * 0.08); }
+  // the riflemen beside you on the fire step: aimed fire as fast as they can work the bolt
+  const D = G.D, under = G.phase === "barrage" || (G.creep && G.creep.z > -18);
+  for (const s of units) {
+    if (s.state !== "mate" || !s.alive) continue;
+    s.pose = under ? "crouch" : "stand"; s.y = under ? -1.45 : -0.95; s.speed = 0;
+    if (under || G.phase !== "attack") { s.face += (Math.PI - s.face) * Math.min(1, dt * 3); continue; }
+    s.fireT -= dt;
+    if (s.fireT <= 0) {
+      let tgt = s.tgt && s.tgt.alive && s.tgt.z > -L - 30 ? s.tgt : null;
+      if (!tgt || Math.random() < 0.3) { tgt = null; let bd = 1e9; for (const t of units) if (t.alive && t.team === "them" && t.z > -L - 10) { const d = Math.abs(t.x - s.x) * 2 + Math.abs(t.z - s.z) + rnd(0, 25); if (d < bd) { bd = d; tgt = t; } } s.tgt = tgt; }
+      if (!tgt) { s.fireT = 1; continue; }
+      s.face = Math.atan2(tgt.x - s.x, tgt.z - s.z);
+      s.fireT = aiFire(s, s.x + Math.sin(s.face) * 1.7, s.y + 1.55, s.z + Math.cos(s.face) * 1.7);
+      if (Math.random() < D.comradeKill * 0.25) killUnit(tgt, "mate");
+    }
+  }
   // never let the camera sit inside a crewman
   for (const s of units) if (s.team === "crew" && s.alive) { const d = Math.hypot(s.x - camera.position.x, s.y + 1.1 - camera.position.y, s.z - camera.position.z); s.root.visible = d > 1.15; }
   // the ammo runner brings two boxes along the trench
@@ -2169,7 +2238,7 @@ function updMG(dt) {
     if (s.role === "sniper") {
       s.pose = "prone"; s.speed = 0; s.fireT -= dt;
       if (s.fireT < 1.1 && !s.glint) { s.glint = true; puff(s.x + Math.sin(s.face) * 1.5, s.y + 0.4, s.z + 1.5, { c: 0xffffff, add: true, s0: 0.4, s1: 1.8, life: 0.5, a: 1 }); }
-      if (s.fireT <= 0) { s.fireT = rnd(6, 10); s.glint = false; const d = Math.hypot(s.x, s.z); sfx.rifleFar(clamp(35 / d, 0.15, 0.8), clamp(s.x / 50, -0.8, 0.8)); incoming(D.sniperAcc, "Sniper! Watch for the glint, then duck", s); }
+      if (s.fireT <= 0) { s.fireT = rnd(6, 10); s.glint = false; s.kick = 1; s.boltDur = s.boltT = 1.3; s.ejected = false; const d = Math.hypot(s.x, s.z); sfx.rifleFar(clamp(35 / d, 0.15, 0.8), clamp(s.x / 50, -0.8, 0.8)); incoming(D.sniperAcc, "Sniper! Watch for the glint, then duck", s); }
       poseSoldier(s, dt); continue;
     }
     if (s.role === "lmg" || s.role === "lmgmate") {
@@ -2210,7 +2279,7 @@ function updMG(dt) {
         s.y = H(s.x, s.z);
       } else {
         s.pose = "prone"; s.speed = 0; s.coverT -= dt; s.fireT -= dt;
-        if (s.fireT <= 0) { s.fireT = rnd(2.2, 4); const d = Math.hypot(s.x, s.z); sfx.rifleFar(clamp(30 / d, 0.1, 0.8), clamp(s.x / 50, -0.8, 0.8)); muzzle(s.x + Math.sin(s.face) * 1.6, s.y + 0.35, s.z + Math.cos(s.face) * 1.6, false); incoming(D.enemyAcc * 0.3 * (d < 45 ? 1.4 : 0.8) * (ATM.far < 90 ? 0.6 : 1), "You're hit! Keep firing!", s); }
+        if (s.fireT <= 0) { s.fireT = aiFire(s, s.x + Math.sin(s.face) * 1.6, s.y + 0.35, s.z + Math.cos(s.face) * 1.6); const d = Math.hypot(s.x, s.z); incoming(D.enemyAcc * 0.3 * (d < 45 ? 1.4 : 0.8) * (ATM.far < 90 ? 0.6 : 1) * AI_GAP[s.sd] / 3.1, "You're hit! Keep firing!", s); }
         if (s.coverT <= 0) { if (s.z > -30) { s.state = "charge"; s.tx = s.x; } else { s.state = "hop"; stormTarget(s); } }
       }
       s.cut = false;
@@ -2221,10 +2290,9 @@ function updMG(dt) {
     if (s.state === "prone") {
       s.speed = 0; s.pose = "prone"; s.fireT -= dt;
       if (s.fireT <= 0) {
-        s.fireT = rnd(2.8, 5.5);
-        const d = Math.hypot(s.x, s.z), vol = clamp(30 / d, 0.1, 0.8), pan = clamp(s.x / 50, -0.8, 0.8);
-        sfx.rifleFar(vol, pan); muzzle(s.x + Math.sin(s.face) * 1.6, s.y + 0.35, s.z + Math.cos(s.face) * 1.6, false);
-        incoming(D.enemyAcc * 0.6 * (d < 50 ? 1.5 : 1), "You're hit! Keep firing!", s);
+        s.fireT = aiFire(s, s.x + Math.sin(s.face) * 1.6, s.y + 0.35, s.z + Math.cos(s.face) * 1.6);
+        const d = Math.hypot(s.x, s.z);
+        incoming(D.enemyAcc * 0.6 * (d < 50 ? 1.5 : 1) * AI_GAP[s.sd] / 4.15, "You're hit! Keep firing!", s);
       }
       s.coverT -= dt; if (s.coverT <= 0) { s.state = "charge"; s.pose = "stand"; }
     } else {
@@ -2799,6 +2867,7 @@ function fireRifle(auto) {
   if (P.reloadT > 0 || P.boltT > 0 || P.lungeT > 0) return;
   if (P.mag <= 0) { sfx.click(); rifleReload(); return; }
   P.mag--; P.boltT = P.lmg ? 0 : sd.bolt; G.shots++;
+  if (playerS && G.mode === "rifle" && !P.lmg) { playerS.kick = 1; playerS.boltDur = playerS.boltT = sd.bolt + 0.25; playerS.ejected = false; }
   if (G.raid && !G.alarm) { G.spot = Math.min(1, (G.spot || 0) + (P.lmg ? 0.12 : 0.45)); if (!G.warned.bang) { G.warned.bang = 1; hint("Shots are loud at night! Use the bayonet (F) to stay quiet", 3); } }
   const moving = Math.abs(IN.mx) + Math.abs(IN.my) > 0.1 || keys.KeyW || keys.KeyA || keys.KeyS || keys.KeyD;
   let spread = (P.lmg ? (IN.aim ? 0.45 : 1.3) : IN.aim ? sd.ads * (G.zl === 2 ? 0.45 : 1) : sd.spread) * (moving ? 1.8 : 1) * D2R; if (P.crouch) spread *= 0.75;
@@ -3052,9 +3121,8 @@ function updCounter(s, dt) {
   if (dz < 0.6) { s.role = "line"; s.state = "melee"; return; }
   s.fireT -= dt;
   if (s.fireT <= 0 && d > 6) { // stop and fire at you
-    s.fireT = rnd(3, 5.5); s.pauseT = 0.8;
-    sfx.rifleFar(clamp(20 / d, 0.1, 0.8), clamp((s.x - camera.position.x) / 50, -0.8, 0.8)); muzzle(s.x, s.y + 1.25 * SC, s.z + 1, false);
-    if (Math.random() < D.rifleAcc * covered(null, true) * (d < 30 ? 1 : clamp(30 / d, 0.3, 1))) hurtPlayer(1, "Counter-attack fire! Keep low");
+    s.fireT = aiFire(s, s.x, s.y + 1.25 * SC, s.z + 1); s.pauseT = s.relT > 0 ? s.relT : s.boltT;
+    if (Math.random() < D.rifleAcc * covered(null, true) * (d < 30 ? 1 : clamp(30 / d, 0.3, 1)) * AI_GAP[s.sd] / 4.25) hurtPlayer(1, "Counter-attack fire! Keep low");
     else if (Math.random() < 0.4) sfx.snap(rnd(-0.5, 0.5));
   }
   if (s.pauseT > 0) { s.pauseT -= dt; s.speed = 0; }
@@ -3075,19 +3143,19 @@ function updComrades(dt) {
       s.pose = P.crouch ? "crouch" : "stand";
       if (dd > 0.5) { const sp = Math.min(dd * 1.6, P.crouch ? 1.8 : 4.6); s.x += dx / dd * sp * dt; s.z += dz / dd * sp * dt; s.face = Math.atan2(dx, dz); s.speed = sp; } else { s.speed = 0; s.face = G.yaw + Math.PI; }
       s.x = clamp(s.x, -XW + 1, XW - 1); s.z = clamp(s.z, zEn(s.x) - 1.0, zOwn(s.x) + 0.9);
-      if (G.alarm) { s.fireT -= dt; if (s.fireT <= 0) { s.fireT = rnd(2, 4); const tgt = units.find(t => t.alive && t.team === "them" && t.state === "up" && Math.abs(t.x - s.x) < 30); if (tgt) { muzzle(s.x + Math.sin(s.face), s.y + 0.85, s.z + Math.cos(s.face), false); sfx.rifleFar(0.3, 0); if (Math.random() < 0.15) killUnit(tgt, "mate"); } } }
+      if (G.alarm) { s.fireT -= dt; if (s.fireT <= 0) { s.fireT = 0.5; const tgt = units.find(t => t.alive && t.team === "them" && t.state === "up" && Math.abs(t.x - s.x) < 30); if (tgt) { s.fireT = aiFire(s, s.x + Math.sin(s.face), s.y + 0.85, s.z + Math.cos(s.face)); if (Math.random() < 0.15 * AI_GAP[s.sd] / 3) killUnit(tgt, "mate"); } } }
       s.y = H(s.x, s.z); poseSoldier(s, dt); continue;
     }
     if (s.state === "wait") { s.pose = "stand"; s.speed = 0; if (G.phase === "attack") { s.goT -= dt; if (s.goT <= 0) { s.state = "rush"; pickTarget(s); } } poseSoldier(s, dt); continue; }
     if (s.state === "cover") {
       s.speed = 0; s.pose = "crouch"; s.coverT -= dt; s.fireT -= dt;
       if (s.fireT <= 0) { // fire at a defender showing over the parapet
-        s.fireT = rnd(2, 4.5);
+        s.fireT = 0.4;
         const tgt = units.find(t => t.alive && t.team === "them" && t.state === "up" && Math.abs(t.x - s.x) < 35);
         if (tgt) {
-          const dd = Math.hypot(s.x - camera.position.x, s.z - camera.position.z); sfx.rifleFar(clamp(14 / dd, 0.08, 0.7), clamp((s.x - camera.position.x) / 40, -0.8, 0.8));
-          muzzle(s.x + Math.sin(s.face) * 1, s.y + 0.85, s.z + Math.cos(s.face) * 1, false);
-          if (Math.random() < D.comradeKill) killUnit(tgt, "mate");
+          s.face = Math.atan2(tgt.x - s.x, tgt.z - s.z);
+          s.fireT = aiFire(s, s.x + Math.sin(s.face) * 1, s.y + 0.85, s.z + Math.cos(s.face) * 1);
+          if (Math.random() < D.comradeKill * AI_GAP[s.sd] / 3.25) killUnit(tgt, "mate");
         }
       }
       if (s.coverT <= 0) { s.state = "rush"; pickTarget(s); }
@@ -3154,25 +3222,26 @@ function updDefenders(dt) {
       poseSoldier(s, dt); continue;
     }
     // pop up over the parapet, aim, fire, duck
-    if (s.state === "down") { s.lift = 0; s.y = -1.6; s.z = zEn(s.x) - 0.1; s.speed = 0; s.pose = "crouch"; const hide = (G.creepR && !G.creepR.done && G.creepR.z - zEn(s.x) < 22) || G.liftT > 0 || (G.raid && !G.alarm); if (s.t <= 0 && G.phase === "attack" && !hide) { s.state = "up"; s.t = rnd(1.0, 2.0); } }
+    const hide = (G.creepR && !G.creepR.done && G.creepR.z - zEn(s.x) < 22) || G.liftT > 0 || (G.raid && !G.alarm);
+    if (s.state === "down") { s.lift = 0; s.y = -1.6; s.z = zEn(s.x) - 0.1; s.speed = 0; s.pose = "crouch"; if (s.t <= 0 && s.relT <= 0 && s.mag != null && s.mag < AIR[s.sd].mag / 2) { s.relDur = s.relT = AIR[s.sd].clip; s.mag = AIR[s.sd].mag; s.t = Math.max(s.t, s.relT); } if (s.t <= 0 && s.relT <= 0 && G.phase === "attack" && !hide) { s.state = "up"; s.t = rnd(1.0, 2.0); s.shots = 0; s.burst = 2 + Math.floor(Math.random() * 3); } }
+    else if (s.state === "up" && hide) { s.state = "down"; s.t = rnd(1, 2); }
     else if (s.state === "up") {
       s.y = -0.75; s.z = zEn(s.x) + 0.62; s.face = 0;
       if (s.t <= 0) {
         // fire at someone
         let tgt = null; const pool = attackers.filter(a => (a ? a.alive : true));
         if (pool.length) { pool.sort((a, b) => { const da = a ? Math.hypot(a.x - s.x, a.z - s.z) : pdist * 0.8, db = b ? Math.hypot(b.x - s.x, b.z - s.z) : pdist * 0.8; return da - db; }); tgt = pool[Math.floor(Math.random() * Math.min(4, pool.length))]; }
-        const dd = Math.hypot(s.x - camera.position.x, s.z - camera.position.z);
-        sfx.rifleFar(clamp(20 / dd, 0.08, 0.8), clamp((s.x - camera.position.x) / 50, -0.8, 0.8));
-        muzzle(s.x, s.y + 1.25, s.z + 1.0, false);
+        const gap = aiFire(s, s.x, s.y + 1.25, s.z + 1.0), rk = DEF_GAP[s.sd] / 4.5; s.shots++;
         if (tgt === null && attackers.length) {
           const cov = covered(null, true), rf = pdist < 30 ? 1 : clamp(30 / pdist, 0.25, 1);
-          if (Math.random() < D.rifleAcc * cov * rf * 1.4) hurtPlayer(1, "Hit by a rifle shot!");
+          if (Math.random() < D.rifleAcc * cov * rf * 1.4 * rk) hurtPlayer(1, "Hit by a rifle shot!");
           else if (Math.random() < cov * 0.5) sfx.snap(rnd(-0.5, 0.5));
         } else if (tgt) {
           const td = Math.hypot(tgt.x - s.x, tgt.z - s.z), rf = td < 30 ? 1 : clamp(30 / td, 0.25, 1);
-          if (Math.random() < 0.1 * covered(tgt, false) * rf) killUnit(tgt, "foe");
+          if (Math.random() < 0.1 * covered(tgt, false) * rf * rk) killUnit(tgt, "foe");
         }
-        s.state = "down"; s.t = rnd(2, 5) * (pdist < 40 ? 0.7 : 1);
+        if (s.relT > 0 || s.shots >= s.burst) { s.state = "down"; s.t = Math.max(s.relT, rnd(1.5, 3.5) * (pdist < 40 ? 0.7 : 1)); } // duck down, to reload or for a breather
+        else s.t = gap; // stay up, work the bolt, aim, fire again
       }
     }
     if (s.state !== "down") s.pose = "stand"; poseSoldier(s, dt);

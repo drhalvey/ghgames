@@ -308,6 +308,15 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
       <p id="pauseHelp"></p>
     </div>
 
+    <div class="ov" id="tfOv" hidden style="justify-content:center">
+      <h2>They're in the trench!</h2>
+      <p id="tfWhy"></p>
+      <div class="row" style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:720px">
+        <button class="choice" id="tfFightBtn"><b>⚔️ Fight it out (1)</b><small>Grab your rifle and bayonet and fight them in the trench with your mates. Your machine gun turns right round if you get back on it. Keep going until they're beaten, or you're knocked out.</small></button>
+        <button class="choice" id="tfBackBtn"><b>🏃 Fall back (2)</b><small>Run down the communication trench to the reserve trench, meet the reserves, then lead a counter-attack to take your front line back.</small></button>
+      </div>
+    </div>
+
     <div class="ov" id="endOv" hidden>
       <h2 id="endTitle"></h2>
       <div class="stars" id="endStars"></div>
@@ -331,7 +340,7 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
   <div class="help" id="help">
     <b>Computer:</b> click the battlefield to grab the mouse (Esc lets go). Mouse looks and aims (it slows a little when you are on a target). <b>Zoom:</b> mouse wheel, or right click / Z to step through. <b>Machine gun:</b> hold left click or Space to fire; zoom right in for the telescopic sight, R reload the belt, A fires an SOS flare for your artillery, C ducks below the parapet (do it when shells or bombs come), M gas mask, G throws a bomb bundle at a close tank. Planes can be shot down: aim ahead of them. Each battle tells its own day: the Somme for the German gunner, Operation Michael for the British.
     <b>Rifleman:</b> WASD move, Shift sprint, C duck (ducking inside a shell hole hides you from the machine guns), left click fire, right click (or wheel) to look down the iron sights, R reload, F bayonet, G throw a bomb. Once you hold their trench, E turns their machine gun round.<br>
-    <b>Machine gunner extras:</b> Q swaps to your own rifle and back. While ducked (C), V puts up a trench periscope so you can watch without being shot (works for the rifleman too when ducked).<br>
+    <b>Machine gunner extras:</b> the gun swings a full 360 degrees. Q swaps to your own rifle and back. If they break into your trench you choose: fight it out there (E gets you on and off the gun), or fall back down the communication trench to the reserve trench and counter-attack to retake the line. While ducked (C), V puts up a trench periscope so you can watch without being shot (works for the rifleman too when ducked).<br>
     <b>Night raider:</b> creep across, freeze or duck when a flare goes up, keep out of the searchlight, grab the maps by the lantern and get home. The bayonet is silent; shots and bombs wake them up.<br>
     <b>Tank commander:</b> W / S drive, A / D steer, mouse aims, click fires the big gun, hold Space for the machine guns, right click for the gun sight.<br>
     <b>Fighter pilot:</b> mouse or A / D to turn, W / S to climb and dive, hold click or Space to fire, Shift to boost. Get behind them!<br>
@@ -676,6 +685,9 @@ function between(list, a, b, t, col, t2) { // a box stretched from point a to po
 const L = 120, XW = 75, SC = 1.3; // soldiers are drawn a bit bigger than life so you can see them              // metres between the trench lines, half the width you can use
 const zOwn = x => 0.7 * Math.sin(x / 9.5);
 const zEn = x => -L + 0.7 * Math.sin(x / 11 + 2);
+// behind your front line: a reserve trench, joined to it by a winding communication trench (dug with bends so nobody could fire straight down it)
+const RES_Z = 34, zRes = x => RES_Z + 0.6 * Math.sin(x / 8 + 1);
+const ctX = z => 4.6 + 1.1 * Math.sin(z / 4.2) + 0.5 * Math.sin(z / 1.9);
 // a trench cut across the ground; d is metres towards the enemy from the trench centre line
 function trenchProf(d) {
   if (d < -3.4 || d > 3.6) return 0;
@@ -737,13 +749,20 @@ function nearCrater(x, z, zMin, zMax, xr) {
   return out.length ? pick(out) : null;
 }
 function H(x, z) {
-  const dO = zOwn(x) - z, dE = z - zEn(x);
-  const nf = Math.min(sstep(1.5, 4, Math.abs(dO)), sstep(1.5, 4, Math.abs(dE)));
+  const dO = zOwn(x) - z, dE = z - zEn(x), dR = zRes(x) - z;
+  let nf = Math.min(sstep(1.5, 4, Math.abs(dO)), sstep(1.5, 4, Math.abs(dE)), sstep(1.5, 4, Math.abs(dR)));
+  // the communication trench: a narrow cut with a duckboard floor, from the back of your trench to the reserve trench
+  let ck = 0;
+  if (z > -1 && z < RES_Z + 2) {
+    const ax = Math.abs(x - ctX(z));
+    if (ax < 4) { const along = sstep(zOwn(x) + 0.2, zOwn(x) + 0.7, z) * (1 - sstep(zRes(x) - 0.7, zRes(x) - 0.2, z)); nf = Math.min(nf, 1 - along * (1 - sstep(1.3, 3.5, ax))); ck = along * (1 - sstep(0.55, 1.15, ax)); }
+  }
   const n = 0.22 * Math.sin(x * 0.21 + z * 0.13) + 0.16 * Math.sin(x * 0.07 - z * 0.19 + 1.3) + 0.1 * Math.sin(x * 0.5 + z * 0.43) + 0.6 * Math.sin(z * 0.012 + 0.4) * Math.sin(x * 0.02);
   // churned, lumpy ground between the lines: heaps of thrown-up earth, ruts and puddled hollows
   const nml = sstep(-L + 4, -L + 14, z) * (1 - sstep(-14, -4, z));
   const churn = nml * (0.13 * Math.sin(x * 1.13 + z * 0.87) * Math.sin(x * 0.71 - z * 1.29 + 0.6) + 0.07 * Math.sin(x * 2.1 - z * 1.7 + 2.0));
-  return n * nf + churn + trenchProf(dO) + trenchProf(dE) + craterH(x, z);
+  const h = n * nf + churn + trenchProf(dO) + trenchProf(dE) + trenchProf(dR) + craterH(x, z);
+  return ck ? h + (Math.min(h, -1.6) - h) * ck : h;
 }
 
 // ---------- the ground mesh: fine rows where the trenches are, coarse elsewhere ----------
@@ -766,9 +785,9 @@ const MUD = (() => {
 {
   const xs = [], zs = [];
   const XS = COARSE ? 1.25 : 0.9, ZN = COARSE ? 0.95 : 0.7; // rows are closer in no man's land so the small shell holes keep their shape
-  for (let x = -XW - 50; x <= XW + 50 + 0.01; x += XS) xs.push(x);
+  for (let x = -XW - 50; x <= XW + 50 + 0.01;) { xs.push(x); x += x > 1.4 && x < 7.8 ? 0.22 : XS; } // fine columns where the communication trench runs
   const fine = (z, c) => Math.abs(z - c) < 4.4;
-  for (let z = 50; z >= -L - 70;) { zs.push(z); z -= (fine(z, 0) || fine(z, -L)) ? 0.2 : (z < 6 && z > -L - 6) ? ZN : 1.1; }
+  for (let z = 50; z >= -L - 70;) { zs.push(z); z -= (fine(z, 0) || fine(z, -L) || fine(z, RES_Z)) ? 0.2 : (z < 6 && z > -L - 6) ? ZN : z < RES_Z ? 0.55 : 1.1; }
   const nx = xs.length, nz = zs.length, n = nx * nz;
   const pos = new Float32Array(n * 3), col = new Float32Array(n * 3), uv = new Float32Array(n * 2);
   const cA = new THREE.Color(0xa49680), cWet = new THREE.Color(0x4a4034), cChalk = new THREE.Color(0xc8c2b2), cDry = new THREE.Color(0xb2a68e), cGrass = new THREE.Color(0x7d8260), tmp = new THREE.Color();
@@ -821,25 +840,40 @@ const waterU = { sky: skyU.mid, top: skyU.top, deep: { value: new THREE.Color(0x
 // sandbags along both parapets, duckboards along both floors
 {
   const along = [];
-  for (const own of [true, false]) for (let x = -XW - 40; x <= XW + 40; x += 0.52) along.push([x, own]);
+  for (const own of [true, false, "res"]) for (let x = -XW - 40; x <= XW + 40; x += 0.52) along.push([x, own]);
+  const ctB = []; for (let z = 1.2; z < RES_Z - 0.8; z += 0.52) ctB.push(z);
   const bagG = new THREE.BoxGeometry(0.5, 0.2, 0.3);
   const bags = new THREE.InstancedMesh(bagG, lam(0xffffff), along.length * 2); bags.castShadow = true; bags.receiveShadow = true;
-  const boards = new THREE.InstancedMesh(new THREE.BoxGeometry(0.42, 0.05, 1.0), lam(0x7a6346), along.length);
+  const boards = new THREE.InstancedMesh(new THREE.BoxGeometry(0.42, 0.05, 1.0), lam(0x7a6346), along.length + ctB.length);
   boards.receiveShadow = true;
   const R = mulberry(3), cl = new THREE.Color();
   let bi = 0, di = 0;
   for (const [x, own] of along) {
-    const zc = own ? zOwn(x) : zEn(x), sgn = own ? -1 : 1;
-    const slope = own ? (zOwn(x + 0.5) - zOwn(x - 0.5)) : (zEn(x + 0.5) - zEn(x - 0.5)), ang = -Math.atan(slope);
+    const zf0 = own === "res" ? zRes : own ? zOwn : zEn, zc = zf0(x), sgn = own ? -1 : 1;
+    const slope = zf0(x + 0.5) - zf0(x - 0.5), ang = -Math.atan(slope);
     for (let r = 0; r < 2; r++) {
+      if (own === "res" && Math.abs(x - ctX(zc - 1.45)) < 1.5) continue; // the way through into the communication trench
       const d = 1.45 + r * 0.05, xx = x + (r ? 0.26 : 0), z = zc + sgn * d, y = H(xx, z) + 0.1 + r * 0.2;
       bags.setMatrixAt(bi, mat4(xx, y, z, 0, ang + rnd(-0.12, 0.12), R() * 0.08 - 0.04));
       const s = 0.82 + R() * 0.25; bags.setColorAt(bi, cl.setRGB(0.5 * s, 0.45 * s, 0.33 * s)); bi++;
     }
     const zf = zc - sgn * 0.3; boards.setMatrixAt(di++, mat4(x, -1.57, zf, 0, ang, 0));
   }
+  for (const z of ctB) boards.setMatrixAt(di++, mat4(ctX(z), -1.57, z, 0, Math.PI / 2 - Math.atan((ctX(z + 0.3) - ctX(z - 0.3)) / 0.6), 0));
+  bags.count = bi;
   bags.instanceMatrix.needsUpdate = true; if (bags.instanceColor) bags.instanceColor.needsUpdate = true;
   scene.add(bags, boards);
+}
+// signboards at each end of the communication trench
+{
+  const sign = (x, z, ry, text) => {
+    const [c, g] = cnv(256, 96); g.fillStyle = "#6b5236"; g.fillRect(0, 0, 256, 96); g.strokeStyle = "#3b2b1a"; g.lineWidth = 8; g.strokeRect(4, 4, 248, 88);
+    g.fillStyle = "#efe6cf"; g.font = "900 30px Nunito, system-ui, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; text.split("|").forEach((t, i, a) => g.fillText(t, 128, 48 + (i - (a.length - 1) / 2) * 34, 236));
+    const y = H(x, z), post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.9, 0.1), lam(0x4a3a2a)); post.position.set(x, y + 0.95, z); post.castShadow = true;
+    const board = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.41), new THREE.MeshLambertMaterial({ map: new THREE.CanvasTexture(c), side: THREE.DoubleSide })); board.position.set(x, y + 1.65, z); board.rotation.y = ry;
+    scene.add(post, board);
+  };
+  sign(ctX(2.2) + 1.35, 2.2, 0, "RESERVE|TRENCH ⇩"); sign(ctX(RES_Z - 2.4) + 1.35, RES_Z - 2.4, 0, "FRONT|LINE ⇧");
 }
 // barbed wire: belts of coiled concertina on wooden and iron pickets, aprons pegged down to the ground, knife rests and loose tangles
 {
@@ -907,7 +941,12 @@ const HALFDOME = new THREE.SphereGeometry(0.5, 8, 4, 0, Math.PI * 2, 0, Math.PI 
     for (let i = 0; i < nS; i++) { const a = i / nS * 6.3 + R(), l = rr(0.25, 1.2) * Math.min(1, r * 4); parts.push([CONE4, R() < 0.6 ? 0x9c8a6a : 0x6e604c, mat4(tx + Math.cos(a) * r * 0.55, top + l / 2, z + Math.sin(a) * r * 0.55, rr(-0.2, 0.2), a, rr(-0.25, 0.25), r * 0.7, l, r * 0.5)]); }
     if (h > 2.5) { const nb = R() * 3 | 0; for (let i = 0; i < nb; i++) { const bh = y + h * rr(0.45, 0.85), a = R() * 6.3, bl = rr(0.5, 1.8); parts.push([CYL6, bark, mat4(x + Math.cos(a) * bl * 0.4, bh, z + Math.sin(a) * bl * 0.4, 0, -a, rr(0.7, 1.2), r * 0.5, bl, r * 0.5)]); } }
   };
-  for (let i = 0; i < 46; i++) { const back = R() < 0.5; tree(rr(-XW - 45, XW + 45), back ? rr(9, 70) : rr(-L - 70, -L - 9), rr(2.5, 9.5), rr(0.14, 0.3)); }
+  for (let i = 0; i < 46; i++) {
+    const back = R() < 0.5; let x = rr(-XW - 45, XW + 45), z = back ? rr(9, 70) : rr(-L - 70, -L - 9); const h = rr(2.5, 9.5), r = rr(0.14, 0.3);
+    if (back && Math.abs(z - zRes(x)) < 4) z += 8; // keep the reserve trench and the communication trench clear
+    if (back && z < RES_Z + 3 && Math.abs(x - ctX(z)) < 3.5) x += 8;
+    tree(x, z, h, r);
+  }
   for (let i = 0; i < 24; i++) { const x = rr(-XW - 20, XW + 20), z = rr(-L + 22, -22); if (inWire(x, z)) continue; tree(x, z, rr(0.5, 3.4), rr(0.13, 0.32)); }
   // fallen trunks
   for (let i = 0; i < 12; i++) { const x = rr(-XW - 20, XW + 20), z = rr(-L + 22, -22), l = rr(2, 5.5), r = rr(0.12, 0.25); parts.push([CYL6, 0x3d362d, mat4(x, H(x, z) + r * 0.5, z, Math.PI / 2, R() * 6.3, 0, r * 2, l, r * 2)]); }
@@ -1581,13 +1620,14 @@ function playing() { return G && !G.over && !G.paused; }
 addEventListener("keydown", e => {
   if (e.repeat) { if (["Space", "ArrowUp", "ArrowDown"].includes(e.code) && playing()) e.preventDefault(); return; }
   keys[e.code] = true;
+  if (G && !$("tfOv").hidden) { if (e.code === "Digit1" || e.code === "Numpad1") startTF("fight"); if (e.code === "Digit2" || e.code === "Numpad2") startTF("back"); return; }
   if (!playing()) return;
   if (e.code === "Space") { e.preventDefault(); if (G.mode === "mg") { if (G.mgRifle) fireRifle(); else IN.fire = true; } else if (G.mode === "tank") IN.fire2 = true; else if (G.mode === "plane") IN.fire = true; }
   if (e.code === "KeyQ") swapWeapon();
   if (e.code === "KeyV") togglePeri();
   if (e.code === "KeyR") reload();
   if (e.code === "KeyZ") zoomToggle();
-  if (e.code === "KeyA" && G.mode === "mg") callArty();
+  if (e.code === "KeyA" && G.mode === "mg" && !G.tf) callArty();
   if (e.code === "KeyC" || e.code === "ControlLeft") toggleCrouch();
   if (e.code === "KeyF") bayonet();
   if (e.code === "KeyG") { if (G.mode === "mg") throwCharge(); else grenade(); }
@@ -1798,6 +1838,7 @@ function clearWorld() {
   for (const o of EXTRA) scene.remove(o); EXTRA.length = 0;
   searchL.intensity = 0; lanternL.intensity = 0; beam.visible = false; docGlow.visible = false; docBox.visible = false;
   clearFighters();
+  $("tfOv").hidden = true; tfMark.set(null);
 }
 let playerS = null;
 const grenades = [], shells = [];
@@ -1853,7 +1894,7 @@ function startMG(cont) {
   Object.assign(P, { x: 1.2, z: zOwn(1.2), y: 0, crouch: false, stam: 100, mag: sd.mag, res: 60 + (has("belts") ? 40 : 0), boltT: 0, reloadT: 0, bayT: 0, lungeT: 0, lmg: false });
   mgGun = mgModel(G.side); scene.add(mgGun);
   mgGun.position.set(0, H(0, zOwn(0) + GUN_Z) + 0.62, zOwn(0) + GUN_Z);
-  for (const x of COARSE ? [-3.2, 3.6, -7, 8, -12, 13] : [-3.2, 3.6, -7, 8, -12, 13, -18, 19]) { const s = soldier(G.side, "rifle", x, zOwn(x) - 0.62, "us"); s.face = Math.PI; s.y = -0.95; s.state = "mate"; s.fireT = rnd(0.5, 3); units.push(s); }
+  placeMates();
   spawnNo2();
   banner(G.battle.title, G.battle.date + " · " + (G.scen === "somme" ? "you are a German machine gunner" : "you are a British machine gunner"), 3);
   if (cont) { G.wave = cont; G.phase = "clear"; G.phaseT = 2.5; G.continued = true; banner(G.battle.title, "Carrying on from wave " + (cont + 1), 2.5); }
@@ -1930,6 +1971,7 @@ function reload() {
 }
 // the machine gunner's own rifle: swap to it and back
 function swapWeapon() {
+  if (playing() && G.tf) { if (G.tf.onGun) tfFoot(); return; }
   if (!playing() || G.mode !== "mg") return;
   if (!G.mgRifle && (G.reloadT > 0 || G.gunDownT > 0)) { hint("Finish with the gun first"); return; }
   G.mgRifle = !G.mgRifle; IN.fire = false; P.reloadT = 0; clipAnim(null); setZoom(0); buildRounds(); sfx.cloth();
@@ -2010,7 +2052,7 @@ function popScore(t, cm) {
 function hurtPlayer(n, why) {
   G.hp -= n; G.dmgT = 0.6; G.shake = Math.max(G.shake, 0.4); sfx.hit();
   if (why) hint(why, 2);
-  if (G.hp <= 0) endGame(false, G.mode === "mg" ? "Your gun team has been knocked out." : G.mode === "tank" ? "Your tank has been knocked out. The crew climb out and get back to your own lines." : G.mode === "plane" ? "Your plane is too badly hit. You glide down and land safely behind your own lines." : G.raid ? "You've been hit. Your mates drag you back to your own trench." : G.phase === "hold" ? "You took their trench, but you were hit holding it." : "You've been hit. Stretcher bearers carry you back to your own trench.");
+  if (G.hp <= 0) endGame(false, G.tf ? (G.tf.phase === "retake" ? "You led the counter-attack, but you were knocked out before the line was taken back." : "You fought on in the trench until you were knocked out. Stretcher bearers carry you back.") : G.mode === "mg" ? "Your gun team has been knocked out." : G.mode === "tank" ? "Your tank has been knocked out. The crew climb out and get back to your own lines." : G.mode === "plane" ? "Your plane is too badly hit. You glide down and land safely behind your own lines." : G.raid ? "You've been hit. Your mates drag you back to your own trench." : G.phase === "hold" ? "You took their trench, but you were hit holding it." : "You've been hit. Stretcher bearers carry you back to your own trench.");
 }
 const ROLE_PTS = { sniper: 40, lmg: 25, lmgmate: 15, bomber: 20 };
 function killUnit(s, by) {
@@ -2239,7 +2281,7 @@ function updTanks(dt) {
     // across your trench
     if (!t.crossed && t.z > zOwn(t.x) - 3.5) {
       t.crossed = true; G.breaches += 2; G.waveClean = false; G.shake = 0.8;
-      if (G.breaches >= G.D.breaches) { endGame(false, "A tank rolled over your trench and the line broke."); return; }
+      if (G.breaches >= G.D.breaches) { t.alive = false; t.gone = true; t.m.visible = false; lineBroken("A tank rolled over your trench and they're pouring in behind it. What will you do?"); return; }
       banner("The tank is across the trench!", "That counts as two breaches", 2.5); t.alive = false; t.gone = true; t.m.visible = false;
     }
   }
@@ -2322,7 +2364,9 @@ function updMG(dt) {
   G.maskK = clamp(G.maskK + (G.mask ? dt : -dt) * 1.3, 0, 1);
   G.gunDownT = Math.max(0, G.gunDownT - dt); G.dust = Math.max(0, G.dust - dt * 0.5); G.supp = Math.max(0, G.supp - dt * 0.6); G.warnTxt = "";
   // aim
-  G.yaw = clamp(G.yaw - IN.look.x, -58 * D2R, 58 * D2R); G.pitch = clamp(G.pitch - IN.look.y, -14 * D2R, 40 * D2R); IN.look.x = IN.look.y = 0;
+  // the gun swings right round on its mount: a full 360 degrees
+  G.yaw -= IN.look.x; if (G.yaw > Math.PI) G.yaw -= 2 * Math.PI; else if (G.yaw < -Math.PI) G.yaw += 2 * Math.PI;
+  G.pitch = clamp(G.pitch - IN.look.y, -14 * D2R, 40 * D2R); IN.look.x = IN.look.y = 0;
   mgGun.rotation.set(G.pitch, G.yaw, 0, "YXZ"); mgGun.userData.mount.rotation.set(-G.pitch, 0, 0);
   if (G.gunDownT > 0) mgGun.rotation.z = 0.7 * Math.min(1, G.gunDownT / 1.5);
   if (!G.duck) G.peri = false;
@@ -2362,6 +2406,7 @@ function updMG(dt) {
   if (G.heat >= 100 && G.jamT <= 0) { G.jamT = 4; G.heat = 70; sfx.steam(); banner("Boiling!", "Topping up the water jacket", 2); sayLine(G.side, "boil"); }
   if (G.heat > 70 && Math.random() < dt * 6) puff(mgGun.position.x + rnd(-0.05, 0.05), mgGun.position.y + 0.08, mgGun.position.z - 0.4, { c: 0xffffff, vy: 1.2, s0: 0.1, s1: 0.6, life: 0.8, a: 0.4 });
   if (G.artyT > 0) G.artyT -= dt;
+  if (G.tf) { updTF(dt); return; } // they are in your trench: the battle outside waits
   // the story of the day, wave by wave
   if (G.phase === "brief") {
     G.phaseT -= dt;
@@ -2529,8 +2574,265 @@ function updMG(dt) {
 }
 function breach(s) {
   G.breaches++; G.waveClean = false; release(s); s.gone = true; G.shake = 0.3;
-  if (G.breaches >= G.D.breaches) { endGame(false, "They broke into your trench. The line has fallen."); return; }
+  if (G.breaches >= G.D.breaches) { lineBroken("Too many got past your gun and jumped down into your trench. What will you do?"); return; }
   banner("Breach!", "They got into the trench · " + (G.D.breaches - G.breaches) + " more and the line falls", 2.2); sfx.grunt(1, 0);
+}
+// ======================================================================
+// when they get into your trench: fight it out, or fall back to the reserve trench and counter-attack
+// ======================================================================
+const MATE_X = () => COARSE ? [-3.2, 3.6, -7, 8, -12, 13] : [-3.2, 3.6, -7, 8, -12, 13, -18, 19];
+function placeMates() { // the riflemen on the fire step beside the gun
+  for (const x of MATE_X()) { const s = soldier(G.side, "rifle", x, zOwn(x) - 0.62, "us"); s.face = Math.PI; s.y = -0.95; s.state = "mate"; s.fireT = rnd(0.5, 3); units.push(s); }
+}
+// a marker floating over where to go next, seen through walls
+const tfMark = (() => {
+  const [c, g] = cnv(512, 128), t = new THREE.CanvasTexture(c);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthTest: false, transparent: true, sizeAttenuation: false }));
+  sp.scale.set(0.34, 0.085, 1); sp.renderOrder = 10; sp.visible = false; scene.add(sp);
+  let txt = "";
+  return { set(text, x, y, z) {
+    if (!text) { sp.visible = false; return; }
+    sp.visible = true; sp.position.set(x, y + 0.25 * Math.sin(performance.now() / 260), z);
+    if (text === txt) return; txt = text;
+    g.clearRect(0, 0, 512, 128); g.font = "900 46px Nunito, system-ui, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+    const w = Math.min(500, g.measureText(text).width + 50);
+    g.fillStyle = "rgba(20,18,14,.78)"; g.beginPath(); g.roundRect ? g.roundRect(256 - w / 2, 14, w, 100, 26) : g.rect(256 - w / 2, 14, w, 100); g.fill();
+    g.lineWidth = 5; g.strokeStyle = "#f2c14e"; g.stroke(); g.fillStyle = "#ffe9a8"; g.fillText(text, 256, 66, 470); t.needsUpdate = true;
+  } };
+})();
+function lineBroken(why) {
+  if (G.tf || G.over) return;
+  G.paused = true; IN.fire = false; IN.look.x = IN.look.y = 0;
+  wantLock = false; if (document.exitPointerLock && locked) document.exitPointerLock();
+  $("tfWhy").textContent = why; $("tfOv").hidden = false;
+  sfx.whistle(0.08, 0); say(G.side === "brit" ? "They're in the trench!" : "Sie sind im Graben!", G.side === "ger", { cut: true });
+}
+function startTF(plan) {
+  if (!G || G.tf || G.over) return;
+  $("tfOv").hidden = true; G.paused = false;
+  const di = DI();
+  G.lineFalls = (G.lineFalls || 0) + 1;
+  G.tf = { plan, phase: "fight", t: 0, t0: G.t, q: [], onGun: false, rallyT: 0 };
+  // the battle out in no man's land waits while the fight is in your trench
+  G.creep = null; clearPlanes(); G.flare = null; flareL.intensity = 0;
+  if (G.runner) { release(G.runner); G.runner.gone = true; G.runner = null; G.runnerT = 50; }
+  let n = 0;
+  for (const s of units) if (s.alive && s.team === "them") {
+    if (s.z > -40 && n < 6 && s.role !== "sniper") { tfRaider(s); n++; } else { release(s); s.gone = true; } // the rest go to ground out there
+  }
+  const tot = [8, 12, 16][di];
+  for (let i = 0; i < tot; i++) G.tf.q.push({ at: G.t + 0.6 + i * rnd(1.0, 2.0) / (1 + di * 0.2), x: clamp(rnd(-22, 22), -40, 40) });
+  for (const s of units) if (s.team === "us" && s.alive) { s.state = "tfFight"; s.fireT = rnd(0.3, 1.5); }
+  if (P.gren == null) P.gren = G.D.grenades + (has("pouch") ? 2 : 0);
+  G.nests = G.nests || []; // bayonet and bombs look for enemy gun nests; there are none here
+  tfFoot(true);
+  sayLine(G.side, "fix"); sfx.reload();
+  if (plan === "back") { banner("Fall back!", "Down the communication trench to the reserve trench", 3); hint("Follow the marker behind you: into the communication trench and run to the reserve trench. Your mates come too.", 5); }
+  else { banner("Fix bayonets!", "Fight them off in the trench", 3); hint("Shoot, bayonet (F) and bomb (G) them in the trench. E gets you back on the gun, and you can still fall back down the communication trench.", 5.5); }
+}
+function tfRaider(s) { s.role = "raider"; s.state = "in"; s.cut = false; s.lift = 0; s.pose = "stand"; s.fireT = rnd(1.5, 3); s.t = 0; }
+function spawnRaider(x) {
+  const z = zOwn(x) - rnd(9, 16), s = soldier(G.foe, "rifle", x, z, "them");
+  tfRaider(s); s.face = 0; units.push(s); return s;
+}
+function raidersLeft() { let n = 0; for (const s of units) if (s.alive && s.team === "them") n++; return n; }
+// on your feet with your rifle, or back on the machine gun
+function tfFoot(first) {
+  const T = G.tf;
+  G.mode = "rifle"; T.onGun = false; G.mgRifle = false; G.duck = false; G.duckK = 0; G.peri = false; G.periK = 0; G.mask = false; G.maskK = 0; G.tilt = 0;
+  if (!playerS) { playerS = soldier(G.side, "rifle", P.x, P.z, "me"); if (window.Gear && Gear.dress) { try { Gear.dress(playerS.root, { forward: "z", height: 1.75, feet: 0, headTop: 1.7, headSize: 0.3, headZ: 0, torso: playerS.pivot, slots: { body: false } }); } catch (e) {} } }
+  const gx = mgGun.position.x + 1.3; P.x = gx; P.z = zOwn(gx) + 0.15; P.y = H(P.x, P.z); P.crouch = false; P.boltT = 0; P.bayT = 0; P.lungeT = 0; P.inWireT = 0; P.stam = 100;
+  if (P.reloadT > 0) P.reloadT = 0; clipAnim(null);
+  playerS.root.visible = true; playerS.x = P.x; playerS.z = P.z; playerS.y = P.y;
+  if (first) G.yaw = G.tf.plan === "back" ? Math.PI : 0;
+  G.pitch = 0.02; G.camSet = false; IN.fire = false;
+  for (const id of ["gasmask", "gasTint", "dust"]) $(id).style.opacity = 0;
+  setZoom(0); buildRounds(); drawSights(); zoomUI(); showTouch();
+  if (!first) { sfx.cloth(); hint("Off the gun. E to get back on it", 1.6); }
+}
+function tfGun() {
+  if (Math.hypot(P.x - mgGun.position.x, P.z - mgGun.position.z) > 3) { hint("Get to your machine gun first (the marker)"); return; }
+  const T = G.tf; G.mode = "mg"; T.onGun = true; G.mgRifle = false; G.duck = false; G.duckK = 0; G.peri = false; G.pitch = 0.02; IN.fire = false;
+  playerS.root.visible = false; P.crouch = false; clipAnim(null);
+  setZoom(0); buildRounds(); drawSights(); zoomUI(); showTouch(); $("tSwap").innerHTML = "LEAVE<br>GUN";
+  sfx.clank(); hint("On the gun! It turns right round: swing it onto them. E / Q to get off", 2.6);
+}
+function startFallBack() {
+  const T = G.tf, di = DI(); T.phase = "back"; T.q.length = 0;
+  banner("Falling back!", "Get to the reserve trench", 2.4); say(G.side === "brit" ? "Fall back! Back to the reserve line!" : "Zurück! Zur Reservestellung!", G.side === "ger", { cut: true });
+  // most of them stay to hold the trench they took; one or two chase you
+  let chasers = 0;
+  for (const s of units) if (s.alive && s.team === "them") {
+    if (chasers < 1 + (di > 0 ? 1 : 0) && Math.hypot(s.x - P.x, s.z - P.z) < 12) { s.state = "fight"; chasers++; }
+    else { s.state = "hold"; s.hx = clamp(s.x, -45, 45); }
+  }
+  for (const s of units) if (s.team === "us" && s.alive) { s.state = "back"; s.leg = 0; }
+}
+function startRally() {
+  const T = G.tf, D = G.D, di = DI(); T.phase = "rally"; T.rallyT = 7;
+  const heal = Math.min(2, G.maxHp - G.hp); G.hp += heal; P.res += 30; P.gren += 2;
+  banner("Reserve trench!", "The reserves are here" + (heal ? " · stretcher bearers patch you up (+" + heal + " ❤️)" : "") + " · ammo and bombs", 3);
+  hint("Get ready. When the whistle goes, lead them back and retake your front line!", 4);
+  // the reserves, with your mates who made it back
+  const n = [9, 8, 7][di], cx = ctX(RES_Z);
+  for (let i = 0; i < n; i++) { const x = cx + (i % 2 ? 1 : -1) * (2 + Math.floor(i / 2) * 2.6) + rnd(-0.4, 0.4), s = soldier(G.side, "rifle", x, zRes(x) + 0.1, "us"); s.state = "res"; s.face = Math.PI; s.fireT = rnd(0.5, 2); units.push(s); }
+  for (const s of units) if (s.team === "us" && s.alive && s.state !== "res") { s.state = "res"; }
+  // they bring more men into the trench they took
+  const want = [6, 9, 12][di]; let have = 0;
+  for (const s of units) if (s.alive && s.team === "them" && s.state === "hold") have++;
+  for (let i = have; i < want; i++) { const x = rnd(-24, 24), s = spawnRaider(x); s.state = "hold"; s.hx = x; s.x = x; s.z = zOwn(x) + 0.85; s.y = -1.6; }
+}
+function startRetake() {
+  const T = G.tf; T.phase = "retake";
+  sfx.whistle(0.2, 0); setTimeout(() => sfx.whistle(0.08, -0.6), 250); setTimeout(() => G && !G.over && sfx.hurrah(0.9, 0), 700);
+  banner("Counter-attack!", "Retake your front line!", 3); sayLine(G.side, "over");
+  for (const s of units) if (s.team === "us" && s.alive) { s.state = "adv"; s.goT = rnd(0, 1.5); s.ax = clamp(s.x + rnd(-6, 6), -30, 30); }
+}
+function endTF() {
+  const T = G.tf, D = G.D, retook = T.phase === "retake";
+  const bonus = Math.round((retook ? 450 : 300) * D.mult); G.score += bonus;
+  // the gun team back together on the fire step
+  for (const s of units) if (s.team === "us") { release(s); s.gone = true; }
+  for (const s of units) if (s.team === "them" && !s.alive) { release(s); s.gone = true; }
+  for (let i = units.length - 1; i >= 0; i--) if (units[i].gone) units.splice(i, 1);
+  placeMates();
+  if (!G.no2 || !G.no2.alive) G.no2T = 4;
+  if (playerS) playerS.root.visible = false;
+  const lost = G.t - T.t0; for (const e of G.spawnQ) e.at += lost; // the rest of the wave comes on from where it left off
+  G.tf = null; G.mode = "mg"; G.mgRifle = false; G.duck = false; G.duckK = 0; G.breaches = 0; G.yaw = 0; G.pitch = 0.02; IN.fire = false;
+  if (G.belt < 60 && G.belts > 0 && G.reloadT <= 0) beltReload();
+  tfMark.set(null);
+  setZoom(0); buildRounds(); drawSights(); zoomUI(); showTouch();
+  banner(retook ? "Front line retaken!" : "Trench cleared!", "Back on the gun · +" + bonus + " pts", 3);
+  say(G.side === "brit" ? "Well done, lads! Back on the gun!" : "Gut gemacht! Zurück ans Gewehr!", G.side === "ger");
+}
+function tfExposed() { // how much of you shows: down in a trench you are hard to hit
+  if (G.tf.onGun) return G.duckK > 0.5 ? 0.05 : 0.6;
+  const low = P.crouch, deep = H(P.x, P.z) < -0.9;
+  return deep ? (low ? 0.08 : 0.25) : (low ? 0.5 : 1);
+}
+function updTF(dt) {
+  const T = G.tf, D = G.D, di = DI(); if (!T) return;
+  T.t += dt;
+  updClouds(G.gas, dt, 0.9, 0.35); updClouds(G.smoke, dt, 0.5, 0.6);
+  const me = T.onGun ? { x: mgGun.position.x, z: mgGun.position.z } : { x: P.x, z: P.z };
+  // more of them climb in while the fight is on
+  if (T.phase === "fight") for (let i = T.q.length - 1; i >= 0; i--) if (G.t >= T.q[i].at) { spawnRaider(T.q[i].x); T.q.splice(i, 1); }
+  // what happens next
+  if (T.phase === "fight") {
+    if (!T.onGun && P.z > zOwn(P.x) + 7) startFallBack();
+    else if (!T.q.length && !raidersLeft()) { endTF(); return; }
+  } else if (T.phase === "back") { if (P.z > zRes(P.x) - 1.6) startRally(); }
+  else if (T.phase === "rally") { T.rallyT -= dt; if (T.rallyT <= 0) startRetake(); }
+  else if (T.phase === "retake" && !raidersLeft()) { endTF(); return; }
+  // where to go
+  const mz = zOwn(ctX(1.5)) + 1.5;
+  if (T.phase === "fight" && !T.onGun) tfMark.set(T.plan === "back" ? "⬇ FALL BACK" : "⬇ FALL BACK (or fight here)", ctX(mz), 1.4, mz);
+  else if (T.phase === "back") tfMark.set("⬇ RESERVE TRENCH", ctX(RES_Z - 1.5), 1.2, RES_Z - 1.5);
+  else if (T.phase === "retake") tfMark.set("⬆ RETAKE THE LINE", mgGun.position.x, 1.6, zOwn(0));
+  else tfMark.set(null);
+  if (usedTouch) { const near = !T.onGun && Math.hypot(P.x - mgGun.position.x, P.z - mgGun.position.z) < 3 && T.phase === "fight"; $("tUse").style.display = near ? "flex" : "none"; $("tUse").innerHTML = "USE<br>GUN"; }
+  // everyone in the fight
+  let mates = 0;
+  for (const s of units) {
+    if (s.team === "them") { if (!s.alive) { poseSoldier(s, dt); if (s.deathT > 9) { release(s); s.gone = true; } continue; } tfFoe(s, dt, me); poseSoldier(s, dt); continue; }
+    if (s.team === "us") { if (s.alive) { mates++; tfMate(s, dt, me); } poseSoldier(s, dt); continue; }
+    if (s.team === "crew") poseSoldier(s, dt);
+  }
+  G.mates = mates;
+  for (let i = units.length - 1; i >= 0; i--) if (units[i].gone) units.splice(i, 1);
+  if (G.tf && G.tf.phase === "fight" && !T.onGun) { let close = 0; for (const s of units) if (s.alive && s.team === "them" && Math.hypot(s.x - P.x, s.z - P.z) < 3) close++; if (close) G.warnTxt = close > 1 ? "BAYONET! (F)" : ""; }
+  if (G.mode === "mg") rifleWarn();
+}
+function nearestFoe(s, maxD) { let best = null, bd = maxD; for (const t of units) if (t.alive && t.team === "them") { const d = Math.hypot(t.x - s.x, t.z - s.z); if (d < bd) { bd = d; best = t; } } return best; }
+function tfFoe(s, dt, me) {
+  const T = G.tf, D = G.D, di = DI();
+  s.fireT -= dt; s.lift = 0;
+  if (s.state === "in") { // running in and jumping down into your trench
+    const tz = zOwn(s.x) + 0.15, dz = tz - s.z;
+    s.speed = D.charge; s.z += Math.min(dz, D.charge * dt); s.x += clamp((me.x - s.x) * 0.15, -1, 1) * dt; s.y = H(s.x, s.z); s.face = 0; s.pose = "stand";
+    if (dz < 0.3) { s.state = "fight"; if (Math.random() < 0.4) sfx.hurrah(0.4, clamp((s.x - camera.position.x) / 40, -0.8, 0.8)); }
+    return;
+  }
+  if (s.state === "hold") { // holding the trench they took, facing back towards your reserve line
+    s.x += clamp(s.hx - s.x, -1, 1) * dt; s.z = zOwn(s.x) + 0.85; s.face = 0; s.speed = 0;
+    let tgt = null, td = 1e9;
+    const pd = Math.hypot(P.x - s.x, P.z - s.z);
+    if (T.phase === "retake" || T.phase === "back") { td = pd; tgt = "P"; }
+    for (const a of units) if (a.alive && a.team === "us" && a.state === "adv") { const d = Math.hypot(a.x - s.x, a.z - s.z); if (d < td) { td = d; tgt = a; } }
+    if (td < 5.5) { s.state = "fight"; return; }
+    const show = T.phase === "retake" && tgt && td < 70;
+    if (!show) { s.y = -1.6; s.pose = "crouch"; return; }
+    s.y = -1.05; s.pose = "stand";
+    if (s.fireT <= 0) {
+      if (tgt !== "P") s.face = Math.atan2(tgt.x - s.x, tgt.z - s.z); else s.face = Math.atan2(P.x - s.x, P.z - s.z);
+      s.fireT = aiFire(s, s.x + Math.sin(s.face), s.y + 1.25 * SC, s.z + Math.cos(s.face)) + rnd(0.5, 2.2);
+      const rf = td < 25 ? 1 : clamp(25 / td, 0.3, 1);
+      if (tgt === "P") { if (Math.random() < 0.075 * [0.7, 1, 1.3][di] * tfExposed() * rf) hurtPlayer(1, "Hit by fire from your old trench! Keep low (C)"); else if (Math.random() < 0.4) sfx.snap(rnd(-0.5, 0.5)); }
+      else if (Math.random() < 0.06 * rf) killUnit(tgt, "foe");
+    }
+    return;
+  }
+  // close fighting: go for whoever is nearest, you or your mates
+  let tgt = "P", td = Math.hypot(me.x - s.x, me.z - s.z);
+  if (T.phase === "back" && td > 40) { s.state = "hold"; s.hx = clamp(s.x, -45, 45); return; }
+  for (const a of units) if (a.alive && a.team === "us" && a.state !== "back") { const d = Math.hypot(a.x - s.x, a.z - s.z); if (d < td - 1) { td = d; tgt = a; } }
+  const tx = tgt === "P" ? me.x : tgt.x, tz = tgt === "P" ? me.z : tgt.z, dx = tx - s.x, dz = tz - s.z;
+  s.face = Math.atan2(dx, dz); s.pose = "stand";
+  const reach = tgt === "P" && T.onGun ? 1.7 : 1.25;
+  if (td > reach) {
+    const sp = td < 8 ? 2.6 : 2.2; s.speed = sp; s.x += dx / td * sp * dt; s.z += dz / td * sp * dt;
+    if (T.phase === "fight") s.z = clamp(s.z, zOwn(s.x) - 0.6, zRes(s.x) + 0.5);
+    s.y = H(s.x, s.z);
+    if (s.fireT <= 0 && td > 5 && td < 24) { // a snap shot as he comes
+      s.fireT = aiFire(s, s.x + Math.sin(s.face), s.y + 1.25 * SC, s.z + Math.cos(s.face)) + rnd(1, 2.5);
+      if (tgt === "P") { if (Math.random() < 0.06 * [0.7, 1, 1.3][di] * tfExposed()) hurtPlayer(1, "Shot from along the trench!"); else sfx.snap(rnd(-0.4, 0.4)); }
+      else if (Math.random() < 0.05) killUnit(tgt, "foe");
+    }
+  } else {
+    s.speed = 0;
+    if (s.fireT <= 0) { s.fireT = rnd(1.1, 1.7); sfx.swish();
+      if (tgt === "P") { if (Math.random() < [0.24, 0.3, 0.36][di]) hurtPlayer(1, T.onGun ? "They're at the gun! Get off it (E) and use the bayonet" : "Bayonet! Fight back with F / BAYONET"); }
+      else if (Math.random() < 0.3) killUnit(tgt, "foe");
+    }
+  }
+}
+function tfMate(s, dt, me) {
+  const T = G.tf, D = G.D;
+  s.fireT -= dt; s.lift = 0;
+  if (s.state === "back") { // along the communication trench to the reserve trench
+    const mz = zOwn(s.x) + 1.2, sp = 3.2;
+    if (s.leg === 0) { const tx = ctX(mz), dx = tx - s.x, dz = mz - s.z, d = Math.hypot(dx, dz); if (d < 0.5) s.leg = 1; else { s.x += dx / d * Math.min(d, sp * dt); s.z += dz / d * Math.min(d, sp * dt); s.face = Math.atan2(dx, dz); } }
+    else { s.z += sp * dt; s.x = ctX(s.z); s.face = 0; if (s.z > zRes(s.x) - 0.2) { s.state = "res"; s.x += rnd(-3, 3); s.z = zRes(s.x) + 0.1; } }
+    s.speed = sp; s.pose = "stand"; s.y = H(s.x, s.z); return;
+  }
+  if (s.state === "res") { if (nearestFoe(s, 9)) { s.state = "tfFight"; return; } s.speed = 0; s.pose = T.phase === "rally" ? "stand" : "crouch"; s.face = Math.PI; s.y = H(s.x, s.z); return; }
+  if (s.state === "adv") { // the counter-attack: over the top and back to the front line
+    if (s.goT > 0) { s.goT -= dt; s.speed = 0; s.face = Math.PI; return; }
+    const foe = nearestFoe(s, 6.5);
+    if (foe) { s.state = "tfFight"; return; }
+    const tz = zOwn(s.ax) + 0.5, dx = s.ax - s.x, dz = tz - s.z, d = Math.hypot(dx, dz);
+    if (d < 0.6) { s.state = "tfFight"; return; }
+    if (s.fireT <= 0) { // stop for an aimed shot now and then
+      const t = nearestFoe(s, 60);
+      if (t && Math.random() < 0.5) { s.face = Math.atan2(t.x - s.x, t.z - s.z); s.fireT = aiFire(s, s.x + Math.sin(s.face), s.y + 1.25 * SC, s.z + Math.cos(s.face)); s.pauseT = 0.8; if (Math.random() < 0.08 * D.assist + 0.03) killUnit(t, "mate"); }
+      else s.fireT = rnd(1, 2.5);
+    }
+    if (s.pauseT > 0) { s.pauseT -= dt; s.speed = 0; }
+    else { const sp = 2.7; s.speed = sp; s.x += dx / d * Math.min(d, sp * dt); s.z += dz / d * Math.min(d, sp * dt); s.face = Math.atan2(dx, dz); }
+    s.pose = "stand"; s.y = H(s.x, s.z); return;
+  }
+  // close fighting in the trench
+  const foe = nearestFoe(s, T.phase === "fight" ? 22 : T.phase === "retake" ? 45 : 10);
+  if (!foe) { if (T.phase === "rally" || T.phase === "back") s.state = "res"; s.speed = 0; s.pose = "stand"; s.y = H(s.x, s.z); return; }
+  const dx = foe.x - s.x, dz = foe.z - s.z, d = Math.hypot(dx, dz);
+  s.face = Math.atan2(dx, dz); s.pose = "stand";
+  if (d > 1.3) {
+    if (s.fireT <= 0 && d > 4 && d < 22 && foe.state !== "in") { s.fireT = aiFire(s, s.x + Math.sin(s.face), s.y + 1.25 * SC, s.z + Math.cos(s.face)) + rnd(0.6, 1.8); s.pauseT = 0.6; if (Math.random() < 0.1) killUnit(foe, "mate"); }
+    if (s.pauseT > 0) { s.pauseT -= dt; s.speed = 0; }
+    else { const sp = 2.4; s.speed = sp; s.x += dx / d * sp * dt; s.z += dz / d * sp * dt; if (T.phase === "fight") s.z = clamp(s.z, zOwn(s.x) - 0.6, zOwn(s.x) + 1.0); }
+  } else { s.speed = 0; if (s.fireT <= 0) { s.fireT = rnd(1.2, 1.8); sfx.swish(); if (Math.random() < 0.3) killUnit(foe, "mate"); } }
+  s.y = H(s.x, s.z);
 }
 function stormTarget(s) {
   const c = nearCrater(s.x, s.z, s.z + 7, s.z + 22, 10);
@@ -2879,6 +3181,7 @@ function Z() {
 // ======================================================================
 function nearNest() { if (!G.nests) return null; return G.nests.find(n => n.dead && Math.hypot(n.x - P.x, n.z - P.z) < 3.2) || null; }
 function useGun() {
+  if (playing() && G.tf) { if (G.tf.onGun) tfFoot(); else tfGun(); return; }
   if (!playing() || G.mode !== "rifle" || G.phase !== "hold") return;
   if (G.onGun) { // let go of it
     G.onGun = null; playerS.root.visible = true; G.yaw = 0; G.camSet = false; hint("Back on your rifle", 1.2); return;
@@ -3223,7 +3526,7 @@ function updRifle(dt) {
   let nx = P.x + (fx * my + rx * mx) * sp * dt, nz = P.z + (fz * my + rz * mx) * sp * dt;
   if (P.lungeT > 0) { P.lungeT -= dt; nx += fx * 7 * dt; nz += fz * 7 * dt; }
   if (G.phase === "wait") nz = Math.max(nz, zOwn(nx) - 0.3);
-  nx = clamp(nx, -XW + 1, XW - 1); nz = clamp(nz, zEn(nx) - 1.0, zOwn(nx) + 0.9);
+  nx = clamp(nx, -XW + 1, XW - 1); nz = G.tf ? clamp(nz, zOwn(nx) - 1.2, zRes(nx) + 0.9) : clamp(nz, zEn(nx) - 1.0, zOwn(nx) + 0.9);
   P.x = nx; P.z = nz;
   const ty = H(P.x, P.z); P.y += (ty - P.y) * Math.min(1, dt * 12); if (ty > P.y + 0.6) P.y = ty - 0.6;
   // your soldier on screen
@@ -3258,6 +3561,7 @@ function updRifle(dt) {
   if (G.phase !== "wait") updPlanes(dt);
   if (G.raid) { if (G.phase !== "wait") updRaid(dt); if (G.over) return; }
   rifleWarn();
+  if (G.tf) { updTF(dt); return; }
   if (G.phase === "hold") { updHold(dt); updComrades(dt); updDefenders(dt); return; }
   if (G.phase !== "attack") { updComrades(dt); updDefenders(dt); return; }
   if (G.side === "ger" && ATM_T.far < 300 && !G.raid) { ATM_T.far += dt * 2.2; ATM_T.near += dt * 0.35; } // the fog burns off
@@ -3647,6 +3951,9 @@ function updShells(dt) {
 let keysHtml = "";
 function keyRows() {
   const w = G.warnTxt || "";
+  if (G.tf && G.tf.onGun) return [["Click / Space", "Fire (the gun turns all the way round)", ""], ["R", "Reload belt", G.belt === 0 && G.belts > 0 && G.reloadT <= 0 ? "hot" : ""], ["Wheel / Z", "Zoom", ""], ["E / Q", "Get off the gun", ""], ["P / Esc", "Pause", ""]];
+  if (G.tf) { const sd = SIDES[G.side], near = units.some(s => s.alive && s.team === "them" && Math.hypot(s.x - P.x, s.z - P.z) < 4), gunNear = Math.hypot(P.x - mgGun.position.x, P.z - mgGun.position.z) < 3;
+    return [["W A S D", "Move", ""], ["Shift", "Sprint", G.tf.phase === "back" ? "hot" : ""], ["Click", "Fire", ""], ["Right click", "Look down the sights", ""], ["R", "Reload", P.mag === 0 && P.reloadT <= 0 ? "hot" : ""], ["C", P.crouch ? "Stand up" : "Duck", ""], ["F", "Bayonet", near ? "hot" : ""], ["G", "Throw " + sd.bomb + " (" + P.gren + ")", P.gren <= 0 ? "off" : ""], G.tf.phase === "fight" ? ["E", "Get on the machine gun", gunNear ? "hot" : "off"] : null, ["P / Esc", "Pause", ""]].filter(Boolean); }
   if (G.mode === "mg") {
     const tankNear = liveTanks().some(t => Math.hypot(t.x - mgGun.position.x, t.z - mgGun.position.z) < 36);
     return [
@@ -3691,7 +3998,15 @@ function hud() {
   $("hScore").textContent = G.score.toLocaleString();
   const maxHp = G.maxHp || (G.mode === "mg" ? D.hp : D.php);
   $("hHp").textContent = G.hp > 12 ? "❤️ x" + G.hp : "❤️".repeat(Math.max(0, G.hp)) + "🖤".repeat(Math.max(0, maxHp - Math.max(0, G.hp)));
-  if (G.mode === "mg") {
+  if (G.tf) {
+    const T = G.tf, n = raidersLeft() + T.q.length;
+    $("hObj").innerHTML = (T.phase === "fight" ? `THEY'RE IN YOUR TRENCH! ${n} to beat · fight them off${T.onGun ? "" : ", or fall back"}` : T.phase === "back" ? "FALL BACK to the reserve trench" : T.phase === "rally" ? `Reserve trench · counter-attack in ${Math.max(0, Math.ceil(T.rallyT))} s` : `COUNTER-ATTACK! Retake your front line · ${n} left`) +
+      `<small>${G.battle.title} · Wave ${Math.max(1, G.wave)} / ${G.waves.length} · your mates: ${G.mates} · ${sd.bomb}s: ${P.gren}</small>`;
+    if (T.onGun) { $("aT").textContent = G.reloadT > 0 ? "Loading a new belt" : `${sd.mg} · ${G.belt} rounds · spare belts ${G.belts}`; if (G.reloadT <= 0) showRounds(Math.ceil(G.belt / 10)); $("aSub").textContent = G.jamT > 0 ? "BOILING: wait" : "E / Q to get off the gun"; }
+    else { $("aT").textContent = `${sd.rifle} ${P.mag}/${sd.mag}`; showRounds(P.mag); $("aSub").textContent = P.reloadT > 0 ? "Reloading…" : P.mag === 0 ? "Empty! R / RELOAD" : `${P.res} rounds in your pouches`; }
+    $("hHeatWrap").style.display = T.onGun ? "block" : "none"; if (T.onGun) { const hb = $("hHeat"); hb.style.width = clamp(G.heat, 0, 100) + "%"; hb.style.background = G.heat > 75 ? "#e0383f" : G.heat > 50 ? "#f2a33a" : "#5fcf6f"; }
+    $("hStamWrap").style.display = T.onGun ? "none" : "block"; if (!T.onGun) { const st = $("hStam"); st.style.width = P.stam + "%"; st.style.background = P.stam < 25 ? "#e0383f" : "#d8c46a"; }
+  } else if (G.mode === "mg") {
     const w = waveDef(), tk = liveTanks().length;
     $("hObj").innerHTML = `${G.battle.title} · Wave ${Math.max(1, G.wave)} / ${G.waves.length} · Breaches ${G.breaches} / ${D.breaches}<small>${w ? w.name : G.battle.date}</small><small>SOS flares ${G.arty}${G.artyT > 0 ? " (wait)" : ""} · ${aliveFoes()} enemy${tk ? " · " + tk + " tank" + (tk > 1 ? "s" : "") + " · bomb bundles " + G.charges + " · AP belts " + G.ap : ""}${G.no2 && G.no2.alive ? "" : " · NO No. 2"}</small>`;
     if (G.mgRifle) { $("aT").textContent = `${sd.rifle} ${P.mag}/${sd.mag} · gun waiting: ${G.belt} rounds`; showRounds(P.mag); }
@@ -3741,10 +4056,13 @@ function pause(on) {
   if (on) { for (const p of planes) if (p.gain) p.gain.gain.value = 0; if (myEngine) myEngine.g.gain.value = 0; for (const f of fighters) if (f.snd) f.snd.g.gain.value = 0; wantLock = false; if (document.exitPointerLock && locked) document.exitPointerLock(); IN.fire = false; if (window.speechSynthesis) speechSynthesis.cancel(); }
   $("pauseHelp").innerHTML = usedTouch ? "" : "<b>Keys</b><br>" + keyRows().map(([k, t]) => `<span class="k2">${k}</span> ${t}`).join("<br>") + "<br><br>Click the battlefield after you carry on to grab the mouse again.";
 }
+$("tfFightBtn").onclick = () => { startTF("fight"); grabMouse(); };
+$("tfBackBtn").onclick = () => { startTF("back"); grabMouse(); };
+function grabMouse() { if (!usedTouch && stage.requestPointerLock) { wantLock = true; try { const r = stage.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {} } }
 $("resumeBtn").onclick = () => { pause(false); if (!usedTouch && stage.requestPointerLock) { wantLock = true; try { const r = stage.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {} } };
 $("quitBtn").onclick = () => { if (G) { G.over = true; } clearWorld(); G = null; $("pauseOv").hidden = true; menu(); };
 const JOB_NAME = { mg: "gunner", rifle: "rifleman", raid: "raider", tank: "tank commander", plane: "pilot" };
-function jobKey() { return G.raid ? "raid" : G.mode; }
+function jobKey() { return G.raid ? "raid" : G.tf ? "mg" : G.mode; }
 function endGame(win, text) {
   if (G.over) return; G.over = true; IN.fire = false; IN.fire2 = false; IN.boost = false;
   const rankBefore = rankIdx(rankPts());
@@ -3752,7 +4070,7 @@ function endGame(win, text) {
   const D = G.D, sd = SIDES[G.side], job = jobKey(), mx = G.maxHp;
   let stars = 0;
   if (win) {
-    if (job === "mg") stars = G.breaches === 0 && G.hp >= mx / 2 ? 3 : G.breaches <= 1 ? 2 : 1;
+    if (job === "mg") stars = Math.min(G.lineFalls ? 2 : 3, G.breaches === 0 && G.hp >= mx / 2 ? 3 : G.breaches <= 1 ? 2 : 1);
     else if (job === "raid") stars = G.silent ? 3 : G.hp >= 2 ? 2 : 1;
     else if (job === "tank") stars = G.hp >= mx / 2 && G.mates >= 6 ? 3 : G.hp >= 3 ? 2 : 1;
     else if (job === "plane") stars = G.hp >= mx - 2 ? 3 : G.hp >= mx / 2 ? 2 : 1;

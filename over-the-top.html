@@ -478,40 +478,23 @@ function tone(freq, dur, type, vol, delay, toFreq, pan) {
 }
 let shoutBudget = 0;
 const sfx = {
-  mg(pan) { noise(0.07, 2200, "lowpass", 0.55, 0.7, 0, pan); tone(95, 0.07, "sine", 0.35, 0, 50, pan); noise(0.03, 5000, "highpass", 0.12, 0.7, 0, pan); },
-  mgFar(vol, pan) { noise(0.06, 1300, "lowpass", vol, 0.7, 0, pan); tone(80, 0.05, "sine", vol * 0.5, 0, 45, pan); },
   rifle(vol, pan) { vol = vol == null ? 1 : vol; noise(0.16, 3000, "lowpass", 0.75 * vol, 0.7, 0, pan); tone(120, 0.14, "sine", 0.5 * vol, 0, 45, pan); noise(0.7, 520, "lowpass", 0.18 * vol, 0.7, 0.05, pan); },
   rifleFar(vol, pan) { noise(0.12, 1500, "lowpass", 0.5 * vol, 0.7, 0, pan); noise(0.5, 380, "lowpass", 0.15 * vol, 0.7, 0.04, pan); },
   bolt() { tone(1500, 0.03, "square", 0.06, 0.05); noise(0.04, 2500, "bandpass", 0.18, 3, 0.05); tone(1100, 0.03, "square", 0.05, 0.22); noise(0.05, 1800, "bandpass", 0.18, 3, 0.22); },
   click() { tone(900, 0.04, "square", 0.06); },
   reload() { for (let i = 0; i < 5; i++) noise(0.04, 2400 + i * 200, "bandpass", 0.15, 4, i * 0.08); tone(700, 0.05, "square", 0.05, 0.45); },
   belt() { for (let i = 0; i < 10; i++) noise(0.05, 1800 + Math.random() * 1500, "bandpass", 0.13, 3, i * 0.12 + Math.random() * 0.05); tone(500, 0.08, "square", 0.07, 1.4); },
-  snap(pan) { noise(0.035, 3200, "highpass", 0.28, 0.7, 0, pan); },
   thud(vol, pan) { noise(0.07, 650, "lowpass", 0.22 * (vol || 1), 0.7, 0, pan); },
   hit() { tone(140, 0.25, "sine", 0.6, 0, 60); noise(0.2, 900, "lowpass", 0.5); tone(3200, 0.6, "sine", 0.05, 0.05); },
   tick() { tone(1900, 0.05, "triangle", 0.08); },
-  whistle(vol, pan) { // the officer's trench whistle: a pea whistle trilling
-    const a = audio(); if (!a) return; vol = vol == null ? 0.16 : vol;
-    const t = a.currentTime, o = a.createOscillator(), lfo = a.createOscillator(), lg = a.createGain(), g = a.createGain();
-    o.type = "sine"; o.frequency.value = 2650; lfo.frequency.value = 28; lg.gain.value = 260; lfo.connect(lg); lg.connect(o.frequency);
-    g.gain.setValueAtTime(0.001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.04);
-    g.gain.setValueAtTime(vol, t + 0.35); g.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
-    g.gain.setValueAtTime(0.001, t + 0.55); g.gain.exponentialRampToValueAtTime(vol, t + 0.6); g.gain.setValueAtTime(vol, t + 1.3); g.gain.exponentialRampToValueAtTime(0.001, t + 1.45);
-    o.connect(g); g.connect(out(pan)); o.start(t); lfo.start(t); o.stop(t + 1.5); lfo.stop(t + 1.5);
-  },
   shellIn(vol) { tone(1500, 1.05, "sine", 0.05 * (vol || 1), 0, 420); },
   boom(vol, pan) { vol = vol == null ? 1 : vol; noise(1.4, 260, "lowpass", 0.95 * vol, 0.7, 0, pan); tone(55, 0.9, "sine", 0.8 * vol, 0, 24, pan); noise(0.35, 1500, "lowpass", 0.35 * vol, 0.7, 0, pan); for (let i = 0; i < 5; i++) noise(0.08, 900, "lowpass", 0.12 * vol, 0.7, 0.2 + Math.random() * 0.6, pan); },
   rumble() { noise(2.2, 120, "lowpass", 0.18, 0.7, 0, rnd(-0.8, 0.8)); },
   steam() { noise(1.4, 4500, "highpass", 0.18, 0.7); },
-  hurrah(vol, pan) { // a crowd of men cheering as they charge
-    for (let i = 0; i < 14; i++) { const f = rnd(170, 260); tone(f, rnd(0.6, 1.1), "sawtooth", 0.012 * vol, rnd(0, 0.4), f * rnd(1.15, 1.35), pan); }
-    noise(1.1, 700, "bandpass", 0.12 * vol, 1.5, 0, pan);
-  },
   grunt(vol, pan) { if (shoutBudget > 6) return; shoutBudget++; const f = rnd(150, 230); tone(f, 0.22, "sawtooth", 0.05 * vol, 0, f * 0.7, pan); noise(0.15, 800, "bandpass", 0.08 * vol, 2, 0, pan); },
   swish() { noise(0.18, 2600, "bandpass", 0.3, 1.2); tone(300, 0.15, "triangle", 0.06, 0, 120); },
   throwB() { noise(0.15, 1200, "bandpass", 0.15, 1); },
   streak() { tone(660, 0.1, "triangle", 0.08); tone(880, 0.1, "triangle", 0.08, 0.09); tone(1320, 0.18, "triangle", 0.08, 0.18); },
-  distantMG(pan) { const n = 6 + Math.floor(Math.random() * 10), v = rnd(0.03, 0.07); for (let i = 0; i < n; i++) noise(0.05, 1000, "lowpass", v, 0.7, i * 0.12, pan); },
   bounce() { tone(260, 0.05, "triangle", 0.05); },
   clank() { tone(240, 0.09, "square", 0.08); noise(0.1, 1600, "bandpass", 0.3, 2); },
   boxThump() { noise(0.22, 320, "lowpass", 0.45); tone(90, 0.15, "sine", 0.3, 0, 60); },
@@ -564,6 +547,130 @@ function deafen(k) {
   tone(3300, 1.2 + k, "sine", 0.02 * k);
 }
 
+// ----------------------------------------------------------------------
+// the sounds of the charge, as the men who were there described them:
+// officers' whistles all along the line, the cheer as they went over
+// (British "Come on lads!", German "Hurra!"), and the steady
+// rat-tat-tat of the Vickers and the MG 08, about 8 shots a second,
+// with the sharp crack of bullets going over your head
+// ----------------------------------------------------------------------
+const VOWEL = { a: [760, 1220], o: [500, 900], u: [340, 820], e: [540, 1750], ay: [620, 1650], r: [460, 1300] };
+let voiceBudget = 0;
+setInterval(() => { voiceBudget = Math.max(0, voiceBudget - 12); }, 1000);
+// one man's voice: a buzzing voice box shaped into vowels by two mouth filters
+function voice(f0, syl, vol, delay, pan) {
+  const a = audio(); if (!a || vol <= 0.002 || voiceBudget > 40) return; voiceBudget++;
+  const t0 = a.currentTime + (delay || 0); let t = t0;
+  const o = a.createOscillator(); o.type = "sawtooth"; o.frequency.value = f0;
+  const vib = a.createOscillator(), vg = a.createGain(); vib.frequency.value = rnd(4.5, 7.5); vg.gain.value = f0 * 0.035; vib.connect(vg); vg.connect(o.frequency);
+  const f1 = a.createBiquadFilter(), f2 = a.createBiquadFilter(), g2 = a.createGain(), g = a.createGain();
+  f1.type = f2.type = "bandpass"; f1.Q.value = 5; f2.Q.value = 7; g2.gain.value = 0.55;
+  o.connect(f1); o.connect(f2); f1.connect(g); f2.connect(g2); g2.connect(g); g.connect(out(pan));
+  g.gain.setValueAtTime(0.0001, t0);
+  for (const [v, d, pm] of syl) {
+    const F = VOWEL[v]; f1.frequency.setTargetAtTime(F[0], t, 0.025); f2.frequency.setTargetAtTime(F[1], t, 0.025);
+    o.frequency.setTargetAtTime(f0 * pm, t, 0.06);
+    if (v === "r") { for (let k = 0; k < d; k += 0.04) { g.gain.setTargetAtTime(vol * 0.9, t + k, 0.006); g.gain.setTargetAtTime(vol * 0.3, t + k + 0.02, 0.006); } } // a rolled r
+    else g.gain.setTargetAtTime(vol, t, 0.03);
+    t += d;
+  }
+  g.gain.setTargetAtTime(0.0001, t - 0.05, 0.09);
+  o.start(t0); vib.start(t0); o.stop(t + 0.6); vib.stop(t + 0.6);
+}
+Object.assign(sfx, {
+  whistle(vol, pan, pitch, short) { // an officer's pea whistle: two long blasts, or one short one
+    const a = audio(); if (!a) return; vol = vol == null ? 0.16 : vol;
+    const t = a.currentTime, o = a.createOscillator(), lfo = a.createOscillator(), lg = a.createGain(), g = a.createGain(), end = short ? 0.5 : 1.45;
+    o.type = "sine"; o.frequency.value = pitch || rnd(2450, 2850); lfo.frequency.value = rnd(22, 32); lg.gain.value = rnd(200, 300); lfo.connect(lg); lg.connect(o.frequency);
+    g.gain.setValueAtTime(0.001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.04);
+    if (short) { g.gain.setValueAtTime(vol, t + 0.38); g.gain.exponentialRampToValueAtTime(0.001, t + 0.48); }
+    else { g.gain.setValueAtTime(vol, t + 0.35); g.gain.exponentialRampToValueAtTime(0.001, t + 0.45); g.gain.setValueAtTime(0.001, t + 0.55); g.gain.exponentialRampToValueAtTime(vol, t + 0.6); g.gain.setValueAtTime(vol, t + 1.3); g.gain.exponentialRampToValueAtTime(0.001, t + 1.45); }
+    o.connect(g); g.connect(out(pan)); o.start(t); lfo.start(t); o.stop(t + end + 0.05); lfo.stop(t + end + 0.05);
+  },
+  whistleLine(n, vol) { // whistles blowing one after another all along the line
+    for (let i = 0; i < n; i++) { const d = i * rnd(0.25, 0.55) * 1000, v = vol * rnd(0.5, 1), p = rnd(-0.9, 0.9); setTimeout(() => G && !G.over && sfx.whistle(v, p, 0, Math.random() < 0.35), d); }
+  },
+  hurrah(vol, pan, side) { // a crowd of men cheering as they charge: German "Hurra! Hurra!", British a great roar and "Hooray!"
+    side = side || (G ? G.foe : "ger"); vol = vol == null ? 0.8 : vol;
+    const n = COARSE ? 7 : 11;
+    if (side === "ger") {
+      const reps = 2 + (Math.random() < 0.5 ? 1 : 0);
+      for (let r = 0; r < reps; r++) for (let i = 0; i < n; i++) {
+        const f = rnd(115, 185), d = r * 1.15 + rnd(0, 0.28), long = rnd(0.55, 0.85);
+        voice(f, [["u", 0.11, 1], ["r", 0.08, 1.1], ["a", long, 1.3], ["a", 0.2, 1.05]], 0.13 * vol, d, clamp((pan || 0) + rnd(-0.35, 0.35), -1, 1));
+      }
+      for (let r = 0; r < reps; r++) noise(0.12, 2000, "highpass", 0.05 * vol, 0.7, r * 1.15, pan); // the breathy h
+    } else {
+      for (let i = 0; i < n + 2; i++) {
+        const f = rnd(110, 190), d = rnd(0, 0.5), p = clamp((pan || 0) + rnd(-0.4, 0.4), -1, 1);
+        if (Math.random() < 0.35) voice(f, [["u", 0.18, 1], ["r", 0.05, 1.05], ["ay", rnd(0.5, 0.8), 1.3]], 0.12 * vol, d, p); // "hoo-ray!"
+        else voice(f, [["a", rnd(0.6, 0.9), 1.05], ["a", rnd(0.4, 0.7), 1.3], ["o", 0.3, 1.1]], 0.11 * vol, d, p); // "aaaaah!"
+      }
+    }
+    noise(1.3, 800, "bandpass", 0.07 * vol, 1.2, 0, pan); // the crowd's breath and boots
+  },
+  mg(pan) { // your own Vickers / MG 08: a heavy, steady hammering, rat-tat-tat
+    const ger = G && G.side === "ger";
+    noise(0.012, 6000, "highpass", 0.45, 0.7, 0, pan);                      // the sharp crack at the muzzle
+    noise(0.09, ger ? 1700 : 2000, "lowpass", 0.55, 0.9, 0, pan);           // the bang
+    tone(ger ? 85 : 100, 0.09, "sine", 0.4, 0, 40, pan);                    // the thump you feel in your chest
+    noise(0.025, ger ? 2400 : 2900, "bandpass", 0.18, 5, 0.045, pan);       // the lock clacking back and forward
+    tone(ger ? 1250 : 1450, 0.02, "square", 0.025, 0.05, 0, pan);           // the belt jerking through
+    noise(0.32, 520, "lowpass", 0.09, 0.7, 0.03, pan);                      // the report rolling away over the trenches
+  },
+  mgFar(vol, pan) { // their machine gun from across no man's land: tat-tat-tat, with an echo
+    noise(0.05, 1500, "lowpass", vol, 0.8, 0, pan); tone(78, 0.06, "sine", vol * 0.5, 0, 42, pan);
+    noise(0.018, 2600, "bandpass", vol * 0.3, 3, 0, pan);
+    noise(0.3, 480, "lowpass", vol * 0.16, 0.7, 0.07, pan);
+  },
+  distantMG(pan) { // a gun far down the line, sweeping: louder as it swings towards you
+    const n = 8 + Math.floor(Math.random() * 14), v = rnd(0.035, 0.08), gap = rnd(0.115, 0.135);
+    for (let i = 0; i < n; i++) { const d = i * gap + rnd(0, 0.01), k = v * (0.55 + 0.45 * Math.sin(Math.PI * i / n)); noise(0.05, 1100, "lowpass", k, 0.7, d, pan); tone(70, 0.05, "sine", k * 0.4, d, 40, pan); }
+  },
+  snap(pan) { // a bullet passing close: the sharp crack it makes going faster than sound
+    noise(0.007, 5000, "highpass", 0.5, 0.7, 0, pan); noise(0.05, 3300, "bandpass", 0.12, 2, 0.003, pan);
+    if (Math.random() < 0.2) sfx.ricochet(pan);
+  },
+  ricochet(pan) { tone(rnd(2300, 3400), rnd(0.25, 0.45), "sine", 0.025, 0.02, rnd(650, 1000), pan); },
+  thwack(pan) { noise(0.06, 700, "lowpass", 0.25, 0.8, 0, pan); noise(0.03, 1800, "bandpass", 0.08, 2, 0, pan); } // a bullet into the sandbags
+});
+// the men shouting as they charge, in the browser's English or German voice (never over an order)
+const CHARGE_SHOUTS = {
+  brit: ["Come on, lads!", "Up and at 'em!", "Keep going, lads!", "Charge!", "Stick together!", "Forward, boys!", "Keep up! Keep up!", "Hurrah!"],
+  ger: ["Hurra!", "Hurra! Hurra!", "Vorwärts!", "Los, los, los!", "Marsch, marsch!", "Drauf, Jungs!", "Sturm!", "Weiter, weiter!"]
+};
+function chargeShout(side, vol) {
+  if (S.mute || !window.speechSynthesis || speechSynthesis.speaking || speechSynthesis.pending) return;
+  const L = CHARGE_SHOUTS[side]; say(L[Math.floor(Math.random() * L.length)], side === "ger", { cut: false, rate: rnd(1.15, 1.35), pitch: rnd(0.55, 1.0), vol });
+}
+// who is charging right now, and what can you hear of it
+function battleVoices(dt) {
+  if (!G || G.over) return;
+  G.vT = (G.vT == null ? 2 : G.vT) - dt; if (G.vT > 0) return; G.vT = rnd(0.8, 1.4);
+  let fc = 0, fw = 0, fx = 0, own = 0;
+  for (const s of units) {
+    if (!s.alive) continue;
+    if (s.team === "them" && (s.state === "charge" || s.state === "walk" || s.state === "hop" || s.state === "in")) { if (s.state === "walk") fw++; else fc++; fx += s.x; }
+    else if (s.team === "us") own++;
+  }
+  const pan = fc + fw ? clamp((fx / (fc + fw) - camera.position.x) / 50, -0.8, 0.8) : 0;
+  G.shoutT = (G.shoutT || 0) - 1.1; G.wT = (G.wT || 0) - 1.1;
+  // their officers blowing their whistles to keep the line moving
+  if (fw + fc > 3 && G.wT <= 0 && Math.random() < 0.35) { G.wT = rnd(4, 9); sfx.whistle(rnd(0.02, 0.045), clamp(pan + rnd(-0.4, 0.4), -0.9, 0.9), 0, true); }
+  // their men shouting as they rush you
+  if (fc > 2 && G.shoutT <= 0 && Math.random() < 0.55) { G.shoutT = rnd(3, 6); chargeShout(G.foe, 0.55); }
+  // your own side going over in the rifleman job
+  if (G.mode === "rifle" && !G.raid && G.phase === "attack" && own > 0) {
+    G.ownT = (G.ownT == null ? 4 : G.ownT) - 1.1;
+    if (G.ownT <= 0) {
+      G.ownT = rnd(4, 7);
+      if (Math.random() < 0.6) chargeShout(G.side, 0.8);
+      if (Math.random() < 0.35) sfx.hurrah(0.5, rnd(-0.6, 0.6), G.side);
+      if (Math.random() < 0.3) sfx.whistle(rnd(0.05, 0.1), rnd(-0.7, 0.7), 0, true);
+    }
+  }
+}
+
 // shouted orders, in the browser's own English or German voice
 const VOICES = { en: null, de: null };
 function findVoices() {
@@ -582,7 +689,7 @@ function say(text, de, o) {
     if (o.cut !== false) speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     const v = de ? VOICES.de : VOICES.en; if (v) u.voice = v;
-    u.lang = de ? "de-DE" : "en-GB"; u.rate = o.rate || 1.12; u.pitch = o.pitch || 0.7; u.volume = 1;
+    u.lang = de ? "de-DE" : "en-GB"; u.rate = o.rate || 1.12; u.pitch = o.pitch || 0.7; u.volume = o.vol == null ? 1 : o.vol;
     speechSynthesis.speak(u);
   } catch (e) {}
 }
@@ -2079,7 +2186,7 @@ function startAttack(w) {
   G.phase = "attack";
   const D = G.D, cm = D.cnt, di = DI(), foe = G.foe;
   if (w.barrage) { banner("The barrage has lifted!", "Up! On the gun!", 2.2); sayLine(G.side, "stand"); }
-  sfx.whistle(0.06, 0.3); setTimeout(() => sfx.whistle(0.05, -0.4), 450); setTimeout(() => sfx.whistle(0.04, 0.6), 900);
+  sfx.whistleLine(6, 0.06); // their officers blow their whistles all along the line
   const q = G.spawnQ, t0 = G.t;
   if (w.line) {
     const n = Math.round(w.line.n * cm), L = w.line.lines;
@@ -2238,7 +2345,7 @@ function incoming(p, why, src) {
     hurtPlayer(1, why); return;
   }
   if (Math.random() < 0.55) sfx.snap(pan);
-  if (Math.random() < 0.3) dirt(mgGun.position.x + rnd(-1.6, 1.6), mgGun.position.z - rnd(0.2, 0.9));
+  if (Math.random() < 0.3) { dirt(mgGun.position.x + rnd(-1.6, 1.6), mgGun.position.z - rnd(0.2, 0.9)); sfx.thwack(pan); }
 }
 function tracerIn(src, y) { // a tracer from them that whips past your head
   const ox = src.x, oy = (y != null ? y : src.y + 0.4), oz = src.z, tx = camera.position.x + rnd(-1.5, 1.5), ty = camera.position.y + rnd(-0.3, 0.9), tz = camera.position.z + rnd(-0.5, 0.5);
@@ -2713,7 +2820,7 @@ function updMG(dt) {
   }
   for (let i = units.length - 1; i >= 0; i--) if (units[i].gone) units.splice(i, 1);
   for (let i = G.tanks.length - 1; i >= 0; i--) if (G.tanks[i].gone) { scene.remove(G.tanks[i].m); G.tanks.splice(i, 1); }
-  if (charging > 4 && !G.hurrahT) { G.hurrahT = 9; sfx.hurrah(0.8, rnd(-0.3, 0.3)); }
+  if (charging > 4 && !G.hurrahT) { G.hurrahT = 9; sfx.hurrah(0.8, rnd(-0.3, 0.3), G.foe); }
   if (G.hurrahT) G.hurrahT = Math.max(0, G.hurrahT - dt);
   // stray shells during the fighting
   G.foeShellT = (G.foeShellT || 10) - dt;
@@ -2839,7 +2946,7 @@ function startRally() {
 }
 function startRetake() {
   const T = G.tf; T.phase = "retake";
-  sfx.whistle(0.2, 0); setTimeout(() => sfx.whistle(0.08, -0.6), 250); setTimeout(() => G && !G.over && sfx.hurrah(0.9, 0), 700);
+  sfx.whistle(0.2, 0); setTimeout(() => sfx.whistle(0.08, -0.6), 250); setTimeout(() => G && !G.over && sfx.hurrah(0.9, 0, G.side), 700);
   banner("Counter-attack!", "Retake your front line!", 3); sayLine(G.side, "over");
   for (const s of units) if (s.team === "us" && s.alive) { s.state = "adv"; s.goT = rnd(0, 1.5); s.ax = clamp(s.x + rnd(-6, 6), -30, 30); }
 }
@@ -3659,9 +3766,9 @@ function updRifle(dt) {
     if (G.waitT <= 2 && !G.c2) { G.c2 = 1; banner("2", "", 0.8); }
     if (G.waitT <= 1 && !G.c1) { G.c1 = 1; banner("1", "", 0.8); }
     if (G.waitT <= 0) {
-      G.phase = "attack"; sfx.whistle(0.2, 0); setTimeout(() => sfx.whistle(0.08, -0.6), 250); setTimeout(() => sfx.whistle(0.06, 0.7), 600);
+      G.phase = "attack"; sfx.whistle(0.2, 0); sfx.whistleLine(6, 0.08);
       banner("Over the top!", "Shell hole to shell hole. DUCK in a hole when the gun sweeps.", 3.2); sayLine(G.side, "over");
-      setTimeout(() => G && !G.over && sfx.hurrah(0.9, 0), 900);
+      setTimeout(() => G && !G.over && sfx.hurrah(0.9, 0, G.side), 900);
       // your own guns lay a barrage that walks ahead of you towards their trench
       G.creepR = { z: zOwn(0) - 34, sp: G.side === "brit" ? 1.7 : 1.9, acc: 0, done: false };
       G.planeTimes = [rnd(16, 26), rnd(48, 62), rnd(80, 95)].slice(0, [1, 2, 3][DI()]).map(t => G.t + t);
@@ -4344,7 +4451,7 @@ function step(dt) {
   G.tgtT -= dt; if (G.tgtT <= 0) { G.tgtT = 0.06; checkOnTarget(); }
   updAtmos(dt);
   if (G.mode === "mg") updMG(dt); else if (G.mode === "tank") updTankJob(dt); else if (G.mode === "plane") updFlight(dt); else { updRifle(dt); updGrenades(dt); }
-  if (G && !G.over) { updShells(dt); G.hudT = (G.hudT || 0) - dt; if (G.hudT <= 0) { G.hudT = 0.08; hud(); } }
+  if (G && !G.over) { updShells(dt); battleVoices(dt); G.hudT = (G.hudT || 0) - dt; if (G.hudT <= 0) { G.hudT = 0.08; hud(); } }
 }
 function frame(now) {
   requestAnimationFrame(frame);

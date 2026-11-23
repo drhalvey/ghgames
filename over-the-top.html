@@ -117,6 +117,13 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
 .rounds.belt i{width:6px;height:15px}
 .rounds.belt i:before{height:5px}
 .dmg{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 45%,rgba(170,0,0,.75) 100%);transition:opacity .25s}
+.replay{position:absolute;inset:0;pointer-events:none;z-index:6}
+.replay .rbar{position:absolute;left:0;right:0;top:0;height:11%;background:#000}
+.replay .rbar.bot{top:auto;bottom:0}
+.replay .rtag{position:absolute;left:18px;top:calc(11% + 12px);color:#ff4a3a;font:900 20px Nunito,system-ui,sans-serif;letter-spacing:2px;text-shadow:0 2px 0 #000;animation:rblink 1s steps(2) infinite}
+@keyframes rblink{50%{opacity:.35}}
+.replay .rcap{position:absolute;left:0;right:0;bottom:calc(11% + 14px);text-align:center;color:#fff;font:800 clamp(15px,2.6vw,22px) Nunito,system-ui,sans-serif;text-shadow:0 2px 0 #000,0 0 12px rgba(0,0,0,.9);padding:0 16px}
+.replay .rskip{position:absolute;right:16px;bottom:3.5%;color:rgba(255,255,255,.7);font:700 13px Nunito,system-ui,sans-serif}
 .banner{position:absolute;left:50%;top:22%;transform:translateX(-50%);font-family:var(--display);font-size:clamp(26px,5vw,48px);color:#fff;text-shadow:0 3px 0 #000,0 0 18px rgba(0,0,0,.8);pointer-events:none;text-align:center;opacity:0;transition:opacity .3s;white-space:nowrap}
 .banner small{display:block;font-family:var(--body);font-weight:900;font-size:clamp(13px,2.2vw,18px);color:var(--gold)}
 .hint{position:absolute;left:50%;bottom:112px;z-index:3;transform:translateX(-50%);font-weight:900;font-size:14px;background:rgba(0,0,0,.55);padding:6px 12px;border-radius:12px;pointer-events:none;opacity:0;transition:opacity .3s;text-align:center}
@@ -238,6 +245,7 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
     <div class="gasTint" id="gasTint"></div>
     <div class="gasmask" id="gasmask"><svg class="one" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><defs><mask id="eye1" maskUnits="userSpaceOnUse" x="-500" y="-500" width="1100" height="1100"><rect x="-500" y="-500" width="1100" height="1100" fill="white"/><circle cx="50" cy="50" r="47.5" fill="black"/></mask></defs><rect x="-500" y="-500" width="1100" height="1100" fill="#14130f" mask="url(#eye1)"/><circle cx="50" cy="50" r="47.5" fill="none" stroke="#3b3a32" stroke-width="2"/><circle cx="50" cy="50" r="46.3" fill="none" stroke="rgba(200,190,140,.22)" stroke-width="1.2"/></svg><svg class="two" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice"><defs><mask id="eyes"><rect x="-50" y="-50" width="260" height="200" fill="white"/><ellipse cx="52" cy="47" rx="27" ry="25" fill="black"/><ellipse cx="108" cy="47" rx="27" ry="25" fill="black"/></mask></defs><rect x="-50" y="-50" width="260" height="200" fill="#14130f" mask="url(#eyes)"/><ellipse cx="52" cy="47" rx="27" ry="25" fill="none" stroke="#3b3a32" stroke-width="3"/><ellipse cx="108" cy="47" rx="27" ry="25" fill="none" stroke="#3b3a32" stroke-width="3"/><ellipse cx="52" cy="47" rx="26" ry="24" fill="rgba(200,190,140,.12)"/><ellipse cx="108" cy="47" rx="26" ry="24" fill="rgba(200,190,140,.12)"/></svg></div>
     <div class="warn" id="warn"></div>
+    <div class="replay" id="replay" hidden><i class="rbar"></i><i class="rbar bot"></i><b class="rtag">● REPLAY</b><div class="rcap" id="rCap"></div><div class="rskip" id="rSkip">Click or tap to skip</div></div>
     <div class="banner" id="banner"></div>
     <div class="pop" id="pop"></div>
     <div class="keys" id="keys"></div>
@@ -280,6 +288,7 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
         <button class="choice" data-job="raid"><b>🌙 Night raider</b><small>Sneak across in the dark with four mates. Freeze when flares go up, dodge the searchlight, grab their maps and bring them home.</small></button>
         <button class="choice" data-job="tank"><b>🛡️ Tank commander</b><small>Drive a tank across no man's land. Flatten the wire, blast both machine guns and roll over their trench.</small></button>
         <button class="choice" data-job="plane"><b>✈️ Fighter pilot</b><small>Fly a fighter over the trenches. Bust their observation balloons, win the dogfight, then beat their ace.</small></button>
+        <button class="choice" data-job="practice"><b>⚔️ Bayonet practice</b><small>Just bayonet fighting in your own trench. One man at a time, then two, then three. Parry, thrust, butt-stroke and side step. How many rounds can you last?</small></button>
       </div>
       <div class="lbl">3. How hard?</div>
       <div class="row">
@@ -425,6 +434,7 @@ function scenario(side, job) {
   if (job === "plane") return side === "brit"
     ? { where: "Over the Western Front · 1917", text: "Fly a Royal Flying Corps fighter. Bust their observation balloons, win the dogfight, then beat their ace, Hauptmann Falke." }
     : { where: "Über der Westfront · 1917", text: "Fly a German Jasta fighter. Bust their observation balloons, win the dogfight, then beat their ace, Captain Swift." };
+  if (job === "practice") return { where: "Bayonet practice · your own trench", text: "No shooting and no bombs: just the bayonet. They jump into your trench one at a time, then two and three together. Watch for the red !, parry, then thrust while he's open. Clear a round to get a heart back." };
   if (job === "mg") return side === "brit"
     ? { where: "Spring Offensive · 21 March 1918", text: "The Germans are coming through the morning fog. Keep your Vickers firing in bursts, watch the water jacket, and don't let them into the trench." }
     : { where: "The Somme · 1 July 1916", text: "The British guns have stopped. Up from the dugouts and get the MG 08 onto the parapet. The Tommies are walking towards you." };
@@ -433,6 +443,7 @@ function scenario(side, job) {
     : { where: "Spring Offensive · 21 March 1918", text: "Stormtroopers! Cross no man's land, knock out the two Vickers guns and take the British trench." };
 }
 const HIST = {
+  practice: "<b>What really happened:</b> every recruit spent hours on bayonet drill, lunging at straw-filled sacks hung from frames while a sergeant shouted the moves: on guard, long point, parry, butt-stroke. The British drill book of 1916 taught that a parry should beat the enemy's blade aside and the thrust follow at once. In the trenches, close fighting happened far less than the drill suggested, but men who knew it felt braver for it.",
   somme: "<b>What really happened:</b> on 1 July 1916, after a week of shelling, British soldiers climbed out of their trenches on the Somme and walked towards the German lines. The shelling had not cut the wire or reached the Germans sheltering in deep dugouts, who came up and manned their machine guns. Britain lost over 57,000 men killed, wounded or missing that one day, the worst day in the history of the British Army. The battle went on until November.",
   spring: "<b>What really happened:</b> on 21 March 1918 Germany launched its Spring Offensive (Operation Michael) out of thick fog, led by stormtroopers who rushed forward in small groups and went around strong points instead of walking in lines. They broke through and advanced further than anyone had for years, but lost so many of their best soldiers that they could not keep going. By summer the Allies were pushing them back, and the war ended on 11 November 1918.",
   raid: "<b>What really happened:</b> on dark nights both sides sent small raiding parties across no man's land, faces blacked with burnt cork, to bring back prisoners or papers so their officers knew who was facing them. No man's land was lit by flares (Very lights) and swept by searchlights, and raiders learnt to freeze the moment a flare went up, because it is movement that gets seen.",
@@ -1909,6 +1920,7 @@ const IN = { fire: false, aim: false, look: { x: 0, y: 0 }, mx: 0, my: 0, sprint
 let locked = false, wantLock = false, usedTouch = COARSE;
 function playing() { return G && !G.over && !G.paused; }
 addEventListener("keydown", e => {
+  if (G && G.replay && !e.repeat) { e.preventDefault(); endReplay(); return; }
   if (e.repeat) { if (["Space", "ArrowUp", "ArrowDown"].includes(e.code) && playing()) e.preventDefault(); return; }
   keys[e.code] = true;
   if (G && !$("tfOv").hidden) { if (e.code === "Digit1" || e.code === "Numpad1") startTF("fight"); if (e.code === "Digit2" || e.code === "Numpad2") startTF("back"); return; }
@@ -1938,12 +1950,13 @@ const touches = new Map();
 const joy = $("joy"), knob = $("knob");
 let joyId = null, joyO = null;
 stage.addEventListener("pointerdown", e => {
+  if (G && G.replay) { e.preventDefault(); endReplay(); return; }
   if (e.target.closest && e.target.closest(".ov")) return;
   if (e.pointerType === "mouse") {
     if (!playing()) return;
     if (!locked && stage.requestPointerLock) { wantLock = true; try { const r = stage.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (err) {} }
     // up close in a bayonet fight the mouse fights too: click thrusts, right button parries, middle button butt-strokes
-    const duel = canFight() && meleeFoe(3.0, 0.3);
+    const duel = canFight() && (G.practice || meleeFoe(3.0, 0.3));
     if (duel && e.button === 0) bayonet();
     else if (duel && e.button === 2) setGuard(true);
     else if (e.button === 1 && canFight()) { e.preventDefault(); buttStroke(); }
@@ -2042,6 +2055,8 @@ function showTouch() {
   $("tCrouch").innerHTML = "DUCK"; $("tCrouch").classList.remove("on"); $("tMask").classList.remove("on");
   const tp = $("tPause"); tp.style.display = "flex"; tp.style.right = "auto"; tp.style.left = "12px"; tp.style.bottom = "auto"; tp.style.top = "84px"; tp.style.width = tp.style.height = "44px";
   $("joy").style.display = mg ? "none" : "block";
+  if (G.practice && foot) { for (const id of ["tFire", "tAim", "tReload", "tGren"]) $(id).style.display = "none"; place("tBay", 22, 22, true); $("tBay").classList.add("big"); place("tCrouch", 116, 186, false); }
+  else $("tBay").classList.remove("big");
 }
 // the periscope button only shows while you are ducked down
 function periButton(ducked) { if (!usedTouch) return; const b = $("tPeri"); b.style.display = ducked ? "flex" : "none"; b.classList.toggle("on", !!G.peri); }
@@ -2146,17 +2161,18 @@ let playerS = null;
 const grenades = [], shells = [];
 
 function startGame(cont) {
+  REC.frames.length = 0; if (G && G.replay) G.replay = null; $("replay").hidden = true;
   audio(); cont = typeof cont === "number" ? cont : 0;
   clearWorld();
   const D = DIFFS[S.diff], side = S.side, foe = FOE[side];
   const rk = rankIdx(rankPts());
-  G = { warned: {}, rank: rk, scope: rk >= 3 || has("scope"), warnTxt: "", mode: S.job === "raid" ? "rifle" : S.job, raid: S.job === "raid", side, foe, D, t: 0, over: false, paused: false, score: 0, kills: 0, shots: 0, hits: 0, yaw: 0, pitch: 0, zoom: false, shake: 0, dmgT: 0, msgT: 0 };
+  G = { warned: {}, rank: rk, scope: rk >= 3 || has("scope"), warnTxt: "", mode: S.job === "raid" ? "rifle" : S.job === "practice" ? "mg" : S.job, raid: S.job === "raid", side, foe, D, t: 0, over: false, paused: false, score: 0, kills: 0, shots: 0, hits: 0, yaw: 0, pitch: 0, zoom: false, shake: 0, dmgT: 0, msgT: 0 };
   IN.fire = false; IN.fire2 = false; IN.boost = false; IN.aim = false; IN.look.x = IN.look.y = 0; P.lmg = false; G.peri = false; G.periK = 0; G.mgRifle = false; G.mgRifleK = 0;
   $("xhair").style.left = $("xhair").style.top = ""; WIRE_EN.gaps = WIRE_EN.gaps0.slice();
   ["startOv", "endOv", "pauseOv"].forEach(id => $(id).hidden = true);
   $("hud").hidden = false; $("xhair").hidden = false;
   WIRE_OWN.gaps = WIRE_OWN.gaps0.slice(); setAtmos({}, true);
-  if (G.mode === "mg") startMG(cont); else if (G.mode === "tank") startTankJob(); else if (G.mode === "plane") startFlight(); else startRifle();
+  if (S.job === "practice") { startMG(0); startPractice(); } else if (G.mode === "mg") startMG(cont); else if (G.mode === "tank") startTankJob(); else if (G.mode === "plane") startFlight(); else startRifle();
   G.zl = 0; G.onTarget = false; G.tgtT = 0; buildRounds(); drawSights(); zoomUI(); ring(null);
   showTouch(); S.battles++; save();
   if (!usedTouch && stage.requestPointerLock) { wantLock = true; try { const r = stage.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {} }
@@ -2266,6 +2282,7 @@ function spawnFoe(e) {
 function aliveFoes() { let n = 0; for (const s of units) if (s.alive && s.team === "them") n++; return n; }
 function liveTanks() { return G.tanks.filter(t => t.alive && !t.abandoned); }
 function reload() {
+  if (G && G.practice) return;
   if (!playing()) return;
   if (G.mode === "mg" && !G.mgRifle) { beltReload(); return; }
   if (G.mode === "tank" || G.mode === "plane") return;
@@ -2351,10 +2368,14 @@ function popScore(t, cm) {
   const el = $("pop"); el.textContent = t; el.style.color = cm >= 3 ? "#ff6a3d" : cm >= 2 ? "#ffb347" : cm > 1 ? "#ffe07a" : "#fff";
   el.classList.remove("go"); void el.offsetWidth; el.classList.add("go");
 }
-function hurtPlayer(n, why) {
+function hurtPlayer(n, why, src) {
+  if (!G || G.over || G.replay) return;
   G.hp -= n; G.dmgT = 0.6; G.shake = Math.max(G.shake, 0.4); sfx.hit();
   if (why) hint(why, 2);
-  if (G.hp <= 0) endGame(false, G.tf ? (G.tf.phase === "retake" ? "You led the counter-attack, but you were knocked out before the line was taken back." : "You fought on in the trench until you were knocked out. Stretcher bearers carry you back.") : G.mode === "mg" ? "Your gun team has been knocked out." : G.mode === "tank" ? "Your tank has been knocked out. The crew climb out and get back to your own lines." : G.mode === "plane" ? "Your plane is too badly hit. You glide down and land safely behind your own lines." : G.raid ? "You've been hit. Your mates drag you back to your own trench." : G.phase === "hold" ? "You took their trench, but you were hit holding it." : "You've been hit. Stretcher bearers carry you back to your own trench.");
+  if (G.hp <= 0) {
+    const txt = G.practice ? "Knocked out in round " + G.practice.round + ". Back to the drill sergeant for more practice!" : G.tf ? (G.tf.phase === "retake" ? "You led the counter-attack, but you were knocked out before the line was taken back." : "You fought on in the trench until you were knocked out. Stretcher bearers carry you back.") : G.mode === "mg" ? "Your gun team has been knocked out." : G.mode === "tank" ? "Your tank has been knocked out. The crew climb out and get back to your own lines." : G.mode === "plane" ? "Your plane is too badly hit. You glide down and land safely behind your own lines." : G.raid ? "You've been hit. Your mates drag you back to your own trench." : G.phase === "hold" ? "You took their trench, but you were hit holding it." : "You've been hit. Stretcher bearers carry you back to your own trench.";
+    if (!startReplay(src, () => endGame(false, txt))) endGame(false, txt);
+  }
 }
 const ROLE_PTS = { sniper: 40, lmg: 25, lmgmate: 15, bomber: 20 };
 function killUnit(s, by) {
@@ -2382,7 +2403,7 @@ function incoming(p, why, src) {
   G.supp = Math.min(1, G.supp + 0.06);
   if (G.duckK < 0.5 && Math.random() < p) {
     if (G.no2 && G.no2.alive && Math.random() < 0.3) { killUnit(G.no2, "foe"); G.no2T = 40; banner("Your No. 2 is hit!", "Reloading will be slow until help comes", 2.4); return; }
-    hurtPlayer(1, why); return;
+    hurtPlayer(1, why, src); return;
   }
   if (Math.random() < 0.55) sfx.snap(pan);
   if (Math.random() < 0.3) { dirt(mgGun.position.x + rnd(-1.6, 1.6), mgGun.position.z - rnd(0.2, 0.9)); sfx.thwack(pan); }
@@ -2457,8 +2478,9 @@ function blastMG(x, z, power) {
   const gx = mgGun.position.x, gz = mgGun.position.z, d = Math.hypot(x - gx, z - gz);
   if (d < 12) G.dust = Math.min(1, G.dust + (12 - d) / 10);
   if (d < 2.4 * power) knockGun("A direct hit on the gun pit!");
-  if (G.duckK < 0.5) { if (d < 3 * power) hurtPlayer(2, "Shell! DUCK when you hear them coming"); else if (d < 6.5 * power) hurtPlayer(1, "Shell splinters! DUCK when you hear them coming"); }
-  else if (d < 1.8 * power) hurtPlayer(1, "Half buried by a shell!");
+  const shSrc = { x, z, shell: true };
+  if (G.duckK < 0.5) { if (d < 3 * power) hurtPlayer(2, "Shell! DUCK when you hear them coming", shSrc); else if (d < 6.5 * power) hurtPlayer(1, "Shell splinters! DUCK when you hear them coming", shSrc); }
+  else if (d < 1.8 * power) hurtPlayer(1, "Half buried by a shell!", shSrc);
   for (const s of units) {
     if (!s.alive || s.team === "them") continue; const dd = Math.hypot(s.x - x, s.z - z);
     if (dd < 3.5 * power && Math.random() < 0.6) { killUnit(s, "shell"); if (s === G.no2) { G.no2T = 40; banner("Your No. 2 is hit!", "Reloading will be slow until help comes", 2.4); } if (G.runner === s) { G.runner = null; G.runnerT = 18; hint("The ammo runner's been hit!", 2.5); } }
@@ -2938,6 +2960,109 @@ function startTF(plan) {
   if (plan === "back") { banner("Fall back!", "Down the communication trench to the reserve trench", 3); hint("Follow the marker behind you: into the communication trench and run to the reserve trench. Your mates come too.", 5); }
   else { banner("Fix bayonets!", "Fight them off in the trench", 3); hint("Shoot, bayonet (F) and bomb (G) them in the trench. E gets you back on the gun, and you can still fall back down the communication trench.", 5.5); }
 }
+// ---------- bayonet practice: rounds of enemies jumping into your trench, bayonets only ----------
+// ---------- the death replay: the last few seconds, seen through the eyes of the man who got you ----------
+// Every soldier's pose is written down 30 times a second (just the joint angles) and the last 5 seconds are kept.
+const REC = { frames: [], acc: 0 }, RN = 27;
+function recTick(dt) {
+  REC.acc += dt; if (REC.acc < 1 / 30) return; REC.acc = 0;
+  const list = []; for (const u of units) if (u.used && u.root.visible && list.length < 220) list.push(u);
+  if (playerS && playerS.root.visible && !list.includes(playerS)) list.push(playerS);
+  const d = new Float32Array(list.length * RN);
+  list.forEach((u, i) => { const o = i * RN, r = u.root, p = u.pivot;
+    d[o] = r.position.x; d[o + 1] = r.position.y; d[o + 2] = r.position.z; d[o + 3] = r.rotation.y;
+    d[o + 4] = p.position.x; d[o + 5] = p.position.y; d[o + 6] = p.position.z; d[o + 7] = p.rotation.x; d[o + 8] = p.rotation.y; d[o + 9] = p.rotation.z;
+    [u.lL, u.lR, u.kL, u.kR].forEach((l, k) => { d[o + 10 + k * 3] = l.rotation.x; d[o + 11 + k * 3] = l.rotation.y; d[o + 12 + k * 3] = l.rotation.z; });
+    if (u.arm) { d[o + 22] = u.arm.rotation.x; d[o + 23] = u.arm.rotation.y; d[o + 24] = u.arm.rotation.z; }
+    d[o + 25] = 1; d[o + 26] = u.aimG ? 1 : 0; });
+  const me = playerS && playerS.root.visible ? playerS.root.position : (mgGun && G.mode === "mg" ? { x: mgGun.position.x, y: mgGun.position.y - 0.95 * SC, z: mgGun.position.z } : { x: P.x, y: P.y, z: P.z });
+  REC.frames.push({ t: G.t, list, d, tx: me.x, ty: me.y, tz: me.z, idx: null });
+  while (REC.frames.length && REC.frames[0].t < G.t - 5) REC.frames.shift();
+}
+function recIdx(f, u) { if (!f.idx) { f.idx = new Map(); f.list.forEach((q, i) => f.idx.set(q, i)); } const i = f.idx.get(u); return i == null ? -1 : i; }
+function lerpA(a, b, k) { let d = b - a; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return a + d * k; }
+function applyRec(fa, fb, k) {
+  const A = fa.d, B = fb.d;
+  fa.list.forEach((u, i) => { const o = i * RN, j = recIdx(fb, u), q = j < 0 ? o : j * RN, S2 = j < 0 ? A : B, L = (n) => A[o + n] + (S2[q + n] - A[o + n]) * k;
+    const r = u.root, p = u.pivot; r.visible = true;
+    r.position.set(L(0), L(1), L(2)); r.rotation.y = lerpA(A[o + 3], S2[q + 3], k);
+    p.position.set(L(4), L(5), L(6)); p.rotation.set(L(7), L(8), L(9));
+    [u.lL, u.lR, u.kL, u.kR].forEach((l, n) => l.rotation.set(L(10 + n * 3), L(11 + n * 3), L(12 + n * 3)));
+    if (u.arm) { const want = A[o + 26] > 0.5; if (want !== !!u.aimG) { u.aimG = want; dress(u, u.far); u.arm.geometry = gget((want ? "A" : "a") + u.sd + u.v, () => armGeo(u.sd, u.v, want)); } u.arm.rotation.set(L(22), L(23), L(24)); }
+  });
+}
+function startReplay(src, done) {
+  if (!G || !(G.mode === "rifle" || G.mode === "mg") || REC.frames.length < 12) return false;
+  recTick(1); // the moment it happened
+  const fr = REC.frames.slice(), tEnd = fr[fr.length - 1].t;
+  const vis = new Map(); for (const u of units) vis.set(u, u.root.visible); if (playerS) vis.set(playerS, playerS.root.visible);
+  const unit = src && src.root ? src : null, foe = G.foe === "ger" ? "German" : "British";
+  G.replay = { fr, tEnd, rt: Math.max(fr[0].t, tEnd - 4), hold: 1.4, src, unit, done, vis, fov: camera.fov, thud: false };
+  G.paused = true; G.shake = 0; IN.fire = false; IN.fire2 = false; setGuard(false);
+  wantLock = false; if (document.exitPointerLock && locked) document.exitPointerLock();
+  for (const id of ["hud", "xhair", "touch"]) $(id).hidden = true; $("keys").style.display = "none";
+  for (const id of ["warn", "hint", "dust", "gasTint", "gasmask", "peri", "sights", "scope"]) $(id).style.opacity = 0; clipAnim(null); ring(null); melMarks.update([]); tfMark.set(null);
+  $("rCap").textContent = unit ? (unit.team === "nest" || unit.state === "nestcrew" || (G.nests || []).some(n => n.crew === unit) ? "Seen from the machine gun that knocked you out" : "Seen through the eyes of the " + foe + " soldier who knocked you out")
+    : src && src.shell ? "Seen from where it burst" : "The moment you were knocked out";
+  $("rSkip").textContent = usedTouch ? "Tap to skip" : "Click or press a key to skip";
+  $("replay").hidden = false;
+  return true;
+}
+function updReplay(dt) {
+  const R = G.replay, fr = R.fr;
+  $("keys").style.display = "none"; $("hud").hidden = true; $("touch").hidden = true; for (const id of ["dmg", "warn", "hint"]) $(id).style.opacity = 0;
+  if (R.rt < R.tEnd) { R.rt = Math.min(R.tEnd, R.rt + dt * (R.tEnd - R.rt < 1.1 ? 0.35 : 1)); } // slow motion for the last second
+  else { R.hold -= dt; if (!R.thud) { R.thud = true; sfx.thud(1.5, 0); } if (R.hold <= 0) { endReplay(); return; } }
+  let i = 0; while (i < fr.length - 2 && fr[i + 1].t < R.rt) i++;
+  const fa = fr[i], fb = fr[Math.min(fr.length - 1, i + 1)], k = fb.t > fa.t ? clamp((R.rt - fa.t) / (fb.t - fa.t), 0, 1) : 0;
+  for (const u of R.vis.keys()) if (recIdx(fa, u) < 0) u.root.visible = false;
+  applyRec(fa, fb, k);
+  const tx = fa.tx + (fb.tx - fa.tx) * k, ty = fa.ty + (fb.ty - fa.ty) * k + 1.05 * SC, tz = fa.tz + (fb.tz - fa.tz) * k;
+  let ex, ey, ez, ui = R.unit ? recIdx(fa, R.unit) : -1;
+  if (ui >= 0) { // over his shoulder, from his eyes
+    const u = R.unit, ry = u.root.rotation.y, fx = Math.sin(ry), fz = Math.cos(ry), hy = u.root.position.y + (u.pose === "prone" ? 0.45 : u.pose === "crouch" ? 1.15 : 1.62) * SC + 0.14;
+    ex = u.root.position.x - fx * 1.05 * SC + Math.cos(ry) * 0.5 * SC; ey = hy + 0.32 * SC; ez = u.root.position.z - fz * 1.05 * SC - Math.sin(ry) * 0.5 * SC;
+  } else if (R.src && R.src.x != null) { const dx = R.src.x - tx, dz = R.src.z - tz, d = Math.hypot(dx, dz) || 1; ex = R.src.x + dx / d * 2.5; ez = R.src.z + dz / d * 2.5; ey = ty + 2.4; }
+  else { ex = tx + 1.2; ey = ty + 1.2; ez = tz - 4.2; }
+  ey = Math.max(ey, H(ex, ez) + 0.3);
+  camera.position.set(ex, ey, ez); camera.lookAt(tx, ty, tz);
+  const dd = Math.hypot(tx - ex, ty - ey, tz - ez);
+  camera.fov = clamp(2 * Math.atan(2.2 / dd) * 180 / Math.PI, 7, 62); camera.updateProjectionMatrix();
+}
+function endReplay() {
+  const R = G && G.replay; if (!R) return;
+  const last = R.fr[R.fr.length - 1]; applyRec(last, last, 0);
+  for (const [u, v] of R.vis) if (recIdx(last, u) < 0) u.root.visible = v;
+  G.replay = null; G.paused = false; $("replay").hidden = true; REC.frames.length = 0;
+  camera.fov = R.fov; camera.updateProjectionMatrix();
+  R.done();
+}
+function startPractice() {
+  const di = DI();
+  G.practice = { round: 0, nextT: 2.2, best: (S.best[G.side + "-practice-round"] || 0) };
+  G.maxHp = G.hp = [6, 5, 4][di]; G.spawnQ = []; G.phase = "practice";
+  for (const s of units) if (s.team === "us" || s.team === "them") { release(s); s.gone = true; }
+  for (let i = units.length - 1; i >= 0; i--) if (units[i].gone) units.splice(i, 1);
+  G.tf = { plan: "fight", phase: "fight", t: 0, t0: G.t, q: [], onGun: false, rallyT: 0 };
+  G.nests = []; P.gren = 0;
+  tfFoot(true); G.yaw = 0;
+  banner("Bayonet practice", "Just the bayonet. Watch for the red !", 3);
+  setTimeout(() => G && G.practice && !G.over && hint(usedTouch ? "Hold PARRY when you see the red !, then THRUST while he's OPEN. BUTT breaks his guard, DODGE steps aside" : "Parry (right click or Space) when you see the red !, then thrust (click or F) while he's OPEN. B butt-strokes through his guard, Q side steps", 6), 1200);
+}
+function updPractice(dt) { // called from the trench fight when everyone in the round is down
+  const R = G.practice;
+  if (R.nextT > 0) { R.nextT -= dt; if (R.nextT <= 0) {
+    R.round++; const n = Math.min(4, Math.ceil(R.round / 2)), di = DI();
+    banner("Round " + R.round, n === 1 ? "One man" : n + " men at once", 1.8); sfx.whistle(0.08, 0);
+    for (let i = 0; i < n; i++) G.tf.q.push({ at: G.t + 0.4 + i * [1.6, 1.2, 0.8][di], x: clamp(P.x + rnd(-7, 7), -40, 40) });
+  } return; }
+  // round cleared
+  const bonus = Math.round(20 * R.round * G.D.mult); G.score += bonus;
+  if (R.round > R.best) { R.best = R.round; S.best[G.side + "-practice-round"] = R.round; save(); }
+  const healed = G.hp < G.maxHp; if (healed) G.hp++;
+  banner("Round " + R.round + " cleared!", "+" + bonus + (healed ? " · a heart back" : ""), 2); sfx.streak();
+  R.nextT = 2.6;
+}
 function tfRaider(s) { s.role = "raider"; s.state = "in"; s.cut = false; s.lift = 0; s.pose = "stand"; s.fireT = rnd(1.5, 3); s.t = 0; }
 function spawnRaider(x) {
   const z = zOwn(x) - rnd(9, 16), s = soldier(G.foe, "rifle", x, z, "them");
@@ -3027,7 +3152,8 @@ function updTF(dt) {
   // more of them climb in while the fight is on
   if (T.phase === "fight") for (let i = T.q.length - 1; i >= 0; i--) if (G.t >= T.q[i].at) { spawnRaider(T.q[i].x); T.q.splice(i, 1); }
   // what happens next
-  if (T.phase === "fight") {
+  if (G.practice) { if (!T.q.length && !raidersLeft()) updPractice(dt); }
+  else if (T.phase === "fight") {
     if (!T.onGun && P.z > zOwn(P.x) + 7) startFallBack();
     else if (!T.q.length && !raidersLeft()) { endTF(); return; }
   } else if (T.phase === "back") { if (P.z > zRes(P.x) - 1.6) startRally(); }
@@ -3035,11 +3161,12 @@ function updTF(dt) {
   else if (T.phase === "retake" && !raidersLeft()) { endTF(); return; }
   // where to go
   const mz = zOwn(ctX(1.5)) + 1.5;
-  if (T.phase === "fight" && !T.onGun) tfMark.set(T.plan === "back" ? "⬇ FALL BACK" : "⬇ FALL BACK (or fight here)", ctX(mz), 1.4, mz);
+  if (G.practice) tfMark.set(null);
+  else if (T.phase === "fight" && !T.onGun) tfMark.set(T.plan === "back" ? "⬇ FALL BACK" : "⬇ FALL BACK (or fight here)", ctX(mz), 1.4, mz);
   else if (T.phase === "back") tfMark.set("⬇ RESERVE TRENCH", ctX(RES_Z - 1.5), 1.2, RES_Z - 1.5);
   else if (T.phase === "retake") tfMark.set("⬆ RETAKE THE LINE", mgGun.position.x, 1.6, zOwn(0));
   else tfMark.set(null);
-  if (usedTouch) { const near = !T.onGun && Math.hypot(P.x - mgGun.position.x, P.z - mgGun.position.z) < 3 && T.phase === "fight"; $("tUse").style.display = near ? "flex" : "none"; $("tUse").innerHTML = "USE<br>GUN"; }
+  if (usedTouch) { const near = !T.onGun && !G.practice && Math.hypot(P.x - mgGun.position.x, P.z - mgGun.position.z) < 3 && T.phase === "fight"; $("tUse").style.display = near ? "flex" : "none"; $("tUse").innerHTML = "USE<br>GUN"; }
   // everyone in the fight
   let mates = 0;
   for (const s of units) {
@@ -3076,7 +3203,7 @@ function tfFoe(s, dt, me) {
       if (tgt !== "P") s.face = Math.atan2(tgt.x - s.x, tgt.z - s.z); else s.face = Math.atan2(P.x - s.x, P.z - s.z);
       s.fireT = aiFire(s, s.x + Math.sin(s.face), s.y + 1.25 * SC, s.z + Math.cos(s.face)) + rnd(0.5, 2.2);
       const rf = td < 25 ? 1 : clamp(25 / td, 0.3, 1);
-      if (tgt === "P") { if (Math.random() < 0.075 * [0.7, 1, 1.3][di] * tfExposed() * rf) hurtPlayer(1, "Hit by fire from your old trench! Keep low (C)"); else if (Math.random() < 0.4) sfx.snap(rnd(-0.5, 0.5)); }
+      if (tgt === "P") { if (Math.random() < 0.075 * [0.7, 1, 1.3][di] * tfExposed() * rf) hurtPlayer(1, "Hit by fire from your old trench! Keep low (C)", s); else if (Math.random() < 0.4) sfx.snap(rnd(-0.5, 0.5)); }
       else if (Math.random() < 0.06 * rf) killUnit(tgt, "foe");
     }
     return;
@@ -3093,15 +3220,15 @@ function tfFoe(s, dt, me) {
     const sp = td < 8 ? 2.6 : 2.2; s.speed = sp; s.x += dx / td * sp * dt; s.z += dz / td * sp * dt;
     if (T.phase === "fight") s.z = clamp(s.z, zOwn(s.x) - 0.6, zRes(s.x) + 0.5);
     s.y = H(s.x, s.z);
-    if (s.fireT <= 0 && td > 5 && td < 24) { // a snap shot as he comes
+    if (s.fireT <= 0 && td > 5 && td < 24 && !G.practice) { // a snap shot as he comes
       s.fireT = aiFire(s, s.x + Math.sin(s.face), s.y + 1.25 * SC, s.z + Math.cos(s.face)) + rnd(1, 2.5);
-      if (tgt === "P") { if (Math.random() < 0.06 * [0.7, 1, 1.3][di] * tfExposed()) hurtPlayer(1, "Shot from along the trench!"); else sfx.snap(rnd(-0.4, 0.4)); }
+      if (tgt === "P") { if (Math.random() < 0.06 * [0.7, 1, 1.3][di] * tfExposed()) hurtPlayer(1, "Shot from along the trench!", s); else sfx.snap(rnd(-0.4, 0.4)); }
       else if (Math.random() < 0.05) killUnit(tgt, "foe");
     }
   } else {
     s.speed = 0;
     if (s.fireT <= 0) { s.fireT = rnd(1.1, 1.7); sfx.swish();
-      if (tgt === "P") { if (Math.random() < [0.24, 0.3, 0.36][di]) hurtPlayer(1, T.onGun ? "They're at the gun! Get off it (E) and use the bayonet" : "Bayonet! Fight back with F / BAYONET"); }
+      if (tgt === "P") { if (Math.random() < [0.24, 0.3, 0.36][di]) hurtPlayer(1, T.onGun ? "They're at the gun! Get off it (E) and use the bayonet" : "Bayonet! Fight back with F / BAYONET", s); }
       else if (Math.random() < 0.3) killUnit(tgt, "foe");
     }
   }
@@ -3490,6 +3617,7 @@ function Z() {
 // ======================================================================
 function nearNest() { if (!G.nests) return null; return G.nests.find(n => n.dead && Math.hypot(n.x - P.x, n.z - P.z) < 3.2) || null; }
 function useGun() {
+  if (playing() && G.practice) return;
   if (playing() && G.tf) { if (G.tf.onGun) tfFoot(); else tfGun(); return; }
   if (!playing() || G.mode !== "rifle" || G.phase !== "hold") return;
   if (G.onGun) { // let go of it
@@ -3661,6 +3789,7 @@ function rifleReload() {
 function camDir() { return { x: -Math.sin(G.yaw) * Math.cos(G.pitch), y: Math.sin(G.pitch), z: -Math.cos(G.yaw) * Math.cos(G.pitch) }; }
 function fireRifle(auto) {
   if (!playing() || !(G.mode === "rifle" || G.mgRifle)) return;
+  if (G.practice) { if (!auto) bayonet(); return; } // practice is bayonet only: a click thrusts
   const sd = SIDES[G.side];
   if (P.lmg && !auto) return; // the light machine gun fires from the hold-the-trigger loop
   if (G.mgRifle && G.duckK > 0.3) { if (!G.warned.duckfire) { G.warned.duckfire = 1; hint("You're ducked down. Press C / GET UP to fire", 2); } return; }
@@ -3862,7 +3991,7 @@ function strikeAt(s, d) {
       return;
     }
   }
-  hurtPlayer(1, P.guard ? "Too tired to hold him off! Back away and get your breath" : usedTouch ? "Bayonet! Hold PARRY when you see the red !" : "Bayonet! Parry (right click or Space) when you see the red !");
+  hurtPlayer(1, P.guard ? "Too tired to hold him off! Back away and get your breath" : usedTouch ? "Bayonet! Hold PARRY when you see the red !" : "Bayonet! Parry (right click or Space) when you see the red !", s);
 }
 // every frame on foot: the marks, the warning, guard costs and the touch buttons
 function updMelee(dt) {
@@ -3878,14 +4007,15 @@ function updMelee(dt) {
   melMarks.update(G.onGun ? [] : list);
   if (wind && !G.onGun) { G.warnTxt = "PARRY!"; rifleWarn(); }
   if (usedTouch) {
-    const show = (near || !!meleeFoe(6, -1)) && !P.crouch && !G.onGun;
-    for (const [id, r, b] of [["tParry", 196, 104], ["tButt", 30, 210], ["tDodge", 196, 186]]) { const el = $(id); el.style.display = show ? "flex" : "none"; el.style.right = r + "px"; el.style.bottom = b + "px"; }
+    const show = (G.practice || near || !!meleeFoe(6, -1)) && !P.crouch && !G.onGun;
+    for (const [id, r, b] of G.practice ? [["tParry", 124, 30], ["tButt", 30, 124], ["tDodge", 112, 112]] : [["tParry", 196, 104], ["tButt", 30, 210], ["tDodge", 196, 186]]) { const el = $(id); el.style.display = show ? "flex" : "none"; el.style.right = r + "px"; el.style.bottom = b + "px"; }
     $("tParry").classList.toggle("on", !!P.guard); $("tParry").classList.toggle("hot", wind);
     if (!show && P.guard && !btnPtr.size) setGuard(false);
   }
 }
 function grenade() {
   if (!playing() || G.mode !== "rifle") return;
+  if (G.practice) { hint("Bayonet practice: no bombs. Thrust, parry, butt-stroke, side step", 2); return; }
   if (P.gren <= 0) { hint("No bombs left"); return; }
   if (G.phase === "wait") { hint("Wait for the whistle"); return; }
   P.gren--; sfx.throwB();
@@ -3925,7 +4055,7 @@ function updGrenades(dt) {
       }
       for (const n of G.nests) if (!n.dead && Math.hypot(n.x - g.x, n.z - g.z) < 4.8) silenceNest(n, "Bombed the machine gun!");
       const pd = Math.hypot(P.x - g.x, P.z - g.z);
-      if (pd < 3.5) hurtPlayer(pd < 2 ? 2 : 1, "Too close to your own bomb!");
+      if (pd < 3.5) hurtPlayer(pd < 2 ? 2 : 1, "Too close to your own bomb!", { x: g.x, z: g.z, shell: true });
     }
   }
 }
@@ -4068,7 +4198,7 @@ function updCounter(s, dt) {
   s.fireT -= dt;
   if (s.fireT <= 0 && d > 6) { // stop and fire at you
     s.fireT = aiFire(s, s.x, s.y + 1.92, s.z + 1.35); s.pauseT = s.relT > 0 ? s.relT : s.boltT;
-    if (Math.random() < D.rifleAcc * covered(null, true) * (d < 30 ? 1 : clamp(30 / d, 0.3, 1)) * AI_GAP[s.sd] / 4.25) hurtPlayer(1, "Counter-attack fire! Keep low");
+    if (Math.random() < D.rifleAcc * covered(null, true) * (d < 30 ? 1 : clamp(30 / d, 0.3, 1)) * AI_GAP[s.sd] / 4.25) hurtPlayer(1, "Counter-attack fire! Keep low", s);
     else if (Math.random() < 0.4) sfx.snap(rnd(-0.5, 0.5));
   }
   if (s.pauseT > 0) { s.pauseT -= dt; s.speed = 0; }
@@ -4162,7 +4292,7 @@ function updDefenders(dt) {
       else {
         s.speed = 0; s.fireT -= dt;
         if (s.fireT <= 0) { s.fireT = rnd(1.1, 1.6); sfx.swish();
-          if (close === "P") { if (Math.random() < 0.38) hurtPlayer(1, "Bayonet! Fight back with F / BAYONET"); }
+          if (close === "P") { if (Math.random() < 0.38) hurtPlayer(1, "Bayonet! Fight back with F / BAYONET", s); }
           else if (Math.random() < 0.4) killUnit(close, "foe");
         }
       }
@@ -4181,7 +4311,7 @@ function updDefenders(dt) {
         const gap = aiFire(s, s.x, s.y + 1.92, s.z + 1.35), rk = DEF_GAP[s.sd] / 4.5; s.shots++;
         if (tgt === null && attackers.length) {
           const cov = covered(null, true), rf = pdist < 30 ? 1 : clamp(30 / pdist, 0.25, 1);
-          if (Math.random() < D.rifleAcc * cov * rf * 1.4 * rk) hurtPlayer(1, "Hit by a rifle shot!");
+          if (Math.random() < D.rifleAcc * cov * rf * 1.4 * rk) hurtPlayer(1, "Hit by a rifle shot!", s);
           else if (Math.random() < cov * 0.5) sfx.snap(rnd(-0.5, 0.5));
         } else if (tgt) {
           const td = Math.hypot(tgt.x - s.x, tgt.z - s.z), rf = td < 30 ? 1 : clamp(30 / td, 0.25, 1);
@@ -4244,7 +4374,7 @@ function updNests(dt) {
       const dist = victim === "P" ? pd : victim ? vd : rnd(25, 150);
       const ix = n.x + Math.sin(ang) * dist, iz = n.z + Math.cos(ang) * dist;
       if (n.n % 3 === 0) { const dy = (H(ix, iz) + 0.8 - mz.y) / dist; const l = Math.hypot(Math.sin(ang), dy, Math.cos(ang)); tracer(mz.x, mz.y, mz.z, Math.sin(ang) / l, dy / l, Math.cos(ang) / l, dist); }
-      if (victim === "P") { hurtPlayer(1, "Machine gun! Get down in a shell hole (C / DUCK)"); }
+      if (victim === "P") { hurtPlayer(1, "Machine gun! Get down in a shell hole (C / DUCK)", n.crew); }
       else if (victim) killUnit(victim, "mg");
       else { dirt(ix, iz); if (Math.hypot(ix - P.x, iz - P.z) < 4) sfx.snap(clamp((ix - P.x) / 4, -0.8, 0.8)); }
     }
@@ -4393,7 +4523,7 @@ function updShells(dt) {
     }
     if (G.mode === "rifle") {
       const d = Math.hypot(P.x - sh.x, P.z - sh.z), cov = covered(null, true);
-      if (d < 4.5 && cov > 0.05) hurtPlayer(d < 2.2 ? 2 : 1, "Shell! Hug the bottom of a shell hole");
+      if (d < 4.5 && cov > 0.05) hurtPlayer(d < 2.2 ? 2 : 1, "Shell! Hug the bottom of a shell hole", { x: sh.x, z: sh.z, shell: true });
     }
     if (G.mode === "tank" && !sh.ours) { const d = Math.hypot(P.x - sh.x, P.z - sh.z); if (d < 4.2) hurtPlayer(d < 2.2 ? 2 : 1, "Hit by their field gun! Keep moving"); }
   }
@@ -4411,6 +4541,7 @@ function meleeRows(near) { // the bayonet drill keys; the full list shows when t
 }
 function keyRows() {
   const w = G.warnTxt || "";
+  if (G.practice) return [["W A S D", "Move", ""], ["Shift", "Sprint", ""], ...meleeRows(true), ["C", P.crouch ? "Stand up" : "Duck", ""], ["P / Esc", "Pause", ""]];
   if (G.tf && G.tf.onGun) return [["Click / Space", "Fire (the gun turns all the way round)", ""], ["R", "Reload belt", G.belt === 0 && G.belts > 0 && G.reloadT <= 0 ? "hot" : ""], ["Wheel / Z", "Zoom", ""], ["E / Q", "Get off the gun", ""], ["P / Esc", "Pause", ""]];
   if (G.tf) { const sd = SIDES[G.side], near = units.some(s => s.alive && s.team === "them" && Math.hypot(s.x - P.x, s.z - P.z) < 4), gunNear = Math.hypot(P.x - mgGun.position.x, P.z - mgGun.position.z) < 3;
     return [["W A S D", "Move", ""], ["Shift", "Sprint", G.tf.phase === "back" ? "hot" : ""], ["Click", "Fire", ""], ["Right click", "Look down the sights", ""], ["R", "Reload", P.mag === 0 && P.reloadT <= 0 ? "hot" : ""], ["C", P.crouch ? "Stand up" : "Duck", ""], ...meleeRows(near), ["G", "Throw " + sd.bomb + " (" + P.gren + ")", P.gren <= 0 ? "off" : ""], G.tf.phase === "fight" ? ["E", "Get on the machine gun", gunNear ? "hot" : "off"] : null, ["P / Esc", "Pause", ""]].filter(Boolean); }
@@ -4458,7 +4589,12 @@ function hud() {
   $("hScore").textContent = G.score.toLocaleString();
   const maxHp = G.maxHp || (G.mode === "mg" ? D.hp : D.php);
   $("hHp").textContent = G.hp > 12 ? "❤️ x" + G.hp : "❤️".repeat(Math.max(0, G.hp)) + "🖤".repeat(Math.max(0, maxHp - Math.max(0, G.hp)));
-  if (G.tf) {
+  if (G.practice) {
+    const R = G.practice, n = raidersLeft() + G.tf.q.length;
+    $("hObj").innerHTML = `BAYONET PRACTICE · ${R.round ? "Round " + R.round + (n ? " · " + n + " to beat" : " cleared") : "Get ready"}<small>Parries on time: ${G.parries || 0} · counters: ${G.counters || 0} · best round: ${R.best}</small>`;
+    $("aT").textContent = SIDES[G.side].rifle + " and bayonet"; showRounds(0); $("aSub").textContent = "Bayonet only";
+    $("hHeatWrap").style.display = "none"; $("hStamWrap").style.display = "block"; const st = $("hStam"); st.style.width = P.stam + "%"; st.style.background = P.stam < 25 ? "#e0383f" : "#d8c46a";
+  } else if (G.tf) {
     const T = G.tf, n = raidersLeft() + T.q.length;
     $("hObj").innerHTML = (T.phase === "fight" ? `THEY'RE IN YOUR TRENCH! ${n} to beat · fight them off${T.onGun ? "" : ", or fall back"}` : T.phase === "back" ? "FALL BACK to the reserve trench" : T.phase === "rally" ? `Reserve trench · counter-attack in ${Math.max(0, Math.ceil(T.rallyT))} s` : `COUNTER-ATTACK! Retake your front line · ${n} left`) +
       `<small>${G.battle.title} · Wave ${Math.max(1, G.wave)} / ${G.waves.length} · your mates: ${G.mates} · ${sd.bomb}s: ${P.gren}</small>`;
@@ -4521,8 +4657,8 @@ $("tfBackBtn").onclick = () => { startTF("back"); grabMouse(); };
 function grabMouse() { if (!usedTouch && stage.requestPointerLock) { wantLock = true; try { const r = stage.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {} } }
 $("resumeBtn").onclick = () => { pause(false); if (!usedTouch && stage.requestPointerLock) { wantLock = true; try { const r = stage.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {} } };
 $("quitBtn").onclick = () => { if (G) { G.over = true; } clearWorld(); G = null; $("pauseOv").hidden = true; menu(); };
-const JOB_NAME = { mg: "gunner", rifle: "rifleman", raid: "raider", tank: "tank commander", plane: "pilot" };
-function jobKey() { return G.raid ? "raid" : G.tf ? "mg" : G.mode; }
+const JOB_NAME = { practice: "bayonet fighter", mg: "gunner", rifle: "rifleman", raid: "raider", tank: "tank commander", plane: "pilot" };
+function jobKey() { return G.practice ? "practice" : G.raid ? "raid" : G.tf ? "mg" : G.mode; }
 function endGame(win, text) {
   if (G.over) return; G.over = true; IN.fire = false; IN.fire2 = false; IN.boost = false;
   const rankBefore = rankIdx(rankPts());
@@ -4548,13 +4684,14 @@ function endGame(win, text) {
   if (rankAfter > rankBefore) medalTxt += (medalTxt ? "<br>" : "") + `⭐ Promoted to <b>${rankName(rankAfter, G.side)}</b>!` + (UNLOCKS[rankAfter] ? ` Unlocked: ${UNLOCKS[rankAfter]}.` : "");
   medalTxt += (medalTxt ? "<br>" : "") + `💰 +${pay} battle pay (you have ${S.pay}). Spend it in the Kit shop.`;
   save();
-  const TITLES = { mg: ["The line held!", "The line has fallen"], rifle: ["Trench taken!", "Wounded"], raid: ["Raid done!", "Raid failed"], tank: ["Breakthrough!", "Tank knocked out"], plane: ["Victory in the air!", "Shot down"] };
+  const TITLES = { practice: ["Practice done", "Knocked out"], mg: ["The line held!", "The line has fallen"], rifle: ["Trench taken!", "Wounded"], raid: ["Raid done!", "Raid failed"], tank: ["Breakthrough!", "Tank knocked out"], plane: ["Victory in the air!", "Shot down"] };
   $("endTitle").textContent = TITLES[job][win ? 0 : 1];
   $("endStars").textContent = win ? "★".repeat(stars) + "☆".repeat(3 - stars) : "";
   $("endText").textContent = text;
   const acc = G.shots ? Math.round(100 * Math.min(G.hits, G.shots) / G.shots) : 0;
   const st = [["Score", G.score.toLocaleString()], ["Best streak", (G.bestCombo || 0) + " in a row"], ["Best (" + sd.name + " " + JOB_NAME[job] + ")", Math.max(prevBest, G.score).toLocaleString()], ["Enemies down", G.kills], ["Shots fired", G.shots + " (" + acc + "% hit)"]];
-  if (job === "mg") st.push(["Waves held", (win ? G.wave : Math.max(0, G.wave - 1)) + " / " + G.waves.length]);
+  if (job === "practice") { st.splice(3, 2, ["Enemies down", G.kills], ["Rounds cleared", G.practice.round - 1], ["Parries on time", G.parries || 0], ["Counters", G.counters || 0]); }
+  else if (job === "mg") st.push(["Waves held", (win ? G.wave : Math.max(0, G.wave - 1)) + " / " + G.waves.length]);
   else if (job === "raid") st.push(["Maps", G.docs && G.docs.got ? (win ? "Brought home" : "Grabbed, then lost") : "Not reached"], ["Alarm", G.alarm ? "Raised" : "Never raised"], ["Raiders left", G.mates + " / " + G.section]);
   else if (job === "tank") st.push(["Guns knocked out", G.nests.filter(n => n.dead).length + " / 2"], ["Your infantry left", G.mates + " / " + G.section], ["Armour left", Math.max(0, G.hp) + " / " + mx]);
   else if (job === "plane") st.push(["Waves", (win ? 3 : Math.max(0, G.wave - 1)) + " / 3"]);
@@ -4569,11 +4706,12 @@ function endGame(win, text) {
   const thisGame = G;
   setTimeout(() => { if (G !== thisGame) return; $("endOv").hidden = false; $("hud").hidden = true; $("xhair").hidden = true; $("touch").hidden = true; $("keys").style.display = "none"; clearAimUI(); clearPlanes(); for (const id of ["dust", "gasTint", "gasmask", "warn", "peri"]) $(id).style.opacity = 0; if (myEngine) myEngine.g.gain.value = 0; for (const f of fighters) if (f.snd) f.snd.g.gain.value = 0; }, win ? 1600 : 1200);
   if (win) { banner(TITLES[job][0], "", 2); sfx.whistle(0.12, 0); }
-  if (window.Leaderboard && Leaderboard.getName && Leaderboard.getName() && G.score > 0) Leaderboard.submit(G.score).then(() => { if (window.PhatCoin) PhatCoin.leaderboard(Leaderboard.getName(), "desc"); }).catch(() => {});
+  if (!G.practice && window.Leaderboard && Leaderboard.getName && Leaderboard.getName() && G.score > 0) Leaderboard.submit(G.score).then(() => { if (window.PhatCoin) PhatCoin.leaderboard(Leaderboard.getName(), "desc"); }).catch(() => {});
   const WHY = { mg: "holding the line", rifle: "taking the trench", raid: "a silent raid", tank: "a tank breakthrough", plane: "winning in the air" };
   if (win && window.PhatCoin) PhatCoin.earn("win", Math.min(5, stars + 2), WHY[job]);
 }
 function histFor(side, job) {
+  if (job === "practice") return HIST.practice;
   if (job === "raid") return HIST.raid;
   if (job === "tank") return HIST.tank;
   if (job === "plane") return HIST.air;
@@ -4596,7 +4734,7 @@ function menu() {
   const sc = scenario(S.side, S.job), sd = SIDES[S.side];
   $("scen").innerHTML = `<b>${sc.where}</b><p>${sc.text}</p>`;
   const lmgName = S.side === "ger" ? "MG 08/15" : "Lewis gun", footGun = has("lmg") ? lmgName : sd.rifle;
-  $("startSub").textContent = ({ mg: sd.mg + " and " + sd.rifle, rifle: footGun + " and bayonet", raid: footGun + ", bayonet and bombs", tank: S.side === "ger" ? "A7V tank" : "Mark I tank", plane: S.side === "ger" ? "Albatros fighter" : "Sopwith Camel" })[S.job] + " · " + DIFFS[S.diff].name;
+  $("startSub").textContent = ({ mg: sd.mg + " and " + sd.rifle, rifle: footGun + " and bayonet", raid: footGun + ", bayonet and bombs", practice: sd.rifle + " and bayonet only", tank: S.side === "ger" ? "A7V tank" : "Mark I tank", plane: S.side === "ger" ? "Albatros fighter" : "Sopwith Camel" })[S.job] + " · " + DIFFS[S.diff].name;
   $("shopSub").textContent = "💰 " + (S.pay || 0) + " battle pay";
   $("medals").innerHTML = sd.medals.map((m, i) => `<div class="medal ${S.medals[S.side][i] ? "got" : ""}" title="Win on ${["Recruit", "Regular", "Veteran"][i]}">${sd.icons[i]} ${m}<br><small style="color:var(--muted)">win on ${["Recruit", "Regular", "Veteran"][i]}</small></div>`).join("");
   const rp = rankPts(), ri = rankIdx(rp), nx = RANK_PTS[ri + 1];
@@ -4649,6 +4787,7 @@ function step(dt) {
   G.tgtT -= dt; if (G.tgtT <= 0) { G.tgtT = 0.06; checkOnTarget(); }
   updAtmos(dt);
   if (G.mode === "mg") updMG(dt); else if (G.mode === "tank") updTankJob(dt); else if (G.mode === "plane") updFlight(dt); else { updRifle(dt); updGrenades(dt); if (G && !G.over) updMelee(dt); }
+  if (G && !G.over && !G.replay && (G.mode === "rifle" || G.mode === "mg")) recTick(dt);
   if (G && !G.over) { updShells(dt); battleVoices(dt); G.hudT = (G.hudT || 0) - dt; if (G.hudT <= 0) { G.hudT = 0.08; hud(); } }
 }
 function frame(now) {
@@ -4656,7 +4795,8 @@ function frame(now) {
   const raw = (now - last) / 1000, dt = Math.min(0.05, raw); last = now;
   // if the device struggles, quietly lower the quality
   if (G && !G.paused && !G.over && raw < 1) { qT += raw; qN++; if (qT > 4) { const fps = qN / qT; qT = 0; qN = 0; if (fps < 36 && qLevel < 3) { qLevel++; if (qLevel === 1) renderer.setPixelRatio(Math.max(1, renderer.getPixelRatio() - 0.5)); else if (qLevel === 2) { sun.castShadow = false; POST.bloom = false; } else { renderer.setPixelRatio(0.8); POST.on = false; } resize(); } } }
-  if (G && !G.paused && !G.over) {
+  if (G && G.replay) updReplay(dt);
+  else if (G && !G.paused && !G.over) {
     step(dt);
     ambT -= dt; if (ambT <= 0) { ambT = rnd(3, 8); if (Math.random() < 0.55) { sfx.rumble(); skyU.gf.value = rnd(0.35, 0.8); skyU.gfA.value = Math.PI + rnd(-1.2, 1.2); } else sfx.distantMG(rnd(-0.9, 0.9)); }
     shellAmbience(dt);
@@ -4688,7 +4828,7 @@ if (window.Leaderboard) {
   if (Leaderboard.getName() && S.top >= 1) Leaderboard.submit(S.top).catch(() => {});
 }
 // test hook
-window.__ott = { POST, skyU, setAtmos, ATM_NIGHT, get G() { return G; }, H, soldier, poseSoldier, camera, scene, renderer, get PT() { return PT; }, F, fighters, balloons, shop, swapWeapon, togglePeri, raiseAlarm, fireTankGun, keys, P, units, planes, spawnPlane, useGun, startGame, S, IN, bayonet, grenade, endGame, killUnit, setGuard, buttStroke, sidestep, startTF, lineBroken, sim(sec) { for (let i = 0; i < sec * 30 && G && !G.over && !G.paused; i++) { step(1 / 30); updParts(1 / 30); updTracers(1 / 30); } }, info: () => renderer.info.render };
+window.__ott = { POST, skyU, setAtmos, ATM_NIGHT, get G() { return G; }, H, soldier, poseSoldier, camera, scene, renderer, get PT() { return PT; }, F, fighters, balloons, shop, swapWeapon, togglePeri, raiseAlarm, fireTankGun, keys, P, units, planes, spawnPlane, useGun, startGame, S, IN, bayonet, grenade, endGame, killUnit, updReplay, endReplay, REC, hurtPlayer, setGuard, buttStroke, sidestep, startTF, lineBroken, sim(sec) { for (let i = 0; i < sec * 30 && G && !G.over && !G.paused; i++) { step(1 / 30); updParts(1 / 30); updTracers(1 / 30); } }, info: () => renderer.info.render };
 })();
 </script>
 

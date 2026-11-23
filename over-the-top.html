@@ -1401,6 +1401,18 @@ function bodyParts(sd, kind, late, hat, v, lo) {
   // arms and rifle
   if (kind === "gunner") {
     for (const sx of [-1, 1]) sleeve(P, coat, skin, [sx * 0.205, 1.37, 0], [sx * 0.245, 1.17, 0.17], [sx * 0.12, 1.18, 0.44]);
+  } else if (kind === "aim") { // rifle in the shoulder, cheek on the stock, left hand under the fore-end, aiming straight ahead
+    sleeve(P, coat, skin, [-0.205, 1.37, 0], [-0.17, 1.2, 0.3], [0.075, 1.415, 0.6]);
+    const wood = brit ? 0x6b4425 : 0x7a5130, steel = 0x2b2b2b;
+    between(P, [0.105, 1.43, 0.28], [0.15, 1.41, 0.29], 0.022, steel);                                       // bolt handle
+    P.push([SPH_S, steel, mat4(0.155, 1.41, 0.29, 0, 0, 0, 0.028)]);                                          // bolt knob
+    between(P, [0.15, 1.38, -0.1], [0.11, 1.43, 0.2], 0.055, wood, 0.12);                                     // butt in the shoulder
+    if (fine) between(P, [0.151, 1.378, -0.106], [0.15, 1.38, -0.094], 0.058, 0x1e1e1e, 0.122);             // butt plate
+    between(P, [0.11, 1.43, 0.2], brit ? [0.07, 1.465, 0.98] : [0.085, 1.455, 0.78], 0.05, wood, 0.065);     // fore-end and handguard
+    between(P, [0.08, 1.46, 0.5], [0.065, 1.475, 1.04], 0.028, steel);                                       // barrel
+    if (brit) { seg(P, [0.067, 1.473, 0.98], [0.065, 1.475, 1.035], 0.03, 0.026, 0x3a3a3a, 1, 8); P.push([BOX, steel, mat4(0.1, 1.37, 0.31, 0, 0, 0, 0.035, 0.08, 0.075)]); } // nose cap, magazine
+    else P.push([BOX, steel, mat4(0.1, 1.395, 0.31, 0, 0, 0, 0.03, 0.04, 0.08)]);                            // flush magazine
+    between(P, [0.065, 1.475, 1.04], [0.055, 1.485, sd === "ger" ? 1.54 : 1.48], 0.022, 0xc9cdd2, 0.035);   // bayonet
   } else {
     // the right arm is its own mesh (armGeo) so it can work the bolt
     sleeve(P, coat, skin, [-0.205, 1.37, 0], [-0.215, 1.13, 0.14], [0.03, 1.115, 0.44]);
@@ -1418,9 +1430,10 @@ function bodyParts(sd, kind, late, hat, v, lo) {
   }
   return mergeParts(P, true);
 }
-function armGeo(sd, v) { // the right arm, built from the shoulder so it swings there
+function armGeo(sd, v, aim) { // the right arm, built from the shoulder so it swings there
   const P = [];
-  sleeve(P, SIDES[sd].coat, SKINS[v % SKINS.length], [0, 0, 0], [0.035, -0.235, -0.06], [-0.09, -0.36, 0.1]);
+  if (aim) sleeve(P, SIDES[sd].coat, SKINS[v % SKINS.length], [0, 0, 0], [0.06, -0.15, 0.06], [-0.12, 0.03, 0.17]); // hand round the wrist of the stock, finger on the trigger
+  else sleeve(P, SIDES[sd].coat, SKINS[v % SKINS.length], [0, 0, 0], [0.035, -0.235, -0.06], [-0.09, -0.36, 0.1]);
   return mergeParts(P, true);
 }
 const TROUSERS = { brit: SIDES.brit.coat, ger: 0x5d6052 };
@@ -1458,8 +1471,8 @@ const GC = {};
 const gget = (k, make) => GC[k] || (GC[k] = make());
 const lateWar = () => S.job === "mg" ? !!(G && G.scen === "spring") : (S.job === "rifle" || S.job === "tank") ? S.side !== "brit" : true;
 function dress(s, far) { // pick the detailed or plain model
-  s.far = far; const k = s.sd + s.kind + (s.late ? 1 : 0) + s.hat + s.v + (far ? "f" : "n");
-  s.body.geometry = gget("b" + k, () => bodyGeo(s.sd, s.kind, s.late, s.hat, s.v, far));
+  s.far = far; const kind = s.aimG ? "aim" : s.kind, k = s.sd + kind + (s.late ? 1 : 0) + s.hat + s.v + (far ? "f" : "n");
+  s.body.geometry = gget("b" + k, () => bodyGeo(s.sd, kind, s.late, s.hat, s.v, far));
   s.kL.visible = s.kR.visible = !far;
   s.lL.geometry = s.lR.geometry = far ? gget("l" + s.sd + (s.late ? 1 : 0), () => legGeo(s.sd, s.late)) : gget("t" + s.sd, () => thighGeo(s.sd));
   if (!far) s.kL.geometry = s.kR.geometry = gget("s" + s.sd + (s.late ? 1 : 0), () => shinGeo(s.sd, s.late, false));
@@ -1479,17 +1492,23 @@ function soldier(sd, kind, x, z, team) {
     let arm = null; if (kind === "rifle") { arm = new THREE.Mesh(thigh, SOLMAT); arm.position.set(0.24, 1.38, 0); pivot.add(arm); }
     root.scale.setScalar(SC); s = { root, pivot, body, lL, lR, kL, kR, arm, sd, kind }; POOL.push(s);
   }
-  Object.assign(s, { gone: false, role: "line", buddy: null, cs: 0, glint: false, thrown: false, throws: 0, acc: 0, cut: false, chargeZ: -50, walk: 1.5, coverT: 0, burstT: 0, on: false, state: "idle", used: true, team, x, z, y: H(x, z), face: 0, speed: 0, phase: Math.random() * 7, pose: "stand", state: "idle", alive: true, deathT: 0, fall: 1, t: 0, sup: 0, fireT: rnd(1, 4), tx: x, tz: z, lift: 0, mag: null, boltT: 0, boltDur: 1, relT: 0, relDur: 1, kick: 0, shots: 0, burst: 3 });
+  Object.assign(s, { gone: false, role: "line", buddy: null, cs: 0, glint: false, thrown: false, throws: 0, acc: 0, cut: false, chargeZ: -50, walk: 1.5, coverT: 0, burstT: 0, on: false, state: "idle", used: true, team, x, z, y: H(x, z), face: 0, speed: 0, phase: Math.random() * 7, pose: "stand", state: "idle", alive: true, deathT: 0, fall: 1, t: 0, sup: 0, fireT: rnd(1, 4), tx: x, tz: z, lift: 0, aim: false, aimG: false, mag: null, boltT: 0, boltDur: 1, relT: 0, relDur: 1, kick: 0, shots: 0, burst: 3 });
   // who he is: face, hair and moustache, and the kit of the year he is fighting in
   s.v = Math.floor(Math.random() * 4); s.late = lateWar(); s.hat = sd === "brit" ? "brodie" : (!s.late && Math.random() < 0.4 ? "pickel" : "stahl");
   dress(s, false); soldierShadow(s, true);
-  if (s.arm) { s.arm.rotation.set(0, 0, 0); s.arm.geometry = gget("a" + sd + s.v, () => armGeo(sd, s.v)); }
+  if (s.arm) { s.arm.rotation.set(0, 0, 0); s.arm.geometry = gget("a" + sd + s.v, () => armGeo(sd, s.v, false)); }
   s.root.visible = true; s.root.position.set(x, s.y, z); s.pivot.rotation.set(0, 0, 0); s.pivot.position.set(0, 0, 0);
   for (const l of [s.lL, s.lR, s.kL, s.kR]) l.rotation.set(0, 0, 0);
   return s;
 }
 function release(s) { s.used = false; s.alive = false; s.root.visible = false; }
-function poseSoldier(s, dt) { poseBody(s, dt); if (s.arm) poseArm(s, dt); }
+function poseSoldier(s, dt) {
+  if (s.arm) { // firing: rifle up in the shoulder (it stays there while he works the bolt). Reloading, moving or ducked: back down
+    const want = !!(s.alive && s.aim && s.pose === "stand" && s.relT <= 0);
+    if (want !== s.aimG) { s.aimG = want; dress(s, s.far); s.arm.geometry = gget((want ? "A" : "a") + s.sd + s.v, () => armGeo(s.sd, s.v, want)); s.arm.rotation.set(0, 0, 0); }
+  }
+  poseBody(s, dt); if (s.arm) poseArm(s, dt);
+}
 function poseBody(s, dt) {
   s.root.position.set(s.x, s.y + s.lift, s.z); s.root.rotation.y = s.face;
   const far = (s.x - camera.position.x) ** 2 + (s.z - camera.position.z) ** 2 > FAR2; // swap to the plain model
@@ -1553,14 +1572,16 @@ function poseArm(s, dt) {
     rx = k < 0.18 ? -0.42 * k / 0.18 : k < 0.3 ? -0.42 : k < 0.5 ? -0.42 + 0.36 * (k - 0.3) / 0.2 : k < 0.68 ? -0.06 - 0.36 * (k - 0.5) / 0.18 : k < 0.8 ? -0.42 : -0.42 * (1 - (k - 0.8) / 0.2);
     rz = 0.2 * (k < 0.18 ? 0 : k < 0.3 ? (k - 0.18) / 0.12 : k < 0.68 ? 1 : k < 0.8 ? 1 - (k - 0.68) / 0.12 : 0);
     if (k > 0.45 && !s.ejected) { s.ejected = true;
-      if (Math.hypot(s.x - camera.position.x, s.z - camera.position.z) < 45) { const c = Math.cos(s.face), sn = Math.sin(s.face); puff(s.x + c * 0.3 + sn * 0.3, s.y + s.lift + (s.pose === "prone" ? 0.4 : 1.4), s.z - sn * 0.3 + c * 0.3, { c: 0xffd060, add: true, vx: c * 1.4, vy: 1.6, vz: -sn * 1.4, g: 6, s0: 0.07, s1: 0.05, life: 0.45, a: 1 }); } }
+      if (Math.hypot(s.x - camera.position.x, s.z - camera.position.z) < 45) { const c = Math.cos(s.face), sn = Math.sin(s.face); puff(s.x + c * 0.3 + sn * 0.3, s.y + s.lift + (s.pose === "prone" ? 0.4 : s.aimG ? 1.85 : 1.4), s.z - sn * 0.3 + c * 0.3, { c: 0xffd060, add: true, vx: c * 1.4, vy: 1.6, vz: -sn * 1.4, g: 6, s0: 0.07, s1: 0.05, life: 0.45, a: 1 }); } }
   } else if (s.relT > 0) { // thumbing rounds down from the charger
     s.relT = Math.max(0, s.relT - dt);
     const k = 1 - s.relT / s.relDur;
     rx = k < 0.1 ? -0.5 * k / 0.1 : k > 0.9 ? -0.5 * (1 - k) / 0.1 : -0.5 + 0.1 * Math.abs(Math.sin(k * 22));
     rz = 0.12;
   }
-  a.rotation.x += (rx - a.rotation.x) * Math.min(1, dt * 30); a.rotation.z += (rz - a.rotation.z) * Math.min(1, dt * 30);
+  let ax = rx, ay = 0, az = rz;
+  if (s.aimG) { ax = -rz * 0.6; ay = -rx * 0.9; az = 0; } // rifle shouldered: the hand swings forward to the bolt knob and draws it back
+  const kk = Math.min(1, dt * 30); a.rotation.x += (ax - a.rotation.x) * kk; a.rotation.y += (ay - a.rotation.y) * kk; a.rotation.z += (az - a.rotation.z) * kk;
   p.position.z = -s.kick * 0.06;
   if (s.kick > 0) { p.rotation.x -= s.kick * 0.18; s.kick = Math.max(0, s.kick - dt * 7); }
 }
@@ -2580,7 +2601,7 @@ function updTrench(dt) {
   const D = G.D, under = G.phase === "barrage" || (G.creep && G.creep.z > -18);
   for (const s of units) {
     if (s.state !== "mate" || !s.alive) continue;
-    s.pose = under ? "crouch" : "stand"; s.y = under ? -1.45 : -0.95; s.speed = 0;
+    s.pose = under ? "crouch" : "stand"; s.y = under ? -1.45 : -0.95; s.speed = 0; s.aim = !under && G.phase === "attack";
     if (under || G.phase !== "attack") { s.face += (Math.PI - s.face) * Math.min(1, dt * 3); continue; }
     s.fireT -= dt;
     if (s.fireT <= 0) {
@@ -2588,7 +2609,7 @@ function updTrench(dt) {
       if (!tgt || Math.random() < 0.3) { tgt = null; let bd = 1e9; for (const t of units) if (t.alive && t.team === "them" && t.z > -L - 10) { const d = Math.abs(t.x - s.x) * 2 + Math.abs(t.z - s.z) + rnd(0, 25); if (d < bd) { bd = d; tgt = t; } } s.tgt = tgt; }
       if (!tgt) { s.fireT = 1; continue; }
       s.face = Math.atan2(tgt.x - s.x, tgt.z - s.z);
-      s.fireT = aiFire(s, s.x + Math.sin(s.face) * 1.7, s.y + 1.55, s.z + Math.cos(s.face) * 1.7);
+      s.fireT = aiFire(s, s.x + Math.sin(s.face) * 1.35, s.y + 1.92, s.z + Math.cos(s.face) * 1.35);
       if (Math.random() < D.comradeKill * 0.25) killUnit(tgt, "mate");
     }
   }
@@ -3799,7 +3820,7 @@ function updRifle(dt) {
   const ty = H(P.x, P.z); P.y += (ty - P.y) * Math.min(1, dt * 12); if (ty > P.y + 0.6) P.y = ty - 0.6;
   // your soldier on screen
   playerS.x = P.x; playerS.z = P.z; playerS.y = P.y; playerS.face = G.yaw + Math.PI;
-  playerS.speed = ml > 0.05 ? sp * Math.min(1, ml) : 0; playerS.pose = P.crouch ? "crouch" : "stand"; playerS.cut = wired;
+  playerS.speed = ml > 0.05 ? sp * Math.min(1, ml) : 0; playerS.pose = P.crouch ? "crouch" : "stand"; playerS.cut = wired; playerS.aim = !P.lmg && (IN.aim || P.boltT > 0 || playerS.boltT > 0) && P.lungeT <= 0;
   poseSoldier(playerS, dt);
   // camera over the shoulder
   if (!P.crouch) G.peri = false;
@@ -3881,13 +3902,13 @@ function updCounter(s, dt) {
   if (dz < 0.6) { s.role = "line"; s.state = "melee"; return; }
   s.fireT -= dt;
   if (s.fireT <= 0 && d > 6) { // stop and fire at you
-    s.fireT = aiFire(s, s.x, s.y + 1.25 * SC, s.z + 1); s.pauseT = s.relT > 0 ? s.relT : s.boltT;
+    s.fireT = aiFire(s, s.x, s.y + 1.92, s.z + 1.35); s.pauseT = s.relT > 0 ? s.relT : s.boltT;
     if (Math.random() < D.rifleAcc * covered(null, true) * (d < 30 ? 1 : clamp(30 / d, 0.3, 1)) * AI_GAP[s.sd] / 4.25) hurtPlayer(1, "Counter-attack fire! Keep low");
     else if (Math.random() < 0.4) sfx.snap(rnd(-0.5, 0.5));
   }
   if (s.pauseT > 0) { s.pauseT -= dt; s.speed = 0; }
   else { const sp = dz < 22 ? D.charge : s.walk; s.speed = sp; s.z += Math.min(dz, sp * dt); s.x += clamp((P.x - s.x) * 0.05, -0.6, 0.6) * dt; s.cut = false; }
-  s.face = 0; s.y = H(s.x, s.z); s.pose = "stand";
+  s.face = 0; s.y = H(s.x, s.z); s.pose = "stand"; s.aim = s.pauseT > 0 || (s.fireT < 0.4 && d > 6);
   if (dz < 22 && !s.yelled) { s.yelled = true; if (Math.random() < 0.3) sfx.hurrah(0.5, 0); }
 }
 function updComrades(dt) {
@@ -3968,7 +3989,7 @@ function updDefenders(dt) {
     if (G.mode !== "tank" && pdist < cd && P.z - zEn(P.x) < 3) { close = "P"; cd = pdist; if (G.raid && !G.alarm) raiseAlarm("You woke a sleeping soldier"); }
     for (const a of attackers) if (a && a.state === "fight") { const d = Math.hypot(a.x - s.x, a.z - s.z); if (d < cd) { cd = d; close = a; } }
     if (close) {
-      s.state = "melee"; s.lift = 0; s.y = H(s.x, s.z); s.pose = "stand";
+      s.state = "melee"; s.lift = 0; s.y = H(s.x, s.z); s.pose = "stand"; s.aim = false;
       const tx = close === "P" ? P.x : close.x, tz = close === "P" ? P.z : close.z, dx = tx - s.x, dz = tz - s.z, dd = Math.hypot(dx, dz);
       s.face = Math.atan2(dx, dz);
       if (dd > 1.25) { const sp = 2.2; s.x += dx / dd * sp * dt; s.z = clamp(s.z + dz / dd * sp * dt, zEn(s.x) - 0.9, zEn(s.x) + 0.3); s.speed = sp; }
@@ -3991,7 +4012,7 @@ function updDefenders(dt) {
         // fire at someone
         let tgt = null; const pool = attackers.filter(a => (a ? a.alive : true));
         if (pool.length) { pool.sort((a, b) => { const da = a ? Math.hypot(a.x - s.x, a.z - s.z) : pdist * 0.8, db = b ? Math.hypot(b.x - s.x, b.z - s.z) : pdist * 0.8; return da - db; }); tgt = pool[Math.floor(Math.random() * Math.min(4, pool.length))]; }
-        const gap = aiFire(s, s.x, s.y + 1.25, s.z + 1.0), rk = DEF_GAP[s.sd] / 4.5; s.shots++;
+        const gap = aiFire(s, s.x, s.y + 1.92, s.z + 1.35), rk = DEF_GAP[s.sd] / 4.5; s.shots++;
         if (tgt === null && attackers.length) {
           const cov = covered(null, true), rf = pdist < 30 ? 1 : clamp(30 / pdist, 0.25, 1);
           if (Math.random() < D.rifleAcc * cov * rf * 1.4 * rk) hurtPlayer(1, "Hit by a rifle shot!");
@@ -4004,7 +4025,7 @@ function updDefenders(dt) {
         else s.t = gap; // stay up, work the bolt, aim, fire again
       }
     }
-    if (s.state !== "down") s.pose = "stand"; poseSoldier(s, dt);
+    if (s.state !== "down") s.pose = "stand"; s.aim = s.state === "up"; poseSoldier(s, dt);
   }
 }
 function updNests(dt) {

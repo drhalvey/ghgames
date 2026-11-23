@@ -124,6 +124,8 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
 .touch{position:absolute;inset:0;pointer-events:none}
 .touch .tb{position:absolute;pointer-events:auto;width:62px;height:62px;border-radius:50%;background:rgba(30,26,20,.55);border:3px solid rgba(255,255,255,.45);color:#fff;font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.05}
 .touch .tb.on{background:rgba(242,193,78,.55)}
+.touch .tb.hot{border-color:#ff4a3a;box-shadow:0 0 0 4px rgba(255,74,58,.45);animation:tbHot .35s ease-in-out infinite alternate}
+@keyframes tbHot{to{transform:scale(1.12)}}
 .touch .tb.big{width:88px;height:88px;font-size:16px;background:rgba(160,40,30,.6)}
 .joy{position:absolute;left:28px;bottom:28px;width:130px;height:130px;border-radius:50%;background:rgba(0,0,0,.25);border:3px solid rgba(255,255,255,.3);pointer-events:none}
 .knob{position:absolute;left:39px;top:39px;width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.55)}
@@ -246,7 +248,10 @@ h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);mar
       <div class="tb big" id="tFire">FIRE</div>
       <div class="tb" id="tAim">AIM</div>
       <div class="tb" id="tReload">RE-<br>LOAD</div>
-      <div class="tb" id="tBay">BAY-<br>ONET</div>
+      <div class="tb" id="tBay">THRUST</div>
+      <div class="tb" id="tParry" style="background:rgba(60,70,110,.65)">PARRY</div>
+      <div class="tb" id="tButt" style="background:rgba(110,70,40,.65)">BUTT</div>
+      <div class="tb" id="tDodge" style="background:rgba(70,90,60,.65)">DODGE</div>
       <div class="tb" id="tGren">BOMB</div>
       <div class="tb" id="tCrouch">DUCK</div>
       <div class="tb" id="tArty">SOS<br>FLARE</div>
@@ -1492,7 +1497,7 @@ function soldier(sd, kind, x, z, team) {
     let arm = null; if (kind === "rifle") { arm = new THREE.Mesh(thigh, SOLMAT); arm.position.set(0.24, 1.38, 0); pivot.add(arm); }
     root.scale.setScalar(SC); s = { root, pivot, body, lL, lR, kL, kR, arm, sd, kind }; POOL.push(s);
   }
-  Object.assign(s, { gone: false, role: "line", buddy: null, cs: 0, glint: false, thrown: false, throws: 0, acc: 0, cut: false, chargeZ: -50, walk: 1.5, coverT: 0, burstT: 0, on: false, state: "idle", used: true, team, x, z, y: H(x, z), face: 0, speed: 0, phase: Math.random() * 7, pose: "stand", state: "idle", alive: true, deathT: 0, hop: 0, fk: 0, t: 0, sup: 0, fireT: rnd(1, 4), tx: x, tz: z, lift: 0, aim: false, aimG: false, mag: null, boltT: 0, boltDur: 1, relT: 0, relDur: 1, kick: 0, shots: 0, burst: 3 });
+  Object.assign(s, { gone: false, role: "line", buddy: null, cs: 0, glint: false, thrown: false, throws: 0, acc: 0, cut: false, chargeZ: -50, walk: 1.5, coverT: 0, burstT: 0, on: false, state: "idle", used: true, team, x, z, y: H(x, z), face: 0, speed: 0, phase: Math.random() * 7, pose: "stand", state: "idle", alive: true, deathT: 0, hop: 0, fk: 0, t: 0, sup: 0, fireT: rnd(1, 4), tx: x, tz: z, lift: 0, aim: false, aimG: false, mag: null, boltT: 0, boltDur: 1, relT: 0, relDur: 1, kick: 0, shots: 0, burst: 3, mel: null, act: null, guardP: false, duelSeen: -9 });
   // who he is: face, hair and moustache, and the kit of the year he is fighting in
   s.v = Math.floor(Math.random() * 4); s.late = lateWar(); s.hat = sd === "brit" ? "brodie" : (!s.late && Math.random() < 0.4 ? "pickel" : "stahl");
   dress(s, false); soldierShadow(s, true);
@@ -1734,8 +1739,11 @@ function poseArm(s, dt) {
   }
   let ax = rx, ay = 0, az = rz;
   if (s.aimG) { ax = -rz * 0.6; ay = -rx * 0.9; az = 0; } // rifle shouldered: the hand swings forward to the bolt knob and draws it back
+  const m = (s.act || s.guardP) && !s.aimG ? melPose(s, dt) : null;
+  if (m) { ax += m.ax; ay += m.ay; az += m.az; }
   const kk = Math.min(1, dt * 30); a.rotation.x += (ax - a.rotation.x) * kk; a.rotation.y += (ay - a.rotation.y) * kk; a.rotation.z += (az - a.rotation.z) * kk;
-  p.position.z = -s.kick * 0.06;
+  p.position.z = -s.kick * 0.06 + (m ? m.pz : 0);
+  if (m) { p.rotation.x += m.prx; p.rotation.z += m.prz; }
   if (s.kick > 0) { p.rotation.x -= s.kick * 0.18; s.kick = Math.max(0, s.kick - dt * 7); }
 }
 // hit testing: each soldier is a capsule from feet to head
@@ -2058,8 +2066,9 @@ addEventListener("keydown", e => {
   keys[e.code] = true;
   if (G && !$("tfOv").hidden) { if (e.code === "Digit1" || e.code === "Numpad1") startTF("fight"); if (e.code === "Digit2" || e.code === "Numpad2") startTF("back"); return; }
   if (!playing()) return;
-  if (e.code === "Space") { e.preventDefault(); if (G.mode === "mg") { if (G.mgRifle) fireRifle(); else IN.fire = true; } else if (G.mode === "tank") IN.fire2 = true; else if (G.mode === "plane") IN.fire = true; }
-  if (e.code === "KeyQ") swapWeapon();
+  if (e.code === "Space") { e.preventDefault(); if (G.mode === "mg") { if (G.mgRifle) fireRifle(); else IN.fire = true; } else if (G.mode === "tank") IN.fire2 = true; else if (G.mode === "plane") IN.fire = true; else if (G.mode === "rifle") setGuard(true); }
+  if (e.code === "KeyQ") { if (G.mode === "rifle" && !G.onGun) sidestep(); else swapWeapon(); }
+  if (e.code === "KeyB") buttStroke();
   if (e.code === "KeyV") togglePeri();
   if (e.code === "KeyR") reload();
   if (e.code === "KeyZ") zoomToggle();
@@ -2071,7 +2080,7 @@ addEventListener("keydown", e => {
   if (e.code === "KeyE") useGun();
   if (e.code === "KeyP") pause(true);
 });
-addEventListener("keyup", e => { keys[e.code] = false; if (e.code === "Space" && G) { if (G.mode === "mg" || G.mode === "plane") IN.fire = false; IN.fire2 = false; } });
+addEventListener("keyup", e => { keys[e.code] = false; if (e.code === "Space" && G) { setGuard(false); if (G.mode === "mg" || G.mode === "plane") IN.fire = false; IN.fire2 = false; } });
 document.addEventListener("pointerlockchange", () => {
   locked = document.pointerLockElement === stage;
   if (!locked && wantLock && playing()) pause(true);
@@ -2086,8 +2095,15 @@ stage.addEventListener("pointerdown", e => {
   if (e.pointerType === "mouse") {
     if (!playing()) return;
     if (!locked && stage.requestPointerLock) { wantLock = true; try { const r = stage.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (err) {} }
+    // up close in a bayonet fight the mouse fights too: click thrusts, right button parries, middle button butt-strokes
+    const duel = canFight() && meleeFoe(3.0, 0.3);
+    if (duel && e.button === 0) bayonet();
+    else if (duel && e.button === 2) setGuard(true);
+    else if (e.button === 1 && canFight()) { e.preventDefault(); buttStroke(); }
+    else {
     if (e.button === 0) { IN.fire = true; if (G.mode === "rifle" || G.mgRifle) fireRifle(); if (G.mode === "tank") fireTankGun(); }
     if (e.button === 2) zoomToggle();
+    }
     touches.set(e.pointerId, { kind: "mouse", x: e.clientX, y: e.clientY });
     return;
   }
@@ -2130,7 +2146,7 @@ stage.addEventListener("pointermove", e => {
   IN.look.x += (e.clientX - t.x) * sens; IN.look.y += (e.clientY - t.y) * sens; t.x = e.clientX; t.y = e.clientY;
 });
 function endPointer(e) {
-  if (e.pointerType === "mouse") { if (e.button === 0) IN.fire = false; touches.delete(e.pointerId); return; }
+  if (e.pointerType === "mouse") { if (e.button === 0) IN.fire = false; if (e.button === 2 && G) setGuard(false); touches.delete(e.pointerId); return; }
   if (e.pointerId === joyId) { joyId = null; IN.mx = IN.my = 0; IN.sprint = false; knob.style.transform = ""; joy.style.left = "28px"; joy.style.top = "auto"; joy.style.bottom = "28px"; }
   if (btnPtr.has(e.pointerId)) { touchButton(btnPtr.get(e.pointerId), false, e.pointerId); }
   touches.delete(e.pointerId); pinchD = 0;
@@ -2144,11 +2160,14 @@ function touchButton(id, down, pid) {
   const el = $(id);
   if (id === "tFire") { IN.fire = down; el.classList.toggle("on", down); if (down && (G.mode === "rifle" || G.mgRifle)) fireRifle(); if (down && G.mode === "tank") fireTankGun(); return; }
   if (id === "tMG") { IN.fire2 = down; el.classList.toggle("on", down); return; }
+  if (id === "tParry") { setGuard(down); el.classList.toggle("on", down); return; }
   if (id === "tBoost") { IN.boost = down; el.classList.toggle("on", down); return; }
   if (!down) return;
   if (id === "tAim") zoomToggle();
   if (id === "tReload") reload();
   if (id === "tBay") bayonet();
+  if (id === "tButt") buttStroke();
+  if (id === "tDodge") sidestep();
   if (id === "tGren") grenade();
   if (id === "tCrouch") toggleCrouch();
   if (id === "tArty") callArty();
@@ -2164,7 +2183,7 @@ function showTouch() {
   $("touch").hidden = !usedTouch;
   const m = G.mode, mg = m === "mg", foot = m === "rifle";
   const place = (id, r, b, show) => { const el = $(id); el.style.display = show ? "flex" : "none"; el.style.right = r + "px"; el.style.bottom = b + "px"; };
-  for (const id of ["tFire", "tAim", "tReload", "tBay", "tGren", "tCrouch", "tArty", "tMask", "tCharge", "tUse", "tSwap", "tPeri", "tMG", "tBoost"]) $(id).style.display = "none";
+  for (const id of ["tFire", "tAim", "tReload", "tBay", "tGren", "tCrouch", "tArty", "tMask", "tCharge", "tUse", "tSwap", "tPeri", "tMG", "tBoost", "tParry", "tButt", "tDodge"]) $(id).style.display = "none";
   $("tFire").innerHTML = m === "tank" ? "BIG<br>GUN" : "FIRE";
   if (mg || foot) {
     place("tFire", 22, 22, true); place("tAim", 124, 30, true); place("tReload", 30, 124, true);
@@ -2327,7 +2346,7 @@ function startMG(cont) {
     dust: 0, flare: null, flareT: 3, warned: {}, supp: 0, warnTxt: "", tankSnd: 0 });
   WIRE_OWN.gaps = WIRE_OWN.gaps0.slice();
   // your own rifle, leaning by the gun for when you need it
-  Object.assign(P, { x: 1.2, z: zOwn(1.2), y: 0, crouch: false, stam: 100, mag: sd.mag, res: 60 + (has("belts") ? 40 : 0), boltT: 0, reloadT: 0, bayT: 0, lungeT: 0, lmg: false });
+  Object.assign(P, { x: 1.2, z: zOwn(1.2), y: 0, crouch: false, stam: 100, mag: sd.mag, res: 60 + (has("belts") ? 40 : 0), boltT: 0, reloadT: 0, bayT: 0, lungeT: 0, lmg: false, guard: false, dodgeT: 0, dodgeEnd: 0 });
   mgGun = mgModel(G.side); scene.add(mgGun);
   mgGun.position.set(0, H(0, zOwn(0) + GUN_Z) + 0.62, zOwn(0) + GUN_Z);
   placeMates();
@@ -3087,7 +3106,7 @@ function tfFoot(first) {
   const T = G.tf;
   G.mode = "rifle"; T.onGun = false; G.mgRifle = false; G.duck = false; G.duckK = 0; G.peri = false; G.periK = 0; G.mask = false; G.maskK = 0; G.tilt = 0;
   if (!playerS) { playerS = soldier(G.side, "rifle", P.x, P.z, "me"); if (window.Gear && Gear.dress) { try { Gear.dress(playerS.root, { forward: "z", height: 1.75, feet: 0, headTop: 1.7, headSize: 0.3, headZ: 0, torso: playerS.pivot, slots: { body: false } }); } catch (e) {} } }
-  const gx = mgGun.position.x + 1.3; P.x = gx; P.z = zOwn(gx) + 0.15; P.y = H(P.x, P.z); P.crouch = false; P.boltT = 0; P.bayT = 0; P.lungeT = 0; P.inWireT = 0; P.stam = 100;
+  const gx = mgGun.position.x + 1.3; P.x = gx; P.z = zOwn(gx) + 0.15; P.y = H(P.x, P.z); P.crouch = false; P.boltT = 0; P.bayT = 0; P.lungeT = 0; P.inWireT = 0; P.stam = 100; P.guard = false; P.dodgeT = 0; playerS.guardP = false; playerS.act = null;
   if (P.reloadT > 0) P.reloadT = 0; clipAnim(null);
   playerS.root.visible = true; playerS.x = P.x; playerS.z = P.z; playerS.y = P.y;
   if (first) G.yaw = G.tf.plan === "back" ? Math.PI : 0;
@@ -3226,6 +3245,7 @@ function tfFoe(s, dt, me) {
   const tx = tgt === "P" ? me.x : tgt.x, tz = tgt === "P" ? me.z : tgt.z, dx = tx - s.x, dz = tz - s.z;
   s.face = Math.atan2(dx, dz); s.pose = "stand";
   const reach = tgt === "P" && T.onGun ? 1.7 : 1.25;
+  if (tgt === "P" && !T.onGun && td < 3.2) { duelFoe(s, dt, td, dx, dz); if (T.phase === "fight") s.z = clamp(s.z, zOwn(s.x) - 0.6, zRes(s.x) + 0.5); s.y = H(s.x, s.z); return; }
   if (td > reach) {
     const sp = td < 8 ? 2.6 : 2.2; s.speed = sp; s.x += dx / td * sp * dt; s.z += dz / td * sp * dt;
     if (T.phase === "fight") s.z = clamp(s.z, zOwn(s.x) - 0.6, zRes(s.x) + 0.5);
@@ -3673,7 +3693,7 @@ const P = { x: 0, z: 0, y: 0, crouch: false, stam: 100, mag: 10, res: 90, boltT:
 function startRifle() {
   const D = G.D, sd = SIDES[G.side];
   P.lmg = has("lmg");
-  Object.assign(P, { x: 0.5, z: zOwn(0.5) + 0.05, crouch: false, stam: 100, mag: magCap(), res: (P.lmg ? magCap() * 3 : 90) + (has("belts") ? 40 : 0), boltT: 0, reloadT: 0, bayT: 0, lungeT: 0, gren: D.grenades + (G.rank >= 2 ? 1 : 0) + (has("pouch") ? 2 : 0), inWireT: 0, lmgAcc: 0 });
+  Object.assign(P, { x: 0.5, z: zOwn(0.5) + 0.05, crouch: false, stam: 100, mag: magCap(), res: (P.lmg ? magCap() * 3 : 90) + (has("belts") ? 40 : 0), boltT: 0, reloadT: 0, bayT: 0, lungeT: 0, guard: false, dodgeT: 0, dodgeEnd: 0, gren: D.grenades + (G.rank >= 2 ? 1 : 0) + (has("pouch") ? 2 : 0), inWireT: 0, lmgAcc: 0 });
   P.y = H(P.x, P.z);
   Object.assign(G, { maxHp: D.php + extraHp(), hp: D.php + extraHp(), phase: "wait", waitT: 7, nests: [], shellT: 6, seen: 0, mates: 0, toldGap: false, defKilled: 0 });
   // you
@@ -3864,18 +3884,162 @@ function silenceNest(n, msg) {
   sayLine(G.side, "gunsDown");
   n.gun.rotation.x = 0.5; n.gun.position.y -= 0.2;
 }
-function bayonet() {
-  if (!playing() || G.mode !== "rifle" || P.bayT > 0) return;
-  P.bayT = 0.75; P.lungeT = 0.22; sfx.swish(); sfx.grunt(0.8, 0);
-  const fx = -Math.sin(G.yaw), fz = -Math.cos(G.yaw);
+// ---------- bayonet fighting, after the 1916 bayonet drill: on guard, long point, parry, butt-stroke and side step ----------
+// Each enemy in a fight with you stands on guard, then draws his rifle back (the "!") and lunges. Parry just as he comes
+// (right click / Space / PARRY) and he is left wide open for a counter. Holding your guard blocks, but tires you.
+// A thrust at a man on guard may be parried; a butt-stroke breaks his guard. Side step (Q / DODGE) makes him miss.
+const MEL = { wind: [0.95, 0.75, 0.6], wait: [[1.5, 2.6], [1.1, 2.0], [0.75, 1.5]], block: [0.3, 0.45, 0.55], parry: [0.55, 0.42, 0.33], open: [1.7, 1.4, 1.15], max: [1, 1, 2] };
+function act(s, k, d, dir) { if (s) s.act = { k, t: 0, d, dir: dir || 1 }; }
+function melPose(s, dt) { // offsets for the arm (ax, ay, az) and the body (pz, prx, prz) while fighting
+  const o = { ax: 0, ay: 0, az: 0, pz: 0, prx: 0, prz: 0 };
+  if (s.guardP) { o.ax -= 0.12; o.ay -= 0.4; o.az += 0.22; } // on guard: rifle angled across the body, point at his throat
+  const a = s.act; if (!a) return o;
+  a.t += dt; const k = Math.min(1, a.t / a.d), b = Math.sin(Math.PI * k);
+  if (a.k === "wind") { const e = Math.min(1, k * 2); o.pz -= 0.24 * e; o.prx -= 0.14 * e; o.ax -= 0.2 * e; } // drawing back for the thrust
+  else if (a.k === "thrust") { o.pz += 0.55 * b; o.prx += 0.34 * b; o.ax += 0.14 * b; } // the long point: arms and body drive forward
+  else if (a.k === "butt") { o.ay += 1.5 * b; o.ax -= 0.75 * b; o.prz -= 0.22 * b; o.pz += 0.18 * b; } // swing the butt round and up
+  else if (a.k === "parry") { o.ay -= 0.95 * b; o.az += 0.35 * b; } // beat his blade aside
+  else if (a.k === "open") { const e = Math.min(1, k * 6); o.ay += 0.95 * e; o.ax += 0.4 * e; o.prz += 0.2 * e; o.prx -= 0.12 * e; } // rifle knocked wide, off balance
+  else if (a.k === "dodge") o.prz += a.dir * 0.32 * b;
+  if (a.t >= a.d && a.k !== "wind" && a.k !== "open") s.act = null;
+  return o;
+}
+// the "!" over a man about to lunge, and "OPEN" over one you can hit
+const melMarks = (() => {
+  const tex = (txt, bg, fg) => { const [c, g] = cnv(256, 128); g.font = "900 64px Nunito, system-ui, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+    const w = Math.max(110, g.measureText(txt).width + 44); g.fillStyle = bg; g.beginPath(); g.roundRect ? g.roundRect(128 - w / 2, 14, w, 100, 50) : g.rect(128 - w / 2, 14, w, 100); g.fill();
+    g.lineWidth = 7; g.strokeStyle = "#fff"; g.stroke(); g.fillStyle = fg; g.fillText(txt, 128, 68); return new THREE.CanvasTexture(c); };
+  const T = { wind: tex("!", "#d8302a", "#fff"), open: tex("OPEN", "#f2c14e", "#2a1d08") }, pool = [];
+  for (let i = 0; i < 4; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: T.wind, depthTest: false, transparent: true, sizeAttenuation: false })); sp.renderOrder = 11; sp.visible = false; scene.add(sp); pool.push(sp); }
+  return { update(list) {
+    pool.forEach((sp, i) => { const s = list[i]; if (!s) { sp.visible = false; return; }
+      const k = s.mel === "wind" ? "wind" : "open"; if (sp.material.map !== T[k]) { sp.material.map = T[k]; sp.material.needsUpdate = true; }
+      const pulse = k === "wind" ? 1 + 0.35 * (1 - clamp(s.melT / (s.melDur || 1), 0, 1)) : 1;
+      sp.scale.set((k === "wind" ? 0.07 : 0.11) * pulse, (k === "wind" ? 0.058 : 0.055) * pulse, 1); sp.position.set(s.x, s.y + 2.25 * SC, s.z); sp.visible = true; });
+  } };
+})();
+function meleeFoe(range, cone) { // the nearest enemy in front of you within reach of the bayonet
+  const fx = -Math.sin(G.yaw), fz = -Math.cos(G.yaw); let best = null, bd = range;
   for (const s of units) {
     if (!s.alive || (s.team !== "them" && s.team !== "nest")) continue;
-    const dx = s.x - P.x, dz = s.z - P.z, d = Math.hypot(dx, dz); if (d > 2.7 || Math.abs((s.y + s.lift) - P.y) > 2.2) continue;
-    if ((dx * fx + dz * fz) / (d || 1) < 0.45) continue;
-    if (s.team === "nest") { const n = G.nests.find(n => n.crew === s); if (n) { silenceNest(n, "Gun taken with the bayonet!"); } }
-    else { killUnit(s, "player"); G.defKilled++; G.score += Math.round(10 * G.D.mult); }
+    const dx = s.x - P.x, dz = s.z - P.z, d = Math.hypot(dx, dz); if (d > bd || Math.abs((s.y + s.lift) - P.y) > 2.2) continue;
+    if ((dx * fx + dz * fz) / (d || 1) < (d < 1.3 ? cone - 0.6 : cone)) continue; bd = d; best = s; // right up close he only has to be roughly in front
   }
-  for (const n of G.nests) if (!n.dead && Math.hypot(n.x - P.x, n.z - P.z) < 2.8) silenceNest(n, "Gun taken with the bayonet!");
+  return best;
+}
+function lungeAt(s) { // drive in towards him, stopping short rather than running through him
+  P.lx = -Math.sin(G.yaw); P.lz = -Math.cos(G.yaw); P.lk = 1;
+  if (s) { const dx = s.x - P.x, dz = s.z - P.z, d = Math.hypot(dx, dz) || 1; P.lx = dx / d; P.lz = dz / d; P.lk = clamp((d - 0.9) / 1.4, 0, 1); }
+}
+function canFight() { return playing() && G.mode === "rifle" && !G.onGun; }
+function tired() { sfx.breathe(); if (!G.warned.tired) { G.warned.tired = 1; hint("Out of breath! Back off and get your wind (watch the yellow bar)", 2.5); } else popScore("Out of breath", 1); }
+function spark(s) { const mx = (P.x + s.x) / 2, mz = (P.z + s.z) / 2; puff(mx, P.y + 1.3 * SC, mz, { c: 0xffe08a, add: true, s0: 0.12, s1: 0.4, life: 0.12, a: 1 }); }
+function knockDown(s, counter) {
+  if (s.team === "nest") { const n = G.nests.find(n => n.crew === s); if (n) silenceNest(n, "Gun taken with the bayonet!"); return; }
+  killUnit(s, "player"); G.defKilled++; const pts = Math.round((counter ? 25 : 10) * G.D.mult); G.score += pts;
+  if (counter) { G.counters = (G.counters || 0) + 1; popScore("Counter! +" + pts, 2); }
+}
+function bayonet() { // the long point
+  if (!canFight() || P.bayT > 0 || P.dodgeT > 0) return;
+  if (P.stam < 8) { tired(); return; }
+  P.stam = Math.max(0, P.stam - 14); P.guard = false; if (playerS) playerS.guardP = false; if (G.zl) setZoom(0);
+  P.bayT = 0.55; P.lungeT = 0.2; sfx.swish(); sfx.grunt(0.8, 0); act(playerS, "thrust", 0.38);
+  const s = meleeFoe(2.7, 0.45); lungeAt(s);
+  if (!s) { for (const n of G.nests) if (!n.dead && Math.hypot(n.x - P.x, n.z - P.z) < 2.8) silenceNest(n, "Gun taken with the bayonet!"); return; }
+  const fs = Math.sin(s.face), fc = Math.cos(s.face), d = Math.hypot(P.x - s.x, P.z - s.z) || 1, facing = ((P.x - s.x) * fs + (P.z - s.z) * fc) / d > 0.5;
+  if (s.team === "them" && s.mel === "guard" && facing && Math.random() < MEL.block[DI()] * (P.stam < 25 ? 1.4 : 1)) {
+    sfx.clank(); spark(s); act(s, "parry", 0.3); s.melT = Math.min(s.melT, 0.3); P.bayT = 0.85; popScore("Parried by him!", 1);
+    if (!G.warned.blocked) { G.warned.blocked = 1; hint(usedTouch ? "He beat your thrust aside! PARRY his lunge first, or BUTT to smash his guard open" : "He beat your thrust aside! Parry his lunge first, or butt-stroke (B) to smash his guard open", 4); }
+    return;
+  }
+  knockDown(s, s.mel === "open" || s.mel === "rec");
+}
+function buttStroke() { // swing the butt up into his rifle: breaks a guard, flattens a man who is already off balance
+  if (!canFight() || P.bayT > 0 || P.dodgeT > 0) return;
+  if (P.stam < 20) { tired(); return; }
+  P.stam -= 22; P.guard = false; if (playerS) playerS.guardP = false; if (G.zl) setZoom(0);
+  P.bayT = 0.75; P.lungeT = 0.12; act(playerS, "butt", 0.45); sfx.swish(); sfx.grunt(0.9, 0);
+  const s = meleeFoe(2.1, 0.4); lungeAt(s); if (!s) return;
+  setTimeout(() => G && !G.over && sfx.thud(1.4, 0), 120);
+  if (s.team === "nest" || !s.mel || s.mel === "open") { knockDown(s, s.mel === "open"); return; }
+  s.mel = "open"; s.melT = MEL.open[DI()]; s.melDur = s.melT; act(s, "open", 9); spark(s); sfx.clank(); popScore("Guard broken!", 1);
+}
+function setGuard(on) {
+  if (on && !canFight()) return;
+  if (on && !P.guard) { P.guardAt = G.t; if (G.zl) setZoom(0); }
+  P.guard = !!on; if (playerS) playerS.guardP = P.guard;
+}
+function sidestep() { // a quick step to the side (or back) as he lunges
+  if (!canFight() || P.dodgeT > 0 || P.bayT > 0.3) return;
+  if (P.stam < 15) { tired(); return; }
+  P.stam -= 16;
+  const back = keys.KeyS || keys.ArrowDown || IN.my < -0.5;
+  const dir = keys.KeyA || keys.ArrowLeft || IN.mx < -0.3 ? -1 : keys.KeyD || keys.ArrowRight || IN.mx > 0.3 ? 1 : (P.lastDodge = -(P.lastDodge || 1));
+  const fx = -Math.sin(G.yaw), fz = -Math.cos(G.yaw), rx = Math.cos(G.yaw), rz = -Math.sin(G.yaw), sp = 6.5;
+  if (back) { P.dvx = -fx * sp; P.dvz = -fz * sp; } else { P.dvx = rx * dir * sp; P.dvz = rz * dir * sp; }
+  P.dodgeT = 0.28; P.dodgeEnd = G.t + 0.4; act(playerS, "dodge", 0.3, back ? 0 : dir); sfx.cloth();
+}
+function winders() { let n = 0; for (const s of units) if (s.alive && s.mel === "wind" && s.duelSeen > G.t - 0.2) n++; return n; }
+// one enemy duelling you: called by the trench fighting code when you are his target and close
+function duelFoe(s, dt, d, dx, dz) {
+  const di = DI(); s.duelSeen = G.t; s.pose = "stand"; s.aim = false; s.speed = 0;
+  s.face = Math.atan2(dx, dz);
+  if (!s.mel) { s.mel = "guard"; s.melT = rnd(MEL.wait[di][0], MEL.wait[di][1]) * 0.6; s.circ = Math.random() < 0.5 ? -1 : 1; s.guardP = true;
+    if (!G.warned.duel) { G.warned.duel = 1; hint(usedTouch ? "Bayonet fight! When you see the red ! hold PARRY. Then THRUST while he's OPEN. BUTT breaks his guard, DODGE steps aside" : "Bayonet fight! When you see the red ! parry (right click or Space). Then thrust (click or F) while he's OPEN. B butt-strokes through his guard, Q side steps", 7); } }
+  s.melT -= dt;
+  const ux = dx / (d || 1), uz = dz / (d || 1);
+  if (s.mel === "guard") { // keep at fighting distance and edge round you
+    s.guardP = true;
+    const mv = d > 1.9 ? 1 : d < 1.3 ? -0.6 : 0, sp = 1.6;
+    s.x += (ux * mv - uz * s.circ * 0.35) * sp * dt; s.z += (uz * mv + ux * s.circ * 0.35) * sp * dt; s.speed = 1.1;
+    if (Math.random() < dt * 0.4) s.circ *= -1;
+    if (s.melT <= 0) {
+      if (d < 2.6 && winders() < MEL.max[di] && G.t > (G.melNext || 0)) { s.mel = "wind"; s.melT = s.melDur = MEL.wind[di] * rnd(0.9, 1.15); s.guardP = false; act(s, "wind", 0.4); }
+      else s.melT = rnd(0.2, 0.5);
+    }
+  } else if (s.mel === "wind") {
+    if (d > 1.7) { s.x += ux * 1.5 * dt; s.z += uz * 1.5 * dt; s.speed = 1; }
+    if (s.melT <= 0) strikeAt(s, d);
+  } else if (s.mel === "rec") { s.guardP = false; if (s.melT <= 0) { s.mel = "guard"; s.melT = rnd(MEL.wait[di][0], MEL.wait[di][1]); } }
+  else if (s.mel === "open") { s.guardP = false; if (s.melT <= 0) { s.mel = "guard"; s.act = null; s.melT = rnd(MEL.wait[di][0], MEL.wait[di][1]) * 0.7; } }
+}
+function strikeAt(s, d) {
+  const di = DI(); act(s, "thrust", 0.35); sfx.swish(); s.mel = "rec"; s.melT = 0.7; G.melNext = G.t + [0.8, 0.55, 0.3][di]; // a breath before the next man comes at you
+  if (d > 2.7) return; // you stepped back out of reach
+  if (G.t < (P.dodgeEnd || 0)) { s.mel = "open"; s.melT = s.melDur = MEL.open[di] * 0.8; act(s, "open", 9); popScore("Dodged!", 1); return; }
+  const fx = -Math.sin(G.yaw), fz = -Math.cos(G.yaw), toF = ((s.x - P.x) * fx + (s.z - P.z) * fz) / (d || 1);
+  if (P.guard && toF > 0.2) {
+    if (G.t - P.guardAt < MEL.parry[di]) { // a parry right on time: his point goes wide and he is open
+      sfx.clank(); sfx.ping(); spark(s); act(playerS, "parry", 0.3);
+      s.mel = "open"; s.melT = s.melDur = MEL.open[di]; act(s, "open", 9); P.stam = Math.min(100, P.stam + 8); G.parries = (G.parries || 0) + 1; popScore("Parried!", 2); return;
+    }
+    if (P.stam >= 12) { // held him off, but it costs you
+      P.stam -= 18; sfx.clank(); spark(s); act(playerS, "parry", 0.25); popScore("Blocked", 1);
+      if (!G.warned.block) { G.warned.block = 1; hint("Blocking tires you out. Parry just as he lunges (when the ! grows) and he's left OPEN", 4); }
+      return;
+    }
+  }
+  hurtPlayer(1, P.guard ? "Too tired to hold him off! Back away and get your breath" : usedTouch ? "Bayonet! Hold PARRY when you see the red !" : "Bayonet! Parry (right click or Space) when you see the red !");
+}
+// every frame on foot: the marks, the warning, guard costs and the touch buttons
+function updMelee(dt) {
+  if (G.mode !== "rifle") { melMarks.update([]); return; }
+  if (P.guard) P.stam = Math.max(0, P.stam - dt * 6.5); // holding the rifle up is tiring
+  const list = []; let wind = false, near = false;
+  for (const s of units) {
+    if (!s.alive || s.team !== "them") continue;
+    if (s.duelSeen > G.t - 0.2) { near = true; if (s.mel === "wind" || s.mel === "open") list.push(s); if (s.mel === "wind") wind = true; }
+    else if (s.mel) { s.mel = null; s.act = null; s.guardP = false; }
+  }
+  list.sort((a, b) => (a.mel === "wind" ? 0 : 1) - (b.mel === "wind" ? 0 : 1));
+  melMarks.update(G.onGun ? [] : list);
+  if (wind && !G.onGun) { G.warnTxt = "PARRY!"; rifleWarn(); }
+  if (usedTouch) {
+    const show = (near || !!meleeFoe(6, -1)) && !P.crouch && !G.onGun;
+    for (const [id, r, b] of [["tParry", 196, 104], ["tButt", 30, 210], ["tDodge", 196, 186]]) { const el = $(id); el.style.display = show ? "flex" : "none"; el.style.right = r + "px"; el.style.bottom = b + "px"; }
+    $("tParry").classList.toggle("on", !!P.guard); $("tParry").classList.toggle("hot", wind);
+    if (!show && P.guard && !btnPtr.size) setGuard(false);
+  }
 }
 function grenade() {
   if (!playing() || G.mode !== "rifle") return;
@@ -3966,18 +4130,19 @@ function updRifle(dt) {
   const ml = Math.hypot(mx, my); if (ml > 1) { mx /= ml; my /= ml; }
   const sprint = (keys.ShiftLeft || keys.ShiftRight || IN.sprint) && my > 0.3 && !P.crouch && !IN.aim && P.stam > 3;
   if (sprint && (mx || my)) { P.stam = Math.max(0, P.stam - dt * 20); if (P.crouch) P.crouch = false; } else P.stam = Math.min(100, P.stam + dt * 13);
-  let sp = P.crouch ? (G.raid ? 1.8 : 1.35) : sprint ? 4.8 : 2.7; if (IN.aim) sp *= 0.55; if (P.lmg) sp *= 0.88; if (has("armour")) sp *= 0.9;
+  let sp = P.crouch ? (G.raid ? 1.8 : 1.35) : sprint ? 4.8 : 2.7; if (IN.aim) sp *= 0.55; if (P.lmg) sp *= 0.88; if (has("armour")) sp *= 0.9; if (P.guard) sp *= 0.6;
   const wired = inWire(P.x, P.z); if (wired) { sp *= 0.3; P.inWireT += dt; if (P.inWireT > 0.6 && !G.toldGap) { G.toldGap = true; hint("Caught on the wire! Find a gap (look for where the wire stops)", 3.5); } }
   const fx = -Math.sin(G.yaw), fz = -Math.cos(G.yaw), rx = Math.cos(G.yaw), rz = -Math.sin(G.yaw);
   let nx = P.x + (fx * my + rx * mx) * sp * dt, nz = P.z + (fz * my + rz * mx) * sp * dt;
-  if (P.lungeT > 0) { P.lungeT -= dt; nx += fx * 7 * dt; nz += fz * 7 * dt; }
+  if (P.lungeT > 0) { P.lungeT -= dt; const lk = P.lk == null ? 1 : P.lk; nx += (P.lx == null ? fx : P.lx) * 7 * lk * dt; nz += (P.lz == null ? fz : P.lz) * 7 * lk * dt; }
+  if (P.dodgeT > 0) { P.dodgeT -= dt; nx += P.dvx * dt; nz += P.dvz * dt; }
   if (G.phase === "wait") nz = Math.max(nz, zOwn(nx) - 0.3);
   nx = clamp(nx, -XW + 1, XW - 1); nz = G.tf ? clamp(nz, zOwn(nx) - 1.2, zRes(nx) + 0.9) : clamp(nz, zEn(nx) - 1.0, zOwn(nx) + 0.9);
   P.x = nx; P.z = nz;
   const ty = H(P.x, P.z); P.y += (ty - P.y) * Math.min(1, dt * 12); if (ty > P.y + 0.6) P.y = ty - 0.6;
   // your soldier on screen
   playerS.x = P.x; playerS.z = P.z; playerS.y = P.y; playerS.face = G.yaw + Math.PI;
-  playerS.speed = ml > 0.05 ? sp * Math.min(1, ml) : 0; playerS.pose = P.crouch ? "crouch" : "stand"; playerS.cut = wired; playerS.aim = !P.lmg && (IN.aim || P.boltT > 0 || playerS.boltT > 0) && P.lungeT <= 0;
+  playerS.speed = ml > 0.05 ? sp * Math.min(1, ml) : 0; playerS.pose = P.crouch ? "crouch" : "stand"; playerS.cut = wired; playerS.aim = !P.lmg && (IN.aim || P.boltT > 0 || playerS.boltT > 0) && P.lungeT <= 0 && !P.guard && !playerS.act;
   poseSoldier(playerS, dt);
   // camera over the shoulder
   if (!P.crouch) G.peri = false;
@@ -4149,6 +4314,7 @@ function updDefenders(dt) {
       s.state = "melee"; s.lift = 0; s.y = H(s.x, s.z); s.pose = "stand"; s.aim = false;
       const tx = close === "P" ? P.x : close.x, tz = close === "P" ? P.z : close.z, dx = tx - s.x, dz = tz - s.z, dd = Math.hypot(dx, dz);
       s.face = Math.atan2(dx, dz);
+      if (close === "P" && dd < 3.2 && !G.onGun) { duelFoe(s, dt, dd, dx, dz); s.z = clamp(s.z, zEn(s.x) - 0.9, zEn(s.x) + 0.3); s.y = H(s.x, s.z); poseSoldier(s, dt); continue; }
       if (dd > 1.25) { const sp = 2.2; s.x += dx / dd * sp * dt; s.z = clamp(s.z + dz / dd * sp * dt, zEn(s.x) - 0.9, zEn(s.x) + 0.3); s.speed = sp; }
       else {
         s.speed = 0; s.fireT -= dt;
@@ -4395,11 +4561,16 @@ function updShells(dt) {
 // ======================================================================
 // the key legend in the corner: what each key does right now, with the one you need lit up
 let keysHtml = "";
+function meleeRows(near) { // the bayonet drill keys; the full list shows when they're close
+  const w = /PARRY/.test(G.warnTxt || "");
+  if (!near) return [["F", "Bayonet", ""]];
+  return [["Click / F", "Thrust", units.some(s => s.alive && s.mel === "open" && s.duelSeen > G.t - 0.2) ? "hot" : ""], ["Right click / Space", "Parry (hold to guard)", w ? "hot" : P.guard ? "hot" : ""], ["B / Middle click", "Butt-stroke (breaks a guard)", ""], ["Q (+ A / D / S)", "Side step", ""]];
+}
 function keyRows() {
   const w = G.warnTxt || "";
   if (G.tf && G.tf.onGun) return [["Click / Space", "Fire (the gun turns all the way round)", ""], ["R", "Reload belt", G.belt === 0 && G.belts > 0 && G.reloadT <= 0 ? "hot" : ""], ["Wheel / Z", "Zoom", ""], ["E / Q", "Get off the gun", ""], ["P / Esc", "Pause", ""]];
   if (G.tf) { const sd = SIDES[G.side], near = units.some(s => s.alive && s.team === "them" && Math.hypot(s.x - P.x, s.z - P.z) < 4), gunNear = Math.hypot(P.x - mgGun.position.x, P.z - mgGun.position.z) < 3;
-    return [["W A S D", "Move", ""], ["Shift", "Sprint", G.tf.phase === "back" ? "hot" : ""], ["Click", "Fire", ""], ["Right click", "Look down the sights", ""], ["R", "Reload", P.mag === 0 && P.reloadT <= 0 ? "hot" : ""], ["C", P.crouch ? "Stand up" : "Duck", ""], ["F", "Bayonet", near ? "hot" : ""], ["G", "Throw " + sd.bomb + " (" + P.gren + ")", P.gren <= 0 ? "off" : ""], G.tf.phase === "fight" ? ["E", "Get on the machine gun", gunNear ? "hot" : "off"] : null, ["P / Esc", "Pause", ""]].filter(Boolean); }
+    return [["W A S D", "Move", ""], ["Shift", "Sprint", G.tf.phase === "back" ? "hot" : ""], ["Click", "Fire", ""], ["Right click", "Look down the sights", ""], ["R", "Reload", P.mag === 0 && P.reloadT <= 0 ? "hot" : ""], ["C", P.crouch ? "Stand up" : "Duck", ""], ...meleeRows(near), ["G", "Throw " + sd.bomb + " (" + P.gren + ")", P.gren <= 0 ? "off" : ""], G.tf.phase === "fight" ? ["E", "Get on the machine gun", gunNear ? "hot" : "off"] : null, ["P / Esc", "Pause", ""]].filter(Boolean); }
   if (G.mode === "mg") {
     const tankNear = liveTanks().some(t => Math.hypot(t.x - mgGun.position.x, t.z - mgGun.position.z) < 36);
     return [
@@ -4425,7 +4596,7 @@ function keyRows() {
     ["Right click", G.scope ? "Sights, then scope" : "Look down the sights", ""],
     ["R", "Reload", P.mag === 0 && P.reloadT <= 0 ? "hot" : ""],
     ["C", P.crouch ? "Stand up" : G.raid ? "Crouch and creep" : "Duck (hides you in a shell hole)", /PLANE|FLARE|SEARCH/.test(w) && !P.crouch ? "hot" : ""], pr,
-    ["F", "Bayonet", near ? "hot" : ""],
+    ...meleeRows(near),
     ["G", "Throw " + sd.bomb + " (" + P.gren + ")", P.gren <= 0 ? "off" : ""],
     G.phase === "hold" ? ["E", "Turn their machine gun round", nearNest() ? "hot" : "off"] : null,
     ["P / Esc", "Pause", ""]
@@ -4634,7 +4805,7 @@ function step(dt) {
   G.t += dt; G.dmgT = Math.max(0, G.dmgT - dt);
   G.tgtT -= dt; if (G.tgtT <= 0) { G.tgtT = 0.06; checkOnTarget(); }
   updAtmos(dt);
-  if (G.mode === "mg") updMG(dt); else if (G.mode === "tank") updTankJob(dt); else if (G.mode === "plane") updFlight(dt); else { updRifle(dt); updGrenades(dt); }
+  if (G.mode === "mg") updMG(dt); else if (G.mode === "tank") updTankJob(dt); else if (G.mode === "plane") updFlight(dt); else { updRifle(dt); updGrenades(dt); if (G && !G.over) updMelee(dt); }
   for (let i = units.length - 1; i >= 0; i--) if (units[i].gone) units.splice(i, 1);
   updFallen(dt);
   if (G && !G.over) { updShells(dt); battleVoices(dt); G.hudT = (G.hudT || 0) - dt; if (G.hudT <= 0) { G.hudT = 0.08; hud(); } }
@@ -4676,7 +4847,7 @@ if (window.Leaderboard) {
   if (Leaderboard.getName() && S.top >= 1) Leaderboard.submit(S.top).catch(() => {});
 }
 // test hook
-window.__ott = { POST, skyU, setAtmos, ATM_NIGHT, get G() { return G; }, H, soldier, poseSoldier, camera, scene, renderer, get PT() { return PT; }, F, fighters, balloons, shop, swapWeapon, togglePeri, raiseAlarm, fireTankGun, keys, P, units, planes, spawnPlane, useGun, startGame, S, IN, bayonet, grenade, endGame, killUnit, sim(sec) { for (let i = 0; i < sec * 30 && G && !G.over && !G.paused; i++) { step(1 / 30); updParts(1 / 30); updTracers(1 / 30); } }, info: () => renderer.info.render };
+window.__ott = { POST, skyU, setAtmos, ATM_NIGHT, get G() { return G; }, H, soldier, poseSoldier, camera, scene, renderer, get PT() { return PT; }, F, fighters, balloons, shop, swapWeapon, togglePeri, raiseAlarm, fireTankGun, keys, P, units, planes, spawnPlane, useGun, startGame, S, IN, bayonet, grenade, endGame, killUnit, setGuard, buttStroke, sidestep, startTF, lineBroken, sim(sec) { for (let i = 0; i < sec * 30 && G && !G.over && !G.paused; i++) { step(1 / 30); updParts(1 / 30); updTracers(1 / 30); } }, info: () => renderer.info.render };
 })();
 </script>
 

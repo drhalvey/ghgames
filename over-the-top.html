@@ -2642,6 +2642,12 @@ function updMG(dt) {
   _v.set(-Math.sin(cy) * Math.cos(cp), Math.sin(cp), -Math.cos(cy) * Math.cos(cp));
   const rk = G.mgRifleK, back = (1.25 - 0.7 * rk) + 0.25 * G.duckK, side = 0.6 * G.duckK + 1.15 * rk, up = 0.4 + 0.12 * rk - 0.95 * G.duckK + G.periK * (0.95 * G.duckK + 0.35);
   camera.position.set(mgGun.position.x - _v.x * back + Math.cos(cy) * side, mgGun.position.y + up, mgGun.position.z - _v.z * back - Math.sin(cy) * side);
+  { // ducked with the gun swung round, the camera must stay down in the trench, not inside the parapet or the trench wall
+    const w = G.duckK * (1 - G.periK), dIn = zOwn(camera.position.x) - camera.position.z;
+    if (w > 0 && dIn > 0.2) camera.position.z += (dIn - 0.2) * w;
+    if (w > 0 && camera.position.y > -0.2) camera.position.y += (-0.2 - camera.position.y) * w; // head down below the top of the trench
+    const gy = H(camera.position.x, camera.position.z) + 0.35; if (camera.position.y < gy) camera.position.y = gy;
+  }
   const lp = cp - G.tilt + 0.35 * G.duckK * (1 - G.periK); camera.lookAt(camera.position.x - Math.sin(cy) * Math.cos(lp), camera.position.y + Math.sin(lp), camera.position.z - Math.cos(cy) * Math.cos(lp));
   $("peri").style.opacity = G.periK > 0.5 ? 1 : 0;
   if (G.mgRifle) { // looking along your own rifle beside the gun

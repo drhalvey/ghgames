@@ -4833,7 +4833,7 @@ function endGame(win, text) {
     G.score += bonus; S.wins++;
   }
   S.kills += G.kills;
-  const key = G.side + "-" + job, prevBest = S.best[key] || 0; if (G.score > prevBest) S.best[key] = G.score; S.top = Math.max(S.top || 0, G.score);
+  const key = G.side + "-" + job, prevBest = S.best[key] || 0; if (G.score > prevBest) S.best[key] = G.score; if (!G.practice) S.top = Math.max(S.top || 0, G.score);
   const pay = Math.max(5, Math.round(G.score / 10)); S.pay = (S.pay || 0) + pay;
   let medalTxt = "";
   const di = ["recruit", "regular", "veteran"].indexOf(S.diff);
@@ -4855,6 +4855,7 @@ function endGame(win, text) {
   else if (job === "plane") st.push(["Waves", (win ? 3 : Math.max(0, G.wave - 1)) + " / 3"]);
   else st.push(["Guns silenced", G.nests.filter(n => n.dead).length + " / 2"], ["Your section left", G.mates + " / " + G.section], ["Trench", G.phase === "hold" ? (win ? "Taken and held" : "Taken, then lost") : "Not reached"]);
   $("endStats").innerHTML = st.map(([a, b]) => `<div class="stat"><span>${a}</span><b>${b}</b></div>`).join("");
+  if (!G.practice && G.score > 0 && window.Leaderboard && !Leaderboard.getName()) medalTxt += (medalTxt ? "<br>" : "") + "🏆 Pick a nickname on the leaderboard below the game and this score goes straight on it.";
   $("endMedal").hidden = !medalTxt; $("endMedal").innerHTML = medalTxt;
   $("endHist").innerHTML = histFor(G.side, job) + "<br><br>" + HIST.guns;
   // straight back in at the wave you fell on (machine gunner only; uses the same checkpoint as Carry on)
@@ -4864,7 +4865,8 @@ function endGame(win, text) {
   const thisGame = G;
   setTimeout(() => { if (G !== thisGame) return; $("endOv").hidden = false; $("hud").hidden = true; $("xhair").hidden = true; $("touch").hidden = true; $("keys").style.display = "none"; clearAimUI(); clearPlanes(); for (const id of ["dust", "gasTint", "gasmask", "warn", "peri"]) $(id).style.opacity = 0; if (myEngine) myEngine.g.gain.value = 0; for (const f of fighters) if (f.snd) f.snd.g.gain.value = 0; }, win ? 1600 : 1200);
   if (win) { banner(TITLES[job][0], "", 2); sfx.whistle(0.12, 0); }
-  if (!G.practice && window.Leaderboard && Leaderboard.getName && Leaderboard.getName() && G.score > 0) Leaderboard.submit(G.score).then(() => { if (window.PhatCoin) PhatCoin.leaderboard(Leaderboard.getName(), "desc"); }).catch(() => {});
+  // submit() keeps the score waiting if no nickname is picked yet, and posts it once one is saved
+  if (!G.practice && window.Leaderboard && G.score > 0) Leaderboard.submit(G.score).then(() => { if (window.PhatCoin && Leaderboard.getName()) PhatCoin.leaderboard(Leaderboard.getName(), "desc"); }).catch(() => {});
   const WHY = { mg: "holding the line", rifle: "taking the trench", raid: "a silent raid", tank: "a tank breakthrough", plane: "winning in the air" };
   if (win && window.PhatCoin) PhatCoin.earn("win", Math.min(5, stars + 2), WHY[job]);
 }
@@ -4985,7 +4987,7 @@ requestAnimationFrame(frame);
 // leaderboard under the game
 if (window.Leaderboard) {
   Leaderboard.mount({ el: "lb", game: "over-the-top", dir: "desc", unit: "pts", title: "Over the Top: best battle score" });
-  if (Leaderboard.getName() && S.top >= 1) Leaderboard.submit(S.top).catch(() => {});
+  if (S.top >= 1) Leaderboard.submit(S.top).catch(() => {});
 }
 // test hook
 window.__ott = { POST, skyU, setAtmos, ATM_NIGHT, get G() { return G; }, H, soldier, poseSoldier, camera, scene, renderer, get PT() { return PT; }, F, fighters, balloons, shop, swapWeapon, togglePeri, raiseAlarm, fireTankGun, keys, P, units, planes, spawnPlane, useGun, startGame, S, IN, bayonet, grenade, endGame, killUnit, updReplay, endReplay, REC, hurtPlayer, setGuard, buttStroke, sidestep, startTF, lineBroken, sim(sec) { for (let i = 0; i < sec * 30 && G && !G.over && !G.paused; i++) { step(1 / 30); updParts(1 / 30); updTracers(1 / 30); } }, info: () => renderer.info.render };

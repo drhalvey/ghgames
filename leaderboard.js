@@ -142,6 +142,8 @@
     + ".lb li .sc{font-weight:600}"
     + ".lb li.me{color:#7dd97b;font-weight:600}"
     + ".lb .note{color:#5c6680;font-size:.72rem;text-align:center;margin-top:8px}"
+    + ".lb li.ai{color:#8d96ad;font-style:italic}"
+    + ".lb li.ai .tag{font-style:normal;font-size:.62rem;font-weight:700;background:#3a4a70;color:#cfd6ea;border-radius:4px;padding:1px 4px;margin-left:4px;vertical-align:middle}"
     + ".lb .empty{color:#5c6680;text-align:center;padding:20px 0;font-size:.85rem}";
 
   function injectCSS() {
@@ -154,13 +156,38 @@
   var nickbars = [];    // standalone nickname-bar elements
   var submitCfg = null; // cfg used by submit()
 
-  function getName() { return localStorage.getItem(NAME_KEY) || ""; }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  // No nickname picked yet? Logged-in players use their account name, so their scores still count.
+  function getName() {
+    var n = lsGet(NAME_KEY);
+    if (n) return n;
+    var u = String(lsGet("ghacct_user") || "").trim().slice(0, 12);
+    return u && nameOk(u) ? u : "";
+  }
   function setName(n) {
     n = (n || "").trim().slice(0, 12);
     if (!n) return false;
     if (!nameOk(n)) { alert("Please pick a friendlier name, with no links, numbers or social handles 🙂"); return false; }
-    localStorage.setItem(NAME_KEY, n);
+    lsSet(NAME_KEY, n);
+    flushPending();
     return true;
+  }
+  // A score earned before a nickname was picked waits here, then goes up as soon as one is saved.
+  var PEND_KEY = "ghgames_lb_pending_";
+  function keepPending(score) {
+    if (!submitCfg) return;
+    var k = PEND_KEY + submitCfg.game, old = Number(lsGet(k));
+    var better = !lsGet(k) || (submitCfg.dir === "asc" ? score < old : score > old);
+    if (better) lsSet(k, String(score));
+  }
+  function flushPending() {
+    if (!submitCfg) return;
+    var k = PEND_KEY + submitCfg.game, v = lsGet(k);
+    if (v === null || v === "") return;
+    lsDel(k);
+    Leaderboard.submit(Number(v));
   }
 
   // ---- nickname widgets (used both in the bar and inside each board) ----
@@ -218,25 +245,59 @@
     b.listEl.innerHTML = '<div class="empty">Loading…</div>';
     youEl.style.display = "none";
     fetchBoard(b.cfg, b.period).then(function (rows) {
-      if (!rows.length) { b.listEl.innerHTML = '<div class="empty">No scores yet — be the first!</div>'; return; }
-      var medals = ["🥇", "🥈", "🥉"];
-      b.listEl.innerHTML = rows.map(function (r, i) {
+      var bots = rivalsFor(b.cfg, b.period);
+      if (!rows.length && !bots.length) { b.listEl.innerHTML = '<div class="empty">No scores yet — be the first!</div>'; return; }
+      var medals = ["🥇", "🥈", "🥉"], desc = b.cfg.dir !== "asc";
+      // Computer rivals sit among the real scores as targets, but are always marked AI and never take a rank or medal.
+      var all = rows.concat(bots).sort(function (x, y) { return desc ? y.score - x.score : x.score - y.score; });
+      var rank = 0;
+      b.listEl.innerHTML = all.map(function (r) {
+        if (r.ai) return '<li class="ai" title="Computer rival, not a real player"><span class="r">🤖</span>'
+          + '<span class="nm">' + esc(r.name) + ' <span class="tag">AI</span></span>'
+          + '<span class="sc">' + fmt(r.score, b.cfg.unit) + '</span></li>';
+        var i = rank++;
         var mine = r.name === me ? " me" : "";
-        var rank = i < 3 ? '<span class="medal">' + medals[i] + '</span>' : '<span class="r">' + (i + 1) + '</span>';
-        return '<li class="' + mine.trim() + '">' + rank
+        var rk = i < 3 ? '<span class="medal">' + medals[i] + '</span>' : '<span class="r">' + (i + 1) + '</span>';
+        return '<li class="' + mine.trim() + '">' + rk
           + '<span class="nm">' + esc(r.name) + '</span>'
           + '<span class="sc">' + fmt(r.score, b.cfg.unit) + '</span></li>';
-      }).join("");
-      var myIdx = -1;
-      for (var i = 0; i < rows.length; i++) if (rows[i].name === me) { myIdx = i; break; }
-      if (myIdx >= 0) {
-        youEl.style.display = "block";
-        youEl.textContent = (myIdx === 0 ? "🏆 You're #1 " : "🎉 You're #" + (myIdx + 1) + " ") + PERIOD_LABEL[b.period] + "!";
+      }).join("") + (rows.length ? "" : '<div class="empty" style="padding:10px 0">No real players yet ' + PERIOD_LABEL[b.period] + ', beat the AI!</div>');
+      var myIdx = -1, mine = null;
+      for (var i = 0; i < rows.length; i++) if (rows[i].name === me) { myIdx = i; mine = rows[i]; break; }
+      var msg = "";
+      if (myIdx >= 0) msg = (myIdx === 0 ? "🏆 You're #1 " : "🎉 You're #" + (myIdx + 1) + " ") + PERIOD_LABEL[b.period] + "!";
+      if (bots.length && (b.nickEl || mine)) {
+        var next = null;
+        bots.forEach(function (r) { var ahead = mine ? (desc ? r.score > mine.score : r.score < mine.score) : true; if (ahead && (!next || (desc ? r.score < next.score : r.score > next.score))) next = r; });
+        if (next) msg += (msg ? " " : "") + "🤖 Next AI to beat: " + next.name + " (" + fmt(next.score, b.cfg.unit) + ")";
+        else if (mine) msg += " You beat every AI rival!";
       }
+      if (msg) { youEl.style.display = "block"; youEl.textContent = msg; }
     });
   }
 
   function refreshAll() { boards.forEach(renderBoard); }
+
+  // AI rivals: { name, score, from } where from is the shortest tab they appear on (day, week, month or all).
+  // Harder rivals only show on the longer tabs, so Today has easy targets and All-time has tough ones.
+  var SPAN = { day: 0, week: 1, month: 2, all: 3 };
+  // Games with AI rivals (shown on the game page and on the Leaderboards page).
+  var RIVALS = {
+    "over-the-top": [
+      { name: "Pvt Pixel", score: 600, from: "day" },
+      { name: "Cpl Cog", score: 1500, from: "day" },
+      { name: "Sgt Sprocket", score: 3000, from: "day" },
+      { name: "Lt Circuit", score: 5500, from: "week" },
+      { name: "Capt Clank", score: 9000, from: "month" },
+      { name: "Maj Gears", score: 14000, from: "all" },
+      { name: "Col Chrome", score: 22000, from: "all" }
+    ]
+  };
+  function rivalsFor(cfg, period) {
+    if (!cfg.rivals) return [];
+    return cfg.rivals.filter(function (r) { return SPAN[r.from || "day"] <= SPAN[period]; })
+      .map(function (r) { return { name: r.name, score: r.score, ai: true }; });
+  }
 
   var Leaderboard = {
     getName: getName,
@@ -244,9 +305,9 @@
 
     submit: function (score) {
       if (!configured || !submitCfg) return Promise.resolve();
-      var name = getName(); if (!name) return Promise.resolve();
       score = Math.round(Number(score));
       if (isNaN(score) || score < 0) return Promise.resolve();
+      var name = getName(); if (!name) { keepPending(score); return Promise.resolve(); }
       if (submitCfg.max != null && score > submitCfg.max) return Promise.resolve();
       if (submitCfg.min != null && score < submitCfg.min) return Promise.resolve();
       var row = { game: submitCfg.game, name: name, score: score };
@@ -274,7 +335,7 @@
     mount: function (opts) {
       injectCSS();
       var box = el(opts.el); if (!box) return;
-      var cfg = { game: opts.game, dir: opts.dir || "desc", unit: opts.unit || "", max: opts.max, min: opts.min };
+      var cfg = { game: opts.game, dir: opts.dir || "desc", unit: opts.unit || "", max: opts.max, min: opts.min, rivals: opts.rivals || RIVALS[opts.game] || null };
       if (opts.showNick !== false) { // game pages submit; hub boards don't
         submitCfg = cfg; Leaderboard._game = cfg.game; Leaderboard._dir = cfg.dir;
       }
@@ -287,7 +348,8 @@
         + '<button data-p="day">Today</button><button data-p="week">Week</button>'
         + '<button data-p="month">Month</button><button data-p="all">All-time</button>'
         + '</div><div class="you" style="display:none"></div><ol></ol>'
-        + '<div class="note">' + dirNote + ' · nicknames only, keep them friendly</div>';
+        + '<div class="note">' + dirNote + ' · nicknames only, keep them friendly'
+        + (cfg.rivals ? '<br>🤖 AI = computer rival to beat, not a real player' : '') + '</div>';
 
       var board = { box: box, listEl: box.querySelector("ol"), cfg: cfg, period: "day",
                     nickEl: opts.showNick !== false ? box.querySelector(".nick") : null };
@@ -297,6 +359,7 @@
         btn.addEventListener("click", function () { board.period = btn.dataset.p; renderBoard(board); });
       });
       renderBoard(board);
+      if (board.nickEl) flushPending();
     }
   };
 

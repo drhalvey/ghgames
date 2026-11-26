@@ -75,6 +75,7 @@
     "parry-panic": { title: "Parry Panic", keys: ["parrypanic-save"] },
     "sky-high-splat": { title: "Sky High Splat", keys: ["skysplat-save"] },
     "jump-for-animals": { title: "Jump for Animals", keys: ["jfa-save"] },
+    "globe-grab": { title: "Globe Grab", keys: ["globegrab-save"] },
   };
 
   var TOKEN = "ghacct_token", USER = "ghacct_user", NICK = "ghgames_nick";

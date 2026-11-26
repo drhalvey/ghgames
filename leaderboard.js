@@ -291,6 +291,15 @@
       { name: "Capt Clank", score: 9000, from: "month" },
       { name: "Maj Gears", score: 14000, from: "all" },
       { name: "Col Chrome", score: 22000, from: "all" }
+    ],
+    "fontenoy": [
+      { name: "Pvt Pixel", score: 800, from: "day" },
+      { name: "Cpl Cog", score: 2000, from: "day" },
+      { name: "Sgt Sprocket", score: 3500, from: "day" },
+      { name: "Ensign Circuit", score: 5000, from: "week" },
+      { name: "Capt Clank", score: 7000, from: "month" },
+      { name: "Maj Gears", score: 9500, from: "all" },
+      { name: "Col Chrome", score: 12500, from: "all" }
     ]
   };
   function rivalsFor(cfg, period) {

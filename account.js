@@ -36,6 +36,7 @@
     "culloden": { title: "Culloden", keys: ["culloden-save"] },
     "fontenoy": { title: "Fontenoy", keys: ["fontenoy-save"] },
     "over-the-top": { title: "Over the Top", keys: ["overthetop-save"] },
+    "alert-force": { title: "Alert Force 1962", keys: ["alertforce-save"] },
     "shred-the-evidence": { title: "Shred the Evidence", keys: ["shredevidence-save"] },
     "seven-years-war": { title: "Seven Years' War", keys: ["syw-save"] },
     "seven-years-war-classic": { title: "Seven Years' War Classic", keys: ["syw-classic-save"] },

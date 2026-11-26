@@ -1,0 +1,880 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Globe Grab · Free 3D property trading board game | GH Games</title>
+<meta property="og:title" content="Globe Grab · GH Games">
+<meta property="og:description" content="Roll two 9-sided dice round a giant 80-square board of real cities. Buy Perth, Tokyo and Paris, build houses, hotels, Mega Towers and Sky Castles, and watch out for the Sneaky Thief. Prices grow every lap into giant numbers.">
+<meta property="og:image" content="https://ghgames.au/og/globe-grab.png">
+<meta property="og:url" content="https://ghgames.au/globe-grab.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f1a33">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Games">
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="globe-grab"></script>
+<script src="phatcoin.js" data-game="globe-grab" data-pill="none"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<link rel="stylesheet" href="arcade3d.css">
+<style>
+.stage{aspect-ratio:16/10}
+.ingame button.on{background:rgba(255,201,60,.85);color:#3b2200}
+.plist{position:absolute;right:8px;top:8px;z-index:14;display:flex;flex-direction:column;gap:4px;max-width:min(230px,38%);pointer-events:auto}
+.pl{display:flex;align-items:center;gap:6px;background:rgba(8,14,32,.72);border:2px solid transparent;border-radius:11px;padding:3px 8px 3px 4px;font-weight:900;font-size:clamp(10px,1.6vw,13px);color:#fff;line-height:1.1;cursor:pointer}
+.pl i{flex:0 0 auto;width:clamp(14px,2.2vw,20px);height:clamp(14px,2.2vw,20px);border-radius:50%;border:2px solid #fff;font-style:normal;font-size:10px;display:flex;align-items:center;justify-content:center}
+.pl b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
+.pl small{display:block;color:var(--gold);font-size:.95em}
+.pl.cur{border-color:var(--gold);box-shadow:0 0 12px rgba(255,201,60,.6)}
+.pl.out{opacity:.4;text-decoration:line-through}
+.bar{position:absolute;left:0;right:0;bottom:10px;z-index:14;display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 8px;pointer-events:none}
+.bar .q{background:rgba(20,14,40,.92);border:2px solid var(--gold);border-radius:14px;padding:6px 14px;font-weight:900;font-size:clamp(12px,2vw,16px);text-align:center;max-width:92%}
+.bar .bs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.bar .btn{pointer-events:auto;font-size:clamp(14px,2.6vw,21px);padding:8px 16px;line-height:1.05}
+.bar .btn small{display:block;font-family:Nunito,Arial,sans-serif;font-weight:900;font-size:clamp(10px,1.5vw,13px);opacity:.85;margin-top:2px}
+.dice{position:absolute;left:50%;top:16%;transform:translateX(-50%);display:flex;gap:14px;z-index:13;pointer-events:none;opacity:0;transition:opacity .25s}
+.dice.on{opacity:1}
+.die{width:clamp(46px,8vw,70px);height:clamp(46px,8vw,70px);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:clamp(26px,5vw,40px);color:#3b2200;background:linear-gradient(#fff6cf,#ffc93c);clip-path:polygon(50% 0,85% 12%,100% 45%,92% 80%,62% 100%,38% 100%,8% 80%,0 45%,15% 12%);filter:drop-shadow(0 4px 4px rgba(0,0,0,.5))}
+.die.roll{animation:spin .12s linear infinite}
+.die.dbl{background:linear-gradient(#ffe0f0,#ff6fa3);color:#3d0c22}
+@keyframes spin{0%{transform:rotate(0) scale(1)}50%{transform:rotate(18deg) scale(1.08)}100%{transform:rotate(0) scale(1)}}
+.log{position:absolute;left:8px;top:52px;z-index:13;max-width:min(300px,45%);display:flex;flex-direction:column;gap:3px;pointer-events:none}
+.log div{background:rgba(8,14,32,.62);border-radius:9px;padding:3px 8px;font-weight:800;font-size:clamp(10px,1.5vw,12.5px);color:#e6ecff;line-height:1.25}
+.log div:first-child{color:#fff;background:rgba(8,14,32,.85)}
+.banner{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%) scale(.6);z-index:16;font-family:var(--display);font-size:clamp(26px,6vw,56px);color:var(--gold);text-shadow:0 4px 0 #6b3d00,0 0 24px rgba(255,201,60,.8);text-align:center;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;line-height:1}
+.banner small{display:block;font-family:Nunito,Arial,sans-serif;font-weight:900;font-size:.36em;color:#fff;text-shadow:0 2px 3px #000;margin-top:6px}
+.banner.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.shopbox{max-height:80%;overflow:auto}
+.prow{display:flex;align-items:center;gap:8px;background:var(--panel2);border-radius:10px;padding:6px 8px;margin:4px 0;font-weight:800;font-size:14px;text-align:left}
+.prow .sw{flex:0 0 12px;height:28px;border-radius:4px}
+.prow .nm{flex:1;min-width:0}
+.prow .nm small{display:block;color:var(--muted);font-size:12px}
+.prow .btn{font-size:14px;padding:6px 10px;border-radius:10px;white-space:nowrap}
+.prow .dot{width:14px;height:14px;border-radius:50%;border:2px solid #fff;flex:0 0 auto}
+.cty{margin:8px 0 2px;font-family:var(--display);font-size:17px;text-align:left}
+.card{background:linear-gradient(#fffdf2,#ffeec2);color:#3b2200;border-radius:18px;padding:18px 22px;max-width:420px;box-shadow:0 10px 0 #a86a00;font-weight:900;font-size:clamp(16px,2.6vw,21px);line-height:1.3}
+.card h3{font-family:var(--display);font-weight:400;font-size:clamp(22px,4vw,32px);margin:0 0 8px;color:#c2410c}
+.card.suit h3{color:#1d4ed8}
+.card .ic{font-size:48px;line-height:1}
+.seats{display:flex;flex-direction:column;gap:6px;width:min(440px,100%)}
+.seat{display:flex;align-items:center;gap:8px;background:var(--panel2);border-radius:12px;padding:6px 10px;font-weight:900}
+.seat .dot{width:18px;height:18px;border-radius:50%;border:2px solid #fff}
+.seat input{flex:1;min-width:0;font:inherit;font-weight:900;background:#0f1a33;color:#fff;border:2px solid var(--line);border-radius:8px;padding:4px 8px}
+.seat span.n{flex:1}
+.seat button{font:inherit;font-size:13px;background:#33416e;color:#fff;border:none;border-radius:8px;padding:4px 9px;cursor:pointer}
+.lbl{font-weight:900;color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
+.rent{width:100%;border-collapse:collapse;font-weight:800;font-size:14px;margin:6px 0}
+.rent td{padding:3px 6px;border-bottom:1px solid rgba(255,255,255,.08)}
+.rent td:last-child{text-align:right;color:var(--gold)}
+.rent tr.on td{background:rgba(255,201,60,.18)}
+.stand{display:flex;flex-direction:column;gap:5px;width:min(420px,100%)}
+@media (max-width:600px){.log{display:none}.plist{max-width:42%}}
+</style>
+<link rel="canonical" href="https://ghgames.au/globe-grab.html">
+<meta name="description" content="Roll two 9-sided dice round a giant 80-square board of real cities. Buy Perth, Tokyo and Paris, build houses, hotels, Mega Towers and Sky Castles, and watch out for the Sneaky Thief. Prices grow every lap into giant numbers.">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "VideoGame", "name": "Globe Grab", "url": "https://ghgames.au/globe-grab.html", "description": "Roll two 9-sided dice round a giant 80-square board of real cities. Buy Perth, Tokyo and Paris, build houses, hotels, Mega Towers and Sky Castles, and watch out for the Sneaky Thief. Prices grow every lap into giant numbers.", "image": "https://ghgames.au/og/globe-grab.png", "genre": "Board game", "gamePlatform": "Web browser", "operatingSystem": "Any", "applicationCategory": "Game", "inLanguage": "en-GB", "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "AUD"}, "publisher": {"@type": "Organization", "name": "GH Games", "url": "https://ghgames.au/"}}</script>
+</head>
+<body>
+<div class="wrap">
+  <div class="links"><a class="home" href="index.html">← GH Games</a></div>
+  <div class="top">
+    <h1>Globe Grab<small>3D</small></h1>
+    <div class="hud">
+      <div class="chip"><span>Your money</span><b id="hMoney">-</b></div>
+      <div class="chip"><span>Prices</span><b id="hMult">x1</b></div>
+      <div class="chip"><span>Round</span><b id="hRound">-</b></div>
+      <div class="chip"><span>Wins</span><b id="hWins">0</b></div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="ingame"><button id="bMenu" title="Menu">☰</button><button id="bFs" title="Full screen">⛶</button><button id="bMute" title="Sound">🔊</button><button id="bCam" title="Camera">🎥</button><button id="bPlaces" title="All the places">🏙️</button></div>
+    <div class="plist" id="plist"></div>
+    <div class="log" id="log"></div>
+    <div class="toast" id="toast"></div>
+    <div class="banner" id="banner"></div>
+    <div class="dice" id="dice"><div class="die" id="d1">?</div><div class="die" id="d2">?</div></div>
+    <div class="bar" id="bar"></div>
+
+    <div class="ov" id="ovTitle">
+      <h2>GLOBE GRAB</h2>
+      <p>Roll two 9-sided dice round a giant board of 80 squares. Buy real cities, grab whole countries, build up to Mega Towers and Sky Castles, and watch out for the Sneaky Thief. Every lap the prices grow into giant numbers!</p>
+      <div class="row"><button class="btn green" id="bCont" hidden>Carry on</button></div>
+      <div class="lbl">Who's playing (up to 6)</div>
+      <div class="seats" id="seats"></div>
+      <div class="row"><button class="btn small alt" id="addBot">+ Computer</button><button class="btn small pink" id="addMan">+ Person</button></div>
+      <div class="lbl">Game length</div>
+      <div class="seg" id="segLen"><button data-v="30">30 rounds</button><button data-v="60">60 rounds</button><button data-v="0">Until one is left</button></div>
+      <div class="lbl">Computer players</div>
+      <div class="seg" id="segDiff"><button data-v="0">Easy</button><button data-v="1">Normal</button><button data-v="2">Hard</button></div>
+      <div class="lbl">Computer speed</div>
+      <div class="seg" id="segSpd"><button data-v="0">Normal</button><button data-v="1">Fast</button></div>
+      <div class="row"><button class="btn" id="bStart">Start a new game</button></div>
+    </div>
+
+    <div class="ov" id="ovPanel" hidden><div class="shopbox"><h3 id="pTitle"></h3><div id="pBody"></div><div class="row" style="margin-top:8px"><button class="btn alt small" id="pClose">Close</button></div></div></div>
+    <div class="ov" id="ovCard" hidden><div class="card" id="cardBox"></div><div class="row"><button class="btn" id="cardOk">OK</button></div></div>
+    <div class="ov" id="ovEnd" hidden>
+      <h2 id="eTitle">You win!</h2>
+      <p id="eText"></p>
+      <div class="stand" id="eStand"></div>
+      <div class="row"><button class="btn green" id="eAgain">Play again</button></div>
+    </div>
+  </div>
+
+  <p class="help">Everyone starts with <b>1,500</b> and takes turns rolling two 9-sided dice (2 to 18). Land on a city nobody owns and you can buy it. Land on someone else's and you pay them rent. Own every city in a country (all 4) and rent doubles, and you can build: 4 houses, then a Hotel, then a <b>Mega Tower</b>, then a <b>Sky Castle</b> floating on a cloud. Airports charge more the more of them you own, and the Solar and Wind Farms charge by your dice roll. Land on a <b>Sneaky Thief</b> square to steal one property from another player (Mega Towers and Sky Castles are too big to steal). Postcards and Lucky Suitcases are surprise cards. Rolling a double gives you another go, but three doubles in a row, or landing on Go to Passport Control, sends you to Passport Control: roll a double, pay the fine or use a Fast Pass to get out. Every time someone finishes a lap ahead of everyone else, the whole world booms and every price, rent, pay and everyone's money jumps up: x10, then x100, then x1,000, then x10,000 and on into giant numbers. Tap any square to see its rents, drag to look around, and press 🎥 for the whole board. If you run out of money your buildings and places are sold off to pay; if that's still not enough you're out. Last one in, or the richest when the rounds run out, wins. The leaderboard is most wins against computer players.</p>
+  <div id="lb"></div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="gear.js"></script>
+<script src="arcade3d.js"></script>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const THREE=window.THREE;
+const SAVE="globegrab-save";
+const S=A3.save(SAVE,{wins:0,games:0,best:0,g:null,len:60,diff:1,fast:0,cam:"follow",seats:null});
+const store=()=>A3.store(SAVE,S);
+const fmt=n=>A3.fmt(Math.round(n));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ================= the board ================= */
+const COLS=["#ff4d4d","#3d8bff","#3ccf5a","#ffcc33","#b46bff","#ff8a3d"];
+const BOTN=["Robo Rex","Captain Clank","Professor Pixel","Lady Laser","Turbo Tia","Sir Sprocket","Bolt Bot","Dizzy Droid"];
+const GROUPS=[
+  {n:"New Zealand",f:"🇳🇿",c:"#a0662f",ll:[-41,174],cities:["Rotorua","Queenstown","Wellington","Auckland"]},
+  {n:"India",f:"🇮🇳",c:"#7ec8ff",ll:[21,78],cities:["Jaipur","Goa","Delhi","Mumbai"]},
+  {n:"Egypt",f:"🇪🇬",c:"#e07fd8",ll:[27,30],cities:["Aswan","Luxor","Giza","Cairo"]},
+  {n:"Brazil",f:"🇧🇷",c:"#ff9a2e",ll:[-10,-52],cities:["Salvador","Manaus","Sao Paulo","Rio de Janeiro"]},
+  {n:"Mexico",f:"🇲🇽",c:"#e8423a",ll:[23,-102],cities:["Oaxaca","Cancun","Guadalajara","Mexico City"]},
+  {n:"Canada",f:"🇨🇦",c:"#ffd23f",ll:[56,-106],cities:["Quebec City","Montreal","Toronto","Vancouver"]},
+  {n:"Spain",f:"🇪🇸",c:"#2fbf71",ll:[40,-4],cities:["Seville","Valencia","Madrid","Barcelona"]},
+  {n:"Italy",f:"🇮🇹",c:"#2b6de0",ll:[42,12],cities:["Florence","Venice","Milan","Rome"]},
+  {n:"France",f:"🇫🇷",c:"#8e5cf7",ll:[46,2],cities:["Bordeaux","Lyon","Nice","Paris"]},
+  {n:"Japan",f:"🇯🇵",c:"#ff6fa3",ll:[36,138],cities:["Sapporo","Osaka","Kyoto","Tokyo"]},
+  {n:"USA",f:"🇺🇸",c:"#18b8b0",ll:[39,-98],cities:["Chicago","Las Vegas","Los Angeles","New York"]},
+  {n:"United Kingdom",f:"🇬🇧",c:"#3653b8",ll:[54,-2],cities:["Edinburgh","Manchester","Liverpool","London"]},
+  {n:"Australia",f:"🇦🇺",c:"#ffb300",ll:[-25,134],cities:["Brisbane","Melbourne","Sydney","Perth"]}
+];
+const AIRS=["Jumbo Jet Airport","Zoom Air Airport","Cloud Nine Airport","Rocket Air Airport"];
+const FARMS=["Solar Farm","Wind Farm"];
+const LAY=["C:go","c0","S","c0","c0","c0","T1","A0","c1","P","c1","c1","c1","X","c2","c2","S","c2","c2","F0",
+ "C:jail","c3","P","c3","c3","c3","A1","c4","c4","S","c4","c4","X","c5","c5","P","c5","F1","c5","T0",
+ "C:park","c6","S","c6","c6","c6","P","A2","c7","c7","X","c7","c7","S","c8","P","c8","c8","c8","P",
+ "C:gojail","c9","c9","A3","c9","c9","c10","c10","X","c10","c10","c11","S","c11","c11","c11","c12","c12","c12","c12"];
+const CORN={go:{n:"Take Off",ic:"🛫",sub:"Collect your pay as you pass"},jail:{n:"Passport Control",ic:"🛂",sub:"Just visiting"},park:{n:"World Park",ic:"🎡",sub:"A free rest"},gojail:{n:"Go to Passport Control",ic:"👮",sub:"Straight there, no pay"}};
+const SQ=[];const gCount=GROUPS.map(()=>0);
+LAY.forEach((s,i)=>{
+  if(s.startsWith("C:")){const c=CORN[s.slice(2)];SQ.push({t:s.slice(2),n:c.n,ic:c.ic,sub:c.sub});return;}
+  if(s[0]==="c"){const g=+s.slice(1),j=gCount[g]++,p0=60+g*26,price=Math.round(p0*(1+0.1*j)/5)*5;
+    SQ.push({t:"city",g,j,n:GROUPS[g].cities[j],price,rent:Math.max(2,Math.round(price/10))});return;}
+  if(s[0]==="A"){const k=+s[1];SQ.push({t:"air",k,n:AIRS[k],price:200,ic:"✈️"});return;}
+  if(s[0]==="F"){const k=+s[1];SQ.push({t:"farm",k,n:FARMS[k],price:150,ic:k?"🌬️":"☀️"});return;}
+  if(s[0]==="T"){const k=+s[1];SQ.push({t:"tax",n:k?"Tourist Tax":"Airport Tax",amt:k?100:200,ic:"💸"});return;}
+  if(s==="P"){SQ.push({t:"post",n:"Postcard",ic:"💌"});return;}
+  if(s==="S"){SQ.push({t:"suit",n:"Lucky Suitcase",ic:"🧳"});return;}
+  if(s==="X"){SQ.push({t:"thief",n:"Sneaky Thief",ic:"🦝"});return;}
+});
+const IDX=n=>SQ.findIndex(q=>q.n===n);
+const PERTH=IDX("Perth"),PARIS=IDX("Paris"),TOKYO=IDX("Tokyo");
+const AIRIDX=SQ.map((q,i)=>q.t==="air"?i:-1).filter(i=>i>=0);
+const isProp=i=>{const t=SQ[i].t;return t==="city"||t==="air"||t==="farm";};
+const RM=[1,5,15,40,55,75,180,450];
+const BC=[0,.5,.5,.5,.5,.6,2,5];
+const LVN=["No buildings","1 house","2 houses","3 houses","4 houses","Hotel","Mega Tower","Sky Castle"];
+
+/* ================= game state ================= */
+let G=null; // the game in progress
+const mult=()=>{const L=G?G.level:0;return Math.pow(10,Math.min(290,L*(L+1)/2));};
+const own=i=>G.own[i][0], lvl=i=>G.own[i][1];
+const P=()=>G.players[G.turn];
+const alive=()=>G.players.filter(p=>!p.out);
+function groupIdx(g){const r=[];SQ.forEach((q,i)=>{if(q.t==="city"&&q.g===g)r.push(i);});return r;}
+function hasSet(pi,g){return groupIdx(g).every(i=>own(i)===pi);}
+function countIn(pi,g){return groupIdx(g).filter(i=>own(i)===pi).length;}
+function countType(pi,t){return SQ.filter((q,i)=>q.t===t&&own(i)===pi).length;}
+function propsOf(pi){const r=[];for(let i=0;i<80;i++)if(isProp(i)&&own(i)===pi)r.push(i);return r;}
+function buildCost(i,toL){return SQ[i].price*BC[toL]*mult();}
+function buildValue(i){let v=0;for(let l=1;l<=lvl(i);l++)v+=SQ[i].price*BC[l];return v*mult();}
+function value(i){return SQ[i].price*mult()+buildValue(i);}
+function worth(p){return p.money+propsOf(p.i).reduce((s,i)=>s+value(i),0);}
+function rentOf(i,roll,dbl){
+  const q=SQ[i],o=own(i);if(o<0)return 0;
+  if(q.t==="city"){const l=lvl(i);let r=q.rent*RM[l];if(l===0&&hasSet(o,q.g))r*=2;return r*mult();}
+  if(q.t==="air"){const n=countType(o,"air");return 25*Math.pow(2,n-1)*mult()*(dbl?2:1);}
+  if(q.t==="farm"){const n=countType(o,"farm");return (roll||10)*(n>=2?10:4)*mult();}
+  return 0;
+}
+
+/* ================= 3D scene ================= */
+const stage=$("stage");
+const V=A3.view(stage,{fov:50,far:500,sky:["#3d8fe8","#d8f1ff"],shadowSize:30});
+if(!V)return;
+const scene=V.scene,camera=V.camera;
+V.lights.sun.position.set(18,34,14);
+const small=Math.min(screen.width,screen.height)<700;
+// sea
+const sea=new THREE.Mesh(new THREE.PlaneGeometry(600,600),A3.mat("#2a7fd4",{rough:.35,metal:.1}));sea.rotation.x=-Math.PI/2;sea.position.y=-1.6;sea.receiveShadow=true;scene.add(sea);
+const isl=A3.cyl(34,38,2.2,"#e9d79c",40);isl.position.y=-1.5;scene.add(isl);
+const grass=A3.cyl(32,33,0.6,"#5fbf4a",40);grass.position.y=-0.5;scene.add(grass);
+// board base + texture
+const base=A3.box(45,0.9,45,"#7a4a26");base.position.y=-0.46;scene.add(base);
+const BS=small?2048:4096,SC=BS/44;
+const bcv=document.createElement("canvas");bcv.width=bcv.height=BS;const bg=bcv.getContext("2d");
+const btex=new THREE.CanvasTexture(bcv);btex.encoding=THREE.sRGBEncoding;btex.anisotropy=V.renderer.capabilities.getMaxAnisotropy();
+const board=new THREE.Mesh(new THREE.PlaneGeometry(44,44),new THREE.MeshStandardMaterial({map:btex,roughness:.75}));
+board.rotation.x=-Math.PI/2;board.position.y=0.001;board.receiveShadow=true;scene.add(board);
+
+function tilePos(i){const s=Math.floor(i/20),k=i%20;
+  if(k===0)return [[20.5,20.5],[-20.5,20.5],[-20.5,-20.5],[20.5,-20.5]][s];
+  const d=20-2*k;return [[d,20.5],[-20.5,d],[-d,-20.5],[20.5,-d]][s];}
+const DIRS=[[-1,0],[0,-1],[1,0],[0,1]],OUTS=[[0,1],[-1,0],[0,-1],[1,0]];
+const sideOf=i=>Math.floor(i/20)%4;
+
+function fitText(g,t,maxW,px,font){let s=px;g.font=font.replace("#",s);while(g.measureText(t).width>maxW&&s>8){s-=2;g.font=font.replace("#",s);}return s;}
+function wrapText(g,t,maxW,px,font){ // up to two lines
+  g.font=font.replace("#",px);if(g.measureText(t).width<=maxW||t.indexOf(" ")<0)return [t];
+  const w=t.split(" ");let best=[t];let bw=1e9;
+  for(let k=1;k<w.length;k++){const a=w.slice(0,k).join(" "),b=w.slice(k).join(" ");const m=Math.max(g.measureText(a).width,g.measureText(b).width);if(m<bw){bw=m;best=[a,b];}}
+  return best;}
+function drawBoard(){
+  const g=bg,u=SC;
+  g.fillStyle="#cfeedd";g.fillRect(0,0,BS,BS);
+  // centre
+  const cg=g.createRadialGradient(BS/2,BS/2,BS*0.05,BS/2,BS/2,BS*0.42);cg.addColorStop(0,"#bfe8ff");cg.addColorStop(1,"#7cc4f0");
+  g.fillStyle=cg;g.fillRect(3*u,3*u,38*u,38*u);
+  g.strokeStyle="rgba(255,255,255,.35)";g.lineWidth=u*0.08;
+  for(let k=1;k<8;k++){g.beginPath();g.arc(BS/2,BS/2,k*2.6*u,0,7);g.stroke();}
+  g.save();g.translate(BS/2,BS/2);
+  g.textAlign="center";g.textBaseline="middle";
+  g.font="400 "+(u*3.4)+"px 'Lilita One', 'Arial Black', Arial";g.lineWidth=u*0.35;g.strokeStyle="#17305a";
+  g.strokeText("GLOBE GRAB",0,u*9.5);g.fillStyle="#ffc93c";g.fillText("GLOBE GRAB",0,u*9.5);
+  g.rotate(Math.PI);g.strokeText("GLOBE GRAB",0,u*9.5);g.fillText("GLOBE GRAB",0,u*9.5);g.rotate(-Math.PI);
+  // card piles
+  [[-9.5,-9.5,"💌","POSTCARD","#ffe9b8","#c2410c"],[9.5,9.5,"🧳","LUCKY SUITCASE","#cfe0ff","#1d4ed8"]].forEach(c=>{
+    g.save();g.translate(c[0]*u,c[1]*u);g.rotate(-Math.PI/4);
+    g.fillStyle="rgba(0,0,0,.2)";rr(g,-3.6*u+u*.2,-2.3*u+u*.2,7.2*u,4.6*u,u*.5);g.fill();
+    g.fillStyle=c[4];rr(g,-3.6*u,-2.3*u,7.2*u,4.6*u,u*.5);g.fill();g.lineWidth=u*.15;g.strokeStyle=c[5];g.stroke();
+    g.font=(u*1.6)+"px serif";g.fillText(c[2],0,-0.6*u);g.fillStyle=c[5];fitText(g,c[3],6.6*u,u*.9,"900 #px Nunito, Arial");g.fillText(c[3],0,1.2*u);
+    g.restore();});
+  g.restore();
+  for(let i=0;i<80;i++)drawTile(i);
+  btex.needsUpdate=true;
+}
+function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
+function drawTile(i){
+  const g=bg,u=SC,q=SQ[i],[x,z]=tilePos(i),s=sideOf(i),corner=i%20===0;
+  const w=(corner?3:2)*u,h=3*u;
+  g.save();g.translate((x+22)*u,(z+22)*u);g.rotate(s*Math.PI/2);
+  g.fillStyle=corner?"#fff4d6":"#fbfff7";g.fillRect(-w/2,-h/2,w,h);
+  g.strokeStyle="#2a3a52";g.lineWidth=u*0.06;g.strokeRect(-w/2,-h/2,w,h);
+  g.textAlign="center";g.textBaseline="middle";
+  const F="900 #px Nunito, Arial";
+  if(q.t==="city"){
+    const gr=GROUPS[q.g];
+    g.fillStyle=gr.c;g.fillRect(-w/2,-h/2,w,0.7*u);g.strokeRect(-w/2,-h/2,w,0.7*u);
+    g.fillStyle="#fff";fitText(g,gr.n.toUpperCase(),w*0.9,u*0.3,F);g.lineWidth=u*0.06;g.strokeStyle="rgba(0,0,0,.45)";g.strokeText(gr.n.toUpperCase(),0,-h/2+0.35*u);g.fillText(gr.n.toUpperCase(),0,-h/2+0.35*u);
+    g.fillStyle="#17213a";const lines=wrapText(g,q.n,w*0.9,u*0.42,F);
+    const px=Math.min(...lines.map(l=>fitText(g,l,w*0.9,u*0.42,F)));g.font=F.replace("#",px);
+    lines.forEach((l,k)=>g.fillText(l,0,-0.15*u+(k-(lines.length-1)/2)*px*1.1));
+    g.font=F.replace("#",u*0.34);g.fillStyle="#b45309";g.fillText("$"+fmt(q.price*mult()),0,h/2-0.42*u);
+  }else if(corner){
+    g.font=(u*1.2)+"px serif";g.fillText(q.ic,0,-0.35*u);
+    g.fillStyle="#17213a";const lines=wrapText(g,q.n.toUpperCase(),w*0.9,u*0.38,F);
+    lines.forEach((l,k)=>{fitText(g,l,w*0.9,u*0.38,F);g.fillText(l,0,0.75*u+k*u*0.42);});
+    if(q.t==="go"){g.fillStyle="#15803d";g.font=F.replace("#",u*0.3);g.fillText("Collect $"+fmt(200*mult()),0,-1.2*u);}
+  }else{
+    g.font=(u*0.95)+"px serif";g.fillText(q.ic,0,-0.25*u);
+    g.fillStyle="#17213a";const lines=wrapText(g,q.n.toUpperCase(),w*0.9,u*0.32,F);
+    lines.forEach((l,k)=>{fitText(g,l,w*0.9,u*0.32,F);g.fillText(l,0,-1.05*u+k*u*0.36-(lines.length-1)*0.0);});
+    let sub="";
+    if(q.t==="air"||q.t==="farm")sub="$"+fmt(q.price*mult());
+    else if(q.t==="tax")sub="Pay $"+fmt(q.amt*mult());
+    else if(q.t==="thief")sub="Steal a place!";
+    if(sub){g.fillStyle=q.t==="thief"?"#7c3aed":"#b45309";fitText(g,sub,w*0.9,u*0.32,F);g.fillText(sub,0,h/2-0.42*u);}
+  }
+  g.restore();
+}
+
+// globe in the middle
+function globeTex(){return A3.canvasTex(1024,512,(g,w,h)=>{
+  const sg=g.createLinearGradient(0,0,0,h);sg.addColorStop(0,"#1b5fb8");sg.addColorStop(.5,"#2b8be6");sg.addColorStop(1,"#1b5fb8");g.fillStyle=sg;g.fillRect(0,0,w,h);
+  const X=l=>(l+180)/360*w,Y=l=>(90-l)/180*h;
+  const blobs=[[-100,45,35,20],[-115,60,30,12],[-80,40,15,12],[-150,64,15,8],[-102,25,12,8],[-88,15,6,5],[-42,72,14,8],
+    [-60,-10,18,16],[-65,-30,10,14],[-70,-45,6,10],[10,50,18,9],[25,60,15,8],[-4,40,6,4],[-2,54,3,4],
+    [20,10,22,14],[25,-10,15,14],[22,-25,10,8],[47,-20,3,6],[90,50,45,16],[100,30,25,12],[78,20,8,9],[45,25,10,8],[105,10,8,8],[138,37,3,6],[118,-2,12,5],
+    [134,-25,17,10],[174,-41,3,5]];
+  g.fillStyle="#4cbf5a";blobs.forEach(b=>{g.beginPath();g.ellipse(X(b[0]),Y(b[1]),b[2]/360*w,b[3]/180*h,0,0,7);g.fill();});
+  g.fillStyle="#3aa64a";blobs.forEach(b=>{g.beginPath();g.ellipse(X(b[0])+4,Y(b[1])+4,b[2]/360*w*0.5,b[3]/180*h*0.5,0,0,7);g.fill();});
+  g.fillStyle="#d9b86a";[[20,22,12,6],[134,-24,8,5],[45,23,6,4]].forEach(b=>{g.beginPath();g.ellipse(X(b[0]),Y(b[1]),b[2]/360*w,b[3]/180*h,0,0,7);g.fill();});
+  g.fillStyle="#f4fbff";g.fillRect(0,Y(-72),w,h);g.fillRect(0,0,w,Y(80));
+});}
+const globe=new THREE.Group();globe.position.set(0,7.2,0);scene.add(globe);
+const gball=new THREE.Mesh(new THREE.SphereGeometry(5,48,32),new THREE.MeshStandardMaterial({map:globeTex(),roughness:.5,metalness:.05}));gball.castShadow=true;globe.add(gball);
+const stand=A3.cyl(0.5,0.9,3,"#c79a3a",16,{metal:.6,rough:.3});stand.position.y=1.2;scene.add(stand);
+const ring=new THREE.Mesh(new THREE.TorusGeometry(5.6,0.14,8,60,Math.PI),A3.mat("#c79a3a",{metal:.6,rough:.3}));ring.position.set(0,7.2,0);ring.rotation.y=Math.PI/2;scene.add(ring);
+const standBase=A3.cyl(2.2,2.6,0.6,"#8a5a2b",24);standBase.position.y=0.3;scene.add(standBase);
+// country pins on the globe
+const pins=GROUPS.map(gr=>{const lat=gr.ll[0]*Math.PI/180,phi=(gr.ll[1]+180)*Math.PI/180,th=Math.PI/2-lat;
+  const dir=new THREE.Vector3(-Math.cos(phi)*Math.sin(th),Math.cos(th),Math.sin(phi)*Math.sin(th));
+  const pin=new THREE.Group();const stick=A3.cyl(0.05,0.05,0.7,"#ddd",6);stick.position.y=0.35;const head=new THREE.Mesh(new THREE.SphereGeometry(0.22,12,8),new THREE.MeshStandardMaterial({color:"#cccccc",emissive:"#000000",roughness:.4}));head.position.y=0.75;pin.add(stick,head);
+  pin.position.copy(dir.clone().multiplyScalar(4.95));pin.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);gball.add(pin);return head;});
+// a little plane flying round the globe
+const plane=new THREE.Group();{const b=A3.cyl(0.18,0.12,1.4,"#ffffff",10);b.rotation.z=Math.PI/2;const wng=A3.box(0.25,0.05,1.6,"#e8423a");const tl=A3.box(0.2,0.4,0.05,"#e8423a");tl.position.set(-0.6,0.2,0);plane.add(b,wng,tl);}
+scene.add(plane);
+// clouds
+const clouds=[];for(let k=0;k<9;k++){const c=new THREE.Group();for(let m=0;m<4;m++){const s=A3.ball(1+Math.random()*1.2,"#ffffff",{rough:1});s.castShadow=false;s.position.set(m*1.3-2,Math.random()*0.6,Math.random()*0.8);c.add(s);}
+  const a=k/9*Math.PI*2,r=40+Math.random()*25;c.position.set(Math.cos(a)*r,14+Math.random()*8,Math.sin(a)*r);c.userData.a=a;c.userData.r=r;scene.add(c);clouds.push(c);}
+
+/* ---------- per-tile buildings and owner strips ---------- */
+const tileG=[];
+for(let i=0;i<80;i++){const g=new THREE.Group();const[x,z]=tilePos(i);g.position.set(x,0,z);scene.add(g);tileG.push(g);}
+const floaters=[];
+function vec(i,inw,lat){const s=sideOf(i),o=OUTS[s],d=DIRS[s];return new THREE.Vector3(-o[0]*inw+d[0]*lat,0,-o[1]*inw+d[1]*lat);}
+function house(c){const g=new THREE.Group();const b=A3.box(0.36,0.3,0.36,c||"#3ccf5a");b.position.y=0.15;const r=new THREE.Mesh(new THREE.ConeGeometry(0.32,0.25,4),A3.mat("#c0392b"));r.position.y=0.42;r.rotation.y=Math.PI/4;r.castShadow=true;g.add(b,r);return g;}
+function drawTileStuff(i){
+  const g=tileG[i];for(let k=floaters.length-1;k>=0;k--)if(floaters[k].tile===i)floaters.splice(k,1);
+  while(g.children.length)g.remove(g.children[0]);
+  if(!G||!isProp(i))return;const o=own(i);if(o<0)return;const p=G.players[o];
+  const s=sideOf(i),corner=i%20===0;
+  const strip=A3.box(s%2?0.22:1.8,0.08,s%2?1.8:0.22,p.col);strip.position.copy(vec(i,-1.35,0));strip.position.y=0.04;g.add(strip);
+  const L=lvl(i);const rot=Math.atan2(-OUTS[s][0],-OUTS[s][1]);
+  if(L>=1&&L<=4){for(let k=0;k<L;k++){const h=house();h.position.copy(vec(i,1.1,(k-(L-1)/2)*0.45));h.rotation.y=rot;g.add(h);}}
+  if(L===5){const h=A3.box(1.3,0.7,0.6,"#e8423a");h.position.copy(vec(i,1.05,0));h.position.y=0.35;h.rotation.y=rot;g.add(h);
+    const sign=A3.box(0.5,0.18,0.05,"#ffd23f");sign.position.copy(vec(i,0.74,0));sign.position.y=0.55;sign.rotation.y=rot;g.add(sign);}
+  if(L===6){const t=A3.box(0.9,3.4,0.9,"#7fd3ff",{metal:.5,rough:.15,emissive:"#12406a",glow:.6});t.position.copy(vec(i,0.95,0));t.position.y=1.7;g.add(t);
+    for(let k=0;k<6;k++){const b=A3.box(0.95,0.06,0.95,"#e6f6ff",{metal:.6,rough:.2});b.position.copy(t.position);b.position.y=0.5+k*0.5;g.add(b);}
+    const sp=new THREE.Mesh(new THREE.ConeGeometry(0.3,1.2,8),A3.mat("#ffd23f",{metal:.8,rough:.2}));sp.position.copy(t.position);sp.position.y=4;sp.castShadow=true;g.add(sp);}
+  if(L===7){const fl=new THREE.Group();fl.position.copy(vec(i,0.6,0));fl.position.y=3.2;
+    for(let k=0;k<6;k++){const c=A3.ball(0.45+Math.random()*0.25,"#ffffff",{rough:1});c.position.set(Math.cos(k)*0.7,-0.25,Math.sin(k)*0.7);fl.add(c);}
+    const keep=A3.box(1.1,1.0,1.1,"#f2f2f8");keep.position.y=0.4;fl.add(keep);
+    [[-0.6,-0.6],[0.6,-0.6],[-0.6,0.6],[0.6,0.6]].forEach(q=>{const t=A3.cyl(0.22,0.22,1.5,"#f2f2f8",10);t.position.set(q[0],0.6,q[1]);const r=new THREE.Mesh(new THREE.ConeGeometry(0.3,0.6,10),A3.mat(p.col));r.position.set(q[0],1.6,q[1]);r.castShadow=true;fl.add(t,r);});
+    const flag=A3.box(0.4,0.25,0.03,p.col);flag.position.set(0.2,1.8,0);const pole=A3.cyl(0.02,0.02,0.8,"#888",4);pole.position.set(0,1.4,0);fl.add(flag,pole);
+    g.add(fl);floaters.push({tile:i,m:fl,y:3.2,ph:Math.random()*6});}
+}
+function drawAllStuff(){for(let i=0;i<80;i++)drawTileStuff(i);paintPins();}
+function paintPins(){GROUPS.forEach((gr,g)=>{const o=G?own(groupIdx(g)[0]):-1;const full=G&&o>=0&&hasSet(o,g);const m=pins[g].material;m.color.set(full?G.players[o].col:"#cccccc");m.color.convertSRGBToLinear();m.emissive.set(full?G.players[o].col:"#000000");m.emissive.convertSRGBToLinear();m.emissiveIntensity=full?0.5:0;});}
+
+/* ---------- avatars ---------- */
+const avs=[];
+function gearLook(){
+  if(!window.Gear||!Gear.items)return {};
+  const ok=["common","uncommon","rare","epic"];const look={};
+  ["hat","face","back"].forEach(sl=>{if(Math.random()<0.65){const c=Gear.items.filter(it=>it.slot===sl&&ok.indexOf(it.rarity)>=0);if(c.length)look[sl]=A3.pick(c).id;}});
+  return look;}
+function makeAvatar(p){
+  const root=new THREE.Group();let man=null;
+  if(window.Gear&&Gear.mannequin){man=Gear.mannequin(p.col);root.add(man.group);man.group.scale.setScalar(0.38);
+    try{const o={forward:"z",head:man.head,torso:man.torso,height:3,feet:0,body:man.body};if(!p.me)o.look=p.look||{};Gear.dress(man.group,o);}catch(e){}}
+  else{const b=A3.box(0.4,0.8,0.3,p.col);b.position.y=0.4;root.add(b);}
+  const lab=A3.label(p.name,{size:0.38,bg:"rgba(10,16,36,.7)",color:p.col});lab.position.y=1.65;root.add(lab);
+  scene.add(root);return {root,man,lab,hop:0};
+}
+function clearAvatars(){avs.forEach(a=>{if(window.Gear&&a.man)try{Gear.undress(a.man.group);}catch(e){}scene.remove(a.root);});avs.length=0;}
+function spot(pi,i){ // where player pi stands on tile i
+  const n=G.players.length,k=pi,lat=((k%3)-1)*0.55,inw=-0.35-Math.floor(k/3)*0.6;
+  const v=vec(i,inw,lat);const[x,z]=tilePos(i);return new THREE.Vector3(x+v.x,0.02,z+v.z);}
+function faceDir(i){const d=DIRS[sideOf(i)];return Math.atan2(d[0],d[1]);}
+function placeAll(){G.players.forEach((p,k)=>{const a=avs[k];if(!a)return;a.root.visible=!p.out;a.root.position.copy(spot(k,p.pos));a.root.rotation.y=faceDir(p.pos);});}
+
+/* ---------- tweens + timing ---------- */
+const tweens=[];
+function tween(dur,fn){return new Promise(r=>{tweens.push({t:0,dur:Math.max(0.01,dur),fn,r});});}
+const TURBO=location.hash==="#turbo";
+const spd=()=>TURBO?0.02:S.fast&&!(G&&P()&&P().human)?0.45:1;
+const wait=ms=>new Promise(r=>setTimeout(r,ms*spd()));
+async function hop(pi,from,to){
+  const a=avs[pi];const A=spot(pi,from),B=spot(pi,to);a.root.rotation.y=faceDir(from);
+  await tween(0.2*spd(),k=>{a.root.position.lerpVectors(A,B,k);a.root.position.y=0.02+Math.sin(k*Math.PI)*0.7;});
+  A3.sfx("tick");
+}
+
+/* ---------- camera ---------- */
+let camYaw=0,camPitch=0,camTarget=new THREE.Vector3(),camLook=new THREE.Vector3(0,0,0);
+const camPos=new THREE.Vector3(0,40,40);camera.position.copy(camPos);
+function updCam(dt){
+  let pos,look;
+  if(S.cam==="board"||!G){
+    const r=58,a=camYaw+0.0;pos=new THREE.Vector3(Math.sin(a)*r*0.62,r*0.82,Math.cos(a)*r*0.62);look=new THREE.Vector3(0,0,0);
+    if(!G){camYaw+=dt*0.08;}
+  }else{
+    const pi=G.turn,a=avs[pi];if(!a)return;const ap=a.root.position;
+    const i=G.players[pi].pos,s=sideOf(i),d=DIRS[s],o=OUTS[s];
+    const off=new THREE.Vector3(-d[0]*6+o[0]*6.5,6.5+camPitch,-d[1]*6+o[1]*6.5);
+    off.applyAxisAngle(new THREE.Vector3(0,1,0),camYaw);
+    pos=new THREE.Vector3(ap.x,0,ap.z).add(off);look=new THREE.Vector3(ap.x+d[0]*3-o[0]*2.5,0.6,ap.z+d[1]*3-o[1]*2.5);
+  }
+  const k=1-Math.exp(-dt*3.2);camPos.lerp(pos,k);camLook.lerp(look,k);camera.position.copy(camPos);camera.lookAt(camLook);
+}
+// drag to look around, tap a square to see it
+{let down=null,moved=0;
+ V.renderer.domElement.addEventListener("pointerdown",e=>{down={x:e.clientX,y:e.clientY};moved=0;});
+ window.addEventListener("pointermove",e=>{if(!down)return;const dx=e.clientX-down.x,dy=e.clientY-down.y;moved+=Math.abs(dx)+Math.abs(dy);down={x:e.clientX,y:e.clientY};camYaw-=dx*0.008;camPitch=A3.clamp(camPitch+dy*0.03,-4,14);});
+ window.addEventListener("pointerup",e=>{if(!down)return;down=null;if(moved<10){const p=A3.floorPoint(e,camera,V.renderer.domElement,0);if(p){const i=tileAt(p.x,p.z);if(i>=0)showInfo(i);}}});}
+function tileAt(x,z){if(Math.abs(x)>22||Math.abs(z)>22)return -1;if(Math.abs(x)<19&&Math.abs(z)<19)return -1;
+  let best=-1,bd=1e9;for(let i=0;i<80;i++){const[a,b]=tilePos(i);const d=Math.max(Math.abs(a-x),Math.abs(b-z));if(d<bd){bd=d;best=i;}}return best;}
+
+/* ---------- frame loop ---------- */
+A3.loop((dt,t)=>{
+  for(let k=tweens.length-1;k>=0;k--){const w=tweens[k];w.t+=dt;const f=Math.min(1,w.t/w.dur);w.fn(A3.ease(f));if(f>=1){tweens.splice(k,1);w.r();}}
+  gball.rotation.y+=dt*0.12;
+  plane.position.set(Math.cos(t*0.5)*8,10+Math.sin(t*1.3)*0.6,Math.sin(t*0.5)*8);plane.rotation.y=-t*0.5;plane.rotation.z=0.2;
+  clouds.forEach(c=>{c.userData.a+=dt*0.01;c.position.x=Math.cos(c.userData.a)*c.userData.r;c.position.z=Math.sin(c.userData.a)*c.userData.r;});
+  floaters.forEach(f=>{f.m.position.y=f.y+Math.sin(t*1.5+f.ph)*0.2;f.m.rotation.y+=dt*0.2;});
+  if(G&&avs[G.turn]&&!G.players[G.turn].out){const a=avs[G.turn];a.lab.scale.y=0.38*(1+Math.sin(t*5)*0.06);}
+  updCam(dt);V.render();
+});
+
+/* ================= UI helpers ================= */
+const bar=$("bar");let barRes=null;
+function ask(msg,btns){return new Promise(res=>{barRes=res;
+  bar.innerHTML=(msg?'<div class="q">'+msg+'</div>':'')+'<div class="bs">'+btns.map(b=>'<button class="btn '+(b.cls||"")+'" data-k="'+b.k+'"'+(b.dis?" disabled":"")+'>'+b.label+(b.sub?'<small>'+b.sub+'</small>':'')+'</button>').join("")+'</div>';
+  bar.querySelectorAll("button").forEach(b=>b.onclick=()=>{A3.sfx("click");const r=barRes;barRes=null;bar.innerHTML="";r&&r(b.dataset.k);});});}
+function say(msg){bar.innerHTML=msg?'<div class="q">'+msg+'</div>':"";}
+let panelRes=null;
+function panel(title,html,wire){$("pTitle").textContent=title;$("pBody").innerHTML=html;A3.show("ovPanel");if(wire)wire($("pBody"));return new Promise(r=>{panelRes=r;});}
+function closePanel(v){A3.hide("ovPanel");const r=panelRes;panelRes=null;r&&r(v);}
+$("pClose").onclick=()=>closePanel(null);
+function logIt(html){if(!G)return;G.log.unshift(html);G.log.length=Math.min(G.log.length,5);paintLog();}
+function paintLog(){$("log").innerHTML=G?G.log.slice(0,4).map(l=>"<div>"+l+"</div>").join(""):"";}
+const nm=p=>'<b style="color:'+p.col+'">'+esc(p.name)+'</b>';
+const money=n=>"$"+fmt(n);
+function banner(big,sub,ms){const b=$("banner");b.innerHTML=big+(sub?"<small>"+sub+"</small>":"");b.classList.add("on");clearTimeout(b._t);b._t=setTimeout(()=>b.classList.remove("on"),ms||1800);}
+function paint(){
+  if(!G){$("plist").innerHTML="";return;}
+  $("plist").innerHTML=G.players.map((p,k)=>'<div class="pl'+(k===G.turn&&!G.over?" cur":"")+(p.out?" out":"")+'" data-k="'+k+'"><i style="background:'+p.col+'">'+(p.human?"":"🤖")+'</i><div><b>'+esc(p.name)+(p.jail?" 🛂":"")+(p.pass?" 🎫":"")+'</b><small>'+money(p.money)+' · '+propsOf(k).length+' places</small></div></div>').join("");
+  $("plist").querySelectorAll(".pl").forEach(el=>el.onclick=()=>showPlayer(+el.dataset.k));
+  const me=G.players.find(p=>p.me)||G.players.find(p=>p.human);
+  $("hMoney").textContent=me?money(me.money):"-";$("hMult").textContent="x"+fmt(mult());
+  $("hRound").textContent=G.round+(G.maxR?" / "+G.maxR:"");$("hWins").textContent=fmt(S.wins);
+}
+function save(){if(G&&!G.over){S.g=G;}else S.g=null;store();}
+
+/* ---------- info panels ---------- */
+function rentTable(i){
+  const q=SQ[i],m=mult(),o=own(i),l=o>=0?lvl(i):-1;
+  if(q.t==="city"){let r='<table class="rent">';
+    r+='<tr'+(l===0&&!(o>=0&&hasSet(o,q.g))?' class="on"':'')+'><td>Rent</td><td>'+money(q.rent*m)+'</td></tr>';
+    r+='<tr'+(l===0&&o>=0&&hasSet(o,q.g)?' class="on"':'')+'><td>Whole country owned</td><td>'+money(q.rent*2*m)+'</td></tr>';
+    for(let k=1;k<8;k++)r+='<tr'+(l===k?' class="on"':'')+'><td>'+LVN[k]+' <small style="color:#8fa0c8">(build '+money(q.price*BC[k]*m)+')</small></td><td>'+money(q.rent*RM[k]*m)+'</td></tr>';
+    return r+'</table>';}
+  if(q.t==="air")return '<table class="rent">'+[1,2,3,4].map(n=>'<tr><td>Own '+n+' airport'+(n>1?"s":"")+'</td><td>'+money(25*Math.pow(2,n-1)*m)+'</td></tr>').join("")+'</table>';
+  if(q.t==="farm")return '<p>Rent is your dice roll times 4, or times 10 if one player owns both farms (x'+fmt(m)+' at today\'s prices).</p>';
+  return "";
+}
+function showInfo(i){
+  if(!$("ovPanel").hidden||!$("ovTitle").hidden)return;
+  const q=SQ[i];let h="";
+  if(q.t==="city")h+='<p><span style="color:'+GROUPS[q.g].c+'">■</span> '+GROUPS[q.g].f+' '+GROUPS[q.g].n+'</p>';
+  if(isProp(i)){h+='<p>Price: <b>'+money(q.price*mult())+'</b></p>';
+    if(G){const o=own(i);h+='<p>'+(o>=0?'Owned by '+nm(G.players[o])+(q.t==="city"?' · '+LVN[lvl(i)]:''):'Nobody owns it yet')+'</p>';}
+    h+=rentTable(i);}
+  else if(q.t==="tax")h+='<p>Pay '+money(q.amt*mult())+' to the bank.</p>';
+  else if(q.t==="thief")h+='<p>Land here and you steal one property from another player! Mega Towers and Sky Castles are too big to carry away.</p>';
+  else if(q.t==="post")h+='<p>Pick up a Postcard: a surprise trip, prize or fee.</p>';
+  else if(q.t==="suit")h+='<p>Open a Lucky Suitcase: usually something good inside!</p>';
+  else h+='<p>'+q.sub+'</p>';
+  panel((q.ic?q.ic+" ":"")+q.n,h);
+}
+function showPlayer(k){
+  if(!$("ovPanel").hidden)return;const p=G.players[k];
+  let h='<p>'+money(p.money)+' cash · worth '+money(worth(p))+(p.jail?' · in Passport Control':'')+(p.pass?' · has a Fast Pass':'')+'</p>';
+  const ps=propsOf(k);if(!ps.length)h+='<p>No places yet.</p>';
+  ps.forEach(i=>{const q=SQ[i];h+='<div class="prow"><div class="sw" style="background:'+(q.t==="city"?GROUPS[q.g].c:"#9aa4b8")+'"></div><div class="nm">'+esc(q.n)+'<small>'+(q.t==="city"?GROUPS[q.g].n+' · '+LVN[lvl(i)]:q.t==="air"?"Airport":"Farm")+'</small></div><div>'+money(value(i))+'</div></div>';});
+  panel(p.name,h);
+}
+function showPlaces(){
+  if(!G||!$("ovPanel").hidden)return;let h="";
+  GROUPS.forEach((gr,g)=>{h+='<div class="cty" style="color:'+gr.c+'">'+gr.f+' '+gr.n+'</div>';
+    groupIdx(g).forEach(i=>{const o=own(i);h+='<div class="prow"><div class="sw" style="background:'+gr.c+'"></div><div class="nm">'+esc(SQ[i].n)+'<small>'+money(SQ[i].price*mult())+' · '+LVN[lvl(i)]+'</small></div>'+(o>=0?'<div class="dot" style="background:'+G.players[o].col+'"></div>'+esc(G.players[o].name):'<small>for sale</small>')+'</div>';});});
+  h+='<div class="cty">✈️ Airports and farms</div>';
+  SQ.forEach((q,i)=>{if(q.t==="air"||q.t==="farm"){const o=own(i);h+='<div class="prow"><div class="sw" style="background:#9aa4b8"></div><div class="nm">'+esc(q.n)+'<small>'+money(q.price*mult())+'</small></div>'+(o>=0?'<div class="dot" style="background:'+G.players[o].col+'"></div>'+esc(G.players[o].name):'<small>for sale</small>')+'</div>';}});
+  panel("🏙️ All the places",h);
+}
+$("bPlaces").onclick=showPlaces;
+$("bCam").onclick=()=>{S.cam=S.cam==="board"?"follow":"board";camYaw=0;camPitch=0;$("bCam").classList.toggle("on",S.cam==="board");store();};
+$("bCam").classList.toggle("on",S.cam==="board");
+A3.fullscreen($("bFs"),stage);
+$("bMute").onclick=()=>{A3.mute(!A3.mute());$("bMute").textContent=A3.mute()?"🔇":"🔊";};$("bMute").textContent=A3.mute()?"🔇":"🔊";
+
+/* ================= money ================= */
+function raise(p,need){ // sell buildings then places to the bank, half price
+  let sold=[];
+  while(p.money<need){
+    const ps=propsOf(p.i).filter(i=>lvl(i)>0).sort((a,b)=>lvl(b)-lvl(a));
+    if(!ps.length)break;const i=ps[0],l=lvl(i);p.money+=SQ[i].price*BC[l]*mult()/2;G.own[i][1]=l-1;drawTileStuff(i);sold.push(LVN[l]+" on "+SQ[i].n);
+  }
+  while(p.money<need){
+    const ps=propsOf(p.i).sort((a,b)=>value(a)-value(b));if(!ps.length)break;
+    const i=ps[0];p.money+=SQ[i].price*mult()/2;G.own[i]=[-1,0];drawTileStuff(i);sold.push(SQ[i].n);
+  }
+  if(sold.length){logIt(nm(p)+" sold "+esc(sold.slice(0,3).join(", "))+(sold.length>3?" and more":"")+" to pay up");paintPins();}
+}
+async function pay(p,amt,to){ // to = player or null (bank). returns false if p went out
+  amt=Math.max(0,amt);
+  if(p.money<amt)raise(p,amt);
+  if(p.money>=amt){p.money-=amt;if(to)to.money+=amt;A3.sfx("coin");paint();return true;}
+  // out of the game
+  if(to)to.money+=p.money;p.money=0;p.out=true;
+  propsOf(p.i).forEach(i=>{if(to){G.own[i][0]=to.i;}else G.own[i]=[-1,0];drawTileStuff(i);});
+  paintPins();A3.sfx("lose");logIt(nm(p)+" ran out of money and is out!");banner(esc(p.name)+" is out!",to?"Everything goes to "+esc(to.name):"",2200);
+  placeAll();paint();await wait(1600);return false;
+}
+function gain(p,amt){p.money+=amt;A3.sfx("coin");paint();}
+
+/* ================= cards ================= */
+const POST=[
+  {t:"Fly to Take Off! Collect your pay.",a:"to",v:0},
+  {t:"Jet to Perth, the best city in the world!",a:"to",v:PERTH},
+  {t:"Fly to the nearest airport. If someone owns it, pay them double.",a:"air"},
+  {t:"Tailwind! Hop forward 5.",a:"fwd",v:5},
+  {t:"Wrong turn! Go back 4.",a:"back",v:4},
+  {t:"Your holiday photo won a prize. Collect $150.",a:"get",v:150},
+  {t:"Lost luggage fee. Pay $50.",a:"pay",v:50},
+  {t:"Your passport needs a stamp. Go straight to Passport Control.",a:"jail"},
+  {t:"Fast Pass! Keep this to get out of Passport Control free.",a:"pass"},
+  {t:"Sneaky Thief! Steal one property from another player.",a:"thief"},
+  {t:"Building check. Pay $25 per house, $100 per hotel and $250 per Mega Tower or Sky Castle.",a:"fix",v:[25,100,250]},
+  {t:"Fly to Paris for some croissants!",a:"to",v:PARIS},
+  {t:"Fly to Tokyo for some sushi!",a:"to",v:TOKYO},
+  {t:"Tour guide of the year! Every player pays you $25.",a:"each",v:25}
+];
+const SUIT=[
+  {t:"You found $100 tucked in your socks!",a:"get",v:100},
+  {t:"Birthday on the beach! Every player gives you $20.",a:"each",v:20},
+  {t:"Travel insurance pays out $200.",a:"get",v:200},
+  {t:"Souvenir shopping spree. Pay $50.",a:"pay",v:50},
+  {t:"You won a sandcastle contest! Collect $100.",a:"get",v:100},
+  {t:"Fly to Take Off! Collect your pay.",a:"to",v:0},
+  {t:"Fast Pass! Keep this to get out of Passport Control free.",a:"pass"},
+  {t:"Overweight bag. Pay $40.",a:"pay",v:40},
+  {t:"You sold your holiday snaps. Collect $50.",a:"get",v:50},
+  {t:"Oops, you forgot your passport. Go to Passport Control.",a:"jail"},
+  {t:"A lucky coin in a fountain! Collect $25.",a:"get",v:25},
+  {t:"Hotel upgrade bill. Pay $40 per house, $115 per hotel and $300 per Mega Tower or Sky Castle.",a:"fix",v:[40,115,300]}
+];
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const withM=t=>t.replace(/\$(\d+)/g,(m,n)=>"$"+fmt(+n*mult()));
+async function showCard(kind,c,p){
+  const box=$("cardBox");box.className="card"+(kind==="suit"?" suit":"");
+  box.innerHTML='<div class="ic">'+(kind==="suit"?"🧳":"💌")+'</div><h3>'+(kind==="suit"?"Lucky Suitcase":"Postcard")+'</h3>'+esc(withM(c.t));
+  A3.show("ovCard");A3.sfx("pop");
+  if(p.human){$("cardOk").hidden=false;await new Promise(r=>{$("cardOk").onclick=()=>{A3.sfx("click");r();};});}
+  else{$("cardOk").hidden=true;await wait(2000);}
+  A3.hide("ovCard");logIt(nm(p)+": "+esc(withM(c.t)));
+}
+async function drawCard(p,kind,roll){
+  const deck=kind==="post"?POST:SUIT,key=kind==="post"?"dp":"ds";
+  if(!G[key]||!G[key].length)G[key]=shuffle(deck.map((c,k)=>k));
+  const c=deck[G[key].shift()];await showCard(kind,c,p);
+  const m=mult();
+  switch(c.a){
+    case "to":{const steps=(c.v-p.pos+80)%80;await move(p,steps||80,true);return await land(p,roll);}
+    case "air":{let k=1;while(SQ[(p.pos+k)%80].t!=="air")k++;await move(p,k,true);return await land(p,roll,true);}
+    case "fwd":await move(p,c.v,true);return await land(p,roll);
+    case "back":await moveBack(p,c.v);return await land(p,roll);
+    case "get":gain(p,c.v*m);return true;
+    case "pay":return await pay(p,c.v*m,null);
+    case "jail":await toJail(p);return true;
+    case "pass":p.pass=(p.pass|0)+1;paint();return true;
+    case "thief":await thief(p);return true;
+    case "fix":{let tot=0;propsOf(p.i).forEach(i=>{const l=lvl(i);if(l>=1&&l<=4)tot+=l*c.v[0];else if(l===5)tot+=c.v[1];else if(l>=6)tot+=c.v[2];});return tot?await pay(p,tot*m,null):true;}
+    case "each":{for(const o of alive()){if(o!==p){if(!await pay(o,c.v*m,p))continue;}}return true;}
+  }
+  return true;
+}
+
+/* ================= moving ================= */
+function passGo(p){
+  p.laps++;
+  if(p.laps>G.level){const m0=mult();G.level=p.laps;const f=mult()/m0;G.players.forEach(o=>{if(!o.out)o.money*=f;});drawBoard();A3.sfx("win");banner("WORLD BOOM!","Prices and everyone's money x"+fmt(f)+"!",2600);logIt("🌍 World Boom! "+nm(p)+" led lap "+p.laps+": all prices x"+fmt(mult()));}
+  gain(p,200*mult());logIt(nm(p)+" passed Take Off: +"+money(200*mult()));
+}
+async function move(p,n,collect){
+  for(let k=0;k<n;k++){const from=p.pos;p.pos=(p.pos+1)%80;await hop(p.i,from,p.pos);if(p.pos===0&&collect)passGo(p);}
+  avs[p.i].root.rotation.y=faceDir(p.pos);
+}
+async function moveBack(p,n){for(let k=0;k<n;k++){const from=p.pos;p.pos=(p.pos+79)%80;await hop(p.i,from,p.pos);}}
+async function toJail(p){
+  const a=avs[p.i],A=a.root.position.clone();p.pos=20;p.jail=true;p.jt=0;G.dbl=0;const B=spot(p.i,20);
+  A3.sfx("whoosh");await tween(0.9*spd(),k=>{a.root.position.lerpVectors(A,B,k);a.root.position.y=Math.sin(k*Math.PI)*6;});
+  a.root.rotation.y=faceDir(20);logIt(nm(p)+" went to Passport Control 🛂");paint();
+}
+async function rollDice(){
+  const d=$("dice"),e1=$("d1"),e2=$("d2");d.classList.add("on");e1.className=e2.className="die roll";
+  const a=1+Math.floor(Math.random()*9),b=1+Math.floor(Math.random()*9);
+  for(let k=0;k<9;k++){e1.textContent=1+Math.floor(Math.random()*9);e2.textContent=1+Math.floor(Math.random()*9);A3.sfx("tick");await wait(70);}
+  e1.textContent=a;e2.textContent=b;e1.className=e2.className="die"+(a===b?" dbl":"");A3.sfx("pop");
+  setTimeout(()=>d.classList.remove("on"),2200);
+  return [a,b];
+}
+
+/* ================= landing ================= */
+async function land(p,roll,dblAir){
+  const i=p.pos,q=SQ[i];paint();
+  if(isProp(i)){
+    const o=own(i);
+    if(o<0)return await offerBuy(p,i);
+    if(o===p.i)return true;
+    const op=G.players[o];if(op.out)return true;
+    const r=rentOf(i,roll,dblAir);
+    logIt(nm(p)+" paid "+nm(op)+" "+money(r)+" rent for "+esc(q.n));
+    banner("Rent!",esc(op.name)+" gets "+money(r),1300);
+    return await pay(p,r,op);
+  }
+  if(q.t==="tax"){logIt(nm(p)+" paid "+esc(q.n)+" "+money(q.amt*mult()));return await pay(p,q.amt*mult(),null);}
+  if(q.t==="post"||q.t==="suit")return await drawCard(p,q.t,roll);
+  if(q.t==="thief"){await thief(p);return true;}
+  if(q.t==="gojail"){await toJail(p);return true;}
+  return true;
+}
+function botWants(p,i){
+  const q=SQ[i],cost=q.price*mult(),left=p.money-cost,res=[60,140,90][G.diff]*mult();
+  if(left<0)return false;
+  if(q.t==="city"){const mine=countIn(p.i,q.g),theirs=groupIdx(q.g).some(k=>own(k)>=0&&own(k)!==p.i);
+    if(mine===3)return true;if(G.diff===0)return Math.random()<0.6&&left>res;if(G.diff===2&&mine>=1&&!theirs)return left>res*0.3;}
+  return left>res;
+}
+async function offerBuy(p,i){
+  const q=SQ[i],cost=q.price*mult();
+  let yes;
+  if(p.human){const k=await ask(nm(p)+", buy "+esc(q.n)+(q.t==="city"?" ("+GROUPS[q.g].f+" "+GROUPS[q.g].n+")":"")+" for "+money(cost)+"?",[{k:"y",label:"Buy it",sub:money(cost),cls:"green",dis:p.money<cost},{k:"n",label:"No thanks",cls:"alt"},{k:"i",label:"Rents",cls:"alt small"}]);
+    if(k==="i"){await panel(q.n,rentTable(i));return await offerBuy(p,i);}yes=k==="y";}
+  else{await wait(700);yes=botWants(p,i);}
+  if(yes&&p.money>=cost){p.money-=cost;G.own[i]=[p.i,0];drawTileStuff(i);A3.sfx("coin");logIt(nm(p)+" bought "+esc(q.n)+" for "+money(cost));
+    if(q.t==="city"&&hasSet(p.i,q.g)){banner(GROUPS[q.g].f+" "+esc(GROUPS[q.g].n)+"!",esc(p.name)+" owns the whole country",2200);A3.sfx("win");paintPins();}
+    paint();}
+  else if(!p.human)logIt(nm(p)+" didn't buy "+esc(q.n));
+  return true;
+}
+function stealable(p){const r=[];for(let i=0;i<80;i++)if(isProp(i)&&own(i)>=0&&own(i)!==p.i&&!G.players[own(i)].out&&lvl(i)<6)r.push(i);return r;}
+async function thief(p){
+  const c=stealable(p);A3.sfx("whoosh");
+  if(!c.length){logIt("🦝 "+nm(p)+" found nothing to steal");banner("🦝 Nothing to steal!","",1400);await wait(900);return;}
+  let pick;
+  if(p.human){
+    let h='<p>Pick one place to steal. It comes with any houses or hotel on it.</p>';
+    c.sort((a,b)=>value(b)-value(a)).forEach(i=>{const q=SQ[i],o=G.players[own(i)];h+='<div class="prow"><div class="sw" style="background:'+(q.t==="city"?GROUPS[q.g].c:"#9aa4b8")+'"></div><div class="nm">'+esc(q.n)+'<small>'+(q.t==="city"?GROUPS[q.g].n+' · '+LVN[lvl(i)]:q.t==="air"?"Airport":"Farm")+' · '+money(value(i))+'</small></div><div class="dot" style="background:'+o.col+'"></div><button class="btn green" data-i="'+i+'">Steal</button></div>';});
+    $("pClose").hidden=true;
+    pick=await panel("🦝 Sneaky Thief!",h,el=>el.querySelectorAll("button[data-i]").forEach(b=>b.onclick=()=>{A3.sfx("click");closePanel(+b.dataset.i);}));
+    $("pClose").hidden=false;
+  }else{
+    await wait(800);
+    pick=c.map(i=>{const q=SQ[i];let s=value(i);if(q.t==="city"){const m=countIn(p.i,q.g);s*=1+m*0.8;if(m===3)s*=3;if(hasSet(own(i),q.g))s*=1.5;}return [s,i];}).sort((a,b)=>b[0]-a[0])[0][1];
+  }
+  const victim=G.players[own(pick)];G.own[pick][0]=p.i;drawTileStuff(pick);paintPins();
+  A3.sfx("pop");banner("🦝 Stolen!",esc(p.name)+" took "+esc(SQ[pick].n)+" from "+esc(victim.name),2200);
+  logIt("🦝 "+nm(p)+" stole "+esc(SQ[pick].n)+" from "+nm(victim));paint();await wait(900);
+}
+
+/* ================= building ================= */
+function buildable(p){const r=[];SQ.forEach((q,i)=>{if(q.t==="city"&&own(i)===p.i&&hasSet(p.i,q.g)&&lvl(i)<7)r.push(i);});return r;}
+function doBuild(p,i){const L=lvl(i)+1,c=buildCost(i,L);if(p.money<c)return false;p.money-=c;G.own[i][1]=L;drawTileStuff(i);A3.sfx(L>=6?"win":"pop");
+  logIt(nm(p)+" built "+(L<=4?"a house ("+LVN[L]+")":"a "+LVN[L])+" on "+esc(SQ[i].n));
+  if(L===7){banner("☁️ Sky Castle!",esc(SQ[i].n)+" now charges "+money(rentOf(i)),2200);if(p.me)A3.win(2,"building a Sky Castle in Globe Grab");}
+  else if(L===6)banner("🏙️ Mega Tower!",esc(SQ[i].n),1600);
+  paint();return true;}
+async function buildPanel(p){
+  const draw=el=>{const b=buildable(p);let h='<p>You have '+money(p.money)+'. Own a whole country to build there.</p>';
+    if(!b.length)h+='<p>You don\'t own a whole country yet. Grab all 4 cities in one country, or steal the last one with the Sneaky Thief!</p>';
+    b.forEach(i=>{const q=SQ[i],L=lvl(i),c=buildCost(i,L+1);h+='<div class="prow"><div class="sw" style="background:'+GROUPS[q.g].c+'"></div><div class="nm">'+esc(q.n)+'<small>'+LVN[L]+' · rent '+money(rentOf(i))+'</small></div><button class="btn '+(L>=5?"pink":"green")+'" data-i="'+i+'"'+(p.money<c?" disabled":"")+'>'+LVN[L+1].replace(/^\d+ houses?/,"House")+' '+money(c)+'</button></div>';});
+    el.innerHTML=h;el.querySelectorAll("button[data-i]").forEach(bt=>bt.onclick=()=>{doBuild(p,+bt.dataset.i);paintPins();draw(el);save();});};
+  await panel("🏗️ Build",'',draw);
+}
+function botBuild(p){
+  const res=[200,120,80][G.diff]*mult();let n=0;
+  while(n<8){const b=buildable(p).map(i=>[lvl(i),buildCost(i,lvl(i)+1),i]).filter(x=>p.money-x[1]>=res).sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+    if(!b.length)break;if(G.diff===0&&Math.random()<0.4)break;doBuild(p,b[0][2]);n++;}
+  return n;
+}
+
+/* ================= trading ================= */
+function botAccepts(o,i,offer){
+  const q=SQ[i],f=[1.3,1.7,2.2][G.diff];let need=value(i)*f;
+  if(q.t==="city"){if(hasSet(o.i,q.g))need*=3;else if(countIn(o.i,q.g)>=2)need*=1.8;}
+  return offer>=need;
+}
+async function botDeal(p){ // a computer player tries to buy the last city it needs for a whole country
+  const res=[200,120,80][G.diff]*mult();G.asked=G.asked||{};
+  for(let g=0;g<GROUPS.length;g++){
+    if(countIn(p.i,g)!==3)continue;
+    const i=groupIdx(g).find(k=>own(k)!==p.i);const oi=own(i);if(oi<0)continue;const o=G.players[oi];if(o.out||lvl(i)>0)continue;
+    if(G.asked[i]&&G.round-G.asked[i]<4)continue;
+    const offer=value(i)*[1.8,2.4,3][G.diff];if(p.money-offer<res)continue;
+    G.asked[i]=G.round;let ok;
+    if(o.human){const k=await ask(nm(p)+" 🤖 wants to buy "+esc(SQ[i].n)+" from "+nm(o)+" for "+money(offer)+". "+(o.name==="You"?"Sell it?":"Pass to "+esc(o.name)+": sell it?"),[{k:"y",label:"Yes, sell",sub:money(offer),cls:"green"},{k:"n",label:"No way",cls:"pink"},{k:"i",label:"Rents",cls:"alt small"}]);
+      if(k==="abort")return;if(k==="i"){await panel(SQ[i].n,rentTable(i));G.asked[i]=0;return await botDeal(p);}ok=k==="y";}
+    else{await wait(600);ok=botAccepts(o,i,offer);}
+    if(ok){p.money-=offer;o.money+=offer;G.own[i][0]=p.i;drawTileStuff(i);paintPins();A3.sfx("win");banner("Deal!",esc(p.name)+" bought "+esc(SQ[i].n),1800);logIt("🤝 "+nm(p)+" bought "+esc(SQ[i].n)+" from "+nm(o)+" for "+money(offer));
+      if(hasSet(p.i,g))banner(GROUPS[g].f+" "+esc(GROUPS[g].n)+"!",esc(p.name)+" owns the whole country",2200);}
+    else logIt(nm(o)+" wouldn't sell "+esc(SQ[i].n)+" to "+nm(p));
+    paint();return;
+  }
+}
+async function tradePanel(p){
+  const others=alive().filter(o=>o!==p);
+  let h='<p>Offer to buy a place from another player. You have '+money(p.money)+'.</p>';let any=false;
+  others.forEach(o=>{const ps=propsOf(o.i);if(!ps.length)return;any=true;h+='<div class="cty" style="color:'+o.col+'">'+esc(o.name)+(o.human?"":" 🤖")+'</div>';
+    ps.forEach(i=>{const q=SQ[i],v=value(i);h+='<div class="prow"><div class="sw" style="background:'+(q.t==="city"?GROUPS[q.g].c:"#9aa4b8")+'"></div><div class="nm">'+esc(q.n)+'<small>'+(q.t==="city"?LVN[lvl(i)]+' · ':'')+'worth '+money(v)+'</small></div>'+[1.5,2,3].map(f=>'<button class="btn '+(f===3?"pink":"alt")+'" data-i="'+i+'" data-f="'+f+'"'+(p.money<v*f?" disabled":"")+'>'+money(v*f)+'</button>').join("")+'</div>';});});
+  if(!any)h+='<p>Nobody else owns anything yet.</p>';
+  const r=await panel("🤝 Trade",h,el=>el.querySelectorAll("button[data-i]").forEach(b=>b.onclick=()=>{A3.sfx("click");closePanel([+b.dataset.i,+b.dataset.f]);}));
+  if(!r)return;
+  const[i,f]=r,o=G.players[own(i)],offer=value(i)*f;
+  let ok;
+  if(o.human){const k=await ask("Pass to "+nm(o)+": will you sell "+esc(SQ[i].n)+" to "+nm(p)+" for "+money(offer)+"?",[{k:"y",label:"Yes, sell",cls:"green"},{k:"n",label:"No way",cls:"pink"}]);ok=k==="y";}
+  else{say(nm(o)+" is thinking…");await wait(1000);ok=botAccepts(o,i,offer);}
+  if(ok&&p.money>=offer){p.money-=offer;o.money+=offer;G.own[i][0]=p.i;drawTileStuff(i);paintPins();A3.sfx("win");banner("Deal!",esc(p.name)+" bought "+esc(SQ[i].n),1800);logIt("🤝 "+nm(p)+" bought "+esc(SQ[i].n)+" from "+nm(o)+" for "+money(offer));}
+  else{A3.sfx("lose");banner("No deal",esc(o.name)+" said no",1400);logIt(nm(o)+" said no to selling "+esc(SQ[i].n));}
+  paint();save();
+}
+
+/* ================= turns ================= */
+const fine=()=>50*mult();
+async function humanTurn(p){
+  for(;;){
+    if(G.over||p.out)return;
+    if(G.phase==="roll"){
+      const btns=p.jail?[{k:"r",label:"🎲 Roll a double",sub:"try "+(p.jt+1)+" of 3",cls:"green"},{k:"f",label:"Pay "+money(fine()),dis:p.money<fine()},{k:"p",label:"🎫 Fast Pass",dis:!p.pass}]:[{k:"r",label:"🎲 Roll",sub:"two 9-sided dice",cls:"green"}];
+      btns.push({k:"b",label:"🏗️ Build",cls:"alt"},{k:"t",label:"🤝 Trade",cls:"alt"});
+      const k=await ask((p.jail?nm(p)+" is stuck in Passport Control":p.name==="You"?"Your turn":nm(p)+"'s turn"),btns);
+      if(k==="abort")return;
+      if(k==="b"){await buildPanel(p);continue;}
+      if(k==="t"){await tradePanel(p);continue;}
+      if(k==="f"){p.money-=fine();p.jail=false;logIt(nm(p)+" paid the fine");paint();continue;}
+      if(k==="p"){p.pass--;p.jail=false;logIt(nm(p)+" used a Fast Pass");paint();continue;}
+      await doRoll(p);save();
+    }else{
+      const k=await ask(nm(p)+", anything else?",[{k:"e",label:"✅ End turn",cls:"green"},{k:"b",label:"🏗️ Build",cls:"alt"},{k:"t",label:"🤝 Trade",cls:"alt"}]);
+      if(k==="abort")return;
+      if(k==="b"){await buildPanel(p);continue;}
+      if(k==="t"){await tradePanel(p);continue;}
+      return;
+    }
+  }
+}
+async function botTurn(p){
+  for(;;){
+    if(G.over||p.out)return;
+    if(G.phase==="roll"){
+      say(nm(p)+" 🤖 is having a go");await wait(700);
+      if(p.jail){if(p.pass){p.pass--;p.jail=false;logIt(nm(p)+" used a Fast Pass");}else if(p.money>fine()*8&&G.diff>0){p.money-=fine();p.jail=false;logIt(nm(p)+" paid the fine");}paint();}
+      await doRoll(p);save();
+    }else{await botDeal(p);if(botBuild(p))await wait(600);say("");return;}
+  }
+}
+async function doRoll(p){
+  const [a,b]=await rollDice(),tot=a+b,dbl=a===b;
+  logIt(nm(p)+" rolled "+a+" + "+b+" = "+tot+(dbl?" (double!)":""));
+  if(p.jail){
+    if(dbl){p.jail=false;banner("Double!","Out of Passport Control",1300);}
+    else{p.jt++;if(p.jt>=3){const ok=await pay(p,fine(),null);if(!ok){G.phase="end";return;}p.jail=false;logIt(nm(p)+" paid the fine after 3 tries");}
+      else{G.phase="end";paint();return;}}
+    await move(p,tot,true);const ok=await land(p,tot);G.phase="end";return;
+  }
+  if(dbl){G.dbl=(G.dbl|0)+1;if(G.dbl>=3){banner("3 doubles!","Off to Passport Control",1500);await toJail(p);G.phase="end";return;}}
+  await move(p,tot,true);
+  const ok=await land(p,tot);
+  G.phase=ok&&dbl&&!p.jail&&!p.out?"roll":"end";
+  if(G.phase==="roll"){banner("Double!","Have another go",1200);}
+}
+function nextTurn(){
+  G.dbl=0;G.phase="roll";const n=G.players.length;let t=G.turn;
+  for(let k=0;k<n;k++){t=(t+1)%n;if(t===0)G.round++;if(!G.players[t].out)break;}
+  G.turn=t;
+}
+function checkEnd(){
+  const al=alive();
+  if(al.length<=1)return al[0]||null;
+  if(G.maxR&&G.round>G.maxR)return al.slice().sort((a,b)=>worth(b)-worth(a))[0];
+  if(!al.some(p=>p.human))return al.slice().sort((a,b)=>worth(b)-worth(a))[0];
+  return null;
+}
+let running=false,gen=0;
+async function runGame(){
+  if(running)return;running=true;const my=gen;
+  while(G&&!G.over&&my===gen){
+    const w=checkEnd();if(w){endGame(w);break;}
+    const p=P();if(p.out){nextTurn();continue;}
+    paint();
+    const humans=G.players.filter(x=>x.human&&!x.out).length;
+    if(p.human&&humans>1&&G.phase==="roll"&&G.lastHuman!==p.i){banner(esc(p.name)+"'s turn","Pass the device!",1600);}
+    if(p.human)G.lastHuman=p.i;
+    save();
+    if(p.human)await humanTurn(p);else await botTurn(p);
+    if(!G||G.over||my!==gen)break;
+    nextTurn();save();
+  }
+  if(my===gen)running=false;
+}
+function endGame(w){
+  G.over=true;say("");
+  const me=G.players.find(p=>p.me),bots=G.players.some(p=>!p.human);
+  const iWon=me&&w===me;
+  S.games++;const mw=me?worth(me):0;if(mw>S.best)S.best=mw;
+  let extra="";
+  if(iWon){A3.sfx("win");if(bots){S.wins++;A3.win(5,"winning a game of Globe Grab");try{if(window.Leaderboard)Leaderboard.submit(S.wins);}catch(e){}extra="+ PhatCoin for the win!";}
+    else extra="Add a computer player to count wins on the leaderboard.";}
+  else A3.sfx(w&&w.human?"win":"lose");
+  $("eTitle").textContent=iWon?"You win!":(w?w.name+" wins!":"Game over");
+  $("eText").innerHTML=(G.maxR&&G.round>G.maxR?"The rounds ran out, so the richest player wins. ":"")+extra;
+  const st=G.players.slice().sort((a,b)=>(a.out-b.out)||(worth(b)-worth(a)));
+  $("eStand").innerHTML=st.map((p,k)=>'<div class="prow"><b>'+(k+1)+'.</b><div class="dot" style="background:'+p.col+'"></div><div class="nm">'+esc(p.name)+(p.human?"":" 🤖")+'<small>'+(p.out?"Out":"Worth "+money(worth(p)))+' · '+propsOf(p.i).length+' places</small></div></div>').join("");
+  S.g=null;store();paint();
+  setTimeout(()=>A3.show("ovEnd"),900);
+}
+$("eAgain").onclick=()=>{A3.hide("ovEnd");G=null;clearAvatars();drawBoard();drawAllStuff();paint();paintLog();openTitle();};
+
+/* ================= setup ================= */
+let seats=Array.isArray(S.seats)&&S.seats.length?S.seats:[{t:"me"},{t:"bot"},{t:"bot"},{t:"bot"}];
+if(seats[0].t!=="me")seats.unshift({t:"me"});
+function myName(){let n="";try{n=(window.Leaderboard&&Leaderboard.getName())||"";}catch(e){}return n||"You";}
+function paintSeats(){
+  let b=0;$("seats").innerHTML=seats.map((s,k)=>{const col=COLS[k];
+    if(s.t==="me")return '<div class="seat"><div class="dot" style="background:'+col+'"></div><span class="n">'+esc(myName())+(myName()==="You"?" (in your gear)":" (you, in your gear)")+'</span></div>';
+    if(s.t==="bot")return '<div class="seat"><div class="dot" style="background:'+col+'"></div><span class="n">🤖 '+BOTN[b++]+'</span><button data-x="'+k+'">✕</button></div>';
+    return '<div class="seat"><div class="dot" style="background:'+col+'"></div><input maxlength="14" data-n="'+k+'" value="'+esc(s.n||("Player "+(k+1)))+'"><button data-x="'+k+'">✕</button></div>';}).join("");
+  $("seats").querySelectorAll("button[data-x]").forEach(bt=>bt.onclick=()=>{seats.splice(+bt.dataset.x,1);paintSeats();});
+  $("seats").querySelectorAll("input[data-n]").forEach(inp=>inp.oninput=()=>{seats[+inp.dataset.n].n=inp.value;});
+  $("addBot").disabled=$("addMan").disabled=seats.length>=6;$("bStart").disabled=seats.length<2;
+}
+$("addBot").onclick=()=>{if(seats.length<6)seats.push({t:"bot"});paintSeats();};
+$("addMan").onclick=()=>{if(seats.length<6)seats.push({t:"man",n:"Player "+(seats.length+1)});paintSeats();};
+function seg(id,key){const el=$(id);const set=()=>el.querySelectorAll("button").forEach(b=>b.classList.toggle("on",+b.dataset.v===+S[key]));
+  el.querySelectorAll("button").forEach(b=>b.onclick=()=>{S[key]=+b.dataset.v;set();store();});set();}
+seg("segLen","len");seg("segDiff","diff");seg("segSpd","fast");
+function openTitle(){$("bCont").hidden=!S.g;paintSeats();A3.show("ovTitle");}
+function abortRun(){if(!running)return;gen++;running=false;const r=barRes;barRes=null;bar.innerHTML="";r&&r("abort");}
+function newGame(){
+  S.seats=seats.map(s=>({t:s.t,n:s.n}));
+  let b=0;const players=seats.map((s,k)=>{const p={i:k,col:COLS[k],money:1500,pos:0,jail:false,jt:0,pass:0,out:false,laps:0};
+    if(s.t==="me"){p.name=myName();p.human=true;p.me=true;}
+    else if(s.t==="bot"){p.name=BOTN[b++];p.human=false;p.look=gearLook();}
+    else{let n=(s.n||"").trim()||("Player "+(k+1));try{if(window.GHName)n=GHName.clean(n);}catch(e){}if(n==="Player")n="Player "+(k+1);p.name=n.slice(0,14);p.human=true;p.look=gearLook();}
+    return p;});
+  G={v:1,players,own:Array.from({length:80},()=>[-1,0]),turn:0,round:1,level:0,maxR:+S.len||0,diff:+S.diff,phase:"roll",dbl:0,log:[],dp:[],ds:[],over:false};
+  startG();logIt("Welcome to Globe Grab! Everyone starts with "+money(1500)+".");
+}
+function startG(){
+  clearAvatars();G.players.forEach(p=>avs.push(makeAvatar(p)));placeAll();drawBoard();drawAllStuff();paint();paintLog();
+  A3.hide("ovTitle");save();runGame();
+}
+$("bStart").onclick=()=>{A3.sfx("click");abortRun();newGame();};
+$("bCont").onclick=()=>{A3.sfx("click");if(running&&G&&!G.over){A3.hide("ovTitle");return;}G=S.g;if(!G)return;G.players.forEach((p,k)=>{p.i=k;});startG();};
+$("bMenu").onclick=()=>{if(running&&barRes===null){A3.toast("Wait for this go to finish",1500);return;}
+  if(G)save();openTitle();};
+
+// boot
+drawBoard();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>drawBoard());paint();openTitle();
+if(window.Leaderboard)Leaderboard.mount({el:"lb",game:"globe-grab",dir:"desc",unit:"wins",title:"Globe Grab: most wins"});
+$("hWins").textContent=fmt(S.wins);
+window.__gg={get G(){return G;},S,SQ,GROUPS};
+})();
+</script>
+</body>

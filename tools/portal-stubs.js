@@ -49,21 +49,92 @@
     document.head.appendChild(st);
   });
 
-  // CrazyGames SDK v3: loading and gameplay events (only in the CrazyGames build)
-  if (window.GH_CRAZY) {
-    var sdk = function () { return window.CrazyGames && window.CrazyGames.SDK; };
-    var ready = new Promise(function (res) {
-      var tries = 0; (function wait() { if (sdk()) sdk().init().then(res, res); else if (tries++ < 50) setTimeout(wait, 100); else res(); })();
+  // Portal ad and event layer (only in portal builds that set GH_TARGET).
+  // GHPortal.adBreak() shows a portal ad at a natural break (between levels, rounds or
+  // before "play again"); the portal decides whether an ad is actually due.
+  // GHPortal.breakOn([...selectors]) runs an ad break before the click on those buttons
+  // goes through, so games need no changes of their own.
+  var T = window.GH_TARGET || (window.GH_CRAZY ? "crazygames" : "");
+  var ctxs = [];
+  (function trackAudio() {
+    ["AudioContext", "webkitAudioContext"].forEach(function (k) {
+      var C = window[k]; if (!C) return;
+      var W = function () { var c = new (Function.prototype.bind.apply(C, [null].concat([].slice.call(arguments))))(); ctxs.push(c); return c; };
+      W.prototype = C.prototype; window[k] = W;
     });
-    ready.then(function () { try { sdk().game.loadingStart(); } catch (e) {} });
+  })();
+  var muted = false, wasRunning = [];
+  function mute() {
+    if (muted) return; muted = true; wasRunning = [];
+    ctxs.forEach(function (c) { if (c.state === "running") { wasRunning.push(c); try { c.suspend(); } catch (e) {} } });
+    [].forEach.call(document.querySelectorAll("audio,video"), function (m) { if (!m.paused) { m.dataset.ghWas = "1"; m.pause(); } });
+  }
+  function unmute() {
+    if (!muted) return; muted = false;
+    wasRunning.forEach(function (c) { try { c.resume(); } catch (e) {} }); wasRunning = [];
+    [].forEach.call(document.querySelectorAll("audio[data-gh-was],video[data-gh-was]"), function (m) { delete m.dataset.ghWas; try { m.play(); } catch (e) {} });
+  }
+  var playing = false, adOn = false;
+  var api = {
+    init: function () { return Promise.resolve(); }, loaded: noop,
+    start: noop, stop: noop, ad: function () { return Promise.resolve(); }
+  };
+  if (T === "crazygames") {
+    var cg = function () { return window.CrazyGames && window.CrazyGames.SDK; };
+    api.init = function () { return new Promise(function (res) { var n = 0; (function w() { if (cg()) cg().init().then(res, res); else if (n++ < 50) setTimeout(w, 100); else res(); })(); }).then(function () { try { cg().game.loadingStart(); } catch (e) {} }); };
+    api.loaded = function () { try { cg().game.loadingStop(); } catch (e) {} };
+    api.start = function () { try { cg().game.gameplayStart(); } catch (e) {} };
+    api.stop = function () { try { cg().game.gameplayStop(); } catch (e) {} };
+    api.ad = function () { return new Promise(function (res) {
+      try { cg().ad.requestAd("midgame", { adStarted: mute, adFinished: function () { unmute(); res(); }, adError: function () { unmute(); res(); } }); }
+      catch (e) { res(); } }); };
+  } else if (T === "poki") {
+    var pk = function () { return window.PokiSDK; };
+    api.init = function () { return pk() ? pk().init().then(noop, noop) : Promise.resolve(); };
+    api.loaded = function () { try { pk().gameLoadingFinished(); } catch (e) {} };
+    api.start = function () { try { pk().gameplayStart(); } catch (e) {} };
+    api.stop = function () { try { pk().gameplayStop(); } catch (e) {} };
+    api.ad = function () { try { return pk().commercialBreak(mute).then(unmute, unmute); } catch (e) { return Promise.resolve(); } };
+  } else if (T === "gd") {
+    var gdDone = null;
+    window.GD_OPTIONS = { gameId: window.GH_GD_ID || "", onEvent: function (ev) {
+      if (ev.name === "SDK_GAME_PAUSE") mute();
+      if (ev.name === "SDK_GAME_START") { unmute(); if (gdDone) { var d = gdDone; gdDone = null; d(); } }
+    } };
+    (function (d, s, id) { var js, fjs = d.getElementsByTagName(s)[0]; if (d.getElementById(id)) return; js = d.createElement(s); js.id = id;
+      js.src = "https://html5.api.gamedistribution.com/main.min.js"; fjs.parentNode.insertBefore(js, fjs); })(document, "script", "gamedistribution-jssdk");
+    api.ad = function () { return new Promise(function (res) {
+      var g = window.gdsdk; if (!g || !g.showAd) return res();
+      var t = setTimeout(function () { gdDone = null; unmute(); res(); }, 45000); gdDone = function () { clearTimeout(t); res(); };
+      try { var p = g.showAd(); if (p && p.then) p.then(null, function () { clearTimeout(t); gdDone = null; unmute(); res(); }); } catch (e) { clearTimeout(t); gdDone = null; res(); }
+    }); };
+  }
+  var ready = T ? api.init() : Promise.resolve();
+  window.GHPortal = {
+    target: T,
+    start: function () { if (!playing && !adOn) { playing = true; api.start(); } },
+    stop: function () { if (playing) { playing = false; api.stop(); } },
+    adBreak: function () {
+      if (!T || adOn) return Promise.resolve();
+      adOn = true; window.GHPortal.stop();
+      return ready.then(api.ad).then(function () { adOn = false; unmute(); }, function () { adOn = false; unmute(); });
+    },
+    breakOn: function (sels) {
+      var bypass = false, sel = sels.join(",");
+      document.addEventListener("click", function (e) {
+        if (bypass || !T) return;
+        var b = e.target && e.target.closest && e.target.closest(sel); if (!b || b.disabled) return;
+        e.stopImmediatePropagation(); e.preventDefault();
+        window.GHPortal.adBreak().then(function () { bypass = true; try { b.click(); } finally { bypass = false; } window.GHPortal.start(); });
+      }, true);
+    }
+  };
+  if (T) {
     window.addEventListener("load", function () {
       ready.then(function () {
-        try { sdk().game.loadingStop(); } catch (e) {}
-        var playing = false;
-        var start = function () { if (!playing) { playing = true; try { sdk().game.gameplayStart(); } catch (e) {} } };
-        var stop = function () { if (playing) { playing = false; try { sdk().game.gameplayStop(); } catch (e) {} } };
-        ["pointerdown", "keydown", "touchstart"].forEach(function (ev) { window.addEventListener(ev, start, { passive: true }); });
-        document.addEventListener("visibilitychange", function () { if (document.hidden) stop(); });
+        api.loaded();
+        ["pointerdown", "keydown", "touchstart"].forEach(function (ev) { window.addEventListener(ev, window.GHPortal.start, { passive: true }); });
+        document.addEventListener("visibilitychange", function () { if (document.hidden) window.GHPortal.stop(); });
       });
     });
   }

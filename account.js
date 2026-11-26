@@ -36,6 +36,7 @@
     "culloden": { title: "Culloden", keys: ["culloden-save"] },
     "fontenoy": { title: "Fontenoy", keys: ["fontenoy-save"] },
     "over-the-top": { title: "Over the Top", keys: ["overthetop-save"] },
+    "alert-force": { title: "Alert Force 1962", keys: ["alertforce-save"] },
     "shred-the-evidence": { title: "Shred the Evidence", keys: ["shredevidence-save"] },
     "seven-years-war": { title: "Seven Years' War", keys: ["syw-save"] },
     "seven-years-war-classic": { title: "Seven Years' War Classic", keys: ["syw-classic-save"] },
@@ -76,6 +77,7 @@
     "sky-high-splat": { title: "Sky High Splat", keys: ["skysplat-save"] },
     "jump-for-animals": { title: "Jump for Animals", keys: ["jfa-save"] },
     "globe-grab": { title: "Globe Grab", keys: ["globegrab-save"] },
+    "boomtown": { title: "Boomtown", keys: ["boomtown-save"] },
   };
 
   var TOKEN = "ghacct_token", USER = "ghacct_user", NICK = "ghgames_nick";

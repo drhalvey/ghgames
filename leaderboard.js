@@ -283,6 +283,14 @@
   var SPAN = { day: 0, week: 1, month: 2, all: 3 };
   // Games with AI rivals (shown on the game page and on the Leaderboards page).
   var RIVALS = {
+    "alert-force": [
+      { name: "Amn Pixel", score: 1500, from: "day" },
+      { name: "Sgt Sprocket", score: 4000, from: "day" },
+      { name: "Lt Circuit", score: 9000, from: "week" },
+      { name: "Capt Clank", score: 16000, from: "month" },
+      { name: "Maj Gears", score: 24000, from: "all" },
+      { name: "Col Chrome", score: 32000, from: "all" }
+    ],
     "over-the-top": [
       { name: "Pvt Pixel", score: 600, from: "day" },
       { name: "Cpl Cog", score: 1500, from: "day" },

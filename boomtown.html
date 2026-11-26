@@ -1,0 +1,2518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Boomtown · Free 3D property trading board game | GH Games</title>
+<meta property="og:title" content="Boomtown 3D · GH Games">
+<meta property="og:description" content="Buy Perth suburbs, build cottages and towers, charge rent and trade your way to a fortune. Play the computer or friends online. Economics mode teaches borrowing, interest rates, credit and gold.">
+<meta property="og:image" content="https://ghgames.au/og/boomtown.png">
+<meta property="og:url" content="https://ghgames.au/boomtown.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f1a33">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GH Games">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<script src="analytics.js" defer></script>
+<script src="account.js" data-game="boomtown"></script>
+<script src="phatcoin.js" data-game="boomtown" data-pill="none"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<link rel="stylesheet" href="arcade3d.css">
+<style>
+.stage{aspect-ratio:16/10}
+@media (max-width:760px){.stage{aspect-ratio:auto;height:min(82vh,760px);max-height:none}}
+#players{position:absolute;left:10px;top:52px;z-index:14;display:flex;flex-direction:column;gap:5px;max-width:200px;pointer-events:auto}
+.pl{display:flex;align-items:center;gap:7px;background:rgba(10,16,36,.78);border:2px solid rgba(255,255,255,.14);border-radius:12px;padding:4px 8px;font-weight:900;font-size:13px;line-height:1.15;cursor:pointer}
+.pl.turn{border-color:var(--gold);box-shadow:0 0 12px rgba(255,201,60,.55)}
+.pl.out{opacity:.4;text-decoration:line-through}
+.pl .tk{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex:none}
+.pl .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+.pl small{display:block;color:#9fe0a8;font-weight:900;font-size:13px}
+.pl .tags{font-size:11px;color:var(--muted)}
+#logbox{position:absolute;right:10px;top:52px;z-index:14;width:min(300px,40%);max-height:34%;overflow:hidden;display:flex;flex-direction:column;gap:3px;pointer-events:none}
+#logbox div{background:rgba(10,16,36,.72);border-radius:9px;padding:3px 8px;font-size:12px;font-weight:800;line-height:1.25;color:#dfe7ff}
+#bar{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:16;display:flex;flex-direction:column;align-items:center;gap:6px;width:min(720px,96%)}
+#barMsg{background:rgba(10,16,36,.86);border:2px solid var(--line);border-radius:12px;padding:5px 12px;font-weight:900;font-size:14px;text-align:center;max-width:100%}
+#barBtns{display:flex;gap:7px;flex-wrap:wrap;justify-content:center}
+#barBtns .btn{font-size:18px;padding:8px 18px}
+#tools{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+#tools button{font-family:var(--body);font-weight:900;font-size:13px;border:2px solid rgba(255,255,255,.25);border-radius:11px;padding:6px 11px;background:rgba(0,0,0,.55);color:#fff;cursor:pointer}
+#tools button:disabled{opacity:.4;cursor:default}
+#tools button.glow{border-color:var(--gold);box-shadow:0 0 10px var(--gold)}
+.sheet{position:absolute;inset:0;z-index:22;display:flex;align-items:center;justify-content:center;background:rgba(6,10,24,.55);padding:10px}
+.sheet[hidden]{display:none}
+.sheet .card{background:var(--panel);border:3px solid var(--line);border-radius:18px;padding:12px 14px;width:min(560px,100%);max-height:100%;overflow:auto;text-align:left;box-shadow:0 14px 40px rgba(0,0,0,.5)}
+.sheet h3{font-family:var(--display);font-weight:400;font-size:26px;margin:0 0 6px;color:var(--gold)}
+.sheet p{margin:4px 0;font-weight:700;line-height:1.35}
+.sheet .x{float:right;font-size:18px;border:none;background:none;color:#fff;cursor:pointer}
+.deed{border-radius:14px;overflow:hidden;background:#fffdf4;color:#1b1b1b;margin:6px auto;max-width:300px;border:2px solid #222}
+.deed .hd{padding:8px;text-align:center;font-family:var(--display);font-size:22px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.deed .hd small{display:block;font-family:var(--body);font-weight:900;font-size:11px;letter-spacing:.08em}
+.deed table{width:100%;border-collapse:collapse;font-weight:800;font-size:13px}
+.deed td{padding:3px 10px}
+.deed td:last-child{text-align:right}
+.deed .ft{font-size:12px;padding:6px 10px;border-top:1px solid #ccc;text-align:center;font-weight:800}
+.prow{display:flex;align-items:center;gap:8px;background:var(--panel2);border-radius:10px;padding:6px 8px;margin:4px 0;font-weight:800;font-size:13px}
+.prow .sw{width:14px;height:30px;border-radius:4px;flex:none}
+.prow .tx{flex:1;line-height:1.2}
+.prow .tx small{display:block;color:var(--muted)}
+.prow button{font-family:var(--body);font-weight:900;font-size:12px;border:none;border-radius:9px;padding:6px 8px;background:#ffc93c;color:#3b2200;cursor:pointer}
+.prow button.b2{background:#6cc0ff;color:#0b2a44}
+.prow button.b3{background:#ff8f8f;color:#3a0a0a}
+.prow button:disabled{opacity:.35;cursor:default}
+.prow.pick{cursor:pointer}
+.prow.pick.on{outline:3px solid var(--gold)}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:560px){.cols2{grid-template-columns:1fr}}
+.amt{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin:4px 0}
+.amt input{width:90px;font:900 15px var(--body);border-radius:9px;border:2px solid var(--line);background:#0b1430;color:#fff;padding:5px 7px}
+.amt button{font-family:var(--body);font-weight:900;font-size:13px;border:none;border-radius:9px;padding:6px 10px;background:var(--panel2);color:#fff;cursor:pointer;border:2px solid var(--line)}
+.amt button.go{background:#ffc93c;color:#3b2200;border-color:#ffe27a}
+.amt button:disabled{opacity:.35}
+.kv{display:grid;grid-template-columns:auto auto;gap:2px 14px;font-weight:800;font-size:14px;margin:6px 0}
+.kv b{color:var(--gold);text-align:right}
+.tip{background:#0b1430;border-left:4px solid var(--gold);border-radius:8px;padding:6px 9px;font-weight:700;font-size:13px;color:#dfe7ff;margin:6px 0;line-height:1.35}
+.gcard{max-width:340px;margin:8px auto;border-radius:16px;padding:14px;text-align:center;font-weight:900;font-size:17px;line-height:1.35;color:#1b1b1b;border:3px solid #222;box-shadow:0 8px 0 rgba(0,0,0,.3)}
+.gcard.news{background:linear-gradient(#fff7e8,#ffe1b8)}
+.gcard.lucky{background:linear-gradient(#ecffe9,#c3f2bc)}
+.gcard .dk{font-family:var(--display);font-size:24px;font-weight:400;margin-bottom:6px}
+.gcard.news .dk{color:#c8262d}.gcard.lucky .dk{color:#1d8a3a}
+.setup{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:10px 14px;width:min(640px,100%);text-align:left;max-height:min(66vh,560px);overflow:auto}
+.setup label{display:block;font-weight:900;font-size:13px;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.04em}
+.setup .seg button small{display:block;font-size:11px;color:inherit;opacity:.8}
+.setup input[type=text]{font:900 16px var(--body);border-radius:10px;border:2px solid var(--line);background:#0b1430;color:#fff;padding:6px 9px;width:min(240px,100%)}
+.toks{display:flex;gap:6px;flex-wrap:wrap}
+.toks button{font-size:22px;width:46px;height:46px;border-radius:12px;border:2px solid var(--line);background:var(--panel2);cursor:pointer}
+.toks button.on{border-color:var(--gold);box-shadow:0 0 10px var(--gold)}
+.toks button:disabled{opacity:.3}
+.seat{display:flex;align-items:center;gap:8px;background:var(--panel2);border-radius:10px;padding:6px 8px;margin:4px 0;font-weight:900}
+.seat .dot{width:14px;height:14px;border-radius:50%}
+.seat small{color:var(--muted);margin-left:auto}
+.seat button{font-family:var(--body);font-weight:900;font-size:12px;border:none;border-radius:8px;padding:4px 8px;cursor:pointer}
+.room{display:flex;align-items:center;gap:8px;background:var(--panel2);border-radius:10px;padding:7px 10px;margin:4px 0;font-weight:900;cursor:pointer}
+.room:hover{outline:2px solid var(--gold)}
+.room small{color:var(--muted);margin-left:auto}
+#codeIn{text-transform:uppercase;width:110px!important;letter-spacing:.2em}
+.stars{color:#ffc93c;letter-spacing:.05em}
+.stars i{color:#4b5a86;font-style:normal}
+#ecoChart{width:100%;height:120px;background:#0b1430;border-radius:10px;display:block;margin:6px 0}
+.creditbar{height:16px;border-radius:8px;background:#0b1430;overflow:hidden;border:2px solid var(--line);margin:4px 0}
+.creditbar div{height:100%;background:linear-gradient(90deg,#5fd36a,#ffc93c,#ff5d5d)}
+#ticker{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:15;background:#fff3d6;color:#2a1a00;border:2px solid #c8262d;border-radius:10px;padding:4px 10px;font-weight:900;font-size:13px;max-width:62%;text-align:center;box-shadow:0 4px 0 rgba(0,0,0,.3)}
+.float{position:absolute;z-index:17;pointer-events:none;font-family:var(--display);font-size:20px;text-shadow:0 2px 0 rgba(0,0,0,.6);animation:up 1.2s ease-out forwards;white-space:nowrap}
+@keyframes up{from{transform:translate(-50%,0);opacity:1}to{transform:translate(-50%,-60px);opacity:0}}
+.note{display:inline-block;border-radius:6px;padding:0 5px;font-size:11px;font-weight:900;vertical-align:middle}
+.note.gold{background:#ffe9a8;color:#6b4a00;border:1px solid #c79a1e}
+.note.fiat{background:#d8f0dc;color:#185a2a;border:1px solid #5aa66a}
+@media (max-width:760px){
+  #players{top:48px;left:6px;max-width:150px;gap:3px}
+  .pl{padding:3px 6px;font-size:11px}.pl .tk{width:20px;height:20px;font-size:13px}.pl small{font-size:11px}.pl .nm{max-width:84px}.pl .tags{display:none}
+  #logbox{display:none}
+  #barBtns .btn{font-size:16px;padding:7px 13px}
+  #tools button{font-size:12px;padding:5px 8px}
+  #ticker{max-width:70%;font-size:11px;top:48px;left:auto;right:6px;transform:none}
+}
+</style>
+<link rel="canonical" href="https://ghgames.au/boomtown.html">
+<meta name="description" content="Buy Perth suburbs, build cottages and towers, charge rent and trade your way to a fortune. Play the computer or friends online. Economics mode teaches borrowing, interest rates, credit and gold.">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "VideoGame", "name": "Boomtown", "url": "https://ghgames.au/boomtown.html", "description": "Buy Perth suburbs, build cottages and towers, charge rent and trade your way to a fortune. Play the computer or friends online. Economics mode teaches borrowing, interest rates, credit and gold.", "image": "https://ghgames.au/og/boomtown.png", "genre": "Board game", "gamePlatform": "Web browser", "operatingSystem": "Any", "applicationCategory": "Game", "inLanguage": "en-GB", "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "AUD"}, "publisher": {"@type": "Organization", "name": "GH Games", "url": "https://ghgames.au/"}}</script>
+</head>
+<body>
+<div class="wrap">
+  <div class="links"><a class="home" href="index.html">← GH Games</a><a class="home" href="leaderboards.html">Leaderboards</a></div>
+  <div class="top">
+    <h1>Boomtown<small>3D</small></h1>
+    <div class="hud">
+      <div class="chip"><span>Round</span><b id="hRound">-</b></div>
+      <div class="chip"><span id="hCashL">Your cash</span><b id="hCash">-</b></div>
+      <div class="chip"><span>Fortune</span><b id="hWorth">-</b></div>
+      <div class="chip" id="hRateC" hidden><span>Interest rate</span><b id="hRate">-</b></div>
+      <div class="chip" id="hGoldC" hidden><span>Gold / oz</span><b id="hGold">-</b></div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="ingame"><button id="bHome" title="Menu">☰</button><button id="bFs" title="Full screen">⛶</button><button id="bMute" title="Sound">🔊</button><button id="bView" title="3D or flat board">🗺️ Flat</button></div>
+    <div id="players"></div>
+    <div id="logbox"></div>
+    <div id="ticker" hidden></div>
+    <div class="toast" id="toast"></div>
+    <div id="bar" hidden>
+      <div id="barMsg"></div>
+      <div id="barBtns"></div>
+      <div id="tools">
+        <button id="tPlaces">🏠 My places</button>
+        <button id="tTrade">🤝 Trade</button>
+        <button id="tBank" hidden>🏦 Bank</button>
+        <button id="tEco" hidden>📈 Economy</button>
+        <button id="tLog">📜 Log</button>
+      </div>
+    </div>
+
+    <!-- title -->
+    <div class="ov" id="ovTitle">
+      <h2>BOOMTOWN</h2>
+      <p>Buy Perth suburbs, build cottages and towers, charge rent and trade your way to a fortune. Play Classic with the familiar rules, or Economics mode to learn about borrowing, interest rates, credit and gold.</p>
+      <div class="row"><button class="btn" id="bSolo">Play the computer</button><button class="btn alt" id="bOnline">Play online</button></div>
+      <div class="row"><button class="btn green small" id="bCont" hidden>Continue your game</button><button class="btn pink small" id="bLocal">Pass and play</button><button class="btn alt small" id="bHow">How to play</button></div>
+      <div class="stats" id="tStats"></div>
+    </div>
+
+    <!-- setup -->
+    <div class="ov" id="ovSetup" hidden>
+      <h2 style="font-size:clamp(28px,6vw,44px)" id="setupH">NEW GAME</h2>
+      <div class="setup" id="setupBox"></div>
+      <div class="row"><button class="btn" id="bGo">Start!</button><button class="btn alt small" id="bSetupBack">Back</button></div>
+    </div>
+
+    <!-- online -->
+    <div class="ov" id="ovOnline" hidden>
+      <h2 style="font-size:clamp(28px,6vw,44px)">PLAY ONLINE</h2>
+      <div class="setup">
+        <label>Your name</label><input type="text" id="onName" maxlength="12" autocomplete="off">
+        <label>Your token</label><div class="toks" id="onToks"></div>
+        <label>Make a game</label>
+        <div class="row" style="justify-content:flex-start"><button class="btn small" id="bMakePub">Public game</button><button class="btn alt small" id="bMakePriv">Private game (code only)</button></div>
+        <label>Join a friend's game</label>
+        <div class="row" style="justify-content:flex-start"><input type="text" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off"><button class="btn small green" id="bJoin">Join</button></div>
+        <label>Open public games</label>
+        <div id="roomList"><p class="help">Looking for games…</p></div>
+        <p class="help" style="margin-top:8px">There is no chat. Only names and moves are shared.</p>
+        <p class="help" id="onMsg" style="color:#ff9a9a"></p>
+      </div>
+      <div class="row"><button class="btn alt small" id="bOnBack">Back</button></div>
+    </div>
+
+    <!-- lobby -->
+    <div class="ov" id="ovLobby" hidden>
+      <h2 style="font-size:clamp(26px,6vw,42px)">ROOM <span id="lobCode">----</span></h2>
+      <p id="lobSub">Share the code with friends so they can join.</p>
+      <div class="setup">
+        <div id="lobSeats"></div>
+        <div id="lobOpts"></div>
+        <p class="help" id="lobMsg"></p>
+      </div>
+      <div class="row"><button class="btn" id="lobGo">Start the game</button><button class="btn alt small" id="lobAddAI">+ Computer player</button><button class="btn alt small" id="lobLeave">Leave</button></div>
+    </div>
+
+    <!-- game over -->
+    <div class="ov" id="ovOver" hidden>
+      <h2 id="overH">GAME OVER</h2>
+      <div class="setup" id="overBox"></div>
+      <div class="row"><button class="btn" id="bAgain">Play again</button><button class="btn alt small" id="bOverMenu">Menu</button></div>
+    </div>
+
+    <div class="sheet" id="sheet" hidden><div class="card" id="sheetCard"></div></div>
+  </div>
+
+  <p class="help">Roll the dice and go round the board. Land on a street, train line or power and water that nobody owns and you can buy it, or it goes to auction. Land on someone else's place and you pay them rent. Own every street of one colour to double the rent and build cottages (then a tower) to make it much bigger. Pass Payday to collect $200. Headline and Lucky Dip cards can help or hurt. Three doubles in a row, or landing on Busted!, sends you to the Lock-up: pay $50, use a card, or try to roll doubles. Trade with other players, mortgage places when you need cash, and the last one not bankrupt wins (or the richest when the rounds run out). In Economics mode you can also borrow from the bank, save for interest, watch the Reserve Bank change interest rates, ride property booms and busts, and buy gold. Tap any square to see its deed. 🗺️ flips between the 3D table and a flat board. Your game saves by itself.</p>
+  <div id="lb"></div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="arcade3d.js"></script>
+<script>
+/* ===================================================================
+   BOOMTOWN ENGINE: rules, board, cards, economy and computer players.
+   Pure game logic, no drawing. One device (the host) runs it; every
+   change goes through act(G, seat, action). Works in node for tests.
+   =================================================================== */
+var BT = (function () {
+  "use strict";
+
+  /* ---------------- the board (our own Perth board) ---------------- */
+  // groups: colour, house cost, base rents
+  var GROUPS = {
+    rust:   { name: "Rust",   col: "#9a5b34", house: 50 },
+    sky:    { name: "Sky",    col: "#7fd3ff", house: 50 },
+    pink:   { name: "Pink",   col: "#e05fb4", house: 100 },
+    tang:   { name: "Tangerine", col: "#ff9a2e", house: 100 },
+    red:    { name: "Red",    col: "#e2333a", house: 150 },
+    sun:    { name: "Sunshine", col: "#ffd93b", house: 150 },
+    gum:    { name: "Gum",    col: "#2fae5a", house: 200 },
+    navy:   { name: "Navy",   col: "#2b4fd8", house: 200 }
+  };
+  // [type, name, group or extra, price, base rent]
+  var RAW = [
+    ["start", "Payday"],
+    ["street", "Armadale", "rust", 60, 2],
+    ["news", "Headline"],
+    ["street", "Midland", "rust", 70, 4],
+    ["tax", "Council Rates", 200],
+    ["station", "North Line", null, 200],
+    ["street", "Kwinana", "sky", 100, 6],
+    ["lucky", "Lucky Dip"],
+    ["street", "Rockingham", "sky", 110, 7],
+    ["street", "Mandurah", "sky", 120, 8],
+    ["jail", "Lock-up"],
+    ["street", "Joondalup", "pink", 140, 10],
+    ["utility", "Power Station", null, 150],
+    ["street", "Ellenbrook", "pink", 150, 11],
+    ["street", "Baldivis", "pink", 160, 12],
+    ["station", "East Line", null, 200],
+    ["street", "Victoria Park", "tang", 180, 14],
+    ["news", "Headline"],
+    ["street", "Leederville", "tang", 190, 15],
+    ["street", "Northbridge", "tang", 200, 16],
+    ["park", "Beach Day"],
+    ["street", "Fremantle", "red", 220, 18],
+    ["lucky", "Lucky Dip"],
+    ["street", "Scarborough", "red", 230, 19],
+    ["street", "Subiaco", "red", 240, 20],
+    ["station", "South Line", null, 200],
+    ["street", "Mount Lawley", "sun", 260, 22],
+    ["street", "Claremont", "sun", 270, 23],
+    ["utility", "Water Works", null, 150],
+    ["street", "Nedlands", "sun", 280, 24],
+    ["gotojail", "Busted!"],
+    ["street", "Applecross", "gum", 300, 26],
+    ["street", "Mosman Park", "gum", 310, 27],
+    ["news", "Headline"],
+    ["street", "Dalkeith", "gum", 320, 28],
+    ["station", "Coast Line", null, 200],
+    ["lucky", "Lucky Dip"],
+    ["street", "Cottesloe", "navy", 360, 35],
+    ["tax", "Holiday Tax", 100],
+    ["street", "Peppermint Grove", "navy", 400, 50]
+  ];
+  function r5(n) { return Math.max(1, Math.round(n / 5) * 5); }
+  var SQ = RAW.map(function (r, i) {
+    var s = { i: i, t: r[0], name: r[1] };
+    if (s.t === "street") {
+      s.g = r[2]; s.price = r[3]; var b = r[4], hc = GROUPS[s.g].house;
+      var h1 = 5 * b, h2 = 3 * h1, h3 = h2 * (3 - b / 50), h4 = h3 + 1.5 * hc, h5 = h4 + 1.5 * hc;
+      s.rent = [b, r5(h1), r5(h2), r5(h3), r5(h4), r5(h5)];
+      s.hc = hc;
+    } else if (s.t === "station") { s.g = "station"; s.price = r[3]; }
+    else if (s.t === "utility") { s.g = "utility"; s.price = r[3]; }
+    else if (s.t === "tax") s.amt = r[2];
+    return s;
+  });
+  var GROUP_SQ = {};
+  SQ.forEach(function (s) { if (s.g) (GROUP_SQ[s.g] = GROUP_SQ[s.g] || []).push(s.i); });
+  var BUYABLE = SQ.filter(function (s) { return s.price; }).map(function (s) { return s.i; });
+  var JAIL = 10, MAX_HOUSES = 32, MAX_TOWERS = 12;
+
+  /* ---------------- cards (our own wording) ---------------- */
+  var NEWS = [
+    { tx: "Free ride on the Coast Line! Advance to Payday and collect $200.", go: 0 },
+    { tx: "Weekend away in Peppermint Grove. Advance to Peppermint Grove.", go: 39 },
+    { tx: "Off to the Fremantle Markets. Advance to Fremantle. If you pass Payday, collect $200.", go: 21 },
+    { tx: "Catch the next train! Go to the nearest train line. If someone owns it, pay them double fare.", near: "station" },
+    { tx: "Blackout! Go to the nearest power or water. If someone owns it, roll and pay them 10 times the dice.", near: "utility" },
+    { tx: "Your footy tips came first! Collect $50.", cash: 50 },
+    { tx: "Caught skateboarding through the mall. Go straight to the Lock-up. Do not pass Payday.", jail: 1 },
+    { tx: "Get Out of Lock-up Free. Keep this card until you need it, or trade it.", free: 1 },
+    { tx: "Wrong turn at the roundabout. Go back 3 spaces.", back: 3 },
+    { tx: "Storm damage! Pay $25 for every cottage and $100 for every tower you own.", repair: [25, 100] },
+    { tx: "Speed camera got you. Pay $15.", cash: -15 },
+    { tx: "Cafe crawl in Subiaco. Advance to Subiaco. If you pass Payday, collect $200.", go: 24 },
+    { tx: "You were voted club captain. Pay every player $50.", each: -50 },
+    { tx: "Your shares paid a dividend. Collect $150.", cash: 150 },
+    { tx: "Shopping trip to Joondalup. Advance to Joondalup. If you pass Payday, collect $200.", go: 11 },
+    { tx: "Hop on the North Line. If you pass Payday, collect $200.", go: 5 }
+  ];
+  var LUCKY = [
+    { tx: "Advance to Payday and collect $200.", go: 0 },
+    { tx: "The bank's computer glitched in your favour. Collect $200.", cash: 200 },
+    { tx: "Dentist check-up. Pay $50.", cash: -50 },
+    { tx: "You sold your old bike. Collect $50.", cash: 50 },
+    { tx: "Get Out of Lock-up Free. Keep this card until you need it, or trade it.", free: 1 },
+    { tx: "Left the tap running at the beach shower. Go straight to the Lock-up. Do not pass Payday.", jail: 1 },
+    { tx: "It's your birthday! Collect $10 from every player.", each: 10 },
+    { tx: "Tax refund. Collect $20.", cash: 20 },
+    { tx: "School camp fees. Pay $50.", cash: -50 },
+    { tx: "Your holiday savings grew. Collect $100.", cash: 100 },
+    { tx: "Vet bill for the dog. Pay $100.", cash: -100 },
+    { tx: "Car wash fundraiser. Collect $25.", cash: 25 },
+    { tx: "Council footpath levy. Pay $40 for every cottage and $115 for every tower.", repair: [40, 115] },
+    { tx: "Second prize in the sandcastle contest. Collect $10.", cash: 10 },
+    { tx: "Great-Aunt Mavis left you something. Collect $100.", cash: 100 },
+    { tx: "Your lemonade stand was a hit. Collect $100.", cash: 100 }
+  ];
+  // Economy news (Economics levels 2 and 3) drawn now and then at the end of a round
+  var ECON_NEWS = [
+    { k: "boom", tx: "Mining boom! Iron ore prices soar, people pour into Perth and house prices jump.", mkt: 0.08 },
+    { k: "crash", tx: "Iron ore price crash. Mines lay people off and house prices fall.", mkt: -0.08 },
+    { k: "crunch", tx: "Credit crunch! The banks got nervous and cut back how much they will lend.", credit: -0.35 },
+    { k: "easy", tx: "Banks are feeling brave and want to lend more money.", credit: 0.25 },
+    { k: "migrate", tx: "Lots of new families move to Perth. More people need houses, so rents and prices go up.", mkt: 0.05 },
+    { k: "build", tx: "Builders finish thousands of new homes. More supply means prices ease a little.", mkt: -0.04 },
+    { k: "goldup", tx: "Worry around the world sends people rushing to buy gold.", gold: 0.15 },
+    { k: "golddown", tx: "The world feels calm again, and gold falls out of fashion.", gold: -0.1 },
+    { k: "inflate", tx: "Prices of everything are rising faster. The Reserve Bank is watching closely.", infl: 0.02 },
+    { k: "tourism", tx: "Record tourist season! Fremantle and the beaches are packed.", mkt: 0.03 }
+  ];
+
+  var TOKENS = [
+    { id: "roo", name: "Kangaroo", em: "🦘" },
+    { id: "quokka", name: "Quokka", em: "🐹" },
+    { id: "swan", name: "Black Swan", em: "🦢" },
+    { id: "ute", name: "Ute", em: "🛻" },
+    { id: "surf", name: "Surfboard", em: "🏄" },
+    { id: "footy", name: "Footy", em: "🏉" }
+  ];
+  var COLS = ["#ff5d5d", "#4aa8ff", "#5fd36a", "#ffc93c", "#c58cff", "#ff8a3d"];
+
+  /* ---------------- helpers ---------------- */
+  function rnd(n) { return Math.floor(Math.random() * n); }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = rnd(i + 1), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function range(n) { var a = []; for (var i = 0; i < n; i++) a.push(i); return a; }
+  function money(n) { n = Math.round(n); return (n < 0 ? "-$" : "$") + Math.abs(n).toLocaleString("en-AU"); }
+  function P(G, s) { return G.players[s]; }
+  function alive(G) { return G.players.filter(function (p) { return !p.out; }); }
+  function econ(G) { return G.mode === "econ"; }
+  function lvl(G) { return econ(G) ? G.lvl : 0; }
+
+  /* ---------------- new game ---------------- */
+  // opts: { mode:'classic'|'econ', lvl:1..3, money:'credit'|'gold', start, auction, parkPot, rounds (0 = last one standing),
+  //         players:[{name, tok, kind:'human'|'ai'|'remote', ai:1..3, id}] }
+  function newGame(opts) {
+    var G = {
+      v: 1, mode: opts.mode === "econ" ? "econ" : "classic", lvl: Math.max(1, Math.min(3, opts.lvl || 1)),
+      opts: {
+        start: opts.start || 1500, auction: opts.auction !== false, parkPot: !!opts.parkPot,
+        rounds: opts.rounds || 0, money: opts.money === "gold" ? "gold" : "credit"
+      },
+      players: [], props: {}, turn: 0, round: 1, phase: "roll", pending: null,
+      dice: [1, 1], doubles: 0, rolled: false, pot: 0, winner: -1, over: false,
+      news: shuffle(range(NEWS.length)), lucky: shuffle(range(LUCKY.length)),
+      log: [], ev: [], seq: 0, houses: MAX_HOUSES, towers: MAX_TOWERS, card: null, lastRoll: 0
+    };
+    BUYABLE.forEach(function (i) { G.props[i] = { o: -1, h: 0, m: false }; });
+    opts.players.forEach(function (o, k) {
+      G.players.push({
+        name: String(o.name || ("Player " + (k + 1))).slice(0, 16), tok: o.tok || TOKENS[k % 6].id, col: COLS[k % 6],
+        kind: o.kind || "ai", ai: o.ai || 2, id: o.id || "", cash: G.opts.start, pos: 0, jail: 0, free: [],
+        out: false, loan: 0, save: 0, gold: 0, stars: 3, onTime: 0, missed: 0,
+        st: { rentIn: 0, rentOut: 0, intPaid: 0, intEarned: 0, bought: 0, built: 0, goldGain: 0 }
+      });
+    });
+    if (econ(G)) {
+      var gold = G.opts.money === "gold" && G.lvl >= 3;
+      G.E = {
+        rate: 5, target: 2.5, infl: 2.5, mkt: 1, cpi: 1, goldPx: 100, bankGold: 600,
+        capMult: 1, baseCap: 3000 * G.players.length, lentBad: 0, hist: [{ r: 1, rate: 5, mkt: 1, gold: 100 }],
+        goldStd: gold, mood: 0, lastNews: "", seen: {}
+      };
+      if (G.lvl === 1) G.E.rate = 6;
+    }
+    G.turn = 0;
+    log(G, "New game! " + G.players.map(function (p) { return p.name; }).join(", ") + ". " + G.players[0].name + " goes first.");
+    startTurn(G);
+    return G;
+  }
+
+  /* ---------------- log + events (the drawing side plays these back) ---------------- */
+  function log(G, msg, who) { G.log.push({ m: msg, w: who == null ? -1 : who }); if (G.log.length > 60) G.log.shift(); }
+  function ev(G, e) { e.n = ++G.seq; G.ev.push(e); if (G.ev.length > 40) G.ev.shift(); }
+
+  /* ---------------- property maths ---------------- */
+  function owner(G, i) { var p = G.props[i]; return p ? p.o : -1; }
+  function mkt(G) { return econ(G) && G.lvl >= 2 ? G.E.mkt : 1; }
+  function priceOf(G, i) { return Math.round(SQ[i].price * mkt(G) / 5) * 5 || SQ[i].price; }
+  function houseCost(G, i) { return SQ[i].hc ? Math.round(SQ[i].hc * mkt(G) / 5) * 5 : 0; }
+  function mortVal(G, i) { return Math.round(SQ[i].price / 2); }
+  function unmortCost(G, i) { return Math.round(SQ[i].price / 2 * 1.1); }
+  function ownsSet(G, s, g) { return GROUP_SQ[g].every(function (i) { return G.props[i].o === s; }); }
+  function countOwned(G, s, g) { return GROUP_SQ[g].filter(function (i) { return G.props[i].o === s; }).length; }
+  function rentOf(G, i, diceSum, mult) {
+    var pr = G.props[i], sq = SQ[i], o = pr.o, r = 0;
+    if (o < 0 || pr.m) return 0;
+    if (sq.t === "street") {
+      if (pr.h > 0) r = sq.rent[pr.h];
+      else r = sq.rent[0] * (ownsSet(G, o, sq.g) ? 2 : 1);
+      r = r * mkt(G);
+    } else if (sq.t === "station") {
+      r = 25 * Math.pow(2, countOwned(G, o, "station") - 1);
+    } else if (sq.t === "utility") {
+      r = (mult || (countOwned(G, o, "utility") === 2 ? 10 : 4)) * diceSum;
+    }
+    return Math.round(r);
+  }
+  function groupBuilt(G, g) { return GROUP_SQ[g].some(function (i) { return G.props[i].h > 0; }); }
+  function canBuild(G, s, i) {
+    var sq = SQ[i], pr = G.props[i];
+    if (!sq || sq.t !== "street" || pr.o !== s || pr.h >= 5) return false;
+    if (!ownsSet(G, s, sq.g)) return false;
+    if (GROUP_SQ[sq.g].some(function (j) { return G.props[j].m; })) return false;
+    var min = Math.min.apply(null, GROUP_SQ[sq.g].map(function (j) { return G.props[j].h; }));
+    if (pr.h > min) return false;
+    if (pr.h === 4 ? G.towers <= 0 : G.houses <= 0) return false;
+    return P(G, s).cash >= houseCost(G, i);
+  }
+  function canSell(G, s, i) {
+    var sq = SQ[i], pr = G.props[i];
+    if (!sq || sq.t !== "street" || pr.o !== s || pr.h <= 0) return false;
+    var max = Math.max.apply(null, GROUP_SQ[sq.g].map(function (j) { return G.props[j].h; }));
+    if (pr.h < max) return false;
+    if (pr.h === 5 && G.houses < 4) return false; // need 4 cottages back to break a tower
+    return true;
+  }
+  function canMortgage(G, s, i) {
+    var pr = G.props[i]; if (!pr || pr.o !== s || pr.m) return false;
+    var sq = SQ[i]; if (sq.t === "street" && groupBuilt(G, sq.g)) return false;
+    return true;
+  }
+  function canUnmortgage(G, s, i) { var pr = G.props[i]; return pr && pr.o === s && pr.m && P(G, s).cash >= unmortCost(G, i); }
+
+  // money a player could raise without going bankrupt (for the AI and the "can you pay" check)
+  function liquid(G, s) {
+    var p = P(G, s), t = p.cash;
+    BUYABLE.forEach(function (i) {
+      var pr = G.props[i]; if (pr.o !== s) return;
+      if (pr.h) t += pr.h * Math.floor(houseCost(G, i) / 2);
+      if (!pr.m) t += mortVal(G, i);
+    });
+    if (econ(G)) { t += p.save + Math.floor(p.gold * goldSell(G)); }
+    return t;
+  }
+  function netWorth(G, s) {
+    var p = P(G, s), t = p.cash;
+    BUYABLE.forEach(function (i) {
+      var pr = G.props[i]; if (pr.o !== s) return;
+      t += pr.m ? priceOf(G, i) - mortVal(G, i) : priceOf(G, i);
+      t += pr.h * houseCost(G, i);
+    });
+    if (econ(G)) t += p.save + p.gold * goldPx(G) - p.loan;
+    return Math.round(t);
+  }
+
+  /* ---------------- economy (Economics mode) ---------------- */
+  function goldPx(G) { return G.E ? G.E.goldPx : 100; }
+  function goldBuy(G) { return Math.round(goldPx(G) * (G.E && G.E.goldStd ? 1 : 1.02)); }
+  function goldSell(G) { return Math.round(goldPx(G) * (G.E && G.E.goldStd ? 1 : 0.98)); }
+  function loanRate(G, s) {
+    var st = P(G, s).stars, prem = [0, 8, 5, 3, 2, 1][st];
+    return +(G.E.rate + prem).toFixed(2);
+  }
+  function saveRate(G) { return +Math.max(0, G.E.rate - 1.5).toFixed(2); }
+  function totalLoans(G) { return G.players.reduce(function (a, p) { return a + (p.out ? 0 : p.loan); }, 0); }
+  function totalSaves(G) { return G.players.reduce(function (a, p) { return a + (p.out ? 0 : p.save); }, 0); }
+  // how much the bank as a whole can lend (the credit supply)
+  function bankCapacity(G) {
+    var E = G.E;
+    if (E.goldStd) return Math.max(0, Math.round(E.bankGold * E.goldPx * 2.5 * E.capMult + totalSaves(G) * 2 - E.lentBad));
+    return Math.max(0, Math.round((E.baseCap + totalSaves(G) * 5) * E.capMult - E.lentBad));
+  }
+  function creditAvail(G) { return Math.max(0, bankCapacity(G) - totalLoans(G)); }
+  function collateral(G, s) {
+    var t = 0; BUYABLE.forEach(function (i) { var pr = G.props[i]; if (pr.o === s && !pr.m) t += priceOf(G, i) + pr.h * houseCost(G, i); });
+    return t + P(G, s).gold * goldPx(G);
+  }
+  function creditLimit(G, s) {
+    var p = P(G, s); if (p.stars <= 1) return 0;
+    var lim = 150 * p.stars + collateral(G, s) * (0.3 + 0.1 * p.stars);
+    return Math.max(0, Math.min(Math.round(lim) - p.loan, creditAvail(G)));
+  }
+  function setStars(G, s, d, why) {
+    var p = P(G, s), was = p.stars; p.stars = Math.max(1, Math.min(5, p.stars + d));
+    if (p.stars !== was) { log(G, p.name + "'s credit rating " + (d > 0 ? "went up" : "went down") + " to " + "★★★★★".slice(0, p.stars) + (why ? " (" + why + ")" : ""), s); ev(G, { k: "stars", s: s, d: d }); }
+  }
+  // interest when you pass Payday (one lap is one year)
+  function yearly(G, s) {
+    var p = P(G, s);
+    if (p.save > 0) {
+      var e = Math.round(p.save * saveRate(G) / 100);
+      if (e > 0) { p.save += e; p.st.intEarned += e; log(G, p.name + " earned " + money(e) + " interest on savings (" + saveRate(G) + "% a year).", s); ev(G, { k: "lesson", id: "saving", s: s }); }
+    }
+    if (p.loan > 0) {
+      var i = Math.round(p.loan * loanRate(G, s) / 100);
+      if (i > 0) {
+        log(G, p.name + " owes " + money(i) + " interest on a " + money(p.loan) + " loan (" + loanRate(G, s) + "% a year).", s);
+        ev(G, { k: "lesson", id: "interest", s: s });
+        p.st.intPaid += i;
+        if (p.cash >= i) { p.cash -= i; ev(G, { k: "cash", s: s, d: -i }); p.onTime++; if (p.onTime >= 2) { p.onTime = 0; setStars(G, s, 1, "paid interest on time"); } }
+        else { p.onTime = 0; p.missed++; p.loan += i; log(G, p.name + " couldn't pay, so the bank added the " + money(i) + " to the loan. Interest on interest!", s); ev(G, { k: "lesson", id: "compound", s: s }); setStars(G, s, -1, "missed an interest payment"); }
+      }
+    }
+  }
+  function endRoundEconomy(G) {
+    var E = G.E; if (!E || G.lvl < 2) { if (E) E.hist.push({ r: G.round, rate: E.rate, mkt: E.mkt, gold: E.goldPx }); return; }
+    // credit impulse: lending growing fast pushes prices up
+    var loans = totalLoans(G), cap = Math.max(1, bankCapacity(G));
+    var used = loans / cap;
+    var lastLoans = E.lastLoans || 0; E.lastLoans = loans;
+    var impulse = (loans - lastLoans) / (G.players.length * 1500);
+    var drift = 0.006 + impulse * 0.2 - (E.rate - 3.5) * 0.003 + (Math.random() - 0.5) * 0.03 + E.mood * 0.01;
+    E.mood *= 0.7;
+    if (E.goldStd) drift *= 0.5; // gold money: steadier prices
+    E.mkt = Math.max(0.55, Math.min(2.6, E.mkt * (1 + drift)));
+    E.infl = +(E.infl * 0.7 + drift * 400 * 0.3).toFixed(2);
+    // the Reserve Bank moves its rate to steer prices (credit money only)
+    var old = E.rate;
+    if (!E.goldStd) {
+      var want = 3.5 + 1.5 * (E.infl - E.target);
+      want = Math.max(0.25, Math.min(12, want));
+      if (Math.abs(want - E.rate) >= 0.5 && Math.random() < 0.5) E.rate = +(E.rate + (want > E.rate ? 0.25 : -0.25) * (Math.abs(want - E.rate) > 2 ? 2 : 1)).toFixed(2);
+    } else {
+      // gold standard: rates rise to stop gold leaving the bank, fall when it has plenty
+      var ratio = E.bankGold / 600;
+      var w = ratio < 0.5 ? 9 : ratio < 0.8 ? 6 : ratio > 1.2 ? 3 : 4.5;
+      if (w !== E.rate && Math.random() < 0.6) E.rate = +(E.rate + (w > E.rate ? 0.5 : -0.5)).toFixed(2);
+    }
+    if (E.rate !== old) { log(G, "Reserve Bank " + (E.rate > old ? "RAISES" : "CUTS") + " interest rates to " + E.rate + "%."); ev(G, { k: "rate", up: E.rate > old, rate: E.rate }); ev(G, { k: "lesson", id: E.rate > old ? "rateUp" : "rateDown" }); }
+    // credit supply slowly returns to normal
+    E.capMult += (1 - E.capMult) * 0.15;
+    // gold
+    if (G.lvl >= 3 && !E.goldStd) {
+      var gd = (Math.random() - 0.48) * 0.06 + (E.infl - 2.5) * 0.004 - (E.rate - 4) * 0.003 - drift * 0.3;
+      E.goldPx = Math.max(40, Math.min(600, Math.round(E.goldPx * (1 + gd))));
+    }
+    // a headline now and then
+    if (Math.random() < 0.35) {
+      var pool = ECON_NEWS.filter(function (n) { return G.lvl >= 3 || !n.gold; });
+      if (E.goldStd) pool = pool.filter(function (n) { return !n.gold; });
+      var n = pool[rnd(pool.length)];
+      if (n.mkt) { E.mkt = Math.max(0.55, Math.min(2.6, E.mkt * (1 + n.mkt))); E.mood += n.mkt > 0 ? 1 : -1; }
+      if (n.credit) E.capMult = Math.max(0.4, Math.min(1.6, E.capMult + n.credit));
+      if (n.gold) E.goldPx = Math.max(40, Math.round(E.goldPx * (1 + n.gold)));
+      if (n.infl) E.infl += n.infl * 100 / 2;
+      E.lastNews = n.tx;
+      log(G, "📰 " + n.tx);
+      ev(G, { k: "econnews", tx: n.tx, id: n.k });
+    }
+    if (used > 0.9) ev(G, { k: "lesson", id: "creditTight" });
+    E.hist.push({ r: G.round, rate: E.rate, mkt: +E.mkt.toFixed(3), gold: E.goldPx });
+    if (E.hist.length > 80) E.hist.shift();
+  }
+
+  /* ---------------- turns ---------------- */
+  function cur(G) { return P(G, G.turn); }
+  function startTurn(G) {
+    var p = cur(G);
+    G.doubles = 0; G.rolled = false; G.card = null; G.again = false; G.tradesThisTurn = 0; G.aiActs = 0;
+    G.phase = "roll"; G.pending = null;
+    if (p.jail > 0) G.pending = { t: "jail", s: G.turn };
+    ev(G, { k: "turn", s: G.turn });
+  }
+  function nextTurn(G) {
+    if (checkOver(G)) return;
+    var n = G.turn;
+    for (var k = 0; k < G.players.length; k++) {
+      n = (n + 1) % G.players.length;
+      if (n === 0 || (n < G.turn)) { /* wrapped */ }
+      if (!G.players[n].out) break;
+    }
+    if (n <= G.turn) {
+      G.round++;
+      if (G.E) endRoundEconomy(G);
+      if (checkOver(G)) return;
+    }
+    G.turn = n;
+    startTurn(G);
+  }
+  function checkOver(G) {
+    if (G.over) return true;
+    var a = alive(G);
+    var timeUp = (G.opts.rounds && G.round > G.opts.rounds) || G.round > 250;
+    if (a.length <= 1 || timeUp) {
+      G.over = true; G.phase = "over"; G.pending = null;
+      var best = -1, bw = -1e18;
+      G.players.forEach(function (p, s) { if (p.out) return; var w = netWorth(G, s); if (w > bw) { bw = w; best = s; } });
+      G.winner = best;
+      log(G, (best >= 0 ? G.players[best].name + " wins" : "Game over") + (timeUp ? " with the biggest fortune: " + money(bw) : "!"));
+      ev(G, { k: "over", s: best });
+      return true;
+    }
+    return false;
+  }
+
+  function roll(G) {
+    var a = 1 + rnd(6), b = 1 + rnd(6);
+    if (G.rig && G.rig.length) { var r = G.rig.shift(); a = r[0]; b = r[1]; }
+    G.dice = [a, b]; G.lastRoll = a + b;
+    ev(G, { k: "dice", d: [a, b], s: G.turn });
+    return [a, b];
+  }
+
+  function moveBy(G, s, n) {
+    var p = P(G, s), from = p.pos, to = (from + n + 40) % 40;
+    if (n > 0 && from + n >= 40) passStart(G, s);
+    p.pos = to;
+    ev(G, { k: "move", s: s, from: from, to: to, steps: n });
+  }
+  function moveTo(G, s, to, collect) {
+    var p = P(G, s), from = p.pos, steps = (to - from + 40) % 40;
+    if (collect && to < from) passStart(G, s);
+    else if (collect && to === 0 && from !== 0) passStart(G, s);
+    p.pos = to;
+    ev(G, { k: "move", s: s, from: from, to: to, steps: steps || 40 });
+  }
+  function passStart(G, s) {
+    var p = P(G, s);
+    p.cash += 200;
+    log(G, p.name + " passed Payday and collected $200.", s);
+    ev(G, { k: "cash", s: s, d: 200 });
+    if (G.E) yearly(G, s);
+  }
+  function sendToJail(G, s) {
+    var p = P(G, s), from = p.pos;
+    p.pos = JAIL; p.jail = 1; G.doubles = 0; G.again = false;
+    ev(G, { k: "move", s: s, from: from, to: JAIL, jump: true });
+    log(G, p.name + " was sent to the Lock-up!", s);
+    ev(G, { k: "jail", s: s });
+  }
+
+  // landing on a square
+  function land(G, s, opt) {
+    opt = opt || {};
+    var p = P(G, s), sq = SQ[p.pos];
+    if (sq.t === "street" || sq.t === "station" || sq.t === "utility") {
+      var pr = G.props[sq.i];
+      if (pr.o < 0) {
+        G.pending = { t: "buy", s: s, i: sq.i, price: priceOf(G, sq.i) };
+        return;
+      }
+      if (pr.o === s) { log(G, p.name + " is at home on " + sq.name + ".", s); return; }
+      if (pr.m) { log(G, sq.name + " is mortgaged, so no rent.", s); return; }
+      if (P(G, pr.o).jail > 0 && false) return; // owners in Lock-up still collect rent
+      var r;
+      if (sq.t === "utility" && opt.util10) { var d = roll(G); r = 10 * (d[0] + d[1]); }
+      else r = rentOf(G, sq.i, G.lastRoll);
+      if (sq.t === "station" && opt.double) r *= 2;
+      log(G, p.name + " owes " + P(G, pr.o).name + " " + money(r) + " rent for " + sq.name + ".", s);
+      owe(G, s, pr.o, r, "rent");
+      return;
+    }
+    if (sq.t === "tax") { log(G, p.name + " pays " + money(sq.amt) + " " + sq.name + ".", s); owe(G, s, -1, sq.amt, "tax"); return; }
+    if (sq.t === "gotojail") { sendToJail(G, s); G.endAfter = true; return; }
+    if (sq.t === "park") {
+      if (G.opts.parkPot && G.pot > 0) { log(G, p.name + " had a Beach Day and scooped the pot of " + money(G.pot) + "!", s); p.cash += G.pot; ev(G, { k: "cash", s: s, d: G.pot }); G.pot = 0; }
+      else log(G, p.name + " is enjoying a Beach Day.", s);
+      return;
+    }
+    if (sq.t === "news" || sq.t === "lucky") { drawCard(G, s, sq.t); return; }
+  }
+
+  function drawCard(G, s, deck) {
+    var list = deck === "news" ? NEWS : LUCKY, pile = G[deck];
+    if (!pile.length) { G[deck] = shuffle(range(list.length).filter(function (k) { return !G.players.some(function (p) { return p.free.some(function (f) { return f.d === deck && f.c === k; }); }); })); pile = G[deck]; }
+    var c = pile.shift(), card = list[c], p = P(G, s);
+    G.card = { d: deck, c: c, tx: card.tx, s: s };
+    ev(G, { k: "card", d: deck, tx: card.tx, s: s });
+    log(G, p.name + " drew " + (deck === "news" ? "a Headline" : "a Lucky Dip") + ": " + card.tx, s);
+    if (!card.free) pile.push(c);
+    if (card.free) { p.free.push({ d: deck, c: c }); return; }
+    if (card.cash > 0) { p.cash += card.cash; ev(G, { k: "cash", s: s, d: card.cash }); return; }
+    if (card.cash < 0) { owe(G, s, -1, -card.cash, "card"); return; }
+    if (card.each) {
+      var others = G.players.map(function (q, k) { return k; }).filter(function (k) { return k !== s && !G.players[k].out; });
+      if (card.each > 0) { others.forEach(function (k) { owe(G, k, s, card.each, "birthday", true); }); }
+      else { owe(G, s, -3, -card.each * others.length, "each"); }
+      return;
+    }
+    if (card.repair) {
+      var c1 = 0;
+      BUYABLE.forEach(function (i) { var pr = G.props[i]; if (pr.o === s && pr.h) c1 += pr.h === 5 ? card.repair[1] : pr.h * card.repair[0]; });
+      if (c1 > 0) owe(G, s, -1, c1, "repairs"); else log(G, "Nothing to fix. Phew!", s);
+      return;
+    }
+    if (card.jail) { sendToJail(G, s); G.endAfter = true; return; }
+    if (card.back) { moveBy(G, s, -card.back); land(G, s); return; }
+    if (card.go != null) { moveTo(G, s, card.go, true); land(G, s); return; }
+    if (card.near) {
+      var pos = p.pos, k = pos;
+      do { k = (k + 1) % 40; } while (SQ[k].t !== card.near);
+      moveTo(G, s, k, true);
+      land(G, s, card.near === "station" ? { double: true } : { util10: true });
+    }
+  }
+
+  /* ---------------- paying ---------------- */
+  // to: player index, -1 bank (or the Beach Day pot), -2 bank loan interest, -3 split to every other player
+  function owe(G, s, to, amt, why, queue) {
+    var p = P(G, s);
+    amt = Math.round(amt);
+    if (amt <= 0) return;
+    if (G.pending && G.pending.t === "debt" && queue) { (G.debtQ = G.debtQ || []).push([s, to, amt, why]); return; }
+    if (p.cash >= amt) { pay(G, s, to, amt, why); return; }
+    G.pending = { t: "debt", s: s, to: to, amt: amt, why: why, back: G.pending };
+    log(G, p.name + " needs " + money(amt) + " but only has " + money(p.cash) + ". Raise the money or go bankrupt.", s);
+    ev(G, { k: "debt", s: s, amt: amt });
+  }
+  function pay(G, s, to, amt, why) {
+    var p = P(G, s); p.cash -= amt;
+    ev(G, { k: "cash", s: s, d: -amt });
+    if (to >= 0) { var q = P(G, to); q.cash += amt; ev(G, { k: "cash", s: to, d: amt }); if (why === "rent") { q.st.rentIn += amt; p.st.rentOut += amt; } }
+    else if (to === -3) {
+      var others = G.players.map(function (q2, k) { return k; }).filter(function (k) { return k !== s && !G.players[k].out; });
+      var each = Math.round(amt / Math.max(1, others.length));
+      others.forEach(function (k) { G.players[k].cash += each; ev(G, { k: "cash", s: k, d: each }); });
+    }
+    else if (to === -1 && G.opts.parkPot && (why === "tax" || why === "card" || why === "repairs" || why === "jail")) G.pot += amt;
+  }
+  function settleDebt(G) {
+    var d = G.pending; if (!d || d.t !== "debt") return false;
+    var p = P(G, d.s);
+    if (p.cash < d.amt) return false;
+    G.pending = d.back || null;
+    pay(G, d.s, d.to, d.amt, d.why);
+    log(G, p.name + " paid " + money(d.amt) + ".", d.s);
+    drainDebtQueue(G);
+    return true;
+  }
+  function drainDebtQueue(G) {
+    while (G.debtQ && G.debtQ.length && !(G.pending && G.pending.t === "debt")) {
+      var q = G.debtQ.shift();
+      if (G.players[q[0]].out) continue;
+      owe(G, q[0], q[1], q[2], q[3]);
+    }
+  }
+  function bankrupt(G, s) {
+    var d = G.pending, p = P(G, s), to = d && d.t === "debt" && d.s === s ? d.to : -1;
+    if (to === -3) to = -1;
+    var cred = to >= 0 ? P(G, to) : null;
+    log(G, p.name + " is BANKRUPT" + (cred ? " and hands everything to " + cred.name : "") + ".", s);
+    ev(G, { k: "bankrupt", s: s, to: to });
+    // sell every building back to the bank at half price
+    BUYABLE.forEach(function (i) {
+      var pr = G.props[i]; if (pr.o !== s) return;
+      if (pr.h) { p.cash += pr.h * Math.floor(houseCost(G, i) / 2); if (pr.h === 5) G.towers++; else G.houses += pr.h; pr.h = 0; }
+    });
+    if (G.E) {
+      // savings and gold pay the bank loan first; what's left is a bad debt the bank has to swallow
+      p.cash += p.save + Math.floor(p.gold * goldSell(G)); if (G.E.goldStd) G.E.bankGold += p.gold; p.save = 0; p.gold = 0;
+      if (p.loan > 0) {
+        var back = Math.min(p.cash, p.loan); p.cash -= back; var bad = p.loan - back; p.loan = 0;
+        if (bad > 0) { G.E.lentBad += bad; log(G, "The bank lost " + money(bad) + " on " + p.name + "'s loan. Now it has less money to lend to everyone.", s); ev(G, { k: "lesson", id: "badDebt" }); }
+      }
+    }
+    if (cred) {
+      cred.cash += Math.max(0, p.cash);
+      BUYABLE.forEach(function (i) { var pr = G.props[i]; if (pr.o === s) pr.o = to; });
+      p.free.forEach(function (f) { cred.free.push(f); });
+    } else {
+      BUYABLE.forEach(function (i) { var pr = G.props[i]; if (pr.o === s) { pr.o = -1; pr.m = false; } });
+      p.free.forEach(function (f) { G[f.d].push(f.c); });
+    }
+    p.free = []; p.cash = 0; p.out = true; p.jail = 0;
+    // drop any queued payments from this player
+    if (G.debtQ) G.debtQ = G.debtQ.filter(function (q) { return q[0] !== s; });
+    G.pending = null;
+    drainDebtQueue(G);
+    if (checkOver(G)) return;
+    if (G.turn === s) { nextTurn(G); return; }
+    if (!G.pending) afterResolve(G);
+  }
+
+  // after a landing (and any debt) is sorted: roll again on doubles, else end of turn
+  function afterResolve(G) {
+    if (G.over) return;
+    if (G.pending) return;
+    var p = cur(G);
+    if (p.out) { nextTurn(G); return; }
+    if (G.endAfter) { G.endAfter = false; G.doubles = 0; G.phase = "end"; return; }
+    if (G.again && p.jail === 0) { G.again = false; G.phase = "roll"; G.rolled = false; return; }
+    G.phase = "end";
+  }
+
+  function doRoll(G) {
+    var s = G.turn, p = cur(G);
+    var d = roll(G); G.rolled = true; G.again = d[0] === d[1];
+    if (d[0] === d[1]) {
+      G.doubles++;
+      if (G.doubles >= 3) { log(G, p.name + " rolled three doubles in a row. Too fast! Off to the Lock-up.", s); sendToJail(G, s); G.phase = "end"; G.doubles = 0; return; }
+    } else G.doubles = 0;
+    log(G, p.name + " rolled " + d[0] + " and " + d[1] + (d[0] === d[1] ? " (doubles!)" : "") + ".", s);
+    moveBy(G, s, d[0] + d[1]);
+    land(G, s);
+    afterResolve(G);
+  }
+
+  /* ---------------- auctions ---------------- */
+  function startAuction(G, i) {
+    var bidders = G.players.map(function (p, k) { return k; }).filter(function (k) { return !G.players[k].out; });
+    // start with the player after the one who declined
+    var startAt = bidders.indexOf(G.turn);
+    bidders = bidders.slice(startAt + 1).concat(bidders.slice(0, startAt + 1));
+    G.pending = { t: "auction", i: i, bid: 0, high: -1, active: bidders, at: 0 };
+    log(G, "Auction for " + SQ[i].name + "! Bids start at $10.");
+    ev(G, { k: "auction", i: i });
+    auctionSkipBroke(G);
+  }
+  function auctionSkipBroke(G) {
+    var a = G.pending;
+    // anyone who cannot beat the current bid drops out
+    var guard = 0;
+    while (a.active.length && guard++ < 20) {
+      var s = a.active[a.at % a.active.length];
+      if (s === a.high && a.active.length === 1) break;
+      if (s !== a.high && P(G, s).cash < a.bid + 1) { a.active.splice(a.at % a.active.length, 1); if (a.at >= a.active.length) a.at = 0; continue; }
+      break;
+    }
+    auctionCheckEnd(G);
+  }
+  function auctionCheckEnd(G) {
+    var a = G.pending; if (!a || a.t !== "auction") return;
+    var others = a.active.filter(function (s) { return s !== a.high; });
+    if (a.high >= 0 && others.length === 0) {
+      var w = P(G, a.high); w.cash -= a.bid; G.props[a.i].o = a.high; w.st.bought++;
+      log(G, w.name + " won the auction for " + SQ[a.i].name + " at " + money(a.bid) + ".", a.high);
+      ev(G, { k: "buy", s: a.high, i: a.i }); ev(G, { k: "cash", s: a.high, d: -a.bid });
+      G.pending = null; afterResolve(G); return;
+    }
+    if (a.active.length === 0) {
+      log(G, "Nobody bid. " + SQ[a.i].name + " stays with the bank.");
+      G.pending = null; afterResolve(G); return;
+    }
+    a.at = a.at % a.active.length;
+    if (a.active[a.at] === a.high) a.at = (a.at + 1) % a.active.length;
+  }
+
+  /* ---------------- trades ---------------- */
+  // offer: { from, to, give:[sq], get:[sq], cashGive, cashGet, cardGive, cardGet }
+  function tradeOk(G, o) {
+    if (o.from === o.to || !P(G, o.to) || P(G, o.to).out) return false;
+    var okSide = function (list, s) { return list.every(function (i) { var pr = G.props[i]; return pr && pr.o === s && !(SQ[i].t === "street" && groupBuilt(G, SQ[i].g)); }); };
+    if (!okSide(o.give || [], o.from) || !okSide(o.get || [], o.to)) return false;
+    if ((o.cashGive || 0) < 0 || (o.cashGet || 0) < 0) return false;
+    if ((o.cashGive || 0) > P(G, o.from).cash || (o.cashGet || 0) > P(G, o.to).cash) return false;
+    if ((o.cardGive || 0) > P(G, o.from).free.length || (o.cardGet || 0) > P(G, o.to).free.length) return false;
+    if (!(o.give || []).length && !(o.get || []).length && !o.cashGive && !o.cashGet && !o.cardGive && !o.cardGet) return false;
+    return true;
+  }
+  function doTrade(G, o) {
+    var a = P(G, o.from), b = P(G, o.to);
+    (o.give || []).forEach(function (i) { G.props[i].o = o.to; });
+    (o.get || []).forEach(function (i) { G.props[i].o = o.from; });
+    a.cash += (o.cashGet || 0) - (o.cashGive || 0); b.cash += (o.cashGive || 0) - (o.cashGet || 0);
+    for (var k = 0; k < (o.cardGive || 0); k++) b.free.push(a.free.pop());
+    for (k = 0; k < (o.cardGet || 0); k++) a.free.push(b.free.pop());
+    log(G, a.name + " and " + b.name + " made a deal: " + tradeText(G, o) + ".", o.from);
+    ev(G, { k: "trade", a: o.from, b: o.to });
+  }
+  function tradeText(G, o) {
+    var bits = [];
+    var nm = function (l) { return l.map(function (i) { return SQ[i].name; }).join(", "); };
+    var A = P(G, o.from).name, B = P(G, o.to).name;
+    if ((o.give || []).length || o.cashGive || o.cardGive) bits.push(A + " gives " + [nm(o.give || []), o.cashGive ? money(o.cashGive) : "", o.cardGive ? o.cardGive + " Lock-up card" : ""].filter(Boolean).join(" + "));
+    if ((o.get || []).length || o.cashGet || o.cardGet) bits.push(B + " gives " + [nm(o.get || []), o.cashGet ? money(o.cashGet) : "", o.cardGet ? o.cardGet + " Lock-up card" : ""].filter(Boolean).join(" + "));
+    return bits.join("; ");
+  }
+
+  /* ---------------- the one way to change the game ---------------- */
+  // returns "" when it worked, or a short reason when it did not
+  function act(G, s, a) {
+    if (!a || G.over) return "over";
+    var p = P(G, s); if (!p || p.out) return "out";
+    var pd = G.pending, t = a.t, myTurn = s === G.turn;
+    var free = !pd || (pd.t === "debt" && pd.s === s) || (pd.t === "jail" && pd.s === s) || (pd.t === "buy" && pd.s === s);
+    var raising = pd && pd.t === "debt" && pd.s === s;
+
+    switch (t) {
+      case "roll":
+        if (!myTurn || pd || G.phase !== "roll") return "not now";
+        doRoll(G); return "";
+      case "jailPay": case "jailCard": case "jailRoll":
+        if (!pd || pd.t !== "jail" || pd.s !== s) return "not now";
+        if (t === "jailPay") {
+          if (p.cash < 50) return "not enough money";
+          p.cash -= 50; if (G.opts.parkPot) G.pot += 50; p.jail = 0; G.pending = null;
+          ev(G, { k: "cash", s: s, d: -50 });
+          log(G, p.name + " paid $50 to leave the Lock-up.", s); ev(G, { k: "free", s: s }); return "";
+        }
+        if (t === "jailCard") {
+          if (!p.free.length) return "no card";
+          var f = p.free.pop(); G[f.d].push(f.c); p.jail = 0; G.pending = null;
+          log(G, p.name + " used a Get Out of Lock-up Free card.", s); ev(G, { k: "free", s: s }); return "";
+        }
+        // try for doubles
+        var d = roll(G); G.rolled = true;
+        if (d[0] === d[1]) {
+          p.jail = 0; G.pending = null; G.again = false; G.doubles = 0;
+          log(G, p.name + " rolled doubles (" + d[0] + " and " + d[1] + ") and walks free!", s); ev(G, { k: "free", s: s });
+          moveBy(G, s, d[0] + d[1]); land(G, s); afterResolve(G); return "";
+        }
+        if (p.jail >= 3) {
+          p.jail = 0; G.pending = null; G.again = false;
+          log(G, p.name + " rolled " + d[0] + " and " + d[1] + ". Third try, so pay $50 and go.", s); ev(G, { k: "free", s: s });
+          owe(G, s, -1, 50, "jail");
+          if (G.pending && G.pending.t === "debt") { G.pending.thenMove = d[0] + d[1]; return ""; }
+          moveBy(G, s, d[0] + d[1]); land(G, s); afterResolve(G); return "";
+        }
+        p.jail++; G.pending = null; G.phase = "end";
+        log(G, p.name + " rolled " + d[0] + " and " + d[1] + ". No doubles, still in the Lock-up.", s);
+        return "";
+      case "buy":
+        if (!pd || pd.t !== "buy" || pd.s !== s) return "not now";
+        if (p.cash < pd.price) return "not enough money";
+        p.cash -= pd.price; G.props[pd.i].o = s; p.st.bought++;
+        log(G, p.name + " bought " + SQ[pd.i].name + " for " + money(pd.price) + ".", s);
+        ev(G, { k: "buy", s: s, i: pd.i }); ev(G, { k: "cash", s: s, d: -pd.price });
+        if (SQ[pd.i].t === "street" && ownsSet(G, s, SQ[pd.i].g)) { log(G, p.name + " owns the whole " + GROUPS[SQ[pd.i].g].name + " set! Rent doubles and cottages can be built.", s); ev(G, { k: "set", s: s, g: SQ[pd.i].g }); }
+        G.pending = null; afterResolve(G); return "";
+      case "decline":
+        if (!pd || pd.t !== "buy" || pd.s !== s) return "not now";
+        var sqi = pd.i; G.pending = null;
+        if (G.opts.auction) startAuction(G, sqi);
+        else { log(G, p.name + " didn't buy " + SQ[sqi].name + ".", s); afterResolve(G); }
+        return "";
+      case "bid": case "pass":
+        if (!pd || pd.t !== "auction") return "not now";
+        if (pd.active[pd.at] !== s) return "not your bid";
+        if (t === "pass") {
+          pd.active.splice(pd.at, 1); if (pd.at >= pd.active.length) pd.at = 0;
+          log(G, p.name + " drops out of the auction.", s);
+          auctionCheckEnd(G); if (G.pending && G.pending.t === "auction") auctionSkipBroke(G); return "";
+        }
+        var amt = Math.round(a.amt || 0);
+        if (amt <= pd.bid || amt > p.cash) return "bad bid";
+        pd.bid = amt; pd.high = s;
+        log(G, p.name + " bids " + money(amt) + ".", s);
+        ev(G, { k: "bid", s: s, amt: amt });
+        pd.at = (pd.at + 1) % pd.active.length;
+        auctionSkipBroke(G); return "";
+      case "endTurn":
+        if (!myTurn || pd || G.phase !== "end") return "not now";
+        nextTurn(G); return "";
+      case "build": case "sell": case "mortgage": case "unmortgage":
+        if (!(myTurn && free) && !raising) return "not now";
+        var i = a.i, pr = G.props[i];
+        if (raising && (t === "build" || t === "unmortgage")) return "pay first";
+        if (t === "build") {
+          if (!canBuild(G, s, i)) return "can't build";
+          var c = houseCost(G, i); p.cash -= c; pr.h++;
+          if (pr.h === 5) { G.towers--; G.houses += 4; } else G.houses--;
+          p.st.built++;
+          log(G, p.name + " built " + (pr.h === 5 ? "a tower" : "a cottage") + " on " + SQ[i].name + " for " + money(c) + ".", s);
+          ev(G, { k: "build", s: s, i: i, h: pr.h }); ev(G, { k: "cash", s: s, d: -c });
+          return "";
+        }
+        if (t === "sell") {
+          if (!canSell(G, s, i)) return "can't sell";
+          var back = Math.floor(houseCost(G, i) / 2);
+          if (pr.h === 5) { G.towers++; G.houses -= 4; } else G.houses++;
+          pr.h--; p.cash += back;
+          log(G, p.name + " sold a building on " + SQ[i].name + " for " + money(back) + ".", s);
+          ev(G, { k: "build", s: s, i: i, h: pr.h }); ev(G, { k: "cash", s: s, d: back });
+          return "";
+        }
+        if (t === "mortgage") {
+          if (!canMortgage(G, s, i)) return "can't mortgage";
+          pr.m = true; p.cash += mortVal(G, i);
+          log(G, p.name + " mortgaged " + SQ[i].name + " for " + money(mortVal(G, i)) + ".", s);
+          ev(G, { k: "mort", s: s, i: i, m: true }); ev(G, { k: "cash", s: s, d: mortVal(G, i) });
+          return "";
+        }
+        if (!canUnmortgage(G, s, i)) return "can't";
+        p.cash -= unmortCost(G, i); pr.m = false;
+        log(G, p.name + " paid off the mortgage on " + SQ[i].name + " (" + money(unmortCost(G, i)) + ").", s);
+        ev(G, { k: "mort", s: s, i: i, m: false }); ev(G, { k: "cash", s: s, d: -unmortCost(G, i) });
+        return "";
+      case "payDebt":
+        if (!raising) return "not now";
+        var then = pd.thenMove;
+        if (!settleDebt(G)) return "not enough money";
+        if (then) { moveBy(G, s, then); land(G, s); }
+        if (!G.pending) afterResolve(G);
+        return "";
+      case "bankrupt":
+        if (!raising) return "not now";
+        bankrupt(G, s); return "";
+      case "trade":
+        if (!myTurn || pd || G.phase === "over") return "not now";
+        var o = { from: s, to: a.to, give: a.give || [], get: a.get || [], cashGive: a.cashGive | 0, cashGet: a.cashGet | 0, cardGive: a.cardGive | 0, cardGet: a.cardGet | 0 };
+        if (!tradeOk(G, o)) return "bad trade";
+        G.tradesThisTurn = (G.tradesThisTurn || 0) + 1;
+        G.pending = { t: "trade", s: o.to, o: o, phaseWas: G.phase };
+        log(G, p.name + " offers " + P(G, o.to).name + " a deal: " + tradeText(G, o) + ".", s);
+        ev(G, { k: "offer", a: s, b: o.to });
+        return "";
+      case "tradeReply":
+        if (!pd || pd.t !== "trade" || pd.s !== s) return "not now";
+        var off = pd.o; G.pending = null;
+        if (a.yes && tradeOk(G, off)) doTrade(G, off);
+        else {
+          log(G, p.name + " said no to the deal.", s); ev(G, { k: "nodeal", a: off.from, b: off.to });
+          G.noDeal = G.noDeal || {}; (off.get || []).forEach(function (i) { G.noDeal[off.from + ":" + i] = G.round; });
+        }
+        return "";
+      // ---- the bank (Economics) ----
+      case "borrow": case "repay": case "deposit": case "withdraw": case "buyGold": case "sellGold":
+        if (!G.E) return "classic";
+        if (!(myTurn && free) && !raising) return "not now";
+        var n = Math.floor(a.amt || 0); if (n <= 0) return "amount";
+        if (t === "borrow") {
+          if (n > creditLimit(G, s)) return "over your limit";
+          p.loan += n; p.cash += n;
+          log(G, p.name + " borrowed " + money(n) + " from the bank at " + loanRate(G, s) + "% a year.", s);
+          ev(G, { k: "cash", s: s, d: n }); ev(G, { k: "lesson", id: "borrow", s: s }); return "";
+        }
+        if (t === "repay") {
+          n = Math.min(n, p.loan); if (raising || n > p.cash) return "not enough";
+          p.loan -= n; p.cash -= n;
+          log(G, p.name + " paid back " + money(n) + " of their loan.", s);
+          ev(G, { k: "cash", s: s, d: -n });
+          if (p.loan === 0) setStars(G, s, 1, "paid off the whole loan");
+          return "";
+        }
+        if (t === "deposit") {
+          if (raising || n > p.cash) return "not enough";
+          p.cash -= n; p.save += n;
+          log(G, p.name + " put " + money(n) + " in the bank to earn interest.", s); ev(G, { k: "cash", s: s, d: -n }); return "";
+        }
+        if (t === "withdraw") {
+          n = Math.min(n, p.save); p.save -= n; p.cash += n;
+          log(G, p.name + " took " + money(n) + " out of savings.", s); ev(G, { k: "cash", s: s, d: n }); return "";
+        }
+        if (G.lvl < 3) return "gold is level 3";
+        if (t === "buyGold") {
+          var cost = n * goldBuy(G);
+          if (raising || cost > p.cash) return "not enough";
+          if (G.E.goldStd && n > G.E.bankGold) return "the bank is out of gold";
+          p.cash -= cost; p.gold += n; p.goldCost = (p.goldCost || 0) + cost;
+          if (G.E.goldStd) G.E.bankGold -= n;
+          log(G, p.name + " " + (G.E.goldStd ? "swapped " + money(cost) + " of gold certificates for " : "bought ") + n + " oz of gold" + (G.E.goldStd ? "." : " at " + money(goldBuy(G)) + " an ounce."), s);
+          ev(G, { k: "cash", s: s, d: -cost }); ev(G, { k: "gold", s: s }); ev(G, { k: "lesson", id: "gold", s: s }); return "";
+        }
+        n = Math.min(n, p.gold);
+        var got = n * goldSell(G);
+        var avg = p.gold ? (p.goldCost || 0) / p.gold : 0; p.goldCost = Math.max(0, (p.goldCost || 0) - avg * n); p.st.goldGain += Math.round(got - avg * n);
+        p.gold -= n; p.cash += got; if (G.E.goldStd) G.E.bankGold += n;
+        log(G, p.name + " sold " + n + " oz of gold for " + money(got) + ".", s);
+        ev(G, { k: "cash", s: s, d: got }); ev(G, { k: "gold", s: s }); return "";
+    }
+    return "unknown";
+  }
+
+  // who has to decide something right now
+  function waitingOn(G) {
+    if (G.over) return -1;
+    var pd = G.pending;
+    if (!pd) return G.turn;
+    if (pd.t === "auction") return pd.active[pd.at];
+    return pd.s;
+  }
+
+  /* ===================================================================
+     COMPUTER PLAYERS
+     level 1 = Easy, 2 = Normal, 3 = Hard
+     =================================================================== */
+  function dangerRent(G, s) {
+    // the worst rent this player could land on, roughly
+    var worst = 0;
+    BUYABLE.forEach(function (i) { var pr = G.props[i]; if (pr.o >= 0 && pr.o !== s && !pr.m) worst = Math.max(worst, rentOf(G, i, 7)); });
+    return worst;
+  }
+  function reserve(G, s) {
+    var lv = P(G, s).ai, w = dangerRent(G, s);
+    return Math.round((lv === 1 ? 60 : lv === 2 ? 120 : 160) + w * (lv === 1 ? 0.3 : lv === 2 ? 0.55 : 0.7));
+  }
+  function setValueFor(G, s, i) {
+    // how much square i is worth to player s (price plus set bonus)
+    var sq = SQ[i], v = priceOf(G, i);
+    if (sq.t === "street") {
+      var have = countOwned(G, s, sq.g) + (G.props[i].o === s ? 0 : 1), need = GROUP_SQ[sq.g].length;
+      if (have === need) v *= 2.2; else if (have === need - 1) v *= 1.35;
+      // stops someone else finishing a set
+      GROUP_SQ[sq.g].forEach(function () {});
+      var others = {}; GROUP_SQ[sq.g].forEach(function (j) { var o = G.props[j].o; if (o >= 0 && o !== s) others[o] = (others[o] || 0) + 1; });
+      for (var o in others) if (others[o] === need - 1 && G.props[i].o !== +o) v *= 1.4;
+    } else if (sq.t === "station") v *= 1 + 0.25 * countOwned(G, s, "station");
+    else if (sq.t === "utility") v *= countOwned(G, s, "utility") ? 1.3 : 0.9;
+    return v;
+  }
+  function aiRaise(G, s, need) {
+    // raise money in a sensible order; returns true if it did something
+    var p = P(G, s);
+    if (G.E) {
+      if (p.save > 0) return !act(G, s, { t: "withdraw", amt: Math.min(p.save, need - p.cash + 20) }) || true;
+      if (p.gold > 0 && G.lvl >= 3) { var oz = Math.min(p.gold, Math.ceil((need - p.cash) / Math.max(1, goldSell(G)))); if (!act(G, s, { t: "sellGold", amt: oz })) return true; }
+      var lim = creditLimit(G, s);
+      if (lim > 0 && G.E.rate < 11) { var b = Math.min(lim, need - p.cash + 30); if (b > 0 && !act(G, s, { t: "borrow", amt: b })) return true; }
+    }
+    // mortgage properties that are not in a set first (cheapest first)
+    var mine = BUYABLE.filter(function (i) { return G.props[i].o === s; });
+    var singles = mine.filter(function (i) { return canMortgage(G, s, i) && !(SQ[i].t === "street" && ownsSet(G, s, SQ[i].g)); })
+      .sort(function (a, b) { return setValueFor(G, s, a) - setValueFor(G, s, b); });
+    if (singles.length) { act(G, s, { t: "mortgage", i: singles[0] }); return true; }
+    var sells = mine.filter(function (i) { return canSell(G, s, i); }).sort(function (a, b) { return SQ[a].price - SQ[b].price; });
+    if (sells.length) { act(G, s, { t: "sell", i: sells[0] }); return true; }
+    var rest = mine.filter(function (i) { return canMortgage(G, s, i); }).sort(function (a, b) { return SQ[a].price - SQ[b].price; });
+    if (rest.length) { act(G, s, { t: "mortgage", i: rest[0] }); return true; }
+    return false;
+  }
+  function aiManage(G, s) {
+    // between rolls: unmortgage, build, bank. One action per call so the game can show it.
+    var p = P(G, s), res = reserve(G, s);
+    if ((G.aiActs = (G.aiActs || 0) + 1) > 40) return false;
+    // econ: pay off loans when flush, save spare cash
+    if (G.E) {
+      if (p.loan > 0 && p.cash > res * 2.2) { var r = Math.min(p.loan, Math.floor(p.cash - res * 1.6)); if (r > 20 && !act(G, s, { t: "repay", amt: r })) return true; }
+    }
+    // unmortgage set properties first
+    var morts = BUYABLE.filter(function (i) { return G.props[i].o === s && G.props[i].m; })
+      .sort(function (a, b) { return setValueFor(G, s, b) - setValueFor(G, s, a); });
+    for (var k = 0; k < morts.length; k++) if (p.cash - unmortCost(G, morts[k]) > res * 1.3) { if (!act(G, s, { t: "unmortgage", i: morts[k] })) return true; }
+    // savings can pay for building
+    if (G.E && p.save > 0) {
+      var could = BUYABLE.filter(function (i) { var pr = G.props[i]; return SQ[i].t === "street" && pr.o === s && pr.h < 5 && ownsSet(G, s, SQ[i].g) && !GROUP_SQ[SQ[i].g].some(function (j) { return G.props[j].m; }); });
+      if (could.length) { var need = houseCost(G, could[0]) + res - p.cash + 10; if (need > 0) { act(G, s, { t: "withdraw", amt: Math.min(p.save, need * 2) }); return true; } }
+    }
+    // build on the best set, evenly
+    var builds = BUYABLE.filter(function (i) { return canBuild(G, s, i); });
+    if (builds.length) {
+      builds.sort(function (a, b) {
+        var ga = G.props[a].h, gb = G.props[b].h;
+        if (ga !== gb) return ga - gb;
+        return (SQ[b].rent[3] / SQ[b].hc) - (SQ[a].rent[3] / SQ[a].hc);
+      });
+      var i = builds[0], c = houseCost(G, i);
+      var lv = p.ai, cap = 5;
+      if (G.props[i].h < cap) {
+        if (p.cash - c > res) { if (!act(G, s, { t: "build", i: i })) return true; }
+        else if (G.E && G.E.rate < 9 && lv >= 2 && G.props[i].h < 3 && p.loan < 2000) {
+          // borrow to build when rents beat the interest
+          var gain = (SQ[i].rent[G.props[i].h + 1] - SQ[i].rent[G.props[i].h]) * 0.6, cost = c * loanRate(G, s) / 100;
+          var amt = Math.round(c + res - p.cash + 10); if (gain > cost * 1.5 && creditLimit(G, s) >= amt) { act(G, s, { t: "borrow", amt: amt }); return true; }
+        }
+      }
+    }
+    if (G.E) {
+      if (p.cash > res * 3 && G.lvl >= 3 && p.ai >= 2) {
+        var buyG = G.E.goldStd ? (G.E.rate < 4 && Math.random() < 0.3) : (G.E.infl > 3.5 || G.E.mood < -0.5);
+        if (buyG && p.gold < 10) { var oz = Math.min(3, Math.floor((p.cash - res * 2.5) / goldBuy(G))); if (oz > 0 && !act(G, s, { t: "buyGold", amt: oz })) return true; }
+      }
+      if (p.gold > 0 && G.lvl >= 3 && !G.E.goldStd && p.goldCost && goldSell(G) > p.goldCost / p.gold * 1.25) { if (!act(G, s, { t: "sellGold", amt: p.gold })) return true; }
+      if (p.cash > res * 3.2 && p.loan === 0 && (BUYABLE.filter(function (i) { return G.props[i].o < 0; }).length < 6 || p.cash > 2500)) { var dpt = Math.floor((p.cash - res * 2.4) / 10) * 10; if (dpt >= 50 && !act(G, s, { t: "deposit", amt: dpt })) return true; }
+    }
+    return false;
+  }
+  function completesSetFor(G, who, gets, gives) {
+    // does this deal leave "who" with a whole colour set it did not have?
+    var done = false;
+    gets.forEach(function (i) {
+      if (SQ[i].t !== "street") return;
+      var g = SQ[i].g;
+      if (ownsSet(G, who, g)) return;
+      var have = GROUP_SQ[g].filter(function (j) { return (G.props[j].o === who && gives.indexOf(j) < 0) || gets.indexOf(j) >= 0; }).length;
+      if (have === GROUP_SQ[g].length) done = true;
+    });
+    return done;
+  }
+  function aiTradeValue(G, s, o) {
+    // net value of a deal for player s (positive = good for s)
+    var gets = s === o.to ? o.give : o.get, gives = s === o.to ? o.get : o.give;
+    var cashIn = s === o.to ? o.cashGive - o.cashGet : o.cashGet - o.cashGive;
+    var other = s === o.to ? o.from : o.to;
+    var v = cashIn, iGetSet = completesSetFor(G, s, gets, gives), theyGetSet = completesSetFor(G, other, gives, gets);
+    gets.forEach(function (i) { v += setValueFor(G, s, i) * (G.props[i].m ? 0.6 : 1); });
+    gives.forEach(function (i) { v -= setValueFor(G, s, i) * (G.props[i].m ? 0.6 : 1); });
+    // handing someone a whole set is dangerous, unless I get one too
+    if (theyGetSet) gives.forEach(function (i) { if (SQ[i].t === "street") v -= SQ[i].price * (iGetSet ? 0.4 : 1.6); });
+    v += ((s === o.to ? o.cardGive - o.cardGet : o.cardGet - o.cardGive) || 0) * 40;
+    return v;
+  }
+  function aiConsiderTrade(G, s, o) {
+    var v = aiTradeValue(G, s, o), lv = P(G, s).ai;
+    var need = lv === 1 ? -20 : lv === 2 ? 25 : 60;
+    if (P(G, s).cash + (s === o.to ? o.cashGive - o.cashGet : o.cashGet - o.cashGive) < 0) return false;
+    return v >= need;
+  }
+  function aiProposeTrade(G, s) {
+    // look for one missing street that would finish a set: swap for a street they need, or offer cash
+    var p = P(G, s);
+    if ((G.tradesThisTurn || 0) >= 1 || Math.random() > (p.ai === 1 ? 0.2 : 0.45)) return null;
+    G.noDeal = G.noDeal || {}; G.tries = G.tries || {};
+    var spare = Math.max(0, p.cash - reserve(G, s));
+    for (var g in GROUPS) {
+      var sqs = GROUP_SQ[g], mine = sqs.filter(function (i) { return G.props[i].o === s; });
+      if (mine.length !== sqs.length - 1) continue;
+      var miss = sqs.filter(function (i) { return G.props[i].o !== s; })[0], o = G.props[miss].o;
+      if (o < 0 || P(G, o).out || groupBuilt(G, g)) continue;
+      var key = s + ":" + miss;
+      if (G.noDeal[key] && G.round - G.noDeal[key] < 3) continue;
+      var tries = G.tries[key] || 0;
+      // 1) a swap that finishes a set for both of us
+      var swap = BUYABLE.filter(function (j) {
+        if (G.props[j].o !== s || SQ[j].t !== "street" || groupBuilt(G, SQ[j].g) || SQ[j].g === g) return false;
+        return completesSetFor(G, o, [j], [miss]);
+      }).sort(function (a, b) { return SQ[a].price - SQ[b].price; });
+      var offer;
+      if (swap.length) {
+        var diff = SQ[swap[0]].price < SQ[miss].price ? Math.round((SQ[miss].price - SQ[swap[0]].price) * (1 + tries * 0.5) / 10) * 10 : 0;
+        offer = { from: s, to: o, give: [swap[0]], get: [miss], cashGive: Math.min(diff, spare), cashGet: 0, cardGive: 0, cardGet: 0 };
+      } else {
+        var mult = (p.ai === 3 ? 1.6 : 1.9) + tries * 0.6;
+        var cash = Math.round(Math.min(spare, SQ[miss].price * mult) / 10) * 10;
+        offer = { from: s, to: o, give: [], get: [miss], cashGive: cash, cashGet: 0, cardGive: 0, cardGet: 0 };
+        if (cash < SQ[miss].price * 1.2) {
+          // add a spare street that doesn't help anyone finish a set
+          var sweet = BUYABLE.filter(function (j) {
+            return G.props[j].o === s && SQ[j].t === "street" && SQ[j].g !== g && !groupBuilt(G, SQ[j].g) && !ownsSet(G, s, SQ[j].g) && !completesSetFor(G, o, [j], []);
+          }).sort(function (a, b) { return SQ[b].price - SQ[a].price; });
+          if (sweet.length) offer.give = [sweet[0]];
+        }
+        if (offer.cashGive < 10 && !offer.give.length) continue;
+      }
+      G.tries[key] = tries + 1;
+      if (tradeOk(G, offer)) return offer;
+    }
+    return null;
+  }
+  // one step of thinking for computer player s; returns the action taken (or null)
+  function aiStep(G, s) {
+    var p = P(G, s), pd = G.pending, lv = p.ai;
+    if (pd && pd.t === "debt" && pd.s === s) {
+      if (p.cash >= pd.amt) { act(G, s, { t: "payDebt" }); return "pay"; }
+      if (liquid(G, s) + (G.E ? creditLimit(G, s) : 0) < pd.amt) { act(G, s, { t: "bankrupt" }); return "bankrupt"; }
+      if (aiRaise(G, s, pd.amt)) return "raise";
+      act(G, s, { t: "bankrupt" }); return "bankrupt";
+    }
+    if (pd && pd.t === "trade" && pd.s === s) { act(G, s, { t: "tradeReply", yes: aiConsiderTrade(G, s, pd.o) }); return "reply"; }
+    if (pd && pd.t === "auction") {
+      var cap = setValueFor(G, s, pd.i) * (lv === 1 ? 0.75 : lv === 2 ? 0.95 : 1.05) * (0.9 + Math.random() * 0.2);
+      cap = Math.min(cap, p.cash - (lv === 1 ? 20 : 60));
+      var step = pd.bid < 100 ? 10 : pd.bid < 400 ? 20 : 50;
+      var nb = pd.bid + step;
+      if (nb <= cap) { act(G, s, { t: "bid", amt: nb }); return "bid"; }
+      act(G, s, { t: "pass" }); return "pass";
+    }
+    if (pd && pd.t === "jail" && pd.s === s) {
+      var late = dangerRent(G, s) > 300 || BUYABLE.filter(function (i) { return G.props[i].o < 0; }).length < 6;
+      if (p.free.length && !late) { act(G, s, { t: "jailCard" }); return "card"; }
+      if (!late && p.cash > 200 && p.jail === 1) { act(G, s, { t: "jailPay" }); return "pay"; }
+      act(G, s, { t: "jailRoll" }); return "roll";
+    }
+    if (pd && pd.t === "buy" && pd.s === s) {
+      var val = setValueFor(G, s, pd.i), res = reserve(G, s);
+      var want = p.cash - pd.price >= res * (val > pd.price * 1.2 ? 0.4 : 1);
+      if (!want && G.E && lv >= 2 && val > pd.price * 1.3 && creditLimit(G, s) >= pd.price - p.cash + res * 0.5 && G.E.rate < 10) {
+        act(G, s, { t: "borrow", amt: Math.round(pd.price - p.cash + res * 0.5) }); return "borrow";
+      }
+      if (lv === 1 && Math.random() < 0.15) want = !want && p.cash > pd.price;
+      if (want && p.cash >= pd.price) { act(G, s, { t: "buy" }); return "buy"; }
+      act(G, s, { t: "decline" }); return "decline";
+    }
+    if (pd) return null;
+    if (s !== G.turn) return null;
+    if (aiManage(G, s)) return "manage";
+    if (G.phase === "roll" || G.phase === "end") {
+      var tr = aiProposeTrade(G, s);
+      if (tr) { act(G, s, { t: "trade", to: tr.to, give: tr.give, get: tr.get, cashGive: tr.cashGive, cashGet: 0 }); return "trade"; }
+    }
+    if (G.phase === "roll") { act(G, s, { t: "roll" }); return "roll"; }
+    if (G.phase === "end") { act(G, s, { t: "endTurn" }); return "end"; }
+    return null;
+  }
+
+  return {
+    SQ: SQ, GROUPS: GROUPS, GROUP_SQ: GROUP_SQ, BUYABLE: BUYABLE, NEWS: NEWS, LUCKY: LUCKY, TOKENS: TOKENS, COLS: COLS, JAIL: JAIL,
+    newGame: newGame, act: act, aiStep: aiStep, waitingOn: waitingOn, money: money,
+    priceOf: priceOf, houseCost: houseCost, rentOf: rentOf, mortVal: mortVal, unmortCost: unmortCost, ownsSet: ownsSet,
+    canBuild: canBuild, canSell: canSell, canMortgage: canMortgage, canUnmortgage: canUnmortgage, liquid: liquid, netWorth: netWorth,
+    loanRate: loanRate, saveRate: saveRate, creditLimit: creditLimit, creditAvail: creditAvail, bankCapacity: bankCapacity,
+    totalLoans: totalLoans, goldBuy: goldBuy, goldSell: goldSell, tradeOk: tradeOk, tradeText: tradeText, aiTradeValue: aiTradeValue,
+    groupBuilt: groupBuilt, countOwned: countOwned, mkt: mkt
+  };
+})();
+if (typeof module !== "undefined") module.exports = BT;
+
+</script>
+<script>
+/* ===================================================================
+   BOOMTOWN: the 3D table, screens, computer turns and online play
+   =================================================================== */
+(function () {
+"use strict";
+const $ = id => document.getElementById(id);
+const THREE = window.THREE;
+const SQ = BT.SQ, GROUPS = BT.GROUPS, M = BT.money;
+const SAVE_KEY = "boomtown-save";
+const esc = t => String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const tokEm = id => (BT.TOKENS.find(t => t.id === id) || BT.TOKENS[0]).em;
+const tokName = id => (BT.TOKENS.find(t => t.id === id) || BT.TOKENS[0]).name;
+const sqCol = i => SQ[i].g && GROUPS[SQ[i].g] ? GROUPS[SQ[i].g].col : SQ[i].t === "station" ? "#3b3b3b" : "#8a8f9c";
+
+/* ---------------- save ---------------- */
+const S = A3.save(SAVE_KEY, {
+  stats: { games: 0, wins: 0, best: 0, online: 0 },
+  seen: {}, lessons: true, fast: false, view: "3d",
+  setup: { mode: "classic", lvl: 1, money: "credit", foes: 3, ai: 2, rounds: 0, auction: true, parkPot: false, start: 1500, tok: "roo", name: "" },
+  game: null
+});
+function store() { A3.store(SAVE_KEY, S); }
+
+/* ---------------- state ---------------- */
+let G = null;               // the game being shown
+let NET = { mode: "local" }; // local | host | client
+let lastSeq = 0;            // last event already played
+let busy = 0;               // seconds of animation still running
+let aiT = 0;
+let mineLocal = [];         // seats this device controls
+const MYID = (() => { try { let v = sessionStorage.getItem("bt_netid"); if (!v) { v = Math.random().toString(36).slice(2, 10); sessionStorage.setItem("bt_netid", v); } return v; } catch (e) { return Math.random().toString(36).slice(2, 10); } })();
+
+/* ===================================================================
+   3D TABLE
+   =================================================================== */
+const stage = $("stage");
+const view = A3.view(stage, { fov: 40, sky: ["#2a3d6b", "#0f1a33"], shadows: true, shadowSize: 12 });
+if (!view) return;
+const { scene, camera, renderer, lights } = view;
+lights.sun.position.set(6, 20, 9);
+lights.hemi.intensity = 0.75;
+
+const C = 2, W = 1.2, H = 7.4; // corner size, square width, half board
+function rectOf(i) {
+  if (i === 0) return { x0: H - C, x1: H, z0: H - C, z1: H, side: "c", rot: -Math.PI / 4 };
+  if (i < 10) { const x1 = H - C - (i - 1) * W; return { x0: x1 - W, x1, z0: H - C, z1: H, side: "b", rot: 0 }; }
+  if (i === 10) return { x0: -H, x1: -H + C, z0: H - C, z1: H, side: "c", rot: Math.PI / 4 };
+  if (i < 20) { const z1 = H - C - (i - 11) * W; return { x0: -H, x1: -H + C, z0: z1 - W, z1, side: "l", rot: Math.PI / 2 }; }
+  if (i === 20) return { x0: -H, x1: -H + C, z0: -H, z1: -H + C, side: "c", rot: Math.PI * 3 / 4 };
+  if (i < 30) { const x0 = -H + C + (i - 21) * W; return { x0, x1: x0 + W, z0: -H, z1: -H + C, side: "t", rot: Math.PI }; }
+  if (i === 30) return { x0: H - C, x1: H, z0: -H, z1: -H + C, side: "c", rot: -Math.PI * 3 / 4 };
+  const z0 = -H + C + (i - 31) * W; return { x0: H - C, x1: H, z0, z1: z0 + W, side: "r", rot: -Math.PI / 2 };
+}
+function centreOf(i) { const r = rectOf(i); return new THREE.Vector3((r.x0 + r.x1) / 2, 0, (r.z0 + r.z1) / 2); }
+// a point inside square i: u across (−0.5..0.5), v from the inner edge (0) to the outer edge (1)
+function spotIn(i, u, v) {
+  const r = rectOf(i), c = centreOf(i);
+  if (r.side === "c") { const dx = Math.sign(c.x), dz = Math.sign(c.z); return new THREE.Vector3(c.x + u * 0.8 * dx + (v - 0.5) * 0.6 * dx, 0, c.z - u * 0.8 * dz + (v - 0.5) * 0.6 * dz); }
+  const inward = { b: [0, -1], t: [0, 1], l: [1, 0], r: [-1, 0] }[r.side], across = [inward[1], -inward[0]];
+  return new THREE.Vector3(c.x + across[0] * u * W + inward[0] * (0.5 - v) * C, 0, c.z + across[1] * u * W + inward[1] * (0.5 - v) * C);
+}
+
+/* ---- the board picture ---- */
+const BPX = 2048, K = BPX / (2 * H);
+function wrapText(g, text, maxW) {
+  const words = text.split(" "), lines = []; let line = "";
+  for (const w of words) { const t = line ? line + " " + w : w; if (g.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; }
+  if (line) lines.push(line); return lines;
+}
+function drawBoard() {
+  const cv = document.createElement("canvas"); cv.width = cv.height = BPX;
+  const g = cv.getContext("2d");
+  // centre: Swan River and the city
+  const bg = g.createLinearGradient(0, 0, BPX, BPX); bg.addColorStop(0, "#e9f6e4"); bg.addColorStop(1, "#d3ecd0");
+  g.fillStyle = bg; g.fillRect(0, 0, BPX, BPX);
+  g.save(); g.translate(BPX / 2, BPX / 2);
+  g.strokeStyle = "#8fd0f5"; g.lineWidth = 120; g.lineCap = "round";
+  g.beginPath(); g.moveTo(-620, 420); g.bezierCurveTo(-300, 520, -200, 80, 60, 120); g.bezierCurveTo(300, 160, 360, -260, 640, -380); g.stroke();
+  g.strokeStyle = "#b8e4fb"; g.lineWidth = 40; g.stroke();
+  // skyline
+  g.fillStyle = "#2b3a5c";
+  const bld = [[-260, 170, 60], [-190, 260, 70], [-110, 330, 80], [-20, 420, 90], [80, 300, 70], [160, 360, 60], [230, 220, 70], [300, 150, 60]];
+  for (const [x, h, w] of bld) g.fillRect(x, -60 - h, w, h);
+  g.fillStyle = "#ffd76a"; for (const [x, h, w] of bld) for (let yy = -80 - h + 20; yy < -80; yy += 34) for (let xx = x + 10; xx < x + w - 14; xx += 22) if ((xx * 7 + yy * 3) % 5 < 3) g.fillRect(xx, yy, 10, 14);
+  g.fillStyle = "#3e5a2e"; g.fillRect(-340, -60, 700, 16);
+  // title
+  g.rotate(-Math.PI / 4);
+  g.font = "bold 190px 'Lilita One', 'Arial Rounded MT Bold', sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+  g.lineWidth = 26; g.strokeStyle = "#7a2f12"; g.strokeText("BOOMTOWN", 0, 230);
+  g.fillStyle = "#ffc93c"; g.fillText("BOOMTOWN", 0, 230);
+  g.font = "bold 46px Nunito, sans-serif"; g.fillStyle = "#28406b"; g.fillText("PERTH PROPERTY TRADING", 0, 350);
+  g.restore();
+  // card spots
+  const spot = (x, y, rot, col, label, em) => {
+    g.save(); g.translate(x, y); g.rotate(rot);
+    g.fillStyle = col; g.strokeStyle = "#fff"; g.lineWidth = 10; g.setLineDash([24, 16]);
+    g.fillRect(-170, -110, 340, 220); g.strokeRect(-170, -110, 340, 220); g.setLineDash([]);
+    g.fillStyle = "#fff"; g.font = "bold 50px Nunito, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText(em + " " + label, 0, 0); g.restore();
+  };
+  spot(BPX / 2 - 420, BPX / 2 - 420, -Math.PI / 4, "rgba(200,38,45,.85)", "HEADLINE", "📰");
+  spot(BPX / 2 + 420, BPX / 2 + 420, -Math.PI / 4, "rgba(29,138,58,.85)", "LUCKY DIP", "🎁");
+  // squares
+  for (let i = 0; i < 40; i++) {
+    const r = rectOf(i), s = SQ[i];
+    const x0 = (r.x0 + H) * K, z0 = (r.z0 + H) * K, w = (r.x1 - r.x0) * K, h = (r.z1 - r.z0) * K;
+    g.fillStyle = "#fbf6e6"; g.fillRect(x0, z0, w, h);
+    g.strokeStyle = "#20283d"; g.lineWidth = 4; g.strokeRect(x0, z0, w, h);
+    g.save(); g.translate(x0 + w / 2, z0 + h / 2); g.rotate(r.rot);
+    const lw = W * K, lh = C * K; // local width/height for side squares
+    g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = "#1b2233";
+    if (r.side !== "c") {
+      if (s.t === "street") {
+        g.fillStyle = GROUPS[s.g].col; g.fillRect(-lw / 2, -lh / 2, lw, lh * 0.22);
+        g.strokeStyle = "#20283d"; g.lineWidth = 4; g.beginPath(); g.moveTo(-lw / 2, -lh / 2 + lh * 0.22); g.lineTo(lw / 2, -lh / 2 + lh * 0.22); g.stroke();
+        g.fillStyle = "#1b2233"; g.font = "900 26px Nunito, sans-serif";
+        const lines = wrapText(g, s.name.toUpperCase(), lw - 14);
+        lines.forEach((ln, k) => g.fillText(ln, 0, -lh * 0.12 + k * 30));
+        g.font = "900 28px Nunito, sans-serif"; g.fillText("$" + s.price, 0, lh * 0.36);
+      } else {
+        const em = { station: "🚆", utility: s.name.startsWith("Power") ? "⚡" : "💧", tax: s.amt > 150 ? "🏛️" : "🧳", news: "📰", lucky: "🎁" }[s.t] || "";
+        g.font = "900 24px Nunito, sans-serif";
+        const title = s.t === "news" ? "HEADLINE" : s.t === "lucky" ? "LUCKY DIP" : s.name.toUpperCase();
+        g.fillStyle = s.t === "news" ? "#c8262d" : s.t === "lucky" ? "#1d8a3a" : "#1b2233";
+        wrapText(g, title, lw - 12).forEach((ln, k) => g.fillText(ln, 0, -lh * 0.36 + k * 28));
+        g.font = "72px sans-serif"; g.fillText(em, 0, lh * 0.04);
+        g.fillStyle = "#1b2233"; g.font = "900 26px Nunito, sans-serif";
+        if (s.price) g.fillText("$" + s.price, 0, lh * 0.36);
+        if (s.t === "tax") g.fillText("PAY $" + s.amt, 0, lh * 0.36);
+      }
+    } else {
+      const cw = C * K;
+      const big = (t, y, sz, col) => { g.fillStyle = col || "#1b2233"; g.font = "900 " + (sz || 40) + "px Nunito, sans-serif"; g.fillText(t, 0, y); };
+      if (s.t === "start") { big("PAYDAY", -60, 52, "#c8262d"); g.font = "90px sans-serif"; g.fillText("💰", 0, 20); big("COLLECT $200", 90, 28); big("AS YOU PASS", 122, 24); }
+      if (s.t === "park") { big("BEACH DAY", -70, 44, "#1d6fb8"); g.font = "100px sans-serif"; g.fillText("🏖️", 0, 20); big(" ", 0); }
+      if (s.t === "gotojail") { big("BUSTED!", -70, 48, "#c8262d"); g.font = "100px sans-serif"; g.fillText("🚓", 0, 16); big("GO TO THE LOCK-UP", 100, 24); }
+      g.restore();
+      if (s.t === "jail") {
+        // lock-up: inner cell plus a "just visiting" strip on the outside
+        g.fillStyle = "#ff9a2e"; g.fillRect(x0 + w * 0.32, z0, w * 0.68, h * 0.68);
+        g.strokeStyle = "#20283d"; g.lineWidth = 6; g.strokeRect(x0 + w * 0.32, z0, w * 0.68, h * 0.68);
+        g.strokeStyle = "#20283d"; g.lineWidth = 8;
+        for (let k = 1; k < 6; k++) { const xx = x0 + w * 0.32 + k * w * 0.68 / 6; g.beginPath(); g.moveTo(xx, z0 + 14); g.lineTo(xx, z0 + h * 0.68 - 14); g.stroke(); }
+        g.save(); g.translate(x0 + w * 0.66, z0 + h * 0.34); g.rotate(Math.PI / 4);
+        g.fillStyle = "#1b2233"; g.font = "900 34px Nunito, sans-serif"; g.textAlign = "center"; g.fillText("LOCK-UP", 0, 0); g.restore();
+        g.save(); g.translate(x0 + w * 0.14, z0 + h * 0.5); g.rotate(Math.PI / 2); g.fillStyle = "#1b2233"; g.font = "900 28px Nunito, sans-serif"; g.textAlign = "center"; g.fillText("JUST", 0, 0); g.restore();
+        g.save(); g.translate(x0 + w * 0.5, z0 + h * 0.86); g.fillStyle = "#1b2233"; g.font = "900 28px Nunito, sans-serif"; g.textAlign = "center"; g.fillText("VISITING", 0, 0); g.restore();
+      }
+      continue;
+    }
+    g.restore();
+  }
+  g.strokeStyle = "#20283d"; g.lineWidth = 8; g.strokeRect((-H + C) * K, (-H + C) * K, (2 * H - 2 * C) * K, (2 * H - 2 * C) * K);
+  const tex = new THREE.CanvasTexture(cv); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return tex;
+}
+// table and board
+const table = new THREE.Mesh(new THREE.CylinderGeometry(15, 15, 0.8, 64), A3.mat("#6b4428", { rough: 0.7 }));
+table.position.y = -0.55; table.receiveShadow = true; scene.add(table);
+const cloth = new THREE.Mesh(new THREE.CylinderGeometry(14.6, 14.6, 0.05, 64), A3.mat("#1f5a3c", { rough: 0.95 }));
+cloth.position.y = -0.13; cloth.receiveShadow = true; scene.add(cloth);
+const boardTex = drawBoard();
+const boardTop = new THREE.MeshStandardMaterial({ map: boardTex, roughness: 0.75 });
+const boardSide = A3.mat("#20283d");
+const board = new THREE.Mesh(new THREE.BoxGeometry(2 * H, 0.2, 2 * H), [boardSide, boardSide, boardTop, boardSide, boardSide, boardSide]);
+board.position.y = -0.1; board.receiveShadow = true; scene.add(board);
+// redraw once the fonts arrive so the lettering is right
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { const t = drawBoard(); boardTop.map = t; boardTop.needsUpdate = true; });
+// card piles
+function pile(x, z, col) {
+  const grp = new THREE.Group();
+  for (let k = 0; k < 6; k++) { const c = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.03, 1.4), A3.mat(k === 5 ? col : "#f4efe0")); c.position.y = 0.015 + k * 0.03; c.rotation.y = (Math.random() - 0.5) * 0.06; c.castShadow = true; grp.add(c); }
+  grp.position.set(x, 0, z); grp.rotation.y = Math.PI / 4; scene.add(grp); return grp;
+}
+pile(-420 / K, -420 / K, "#c8262d"); pile(420 / K, 420 / K, "#1d8a3a");
+
+/* ---- tokens ---- */
+function metal(col) { return A3.mat(col, { metal: 0.55, rough: 0.32 }); }
+function buildToken(id, col) {
+  const g = new THREE.Group(), m = metal(col), dark = A3.mat("#1b1b1b");
+  const add = (geo, mat, x, y, z, rx, ry, rz) => { const o = new THREE.Mesh(geo, mat || m); o.position.set(x || 0, y || 0, z || 0); o.rotation.set(rx || 0, ry || 0, rz || 0); o.castShadow = true; g.add(o); return o; };
+  const base = add(new THREE.CylinderGeometry(0.22, 0.25, 0.06, 24), A3.mat("#f4f4f4", { metal: 0.3, rough: 0.4 }), 0, 0.03, 0);
+  const ring = add(new THREE.TorusGeometry(0.235, 0.025, 8, 28), m, 0, 0.06, 0, Math.PI / 2);
+  if (id === "roo") {
+    const b = add(new THREE.SphereGeometry(0.13, 16, 12), m, 0, 0.26, 0); b.scale.set(1, 1.35, 0.9); b.rotation.x = -0.25;
+    add(new THREE.SphereGeometry(0.075, 14, 10), m, 0, 0.47, 0.06);
+    add(new THREE.ConeGeometry(0.03, 0.12, 8), m, -0.04, 0.56, 0.04, 0, 0, 0.2); add(new THREE.ConeGeometry(0.03, 0.12, 8), m, 0.04, 0.56, 0.04, 0, 0, -0.2);
+    add(new THREE.CylinderGeometry(0.02, 0.05, 0.36, 8), m, 0, 0.14, -0.17, -1.0);
+    add(new THREE.BoxGeometry(0.06, 0.04, 0.2), m, -0.06, 0.08, 0.05); add(new THREE.BoxGeometry(0.06, 0.04, 0.2), m, 0.06, 0.08, 0.05);
+    add(new THREE.SphereGeometry(0.035, 8, 8), m, 0, 0.44, 0.13);
+  } else if (id === "quokka") {
+    const b = add(new THREE.SphereGeometry(0.15, 18, 14), m, 0, 0.22, 0); b.scale.set(1, 1.1, 0.95);
+    add(new THREE.SphereGeometry(0.1, 16, 12), m, 0, 0.42, 0.02);
+    add(new THREE.SphereGeometry(0.035, 10, 8), m, -0.07, 0.5, 0); add(new THREE.SphereGeometry(0.035, 10, 8), m, 0.07, 0.5, 0);
+    add(new THREE.SphereGeometry(0.018, 8, 6), dark, -0.035, 0.44, 0.09); add(new THREE.SphereGeometry(0.018, 8, 6), dark, 0.035, 0.44, 0.09);
+    add(new THREE.TorusGeometry(0.03, 0.008, 6, 12, Math.PI), dark, 0, 0.405, 0.1, 0, 0, Math.PI);
+  } else if (id === "swan") {
+    const b = add(new THREE.SphereGeometry(0.15, 18, 12), m, 0, 0.17, -0.03); b.scale.set(0.9, 0.6, 1.3);
+    const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0.2, 0.1), new THREE.Vector3(0, 0.33, 0.16), new THREE.Vector3(0, 0.44, 0.08), new THREE.Vector3(0, 0.5, 0.12)]);
+    add(new THREE.TubeGeometry(curve, 16, 0.03, 8, false), m);
+    add(new THREE.SphereGeometry(0.045, 10, 8), m, 0, 0.51, 0.13);
+    add(new THREE.ConeGeometry(0.02, 0.08, 8), A3.mat("#e2333a"), 0, 0.5, 0.2, Math.PI / 2);
+    add(new THREE.ConeGeometry(0.06, 0.14, 8), m, 0, 0.25, -0.2, -1.2);
+  } else if (id === "ute") {
+    add(new THREE.BoxGeometry(0.22, 0.1, 0.46), m, 0, 0.16, 0);
+    add(new THREE.BoxGeometry(0.2, 0.11, 0.17), m, 0, 0.26, 0.08);
+    add(new THREE.BoxGeometry(0.19, 0.08, 0.02), A3.mat("#bfe6ff", { metal: 0.2, rough: 0.1 }), 0, 0.27, 0.17);
+    const wg = new THREE.CylinderGeometry(0.06, 0.06, 0.05, 14);
+    for (const [x, z] of [[-0.12, 0.14], [0.12, 0.14], [-0.12, -0.14], [0.12, -0.14]]) add(wg, dark, x, 0.12, z, 0, 0, Math.PI / 2);
+  } else if (id === "surf") {
+    const b = add(new THREE.SphereGeometry(0.1, 18, 12), m, 0, 0.36, 0); b.scale.set(1, 3, 0.25);
+    add(new THREE.BoxGeometry(0.012, 0.6, 0.012), A3.mat("#ffffff"), 0, 0.36, 0.026);
+    add(new THREE.BoxGeometry(0.02, 0.08, 0.06), m, 0, 0.12, -0.04);
+  } else {
+    const b = add(new THREE.SphereGeometry(0.12, 18, 14), m, 0, 0.3, 0); b.scale.set(1, 1.6, 1);
+    add(new THREE.BoxGeometry(0.015, 0.2, 0.02), A3.mat("#ffffff"), 0, 0.33, 0.118);
+    add(new THREE.ConeGeometry(0.07, 0.12, 12, 1, true), A3.mat("#ffb300"), 0, 0.1, 0, Math.PI);
+  }
+  g.userData = { base, ring };
+  g.scale.setScalar(1.55);
+  return g;
+}
+const tokens = [];   // per seat: { obj, pos (square shown), anim }
+function slotFor(G, s, sq) {
+  // spread the players who share a square
+  const here = G.players.map((p, k) => k).filter(k => !G.players[k].out && G.players[k].pos === sq);
+  const n = Math.max(1, here.length), k = Math.max(0, here.indexOf(s));
+  const p = G.players[s];
+  if (sq === BT.JAIL && p.jail > 0) {
+    const r = rectOf(10); const cx = r.x0 + (r.x1 - r.x0) * 0.66, cz = r.z0 + (r.z1 - r.z0) * 0.34;
+    return new THREE.Vector3(cx + ((k % 2) - 0.5) * 0.45, 0, cz + (Math.floor(k / 2) - 0.5) * 0.45);
+  }
+  if (sq === BT.JAIL) { const r = rectOf(10); return new THREE.Vector3(r.x0 + 0.3, 0, r.z0 + 0.4 + k * 0.4); }
+  const cols = n <= 2 ? n : n <= 4 ? 2 : 3, rows = Math.ceil(n / cols);
+  const u = cols === 1 ? 0 : ((k % cols) / (cols - 1) - 0.5) * 0.62, v = rows === 1 ? 0.55 : 0.38 + Math.floor(k / cols) / Math.max(1, rows - 1) * 0.4;
+  return spotIn(sq, u, v);
+}
+function syncTokens(hard) {
+  if (!G) return;
+  while (tokens.length > G.players.length) { const t = tokens.pop(); scene.remove(t.obj); }
+  G.players.forEach((p, s) => {
+    let t = tokens[s];
+    if (!t || t.tok !== p.tok || t.col !== p.col) {
+      if (t) scene.remove(t.obj);
+      t = tokens[s] = { obj: buildToken(p.tok, p.col), tok: p.tok, col: p.col, pos: p.pos, anim: null };
+      scene.add(t.obj); hard = true;
+    }
+    t.obj.visible = !p.out;
+    if (hard || !t.anim) { t.pos = p.pos; t.anim = null; t.obj.position.copy(slotFor(G, s, p.pos)); t.obj.rotation.y = faceFor(p.pos); }
+  });
+}
+function faceFor(i) { const r = rectOf(i); return { b: Math.PI / 2 * 0 - Math.PI / 2, l: Math.PI, t: Math.PI / 2, r: 0, c: i === 0 ? -Math.PI / 2 : i === 10 ? Math.PI : i === 20 ? Math.PI / 2 : 0 }[r.side] + Math.PI; }
+
+/* ---- buildings and ownership ---- */
+const propObjs = {}; // sq -> { bar, houses: Group }
+const cottageGeo = new THREE.BoxGeometry(0.2, 0.16, 0.2), roofGeo = new THREE.ConeGeometry(0.17, 0.13, 4);
+function cottage() {
+  const g = new THREE.Group();
+  const b = new THREE.Mesh(cottageGeo, A3.mat("#fff3de")); b.position.y = 0.08; b.castShadow = true; g.add(b);
+  const r = new THREE.Mesh(roofGeo, A3.mat("#c8512d")); r.position.y = 0.225; r.rotation.y = Math.PI / 4; r.castShadow = true; g.add(r);
+  return g;
+}
+function tower() {
+  const g = new THREE.Group();
+  const b = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.7, 0.28), A3.mat("#4aa8ff", { metal: 0.4, rough: 0.2 })); b.position.y = 0.35; b.castShadow = true; g.add(b);
+  for (let k = 0; k < 4; k++) { const f = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.02, 0.3), A3.mat("#e8f4ff")); f.position.y = 0.14 + k * 0.15; g.add(f); }
+  const t = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.16), A3.mat("#ffc93c", { emissive: "#ffb300", glow: 0.5 })); t.position.y = 0.76; g.add(t);
+  return g;
+}
+function syncProps() {
+  if (!G) return;
+  BT.BUYABLE.forEach(i => {
+    const pr = G.props[i];
+    let o = propObjs[i];
+    if (!o) {
+      o = propObjs[i] = { bar: null, houses: new THREE.Group(), h: -1, owner: -2, m: null };
+      scene.add(o.houses);
+      const r = rectOf(i), horiz = r.side === "b" || r.side === "t";
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(horiz ? W * 0.86 : 0.12, 0.05, horiz ? 0.12 : W * 0.86), A3.mat("#ffffff"));
+      const p = spotIn(i, 0, 0.94); bar.position.set(p.x, 0.03, p.z); bar.visible = false; scene.add(bar); o.bar = bar;
+    }
+    if (o.owner !== pr.o || o.m !== pr.m) {
+      o.owner = pr.o; o.m = pr.m;
+      if (pr.o >= 0) { o.bar.visible = true; o.bar.material = A3.mat(G.players[pr.o].col, pr.m ? { opacity: 0.35 } : { emissive: G.players[pr.o].col, glow: 0.25 }); }
+      else o.bar.visible = false;
+    }
+    if (o.h !== pr.h) {
+      const grew = pr.h > o.h && o.h >= 0;
+      o.h = pr.h; o.houses.clear();
+      if (pr.h === 5) { const t = tower(); t.position.copy(spotIn(i, 0, 0.12)); t.rotation.y = rectOf(i).rot; o.houses.add(t); }
+      else for (let k = 0; k < pr.h; k++) { const c = cottage(); c.position.copy(spotIn(i, -0.36 + k * 0.24, 0.11)); o.houses.add(c); }
+      if (grew) o.pop = 0.35;
+    }
+  });
+}
+
+/* ---- dice ---- */
+function dieFace(n) {
+  const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d");
+  g.fillStyle = "#fffaf0"; g.fillRect(0, 0, 128, 128); g.fillStyle = n === 1 ? "#c8262d" : "#1b2233";
+  const P = { 1: [[64, 64]], 2: [[34, 34], [94, 94]], 3: [[30, 30], [64, 64], [98, 98]], 4: [[34, 34], [94, 34], [34, 94], [94, 94]], 5: [[32, 32], [96, 32], [64, 64], [32, 96], [96, 96]], 6: [[34, 28], [94, 28], [34, 64], [94, 64], [34, 100], [94, 100]] }[n];
+  for (const [x, y] of P) { g.beginPath(); g.arc(x, y, n === 1 ? 18 : 12, 0, 7); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return new THREE.MeshStandardMaterial({ map: t, roughness: 0.4 });
+}
+const dieMats = [3, 4, 1, 6, 2, 5].map(dieFace); // +x −x +y −y +z −z
+const dice = [0, 1].map(k => { const d = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.55, 0.55), dieMats); d.castShadow = true; d.position.set(-1 + k * 1.2, 0.28, 2.6); scene.add(d); return { m: d, anim: null }; });
+const FACE_Q = {
+  1: new THREE.Euler(0, 0, 0), 6: new THREE.Euler(Math.PI, 0, 0), 2: new THREE.Euler(-Math.PI / 2, 0, 0),
+  5: new THREE.Euler(Math.PI / 2, 0, 0), 3: new THREE.Euler(0, 0, Math.PI / 2), 4: new THREE.Euler(0, 0, -Math.PI / 2)
+};
+function throwDice(vals, s) {
+  const p = G.players[s] ? tokens[s] && tokens[s].obj.position : null;
+  const from = p ? p.clone().multiplyScalar(0.75) : new THREE.Vector3(0, 0, 4);
+  vals.forEach((v, k) => {
+    const end = new THREE.Vector3((k - 0.5) * 1.1 + (Math.random() - 0.5) * 0.4, 0.28, (Math.random() - 0.5) * 0.8);
+    const q1 = new THREE.Quaternion().setFromEuler(FACE_Q[v]), yaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.random() * 6.28);
+    const qEnd = yaw.multiply(q1);
+    dice[k].anim = { t: 0, dur: 0.95, from: from.clone().add(new THREE.Vector3(k * 0.4, 1.4, 0)), to: end, qEnd, spin: new THREE.Vector3(Math.random() * 14 + 8, Math.random() * 10, Math.random() * 14 + 8) };
+  });
+  A3.sfx("tick"); setTimeout(() => A3.sfx("tick"), 180); setTimeout(() => A3.sfx("tick"), 420);
+}
+function updateDice(dt) {
+  for (const d of dice) {
+    const a = d.anim; if (!a) continue;
+    a.t += dt; const u = Math.min(1, a.t / a.dur);
+    const e = 1 - Math.pow(1 - u, 3);
+    d.m.position.lerpVectors(a.from, a.to, e);
+    d.m.position.y = a.to.y + Math.abs(Math.sin(u * Math.PI * 2.5)) * (1 - u) * 1.2;
+    if (u < 0.8) { d.m.rotation.x += a.spin.x * dt * (1 - u); d.m.rotation.y += a.spin.y * dt * (1 - u); d.m.rotation.z += a.spin.z * dt * (1 - u); }
+    else d.m.quaternion.slerp(a.qEnd, Math.min(1, (u - 0.8) * 5 + 0.2));
+    if (u >= 1) { d.m.quaternion.copy(a.qEnd); d.anim = null; }
+  }
+}
+
+/* ---- sparkles ---- */
+const parts = A3.particles(scene);
+
+/* ---- camera ---- */
+const cam = { yaw: 0, pitch: 0.95, dist: 15, tgt: new THREE.Vector3(), userT: 0, focus: -1 };
+let camPos = null;
+const camTgt = new THREE.Vector3();
+function updateCamera(dt) {
+  const flat = S.view === "flat";
+  let want = new THREE.Vector3(0, 0, 0), wantYaw = cam.yaw, wantPitch = cam.pitch, wantDist = cam.dist;
+  const w = stage.clientWidth || 800, h = stage.clientHeight || 500, asp = w / h;
+  if (flat) {
+    wantYaw = 0; wantPitch = 1.5699;
+    const fitH = 8.6 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    wantDist = Math.max(fitH, fitH / asp) * cam.zoom;
+  } else {
+    cam.userT -= dt;
+    const f = cam.focus >= 0 && tokens[cam.focus] ? tokens[cam.focus].obj.position : null;
+    if (f && cam.userT <= 0) {
+      want.copy(f).multiplyScalar(0.55);
+      wantYaw = Math.atan2(f.x, f.z);                      // look in towards the middle from behind the token
+      wantPitch = 0.78; wantDist = (asp < 1 ? 15 : 11.5) * cam.zoom;
+    } else if (cam.userT <= 0) { wantPitch = 0.95; wantDist = (asp < 1 ? 22 : 17) * cam.zoom; }
+    else { want.copy(cam.tgt); wantDist = cam.dist; wantPitch = cam.pitch; }
+  }
+  const k = 1 - Math.exp(-dt * 3);
+  if (cam.userT <= 0 || flat) {
+    let dy = wantYaw - cam.yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
+    cam.yaw += dy * k; cam.pitch += (wantPitch - cam.pitch) * k; cam.dist += (wantDist - cam.dist) * k; cam.tgt.lerp(want, k);
+  }
+  const cp = Math.cos(cam.pitch);
+  camTgt.copy(cam.tgt);
+  const pos = new THREE.Vector3(camTgt.x + Math.sin(cam.yaw) * cp * cam.dist, camTgt.y + Math.sin(cam.pitch) * cam.dist, camTgt.z + Math.cos(cam.yaw) * cp * cam.dist);
+  camera.position.copy(pos); camera.lookAt(camTgt);
+}
+cam.zoom = 1;
+// drag to look around, wheel/pinch to zoom, tap a square for its deed
+(function () {
+  const el = renderer.domElement; let down = null, moved = 0, pinch = 0;
+  el.addEventListener("pointerdown", e => { down = { x: e.clientX, y: e.clientY, yaw: cam.yaw, pitch: cam.pitch }; moved = 0; });
+  window.addEventListener("pointermove", e => {
+    if (!down || S.view === "flat") return;
+    const dx = e.clientX - down.x, dy = e.clientY - down.y; moved = Math.max(moved, Math.abs(dx) + Math.abs(dy));
+    if (moved > 8) { cam.userT = 6; cam.yaw = down.yaw - dx * 0.008; cam.pitch = Math.max(0.35, Math.min(1.45, down.pitch + dy * 0.006)); }
+  });
+  window.addEventListener("pointerup", e => {
+    if (down && moved < 8 && e.target === el) pickSquare(e);
+    down = null;
+  });
+  el.addEventListener("wheel", e => { e.preventDefault(); cam.zoom = Math.max(0.55, Math.min(1.6, cam.zoom * (e.deltaY > 0 ? 1.08 : 0.93))); }, { passive: false });
+  el.addEventListener("touchmove", e => { if (e.touches.length === 2) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); if (pinch) cam.zoom = Math.max(0.55, Math.min(1.6, cam.zoom * pinch / d)); pinch = d; down = null; } }, { passive: true });
+  el.addEventListener("touchend", () => { pinch = 0; });
+})();
+function pickSquare(e) {
+  const ray = A3.ray(e, camera, renderer.domElement);
+  const hit = ray.intersectObject(board)[0]; if (!hit) return;
+  const x = hit.point.x, z = hit.point.z;
+  for (let i = 0; i < 40; i++) { const r = rectOf(i); if (x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1) { if (SQ[i].price) showDeed(i); else showSquareInfo(i); A3.sfx("click"); return; } }
+}
+
+/* ===================================================================
+   PLAYING BACK WHAT HAPPENED (dice, moves, cards ...)
+   =================================================================== */
+const queue = [];
+let idleSynced = false;
+function takeEvents(skip) {
+  if (!G) return;
+  for (const e of G.ev) if (e.n > lastSeq) { lastSeq = e.n; if (!skip) queue.push(e); }
+  if (skip) { queue.length = 0; syncTokens(true); syncProps(); }
+}
+function playNext(dt) {
+  if (busy > 0) { busy -= dt; return; }
+  const e = queue.shift();
+  if (!e) { if (G && !idleSynced) { idleSynced = true; syncProps(); syncTokens(false); } return; }
+  idleSynced = false;
+  const fast = S.fast ? 0.55 : 1;
+  switch (e.k) {
+    case "dice": throwDice(e.d, e.s); cam.focus = e.s; busy = 1.0 * fast; showDiceMsg(e); break;
+    case "move": {
+      const t = tokens[e.s]; if (!t) break;
+      const steps = e.jump || e.steps < 0 ? 0 : (e.steps || 0);
+      t.anim = { from: e.from, to: e.to, steps, k: 0, t: 0, per: (steps > 12 ? 0.08 : 0.17) * fast, jump: !!e.jump || e.steps < 0, s: e.s };
+      cam.focus = e.s;
+      busy = (t.anim.jump ? 0.7 : steps * t.anim.per + 0.15);
+      break;
+    }
+    case "card": showCard(e); busy = isMine(e.s) ? 0.4 : 1.6 * fast; break;
+    case "buy": { syncProps(); const p = centreOf(e.i); parts.burst(new THREE.Vector3(p.x, 0.4, p.z), G.players[e.s] ? G.players[e.s].col : "#fff", 22, 3); A3.sfx("coin"); busy = 0.35 * fast; break; }
+    case "build": { syncProps(); const p = centreOf(e.i); parts.burst(new THREE.Vector3(p.x, 0.4, p.z), "#ffc93c", 16, 2.5); A3.sfx("pop"); busy = 0.25 * fast; break; }
+    case "mort": syncProps(); A3.sfx("click"); break;
+    case "cash": floatCash(e.s, e.d); if (e.d > 0) A3.sfx("coin"); break;
+    case "jail": A3.sfx("lose"); toast(G.players[e.s].name + " is in the Lock-up!"); busy = 0.4; break;
+    case "free": syncTokens(true); A3.sfx("whoosh"); break;
+    case "auction": A3.sfx("tick"); break;
+    case "trade": syncProps(); A3.sfx("win"); toast("Deal done!"); break;
+    case "bankrupt": A3.sfx("boom"); toast(G.players[e.s].name + " is bankrupt!"); syncTokens(true); syncProps(); busy = 1; break;
+    case "set": { toast(G.players[e.s].name + " owns the whole " + GROUPS[e.g].name + " set!"); A3.sfx("win"); break; }
+    case "rate": showTicker((e.up ? "📈 Reserve Bank raises rates to " : "📉 Reserve Bank cuts rates to ") + e.rate + "%"); break;
+    case "econnews": showTicker("📰 " + e.tx); lesson(e.id === "boom" || e.id === "crash" || e.id === "migrate" || e.id === "build" || e.id === "tourism" ? "market" : e.id === "crunch" || e.id === "easy" ? "creditTight" : e.id === "goldup" || e.id === "golddown" ? "gold" : "inflation"); busy = 0.6; break;
+    case "lesson": if (e.s == null || isMine(e.s)) lesson(e.id); break;
+    case "stars": if (isMine(e.s)) lesson("stars"); break;
+    case "turn": cam.focus = e.s; if (isMine(e.s) && NET.mode !== "local" || (NET.mode === "local" && localHumans() > 1 && G.players[e.s].kind === "human")) toast(G.players[e.s].name + ", it's your go!"); break;
+    case "over": syncTokens(true); setTimeout(showOver, 900); break;
+  }
+}
+function updateTokens(dt) {
+  tokens.forEach((t, s) => {
+    const a = t.anim; if (!a || !G) return;
+    a.t += dt;
+    if (a.jump) {
+      const u = Math.min(1, a.t / 0.6), from = slotFor(G, s, a.from), to = slotFor(G, s, a.to);
+      t.obj.position.lerpVectors(from, to, u); t.obj.position.y = Math.sin(u * Math.PI) * 2.2;
+      if (u >= 1) { t.anim = null; t.pos = a.to; t.obj.position.copy(slotFor(G, s, a.to)); t.obj.rotation.y = faceFor(a.to); }
+      return;
+    }
+    if (a.t >= a.per) { a.t -= a.per; a.k++; if (a.k < a.steps) A3.sfx("jump"); }
+    if (a.k >= a.steps) { t.anim = null; t.pos = a.to; t.obj.position.copy(slotFor(G, s, a.to)); t.obj.rotation.y = faceFor(a.to); return; }
+    const sqA = (a.from + a.k) % 40, sqB = (a.from + a.k + 1) % 40;
+    const u = a.t / a.per, pa = spotIn(sqA, 0, 0.55), pb = spotIn(sqB, 0, 0.55);
+    t.obj.position.lerpVectors(pa, pb, u); t.obj.position.y = Math.sin(u * Math.PI) * 0.45;
+    let ry = faceFor(sqB); t.obj.rotation.y = ry;
+  });
+}
+
+/* ===================================================================
+   SCREENS
+   =================================================================== */
+function toast(m, ms) { A3.toast(m, ms || 2200); }
+let tickT = 0;
+function showTicker(t) { const el = $("ticker"); el.textContent = t; el.hidden = false; tickT = 7; }
+function isMine(s) { return s != null && mineLocal.includes(s); }
+function localHumans() { return G ? G.players.filter(p => p.kind === "human").length : 0; }
+// the seat this screen is acting for right now
+function actor() {
+  if (!G) return -1;
+  const w = BT.waitingOn(G);
+  if (isMine(w)) return w;
+  return mineLocal.length ? (mineLocal.includes(G.turn) ? G.turn : mineLocal[0]) : -1;
+}
+function me() { const a = actor(); return a >= 0 ? G.players[a] : null; }
+function floatCash(s, d) {
+  const row = document.querySelector('.pl[data-s="' + s + '"]'); if (!row) return;
+  const r = row.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+  const f = document.createElement("div"); f.className = "float";
+  f.style.left = (r.right - sr.left - 20) + "px"; f.style.top = (r.top - sr.top) + "px";
+  f.style.color = d > 0 ? "#7dff8a" : "#ff8a8a"; f.textContent = (d > 0 ? "+" : "-") + M(Math.abs(d)).replace("-", "");
+  stage.appendChild(f); setTimeout(() => f.remove(), 1300);
+}
+function stars(n) { return '<span class="stars">' + "★".repeat(n) + "<i>" + "★".repeat(5 - n) + "</i></span>"; }
+function cashWord() { return G && G.E && G.E.goldStd ? '<span class="note gold">gold certificates</span>' : G && G.E ? '<span class="note fiat">reserve notes</span>' : ""; }
+
+function renderPlayers() {
+  if (!G) return;
+  const box = $("players"); let h = "";
+  G.players.forEach((p, s) => {
+    const tags = [];
+    if (p.jail) tags.push("🔒 Lock-up");
+    if (p.free.length) tags.push("🎟️" + p.free.length);
+    if (G.E && p.loan) tags.push("loan " + M(p.loan));
+    if (G.E && p.gold) tags.push("🪙" + p.gold + "oz");
+    if (p.kind === "ai" || p.away) tags.push("🤖");
+    h += '<div class="pl' + (s === G.turn && !G.over ? " turn" : "") + (p.out ? " out" : "") + '" data-s="' + s + '"><span class="tk" style="background:' + p.col + '">' + tokEm(p.tok) + '</span><div><div class="nm">' + esc(p.name) + (isMine(s) && NET.mode !== "local" ? " (you)" : "") + "</div><small>" + M(p.cash) + "</small>" + (tags.length ? '<div class="tags">' + tags.join(" · ") + "</div>" : "") + "</div></div>";
+  });
+  box.innerHTML = h;
+  box.querySelectorAll(".pl").forEach(el => el.onclick = () => showPlayer(+el.dataset.s));
+  const lb = $("logbox"); lb.innerHTML = G.log.slice(-5).map(l => "<div>" + esc(l.m) + "</div>").join("");
+  const m = me(), ms = actor();
+  $("hRound").textContent = (G.opts.rounds ? Math.min(G.round, G.opts.rounds) + " / " + G.opts.rounds : G.round);
+  $("hCash").textContent = m ? M(m.cash) : "-";
+  $("hCashL").textContent = m && NET.mode === "local" && localHumans() > 1 ? m.name + "'s cash" : "Your cash";
+  $("hWorth").textContent = ms >= 0 ? M(BT.netWorth(G, ms)) : "-";
+  $("hRateC").hidden = !G.E; $("hGoldC").hidden = !(G.E && G.lvl >= 3);
+  if (G.E) { $("hRate").textContent = G.E.rate + "%"; $("hGold").textContent = M(G.E.goldPx); }
+}
+
+function btn(label, cls, fn, dis) { const b = document.createElement("button"); b.className = "btn " + (cls || ""); b.innerHTML = label; b.onclick = () => { A3.sfx("click"); fn(); }; if (dis) b.disabled = true; return b; }
+let barKey = "";
+function renderBar(force) {
+  const bar = $("bar"); if (!G || G.over) { bar.hidden = true; barKey = ""; return; }
+  bar.hidden = false;
+  // only rebuild the buttons when something changed, so taps are never lost
+  const key = [G.seq, G.log.length, BT.waitingOn(G), G.phase, busy > 0 || queue.length > 0, mineLocal.join(","), sheetKind, G.players.map(p => p.cash).join(",")].join("|");
+  if (key === barKey && !force) return;
+  barKey = key;
+  const msg = $("barMsg"), bb = $("barBtns"); bb.innerHTML = "";
+  const w = BT.waitingOn(G), pd = G.pending, s = actor(), p = s >= 0 ? G.players[s] : null;
+  const mine = isMine(w), wp = G.players[w];
+  const anim = busy > 0 || queue.length > 0;
+  $("tBank").hidden = !G.E; $("tEco").hidden = !(G.E && G.lvl >= 2);
+  const canManage = p && s === G.turn && (!pd || (pd.s === s && pd.t !== "trade")) && !p.out;
+  $("tPlaces").disabled = !p; $("tTrade").disabled = !(canManage && !pd && !anim);
+  if (!mine) {
+    msg.innerHTML = wp ? (pd && pd.t === "auction" ? "Auction for <b>" + esc(SQ[pd.i].name) + "</b>: " + esc(wp.name) + " is bidding (top bid " + M(pd.bid) + ")" : pd && pd.t === "trade" ? esc(wp.name) + " is thinking about a deal…" : esc(wp.name) + (wp.kind === "ai" || wp.away ? " (computer) is playing…" : " is playing…")) : "";
+    if (pd && pd.t === "auction" && sheetKind !== "auction") showAuction();
+    return;
+  }
+  const hot = NET.mode === "local" && localHumans() > 1 ? esc(wp.name) + ": " : "";
+  if (!pd) {
+    if (G.phase === "roll") { msg.innerHTML = hot + (G.doubles ? "Doubles! Roll again." : "Your go. Roll the dice!"); bb.appendChild(btn("🎲 Roll", "", () => doAct({ t: "roll" }), anim)); }
+    else { msg.innerHTML = hot + "Build, trade or end your turn."; bb.appendChild(btn("End turn ➜", "green", () => doAct({ t: "endTurn" }), anim)); }
+  } else if (pd.t === "buy") {
+    const sq = SQ[pd.i];
+    msg.innerHTML = hot + "Buy <b>" + esc(sq.name) + "</b> for " + M(pd.price) + "?" + (p.cash < pd.price ? " (you need more cash)" : "");
+    bb.appendChild(btn("Buy " + M(pd.price), "", () => doAct({ t: "buy" }), anim || p.cash < pd.price));
+    bb.appendChild(btn(G.opts.auction ? "Auction it" : "No thanks", "alt", () => doAct({ t: "decline" }), anim));
+    bb.appendChild(btn("Deed", "alt small", () => showDeed(pd.i)));
+  } else if (pd.t === "jail") {
+    msg.innerHTML = hot + "You're in the Lock-up (try " + p.jail + " of 3).";
+    bb.appendChild(btn("Pay $50", "", () => doAct({ t: "jailPay" }), anim || p.cash < 50));
+    if (p.free.length) bb.appendChild(btn("Use card", "green", () => doAct({ t: "jailCard" }), anim));
+    bb.appendChild(btn("🎲 Try for doubles", "alt", () => doAct({ t: "jailRoll" }), anim));
+  } else if (pd.t === "debt") {
+    const raise = BT.liquid(G, w) + (G.E ? BT.creditLimit(G, w) : 0);
+    msg.innerHTML = hot + "You owe <b>" + M(pd.amt) + "</b> and have " + M(p.cash) + ". " + (raise >= pd.amt ? "Sell buildings, mortgage places" + (G.E ? ", borrow or sell gold" : "") + " to raise it." : "You can't raise enough. You're bankrupt.");
+    bb.appendChild(btn("Pay " + M(pd.amt), "", () => doAct({ t: "payDebt" }), anim || p.cash < pd.amt));
+    bb.appendChild(btn("Raise money", "alt", () => showPlaces()));
+    if (G.E) bb.appendChild(btn("🏦 Bank", "alt", () => showBank()));
+    bb.appendChild(btn("Go bankrupt", "pink small", () => confirmSheet("Go bankrupt?", "You'll be out of the game" + (pd.to >= 0 ? " and " + esc(G.players[pd.to].name) + " gets everything you own." : "."), () => doAct({ t: "bankrupt" }))));
+  } else if (pd.t === "auction") {
+    msg.innerHTML = "Auction for <b>" + esc(SQ[pd.i].name) + "</b>: your bid!";
+    if (sheetKind !== "auction") showAuction();
+  } else if (pd.t === "trade") {
+    msg.innerHTML = hot + esc(G.players[pd.o.from].name) + " offers you a deal.";
+    if (sheetKind !== "tradeIn") showTradeIn();
+  }
+}
+
+/* ---- sheets ---- */
+let sheetKind = "";
+function sheet(html, kind) { $("sheetCard").innerHTML = '<button class="x" id="shX">✕</button>' + html; $("sheet").hidden = false; sheetKind = kind || "info"; $("shX").onclick = closeSheet; }
+function closeSheet() { $("sheet").hidden = true; sheetKind = ""; }
+$("sheet").addEventListener("pointerdown", e => { if (e.target.id === "sheet" && sheetKind !== "auction" && sheetKind !== "tradeIn") closeSheet(); });
+function confirmSheet(h, p, yes) { sheet("<h3>" + h + "</h3><p>" + p + '</p><div class="row"><button class="btn pink small" id="cfY">Yes</button><button class="btn alt small" id="cfN">No</button></div>'); $("cfY").onclick = () => { closeSheet(); yes(); }; $("cfN").onclick = closeSheet; }
+
+function deedHtml(i) {
+  const s = SQ[i], pr = G ? G.props[i] : { o: -1, h: 0, m: false }, mk = G ? BT.mkt(G) : 1;
+  const own = pr.o >= 0 ? esc(G.players[pr.o].name) + (pr.m ? " (mortgaged)" : "") : "For sale";
+  let rows = "";
+  if (s.t === "street") {
+    const r = s.rent.map(x => Math.round(x * mk));
+    rows = "<tr><td>Rent</td><td>" + M(r[0]) + "</td></tr><tr><td>Whole set, no buildings</td><td>" + M(r[0] * 2) + "</td></tr>" +
+      [1, 2, 3, 4].map(k => "<tr><td>With " + k + " cottage" + (k > 1 ? "s" : "") + "</td><td>" + M(r[k]) + "</td></tr>").join("") +
+      "<tr><td>With a tower</td><td>" + M(r[5]) + "</td></tr><tr><td>Cottages cost</td><td>" + M(G ? BT.houseCost(G, i) : s.hc) + " each</td></tr>" +
+      "<tr><td>Tower costs</td><td>4 cottages + " + M(G ? BT.houseCost(G, i) : s.hc) + "</td></tr>";
+  } else if (s.t === "station") rows = "<tr><td>Rent with 1 line</td><td>$25</td></tr><tr><td>With 2 lines</td><td>$50</td></tr><tr><td>With 3 lines</td><td>$100</td></tr><tr><td>With all 4</td><td>$200</td></tr>";
+  else rows = "<tr><td>Own 1: rent is</td><td>4 × dice</td></tr><tr><td>Own both: rent is</td><td>10 × dice</td></tr>";
+  rows += "<tr><td>Mortgage value</td><td>" + M(BT.mortVal(G, i)) + "</td></tr>";
+  return '<div class="deed"><div class="hd" style="background:' + sqCol(i) + '"><small>' + (s.t === "street" ? "DEED · " + GROUPS[s.g].name.toUpperCase() + " SET" : s.t === "station" ? "TRAIN LINE" : "UTILITY") + "</small>" + esc(s.name) + '</div><table>' +
+    "<tr><td>Price</td><td>" + M(G ? BT.priceOf(G, i) : s.price) + "</td></tr>" + rows + '</table><div class="ft">' + own + (pr.h ? " · " + (pr.h === 5 ? "a tower" : pr.h + " cottage" + (pr.h > 1 ? "s" : "")) : "") + "</div></div>";
+}
+function showDeed(i) { sheet(deedHtml(i)); }
+function showSquareInfo(i) {
+  const s = SQ[i];
+  const t = { start: "Collect $200 every time you pass or land on Payday." + (G && G.E ? " In Economics mode, one lap is one year: loan interest is charged and savings interest is paid here." : ""),
+    jail: "The Lock-up. If you're just visiting, nothing happens. If you're locked up: pay $50, use a Get Out card, or try to roll doubles (3 tries).",
+    park: "Beach Day: a free rest." + (G && G.opts.parkPot ? " With the house rule on, you scoop up all the fines and taxes paid so far (pot: " + M(G.pot) + ")." : ""),
+    gotojail: "Busted! Go straight to the Lock-up. You don't collect $200.", news: "Take a Headline card.", lucky: "Take a Lucky Dip card.", tax: "Pay " + M(s.amt || 0) + " to the bank." }[s.t] || "";
+  sheet("<h3>" + esc(s.t === "news" ? "Headline" : s.name) + "</h3><p>" + t + "</p>");
+}
+function showPlayer(s) {
+  const p = G.players[s];
+  let h = "<h3>" + tokEm(p.tok) + " " + esc(p.name) + "</h3><div class='kv'><span>Cash</span><b>" + M(p.cash) + "</b><span>Fortune (everything owned)</span><b>" + M(BT.netWorth(G, s)) + "</b>";
+  if (G.E) h += "<span>Savings</span><b>" + M(p.save) + "</b><span>Loan</span><b>" + M(p.loan) + "</b><span>Credit rating</span><b>" + stars(p.stars) + "</b>" + (G.lvl >= 3 ? "<span>Gold</span><b>" + p.gold + " oz</b>" : "");
+  h += "</div>";
+  const mine = BT.BUYABLE.filter(i => G.props[i].o === s);
+  h += mine.length ? mine.map(i => '<div class="prow"><span class="sw" style="background:' + sqCol(i) + '"></span><div class="tx">' + esc(SQ[i].name) + "<small>" + (G.props[i].m ? "mortgaged" : G.props[i].h === 5 ? "tower" : G.props[i].h ? G.props[i].h + " cottages" : "") + "</small></div></div>").join("") : "<p>No places yet.</p>";
+  sheet(h);
+}
+function showCard(e) {
+  const mineC = isMine(e.s);
+  sheet('<div class="gcard ' + e.d + '"><div class="dk">' + (e.d === "news" ? "📰 HEADLINE" : "🎁 LUCKY DIP") + "</div>" + esc(e.tx) + "</div>" + (mineC ? '<div class="row"><button class="btn small" id="cardOk">OK</button></div>' : "<p class='help' style='text-align:center'>" + esc(G.players[e.s] ? G.players[e.s].name : "") + "'s card</p>"), "card");
+  A3.sfx("whoosh");
+  if (mineC) $("cardOk").onclick = closeSheet;
+  else setTimeout(() => { if (sheetKind === "card") closeSheet(); }, 2400);
+}
+function showDiceMsg(e) { setTimeout(() => { if (G && G.players[e.s]) toast(G.players[e.s].name + " rolled " + e.d[0] + " + " + e.d[1] + " = " + (e.d[0] + e.d[1]) + (e.d[0] === e.d[1] ? "  Doubles!" : ""), 1500); }, 850); }
+
+/* ---- my places: build, sell, mortgage ---- */
+function showPlaces() {
+  const s = actor(); if (s < 0) return;
+  const p = G.players[s], pd = G.pending, myTurnFree = s === G.turn && (!pd || pd.s === s);
+  const raising = pd && pd.t === "debt" && pd.s === s;
+  let h = "<h3>🏠 " + esc(p.name) + "'s places</h3><p>Cash: <b>" + M(p.cash) + "</b>" + (raising ? " · you owe <b>" + M(pd.amt) + "</b>" : "") + "</p>";
+  const mine = BT.BUYABLE.filter(i => G.props[i].o === s);
+  if (!mine.length) h += "<p>You don't own anything yet. Land on a place nobody owns to buy it.</p>";
+  for (const i of mine) {
+    const pr = G.props[i], sq = SQ[i];
+    const st = pr.m ? "Mortgaged" : sq.t === "street" ? (pr.h === 5 ? "🏢 Tower" : pr.h ? "🏠".repeat(pr.h) : BT.ownsSet(G, s, sq.g) ? "Whole set!" : "") : "";
+    h += '<div class="prow"><span class="sw" style="background:' + sqCol(i) + '"></span><div class="tx">' + esc(sq.name) + "<small>" + st + " · rent " + M(BT.rentOf(G, i, 7)) + "</small></div>";
+    if (sq.t === "street") {
+      h += '<button data-a="build" data-i="' + i + '"' + (myTurnFree && !raising && BT.canBuild(G, s, i) ? "" : " disabled") + ">Build " + M(BT.houseCost(G, i)) + "</button>";
+      h += '<button class="b2" data-a="sell" data-i="' + i + '"' + (myTurnFree && BT.canSell(G, s, i) ? "" : " disabled") + ">Sell +" + M(Math.floor(BT.houseCost(G, i) / 2)) + "</button>";
+    }
+    h += pr.m ? '<button class="b2" data-a="unmortgage" data-i="' + i + '"' + (myTurnFree && !raising && BT.canUnmortgage(G, s, i) ? "" : " disabled") + ">Unmortgage " + M(BT.unmortCost(G, i)) + "</button>"
+      : '<button class="b3" data-a="mortgage" data-i="' + i + '"' + (myTurnFree && BT.canMortgage(G, s, i) ? "" : " disabled") + ">Mortgage +" + M(BT.mortVal(G, i)) + "</button>";
+    h += "</div>";
+  }
+  if (!myTurnFree) h += "<p class='help'>You can build, sell and mortgage on your own turn.</p>";
+  else h += "<div class='tip'>Own every street of a colour to build. Build evenly: one cottage on each street before a second. Four cottages then a tower. Selling gives back half the cost. Mortgaging gives you half the price, but you collect no rent there until you pay it back plus 10%.</div>";
+  sheet(h, "places");
+  $("sheetCard").querySelectorAll("button[data-a]").forEach(b => b.onclick = () => { doAct({ t: b.dataset.a, i: +b.dataset.i }); setTimeout(showPlaces, 60); });
+}
+
+/* ---- trading ---- */
+let TR = null;
+function showTrade() {
+  const s = actor(); if (s < 0 || s !== G.turn || G.pending) return;
+  const others = G.players.map((p, k) => k).filter(k => k !== s && !G.players[k].out);
+  if (!TR || TR.from !== s || !others.includes(TR.to)) TR = { from: s, to: others[0], give: [], get: [], cashGive: 0, cashGet: 0, cardGive: 0, cardGet: 0 };
+  const tradable = k => BT.BUYABLE.filter(i => G.props[i].o === k && !(SQ[i].t === "street" && BT.groupBuilt(G, SQ[i].g)));
+  const list = (k, arr, key) => tradable(k).map(i => '<div class="prow pick' + (arr.includes(i) ? " on" : "") + '" data-k="' + key + '" data-i="' + i + '"><span class="sw" style="background:' + sqCol(i) + '"></span><div class="tx">' + esc(SQ[i].name) + "<small>" + M(SQ[i].price) + (G.props[i].m ? " · mortgaged" : "") + "</small></div></div>").join("") || "<p class='help'>Nothing to trade.</p>";
+  const P1 = G.players[s], P2 = G.players[TR.to];
+  let h = "<h3>🤝 Make a deal</h3><div class='seg' id='trWho'>" + others.map(k => '<button data-k="' + k + '" class="' + (k === TR.to ? "on" : "") + '">' + tokEm(G.players[k].tok) + " " + esc(G.players[k].name) + "</button>").join("") + "</div>";
+  h += "<div class='cols2'><div><p><b>You give</b> (cash " + M(P1.cash) + ")</p>" + list(s, TR.give, "give") +
+    "<div class='amt'>Cash <input type='number' min='0' step='10' id='trCG' value='" + TR.cashGive + "'>" + (P1.free.length ? " <label><input type='checkbox' id='trFG'" + (TR.cardGive ? " checked" : "") + "> Lock-up card</label>" : "") + "</div></div>";
+  h += "<div><p><b>You get from " + esc(P2.name) + "</b> (cash " + M(P2.cash) + ")</p>" + list(TR.to, TR.get, "get") +
+    "<div class='amt'>Cash <input type='number' min='0' step='10' id='trCT' value='" + TR.cashGet + "'>" + (P2.free.length ? " <label><input type='checkbox' id='trFT'" + (TR.cardGet ? " checked" : "") + "> Lock-up card</label>" : "") + "</div></div></div>";
+  h += "<p class='help'>Streets in a colour set with buildings can't be traded until the buildings are sold.</p><p id='trErr' style='color:#ff9a9a'></p><div class='row'><button class='btn small' id='trSend'>Offer this deal</button></div>";
+  sheet(h, "trade");
+  const card = $("sheetCard");
+  card.querySelectorAll("#trWho button").forEach(b => b.onclick = () => { TR.to = +b.dataset.k; TR.get = []; TR.cashGet = 0; TR.cardGet = 0; showTrade(); });
+  card.querySelectorAll(".prow.pick").forEach(r => r.onclick = () => { const arr = TR[r.dataset.k], i = +r.dataset.i, k = arr.indexOf(i); if (k >= 0) arr.splice(k, 1); else arr.push(i); r.classList.toggle("on"); });
+  const read = () => { TR.cashGive = Math.max(0, Math.floor(+$("trCG").value || 0)); TR.cashGet = Math.max(0, Math.floor(+$("trCT").value || 0)); TR.cardGive = $("trFG") && $("trFG").checked ? 1 : 0; TR.cardGet = $("trFT") && $("trFT").checked ? 1 : 0; };
+  $("trSend").onclick = () => {
+    read();
+    const o = { from: s, to: TR.to, give: TR.give, get: TR.get, cashGive: TR.cashGive, cashGet: TR.cashGet, cardGive: TR.cardGive, cardGet: TR.cardGet };
+    if (!BT.tradeOk(G, o)) { $("trErr").textContent = "That deal doesn't work. Check the cash amounts and pick something to swap."; return; }
+    closeSheet(); doAct(Object.assign({ t: "trade" }, o)); TR = null;
+  };
+}
+function showTradeIn() {
+  const pd = G.pending; if (!pd || pd.t !== "trade") return;
+  const o = pd.o, s = pd.s;
+  const side = (arr, cash, card) => (arr.map(i => '<div class="prow"><span class="sw" style="background:' + sqCol(i) + '"></span><div class="tx">' + esc(SQ[i].name) + "<small>" + M(SQ[i].price) + "</small></div></div>").join("") + (cash ? "<p><b>" + M(cash) + "</b> cash</p>" : "") + (card ? "<p>🎟️ Get Out of Lock-up card</p>" : "")) || "<p>Nothing</p>";
+  sheet("<h3>🤝 " + esc(G.players[o.from].name) + " offers a deal</h3><div class='cols2'><div><p><b>You get</b></p>" + side(o.give, o.cashGive, o.cardGive) + "</div><div><p><b>You give</b></p>" + side(o.get, o.cashGet, o.cardGet) + "</div></div><div class='row'><button class='btn green small' id='tyY'>Accept</button><button class='btn pink small' id='tyN'>No thanks</button></div>", "tradeIn");
+  $("tyY").onclick = () => { closeSheet(); doAct({ t: "tradeReply", yes: true }, s); };
+  $("tyN").onclick = () => { closeSheet(); doAct({ t: "tradeReply", yes: false }, s); };
+}
+
+/* ---- auctions ---- */
+function showAuction() {
+  const pd = G.pending; if (!pd || pd.t !== "auction") { if (sheetKind === "auction") closeSheet(); return; }
+  const w = pd.active[pd.at], mine = isMine(w), p = mine ? G.players[w] : null;
+  const sq = SQ[pd.i];
+  let h = "<h3>🔨 Auction</h3><div class='prow'><span class='sw' style='background:" + sqCol(pd.i) + "'></span><div class='tx'>" + esc(sq.name) + "<small>Price " + M(BT.priceOf(G, pd.i)) + (sq.rent ? " · rent " + M(sq.rent[0]) + ", tower " + M(sq.rent[5]) : "") + "</small></div><button class='b2' id='auDeed'>Deed</button></div>" + "<p style='text-align:center'>Top bid: <b>" + M(pd.bid) + "</b>" + (pd.high >= 0 ? " by " + esc(G.players[pd.high].name) : "") + "</p><p style='text-align:center'>Still bidding: " + pd.active.map(k => esc(G.players[k].name)).join(", ") + "</p>";
+  if (mine) {
+    h += "<p style='text-align:center'><b>" + esc(p.name) + "</b>, your bid! (cash " + M(p.cash) + ")</p><div class='row'>" + [1, 10, 50, 100].map(d => "<button class='btn small' data-b='" + (pd.bid + d) + "'" + (pd.bid + d > p.cash ? " disabled" : "") + ">" + M(pd.bid + d) + "</button>").join("") + "<button class='btn pink small' id='auPass'>Drop out</button></div>";
+  } else h += "<p style='text-align:center' class='help'>" + esc(G.players[w].name) + " is deciding…</p>";
+  sheet(h, "auction");
+  $("shX").hidden = true;
+  $("sheetCard").querySelectorAll("button[data-b]").forEach(b => b.onclick = () => doAct({ t: "bid", amt: +b.dataset.b }, w));
+  if (mine) $("auPass").onclick = () => doAct({ t: "pass" }, w);
+  $("auDeed").onclick = () => { const back = deedHtml(pd.i); $("sheetCard").insertAdjacentHTML("beforeend", back); $("auDeed").disabled = true; };
+}
+
+/* ---- the bank (Economics) ---- */
+function showBank() {
+  const s = actor(); if (s < 0 || !G.E) return;
+  const p = G.players[s], E = G.E, pd = G.pending;
+  const raising = pd && pd.t === "debt" && pd.s === s;
+  const ok = s === G.turn && (!pd || pd.s === s) || raising;
+  const lim = BT.creditLimit(G, s);
+  let h = "<h3>🏦 The Bank</h3>";
+  h += "<div class='kv'><span>Your cash " + cashWord() + "</span><b>" + M(p.cash) + "</b><span>Savings (earning " + BT.saveRate(G) + "% a year)</span><b>" + M(p.save) + "</b><span>Loan (costing " + BT.loanRate(G, s) + "% a year)</span><b>" + M(p.loan) + "</b><span>Credit rating</span><b>" + stars(p.stars) + "</b><span>You can borrow up to</span><b>" + M(lim) + "</b>" + (G.lvl >= 3 ? "<span>Your gold</span><b>" + p.gold + " oz (" + M(p.gold * E.goldPx) + ")</b>" : "") + "</div>";
+  const row = (label, act, amts, dis) => "<div class='amt'><b style='min-width:84px'>" + label + "</b>" + amts.map(a => "<button data-a='" + act + "' data-n='" + a[1] + "'" + (dis || a[1] <= 0 ? " disabled" : "") + ">" + a[0] + "</button>").join("") + "</div>";
+  const cut = n => Math.max(0, Math.floor(n));
+  h += row("Borrow", "borrow", [["$100", Math.min(100, lim)], ["$500", Math.min(500, lim)], ["Max " + M(lim), lim]], !ok || lim <= 0);
+  h += row("Pay back", "repay", [["$100", Math.min(100, p.loan, p.cash)], ["$500", Math.min(500, p.loan, p.cash)], ["All", Math.min(p.loan, p.cash)]], !ok || raising);
+  h += row("Save", "deposit", [["$100", Math.min(100, p.cash)], ["$500", Math.min(500, p.cash)], ["Half my cash", cut(p.cash / 2)]], !ok || raising);
+  h += row("Take out", "withdraw", [["$100", Math.min(100, p.save)], ["$500", Math.min(500, p.save)], ["All", p.save]], !ok);
+  if (G.lvl >= 3) {
+    h += row("Buy gold", "buyGold", [["1 oz " + M(BT.goldBuy(G)), p.cash >= BT.goldBuy(G) ? 1 : 0], ["5 oz", p.cash >= 5 * BT.goldBuy(G) ? 5 : 0]], !ok || raising);
+    h += row("Sell gold", "sellGold", [["1 oz " + M(BT.goldSell(G)), Math.min(1, p.gold)], ["All", p.gold]], !ok);
+  }
+  h += "<div class='tip'>" + (p.loan ? "Each time you pass Payday (one year) you pay " + M(Math.round(p.loan * BT.loanRate(G, s) / 100)) + " interest on your loan. " : "") +
+    "Borrowing lets you buy and build sooner, but interest costs you every year. Saving earns a little interest. Pay on time and your stars go up, which makes loans cheaper." +
+    (E.goldStd ? " Your money is gold certificates: every $" + E.goldPx + " can be swapped for 1 oz of real gold at the bank." : "") + "</div>";
+  if (!ok) h += "<p class='help'>You can use the bank on your own turn.</p>";
+  sheet(h, "bank");
+  $("sheetCard").querySelectorAll("button[data-a]").forEach(b => b.onclick = () => { doAct({ t: b.dataset.a, amt: +b.dataset.n }); setTimeout(showBank, 60); });
+}
+function showEconomy() {
+  if (!G.E) return;
+  const E = G.E, cap = BT.bankCapacity(G), lent = BT.totalLoans(G);
+  let h = "<h3>📈 The Economy</h3>";
+  h += "<div class='kv'><span>Reserve Bank interest rate</span><b>" + E.rate + "%</b><span>Prices rising by (inflation)</span><b>" + E.infl.toFixed(1) + "% a year</b><span>Property prices</span><b>" + Math.round(E.mkt * 100) + "% of normal</b>" + (G.lvl >= 3 ? "<span>Gold price</span><b>" + M(E.goldPx) + " an ounce</b>" : "") +
+    "<span>Money system</span><b>" + (E.goldStd ? "Gold standard" : "Credit money") + "</b></div>";
+  h += "<p><b>Credit supply</b>: the bank has lent " + M(lent) + " of the " + M(cap) + " it can lend.</p><div class='creditbar'><div style='width:" + Math.min(100, Math.round(lent / Math.max(1, cap) * 100)) + "%'></div></div>";
+  h += "<canvas id='ecoChart' width='520' height='120'></canvas><p class='help'><span style='color:#ffc93c'>■</span> interest rate &nbsp; <span style='color:#7dff8a'>■</span> property prices" + (G.lvl >= 3 ? " &nbsp; <span style='color:#ffe27a'>■</span> gold" : "") + "</p>";
+  if (E.lastNews) h += "<div class='tip'>Latest: " + esc(E.lastNews) + "</div>";
+  h += E.goldStd
+    ? "<div class='tip'><b>Gold standard.</b> Every banknote is a gold certificate: a promise that you can swap it for gold. The bank can only lend about 2½ times the gold it holds, so when people take gold out, credit gets tight and interest rates go up. Prices stay steadier, but there's less money to borrow.</div>"
+    : "<div class='tip'><b>Credit money.</b> Today's money isn't backed by gold. Banks create new money when they lend. More lending means more money chasing the same houses, so prices go up (a boom). When banks get scared and lend less, prices can fall (a bust). The Reserve Bank raises interest rates to cool prices down and cuts them to speed things up.</div>";
+  sheet(h, "eco");
+  const cv = $("ecoChart"), g = cv.getContext("2d"), hs = E.hist; if (hs.length < 2) return;
+  const line = (f, max, col) => { g.strokeStyle = col; g.lineWidth = 3; g.beginPath(); hs.forEach((p, k) => { const x = 6 + k / (hs.length - 1) * (cv.width - 12), y = cv.height - 6 - f(p) / max * (cv.height - 12); k ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); };
+  line(p => p.rate, 12, "#ffc93c"); line(p => p.mkt, 2.6, "#7dff8a"); if (G.lvl >= 3) line(p => p.gold, Math.max(200, ...hs.map(p => p.gold)) * 1.1, "#ffe27a");
+}
+function showLog() { sheet("<h3>📜 What happened</h3>" + G.log.slice(-30).reverse().map(l => "<p style='font-size:13px'>" + esc(l.m) + "</p>").join("")); }
+
+/* ---- money lessons (Economics) ---- */
+const LESSONS = {
+  borrow: ["Borrowing", "The bank lent you money so you can buy or build now. It isn't free: every time you pass Payday (one year) you pay interest on top, until you pay the loan back."],
+  interest: ["Interest", "Interest is the price of borrowing. Borrow $1,000 at 8% and you pay $80 every year, and you still owe the $1,000 until you pay it back."],
+  saving: ["Saving", "Money you save in the bank earns interest. The bank pays you because it lends your savings to other people and charges them more."],
+  compound: ["Interest on interest", "When you can't pay the interest, the bank adds it to your loan. Next year you pay interest on a bigger loan. That's how debts snowball, so pay on time!"],
+  stars: ["Your credit rating", "Banks give you stars for paying on time. More stars means cheaper loans and a bigger limit. Miss a payment and you lose a star. One star and nobody will lend to you."],
+  rateUp: ["Interest rates went up", "The Reserve Bank raised interest rates. Loans cost more, so people borrow less and house prices usually cool down. Savers earn more."],
+  rateDown: ["Interest rates went down", "The Reserve Bank cut interest rates. Loans get cheaper, so people borrow more and house prices often go up. Savers earn less."],
+  creditTight: ["Credit supply", "A bank can only lend so much. When most of it is lent out, or the banks get nervous, loans are hard to get even with a good rating. When banks are keen, loans are easy and prices rise."],
+  badDebt: ["Bad debt", "When someone goes bankrupt the bank loses the money it lent them. That leaves less to lend to everyone else. That's how one failure can spread."],
+  gold: ["Gold", "People have used gold as money for thousands of years because it's rare and never rusts. Its price goes up and down. It often rises when people are worried about the economy."],
+  goldStd: ["Gold certificates", "In the old days a banknote was a promise: you could take it to the bank and swap it for real gold. The bank could only print and lend as much as its gold would back up."],
+  market: ["Booms and busts", "When property prices rise, everything you own is worth more and rents go up, but buying new places costs more too. When prices fall, the opposite happens."],
+  inflation: ["Inflation", "Inflation means prices going up. If prices rise 3% a year, $100 buys a bit less each year. That's why money sitting in a drawer slowly loses value."]
+};
+const lessonQ = [];
+function lesson(id) {
+  if (!S.lessons || !G || !G.E || !LESSONS[id] || S.seen[id]) return;
+  S.seen[id] = 1; store(); lessonQ.push(id);
+}
+function lessonTick() {
+  if (!lessonQ.length || !$("sheet").hidden || busy > 0) return;
+  const id = lessonQ.shift(), L = LESSONS[id];
+  sheet("<h3>💡 " + L[0] + "</h3><p>" + L[1] + "</p><div class='row'><button class='btn small' id='lsOk'>Got it</button><button class='btn alt small' id='lsOff'>Stop the tips</button></div>", "lesson");
+  $("lsOk").onclick = closeSheet; $("lsOff").onclick = () => { S.lessons = false; store(); closeSheet(); };
+}
+
+/* ---- game over ---- */
+let overShown = false;
+function showOver() {
+  if (!G || !G.over || overShown) return;
+  overShown = true; closeSheet();
+  const w = G.winner, rank = G.players.map((p, s) => ({ s, p, w: p.out ? -1 : BT.netWorth(G, s) })).sort((a, b) => b.w - a.w);
+  const iWon = isMine(w);
+  $("overH").textContent = iWon ? "YOU WIN!" : w >= 0 ? G.players[w].name.toUpperCase() + " WINS" : "GAME OVER";
+  let h = rank.map((r, k) => '<div class="seat"><span class="dot" style="background:' + r.p.col + '"></span>' + (k + 1) + ". " + tokEm(r.p.tok) + " " + esc(r.p.name) + "<small>" + (r.p.out ? "bankrupt" : M(r.w)) + "</small></div>").join("");
+  const ms = mineLocal.length === 1 ? mineLocal[0] : -1;
+  if (ms >= 0 && G.E) {
+    const st = G.players[ms].st;
+    h += "<div class='tip'>You paid " + M(st.intPaid) + " in loan interest and earned " + M(st.intEarned) + " on savings." + (G.lvl >= 3 ? " Gold trading made you " + M(st.goldGain) + "." : "") + " You collected " + M(st.rentIn) + " rent and paid " + M(st.rentOut) + ".</div>";
+  } else if (ms >= 0) { const st = G.players[ms].st; h += "<div class='tip'>You collected " + M(st.rentIn) + " in rent and paid " + M(st.rentOut) + ".</div>"; }
+  $("overBox").innerHTML = h;
+  A3.show("ovOver"); $("bar").hidden = true;
+  A3.sfx(iWon ? "win" : "lose");
+  // stats, PhatCoin and the leaderboard
+  if (!G.counted && ms >= 0) {
+    G.counted = true;
+    S.stats.games++; if (NET.mode !== "local") S.stats.online++;
+    if (iWon) {
+      S.stats.wins++;
+      const worth = BT.netWorth(G, ms); S.stats.best = Math.max(S.stats.best, worth);
+      A3.win(G.players.filter(p => p.kind === "ai").length >= 2 || NET.mode !== "local" ? 5 : 3, "won a game of Boomtown");
+      if (localHumans() <= 1 || NET.mode !== "local") A3.best(worth);
+    }
+    if (NET.mode === "local") S.game = null;
+    store();
+  }
+}
+
+/* ===================================================================
+   RUNNING THE GAME (local, host or client)
+   =================================================================== */
+function doAct(a, seat) {
+  if (!G) return;
+  const s = seat != null ? seat : (isMine(BT.waitingOn(G)) ? BT.waitingOn(G) : actor());
+  if (!isMine(s)) return;
+  if (NET.mode === "client") { bc("act", { id: MYID, s, a }); return; }
+  const r = BT.act(G, s, a);
+  if (r && r !== "") toast(niceErr(r));
+  commit();
+}
+function niceErr(r) { return { "not enough money": "You don't have enough cash.", "over your limit": "That's more than the bank will lend you.", "can't build": "You can't build there yet.", "not now": "Not right now." }[r] || r; }
+function commit() {
+  if (!G) return;
+  idleSynced = false;
+  takeEvents(false);
+  renderPlayers(); renderBar();
+  if (sheetKind === "auction") showAuction();
+  if (NET.mode === "local" && !G.over) { S.game = G; store(); }
+  if (NET.mode === "local" && G.over) { S.game = null; store(); }
+  if (NET.mode === "host") sendState();
+}
+function aiTick(dt) {
+  if (!G || G.over || NET.mode === "client") return;
+  if (busy > 0 || queue.length) { aiT = 0; return; }
+  const w = BT.waitingOn(G), p = G.players[w];
+  if (!p || !(p.kind === "ai" || p.away)) return;
+  aiT += dt;
+  if (aiT < (S.fast ? 0.25 : 0.7)) return;
+  aiT = 0;
+  const r = BT.aiStep(G, w);
+  if (r === "reply" && G.log.length) toast(G.log[G.log.length - 1].m, 2600);
+  commit();
+}
+
+function startLocal(g, mine) {
+  G = g; NET = { mode: "local" }; mineLocal = mine; overShown = G.over; lastSeq = 0;
+  ["ovTitle", "ovSetup", "ovOnline", "ovLobby", "ovOver"].forEach(A3.hide); closeSheet();
+  syncTokens(true); takeEvents(true); syncProps();
+  renderPlayers(); renderBar();
+  if (!G.over) { S.game = G; store(); }
+  if (G.E && G.E.goldStd) lesson("goldStd");
+}
+
+/* ---------------- title + setup screens ---------------- */
+function titleStats() {
+  const st = S.stats;
+  $("tStats").innerHTML = "<div>Games <b>" + st.games + "</b></div><div>Wins <b>" + st.wins + "</b></div><div>Biggest win <b>" + M(st.best) + "</b></div>";
+  $("bCont").hidden = !(S.game && !S.game.over);
+}
+function toTitle() {
+  if (NET.mode !== "local") leaveRoom();
+  G = null; mineLocal = []; closeSheet();
+  ["ovSetup", "ovOnline", "ovLobby", "ovOver"].forEach(A3.hide); A3.show("ovTitle"); $("bar").hidden = true;
+  titleStats(); renderSeats0();
+}
+function renderSeats0() { $("players").innerHTML = ""; $("logbox").innerHTML = ""; }
+let setupKind = "solo", seats = [];
+const LV = [[1, "Borrowing & saving", "Loans, interest, savings, credit stars"], [2, "Credit & interest rates", "Plus the Reserve Bank, credit supply, booms and busts"], [3, "Gold & money", "Plus gold, and gold certificates vs credit money"]];
+function setupHtml(o, opts) {
+  opts = opts || {};
+  const seg = (key, vals) => "<div class='seg' data-key='" + key + "'>" + vals.map(v => "<button data-v='" + v[0] + "' class='" + (String(o[key]) === String(v[0]) ? "on" : "") + "'" + (opts.lock ? " disabled" : "") + ">" + v[1] + (v[2] ? "<small>" + v[2] + "</small>" : "") + "</button>").join("") + "</div>";
+  let h = "<label>Game</label>" + seg("mode", [["classic", "Classic", "The familiar rules"], ["econ", "Economics", "Learn about money"]]);
+  if (o.mode === "econ") {
+    h += "<label>Economics level</label>" + seg("lvl", LV);
+    if (+o.lvl === 3) h += "<label>Money system</label>" + seg("money", [["credit", "Credit money", "Like today"], ["gold", "Gold standard", "Gold certificates, like the old days"]]);
+  }
+  if (!opts.online && setupKind === "solo") h += "<label>Computer players</label>" + seg("foes", [[1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5"]]);
+  if (!opts.online && setupKind === "solo") h += "<label>How good is the computer?</label>" + seg("ai", [[1, "Easy"], [2, "Normal"], [3, "Hard"]]);
+  if (opts.online) h += "<label>Computer players are</label>" + seg("ai", [[1, "Easy"], [2, "Normal"], [3, "Hard"]]);
+  h += "<label>Game length</label>" + seg("rounds", [[0, "Last one standing"], [15, "Quick (15 rounds)"], [30, "30 rounds"], [50, "50 rounds"]]);
+  h += "<label>Starting cash</label>" + seg("start", [[1000, "$1,000"], [1500, "$1,500"], [2000, "$2,000"]]);
+  h += "<label>House rules</label>" + seg("auction", [[true, "Auctions on"], [false, "No auctions"]]) + seg("parkPot", [[false, "Beach Day is just a rest"], [true, "Fines go to Beach Day"]]);
+  return h;
+}
+function bindSetup(box, o, rerender) {
+  box.querySelectorAll(".seg[data-key] button").forEach(b => b.onclick = () => {
+    const key = b.parentNode.dataset.key; let v = b.dataset.v;
+    if (v === "true") v = true; else if (v === "false") v = false; else if (/^\d+$/.test(v)) v = +v;
+    o[key] = v; A3.sfx("click"); rerender();
+  });
+}
+function nameTokHtml(o, used) {
+  return "<label>Your name</label><input type='text' id='stName' maxlength='12' value='" + esc(o.name || defaultName()) + "'><label>Your token</label><div class='toks' id='stToks'>" + BT.TOKENS.map(t => "<button data-t='" + t.id + "' title='" + t.name + "' class='" + (o.tok === t.id ? "on" : "") + "'" + (used && used.includes(t.id) && o.tok !== t.id ? " disabled" : "") + ">" + t.em + "</button>").join("") + "</div>";
+}
+function defaultName() { let n = ""; try { n = (window.Leaderboard && Leaderboard.getName()) || localStorage.getItem("ghacct_user") || ""; } catch (e) {} return String(n || "Player").slice(0, 12); }
+function cleanName(n) { n = String(n || "").trim().slice(0, 12); if (!n) return "Player"; if (window.GHName && !GHName.ok(n)) return "Player"; return n; }
+function openSetup(kind) {
+  setupKind = kind;
+  const o = S.setup;
+  if (kind === "local" && !seats.length) seats = [{ name: o.name || "Player 1", tok: "roo", kind: "human" }, { name: "Player 2", tok: "quokka", kind: "human" }];
+  const draw = () => {
+    let h = "";
+    if (kind === "solo") h += nameTokHtml(o);
+    else {
+      h += "<label>Players</label>" + seats.map((p, k) => "<div class='seat'><span class='dot' style='background:" + BT.COLS[k] + "'></span><input type='text' maxlength='12' data-k='" + k + "' value='" + esc(p.name) + "' style='width:120px'> <button data-tk='" + k + "'>" + tokEm(p.tok) + "</button> <button data-kind='" + k + "'>" + (p.kind === "ai" ? "🤖 Computer" : "🙂 Person") + "</button>" + (seats.length > 2 ? " <button data-del='" + k + "'>✕</button>" : "") + "</div>").join("") +
+        (seats.length < 6 ? "<button class='btn small alt' id='stAdd'>+ Add player</button>" : "");
+    }
+    h += setupHtml(o, {});
+    if (kind === "local") h += "<label>Computer players are</label><div class='seg' data-key='ai'>" + [[1, "Easy"], [2, "Normal"], [3, "Hard"]].map(v => "<button data-v='" + v[0] + "' class='" + (o.ai === v[0] ? "on" : "") + "'>" + v[1] + "</button>").join("") + "</div>";
+    $("setupBox").innerHTML = h;
+    bindSetup($("setupBox"), o, draw);
+    if (kind === "solo") {
+      $("stName").oninput = () => { o.name = $("stName").value; };
+      $("setupBox").querySelectorAll("#stToks button").forEach(b => b.onclick = () => { o.tok = b.dataset.t; draw(); });
+    } else {
+      $("setupBox").querySelectorAll("input[data-k]").forEach(inp => inp.oninput = () => { seats[+inp.dataset.k].name = inp.value; });
+      $("setupBox").querySelectorAll("button[data-tk]").forEach(b => b.onclick = () => { const p = seats[+b.dataset.tk]; const used = seats.map(x => x.tok); let k = BT.TOKENS.findIndex(t => t.id === p.tok); for (let n = 0; n < 6; n++) { k = (k + 1) % 6; if (!used.includes(BT.TOKENS[k].id)) break; } p.tok = BT.TOKENS[k].id; draw(); });
+      $("setupBox").querySelectorAll("button[data-kind]").forEach(b => b.onclick = () => { const p = seats[+b.dataset.kind]; p.kind = p.kind === "ai" ? "human" : "ai"; draw(); });
+      $("setupBox").querySelectorAll("button[data-del]").forEach(b => b.onclick = () => { seats.splice(+b.dataset.del, 1); draw(); });
+      const add = $("stAdd"); if (add) add.onclick = () => { const used = seats.map(x => x.tok); seats.push({ name: "Player " + (seats.length + 1), tok: BT.TOKENS.find(t => !used.includes(t.id)).id, kind: "human" }); draw(); };
+    }
+  };
+  $("setupH").textContent = kind === "solo" ? "PLAY THE COMPUTER" : "PASS AND PLAY";
+  draw(); A3.hide("ovTitle"); A3.show("ovSetup");
+}
+const AI_NAMES = ["Captain Cog", "Robo Rita", "Bolt Barry", "Pixel Pam", "Circuit Sid", "Gizmo Gus"];
+$("bGo").onclick = () => {
+  A3.sfx("click");
+  const o = S.setup; let players;
+  if (setupKind === "solo") {
+    o.name = cleanName(o.name || defaultName());
+    const others = BT.TOKENS.map(t => t.id).filter(t => t !== o.tok);
+    players = [{ name: o.name, tok: o.tok, kind: "human" }];
+    for (let k = 0; k < o.foes; k++) players.push({ name: AI_NAMES[k], tok: others[k], kind: "ai", ai: o.ai });
+  } else {
+    if (seats.length < 2) return;
+    players = seats.map((p, k) => ({ name: p.kind === "ai" ? AI_NAMES[k] : cleanName(p.name || "Player " + (k + 1)), tok: p.tok, kind: p.kind, ai: o.ai }));
+  }
+  store();
+  const g = BT.newGame({ mode: o.mode, lvl: o.lvl, money: o.money, start: o.start, auction: o.auction, parkPot: o.parkPot, rounds: o.rounds, players });
+  startLocal(g, players.map((p, k) => k).filter(k => players[k].kind === "human"));
+};
+$("bSolo").onclick = () => { A3.sfx("click"); openSetup("solo"); };
+$("bLocal").onclick = () => { A3.sfx("click"); openSetup("local"); };
+$("bSetupBack").onclick = () => { A3.sfx("click"); A3.hide("ovSetup"); A3.show("ovTitle"); };
+$("bCont").onclick = () => { A3.sfx("click"); const g = S.game; if (!g) return; startLocal(g, g.players.map((p, k) => k).filter(k => g.players[k].kind === "human")); };
+$("bHow").onclick = () => {
+  A3.hide("ovTitle");
+  G = null;
+  sheet("<h3>How to play Boomtown</h3><p>Everyone starts with the same cash. Take turns to roll two dice and move round the board.</p><p><b>Buy</b> a street, train line or utility nobody owns, or let it go to auction. <b>Rent</b>: land on someone else's place and you pay them.</p><p><b>Sets</b>: own every street of one colour and the rent doubles. Then build cottages (evenly), and a tower after four cottages, for much bigger rent.</p><p><b>Payday</b>: collect $200 each time you pass. <b>Headline</b> and <b>Lucky Dip</b> cards can help or hurt.</p><p><b>Lock-up</b>: three doubles in a row or landing on Busted! puts you in. Pay $50, use a card, or try for doubles.</p><p><b>Short of cash?</b> Sell buildings or mortgage places. If you still can't pay, you're bankrupt.</p><p><b>Economics mode</b> adds a bank: borrow (and pay interest every lap), save (and earn interest), keep your credit stars up, watch the Reserve Bank move interest rates, ride property booms and busts, and trade gold.</p><div class='row'><button class='btn small' id='howOk'>Got it</button></div>");
+  $("howOk").onclick = () => { closeSheet(); A3.show("ovTitle"); };
+  $("shX").onclick = () => { closeSheet(); A3.show("ovTitle"); };
+};
+$("bHome").onclick = () => {
+  A3.sfx("click");
+  if (!G) { toTitle(); return; }
+  sheet("<h3>Menu</h3><div class='row' style='flex-direction:column'><button class='btn small' id='mResume'>Keep playing</button><button class='btn alt small' id='mFast'>" + (S.fast ? "Computer turns: fast" : "Computer turns: normal") + "</button>" + (G.E ? "<button class='btn alt small' id='mTips'>" + (S.lessons ? "Money tips: on" : "Money tips: off") + "</button>" : "") + "<button class='btn pink small' id='mQuit'>" + (NET.mode === "local" ? "Back to the title (your game is saved)" : "Leave the online game") + "</button></div>");
+  $("mResume").onclick = closeSheet;
+  $("mFast").onclick = () => { S.fast = !S.fast; store(); $("bHome").onclick(); };
+  if ($("mTips")) $("mTips").onclick = () => { S.lessons = !S.lessons; if (S.lessons) S.seen = {}; store(); $("bHome").onclick(); };
+  $("mQuit").onclick = () => { closeSheet(); toTitle(); };
+};
+$("bAgain").onclick = () => { A3.sfx("click"); A3.hide("ovOver"); if (NET.mode === "local") openSetup(localHumans() > 1 ? "local" : "solo"); else { toTitle(); $("bOnline").onclick(); } };
+$("bOverMenu").onclick = () => { A3.sfx("click"); toTitle(); };
+$("bMute").onclick = () => { const m = A3.mute(!A3.mute()); $("bMute").textContent = m ? "🔇" : "🔊"; };
+$("bMute").textContent = A3.mute() ? "🔇" : "🔊";
+A3.fullscreen($("bFs"), stage);
+function viewLabel() { $("bView").textContent = S.view === "flat" ? "🎲 3D" : "🗺️ Flat"; }
+$("bView").onclick = () => { S.view = S.view === "flat" ? "3d" : "flat"; store(); viewLabel(); A3.sfx("whoosh"); };
+viewLabel();
+$("tPlaces").onclick = () => { A3.sfx("click"); showPlaces(); };
+$("tTrade").onclick = () => { A3.sfx("click"); showTrade(); };
+$("tBank").onclick = () => { A3.sfx("click"); showBank(); };
+$("tEco").onclick = () => { A3.sfx("click"); showEconomy(); };
+$("tLog").onclick = () => { A3.sfx("click"); showLog(); };
+
+/* ===================================================================
+   ONLINE: one device hosts and runs the game; the others send moves.
+   Uses the site's Supabase Realtime. No chat, just names and moves.
+   =================================================================== */
+const NET_URL = "https://bpqaeqswtgtbqrczjcrx.supabase.co";
+const NET_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwcWFlcXN3dGd0YnFyY3pqY3J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzUzOTIsImV4cCI6MjA5NjkxMTM5Mn0.hsEZJ_C4NvySPMb59G9EPPfdJRSNBODbnuo9ij_zxrI";
+let SB = null, CH = null, LOB = null, present = new Set(), goneAt = {};
+const ROOM = { code: "", host: false, pub: false, seats: [], opts: null, hostId: "", started: false };
+function loadSupabase() {
+  return new Promise(res => {
+    if (window.supabase && window.supabase.createClient) return res(true);
+    const s = document.createElement("script"); s.src = "vendor/supabase-2.119.0.js";
+    s.onload = () => res(!!(window.supabase && window.supabase.createClient)); s.onerror = () => res(false); document.head.appendChild(s);
+  });
+}
+async function sb() { if (!(await loadSupabase())) return null; if (!SB) SB = window.supabase.createClient(NET_URL, NET_KEY, { auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 20 } } }); return SB; }
+function bc(event, payload) { if (CH) try { CH.send({ type: "broadcast", event, payload }); } catch (e) {} }
+function newCode() { const L = "ABCDEFGHJKLMNPQRSTUVWXYZ"; let s = ""; for (let i = 0; i < 4; i++) s += L[(Math.random() * L.length) | 0]; return s; }
+function onMsg(t) { $("onMsg").textContent = t || ""; }
+const ON = { name: "", tok: "roo" };
+
+$("bOnline").onclick = async () => {
+  A3.sfx("click"); A3.hide("ovTitle"); A3.hide("ovOver"); A3.show("ovOnline"); onMsg("");
+  ON.name = ON.name || S.setup.name || defaultName(); ON.tok = ON.tok || S.setup.tok;
+  $("onName").value = ON.name;
+  const drawToks = () => { $("onToks").innerHTML = BT.TOKENS.map(t => "<button data-t='" + t.id + "' class='" + (ON.tok === t.id ? "on" : "") + "'>" + t.em + "</button>").join(""); $("onToks").querySelectorAll("button").forEach(b => b.onclick = () => { ON.tok = b.dataset.t; drawToks(); }); };
+  drawToks();
+  watchLobby();
+};
+$("onName").oninput = () => { ON.name = $("onName").value; };
+$("bOnBack").onclick = () => { A3.sfx("click"); unwatchLobby(); A3.hide("ovOnline"); A3.show("ovTitle"); };
+$("bMakePub").onclick = () => makeRoom(true);
+$("bMakePriv").onclick = () => makeRoom(false);
+$("bJoin").onclick = () => { const c = $("codeIn").value.trim().toUpperCase(); if (!/^[A-Z]{4}$/.test(c)) { onMsg("Codes are 4 letters."); return; } joinRoom(c); };
+
+// the public lobby: hosts of public games show up here with presence
+async function watchLobby() {
+  const c = await sb(); if (!c) { $("roomList").innerHTML = "<p class='help'>Can't reach the internet right now.</p>"; return; }
+  if (LOB) return paintRooms();
+  LOB = c.channel("boomtown-lobby", { config: { presence: { key: MYID } } });
+  LOB.on("presence", { event: "sync" }, paintRooms);
+  LOB.subscribe(st => { if (st === "SUBSCRIBED") { if (ROOM.host && ROOM.pub && !ROOM.started) trackLobby(); paintRooms(); } });
+}
+function unwatchLobby() { if (LOB && !(ROOM.host && ROOM.pub)) { try { SB.removeChannel(LOB); } catch (e) {} LOB = null; } }
+function paintRooms() {
+  if (!LOB) return;
+  const st = LOB.presenceState(), rooms = [];
+  for (const k in st) for (const r of st[k]) if (r.code && !r.started && r.n < 6) rooms.push(r);
+  $("roomList").innerHTML = rooms.length ? rooms.map(r => "<div class='room' data-c='" + esc(r.code) + "'>" + tokEm(r.tok) + " " + esc(r.host) + "'s game<small>" + r.n + "/6 · " + esc(r.mode) + "</small></div>").join("") : "<p class='help'>No open games right now. Make one!</p>";
+  $("roomList").querySelectorAll(".room").forEach(el => el.onclick = () => joinRoom(el.dataset.c));
+}
+function modeLabel(o) { return o.mode === "econ" ? "Economics " + o.lvl : "Classic"; }
+function trackLobby() {
+  if (!LOB) return;
+  if (!ROOM.host || !ROOM.pub || ROOM.started) { try { LOB.untrack(); } catch (e) {} return; }
+  const h = ROOM.seats[0] || {};
+  LOB.track({ code: ROOM.code, host: h.name || "Someone", tok: h.tok || "roo", n: ROOM.seats.length, mode: modeLabel(ROOM.opts), started: false });
+}
+
+async function openRoom(code, asHost) {
+  const c = await sb(); if (!c) { onMsg("Can't reach the internet right now."); return false; }
+  if (CH) { try { CH.untrack(); SB.removeChannel(CH); } catch (e) {} }
+  ROOM.code = code; ROOM.host = asHost; ROOM.hostId = asHost ? MYID : ""; present = new Set(); goneAt = {};
+  CH = c.channel("boomtown-" + code, { config: { broadcast: { self: false }, presence: { key: MYID } } });
+  CH.on("broadcast", { event: "lobby" }, m => { if (!ROOM.host) { Object.assign(ROOM, { seats: m.payload.seats, opts: m.payload.opts, hostId: m.payload.hostId, started: m.payload.started }); renderLobby(); } });
+  CH.on("broadcast", { event: "hello" }, m => { if (ROOM.host) onHello(m.payload); });
+  CH.on("broadcast", { event: "nope" }, m => { if (m.payload.to === MYID) { onMsg(m.payload.why); leaveRoom(); A3.hide("ovLobby"); A3.show("ovOnline"); } });
+  CH.on("broadcast", { event: "st" }, m => { if (!ROOM.host) applyState(m.payload); });
+  CH.on("broadcast", { event: "act" }, m => { if (ROOM.host) onRemoteAct(m.payload); });
+  CH.on("broadcast", { event: "want" }, m => { if (ROOM.host && G) sendState(); });
+  CH.on("presence", { event: "sync" }, onPresence);
+  CH.subscribe(st => {
+    if (st !== "SUBSCRIBED") return;
+    CH.track({ host: asHost });
+    if (!asHost) bc("hello", { id: MYID, name: cleanName(ON.name), tok: ON.tok });
+    else broadcastLobby();
+  });
+  return true;
+}
+async function makeRoom(pub) {
+  A3.sfx("click"); ON.name = cleanName($("onName").value || ON.name);
+  const o = Object.assign({}, S.setup);
+  ROOM.pub = pub; ROOM.started = false; ROOM.opts = { mode: o.mode, lvl: o.lvl, money: o.money, ai: o.ai, rounds: o.rounds, start: o.start, auction: o.auction, parkPot: o.parkPot };
+  ROOM.seats = [{ id: MYID, name: ON.name, tok: ON.tok, kind: "human" }];
+  if (!(await openRoom(newCode(), true))) return;
+  NET = { mode: "host" };
+  A3.hide("ovOnline"); A3.show("ovLobby"); renderLobby();
+  if (pub) { await watchLobby(); trackLobby(); }
+}
+async function joinRoom(code) {
+  A3.sfx("click"); ON.name = cleanName($("onName").value || ON.name);
+  ROOM.pub = false; ROOM.seats = []; ROOM.opts = null; ROOM.started = false;
+  if (!(await openRoom(code, false))) return;
+  NET = { mode: "client" };
+  A3.hide("ovOnline"); A3.show("ovLobby"); renderLobby();
+  $("lobMsg").textContent = "Joining room " + code + "…";
+  setTimeout(() => { if (NET.mode === "client" && !ROOM.seats.length && !G) { $("lobMsg").textContent = "No game found with that code. Check the letters and try again."; } }, 6000);
+}
+function leaveRoom() {
+  if (CH) { try { CH.untrack(); SB.removeChannel(CH); } catch (e) {} CH = null; }
+  if (LOB) { try { LOB.untrack(); SB.removeChannel(LOB); } catch (e) {} LOB = null; }
+  ROOM.code = ""; ROOM.seats = []; ROOM.host = false; ROOM.started = false;
+  NET = { mode: "local" };
+}
+function broadcastLobby() { if (ROOM.host) { bc("lobby", { seats: ROOM.seats, opts: ROOM.opts, hostId: MYID, started: ROOM.started }); trackLobby(); } }
+function onHello(h) {
+  const name = cleanName(h.name);
+  if (!ROOM.started) {
+    let s = ROOM.seats.find(x => x.id === h.id);
+    if (!s) {
+      if (ROOM.seats.length >= 6) { bc("nope", { to: h.id, why: "That game is full (6 players)." }); return; }
+      const used = ROOM.seats.map(x => x.tok); let tok = h.tok; if (used.includes(tok)) tok = BT.TOKENS.find(t => !used.includes(t.id)).id;
+      s = { id: h.id, name, tok, kind: "human" }; ROOM.seats.push(s); A3.sfx("pop");
+    } else s.name = name;
+    broadcastLobby(); renderLobby(); return;
+  }
+  // a player coming back to a game that already started
+  if (!G) return;
+  let k = G.players.findIndex(p => p.id === h.id);
+  if (k < 0) k = G.players.findIndex(p => p.away && p.name.toLowerCase() === name.toLowerCase());
+  if (k < 0) { bc("nope", { to: h.id, why: "That game has already started." }); return; }
+  const p = G.players[k]; p.id = h.id; p.away = false; p.kind = "remote";
+  G.log.push({ m: p.name + " is back!", w: k }); sendState();
+}
+function renderLobby() {
+  $("lobCode").textContent = ROOM.code;
+  $("lobSub").textContent = ROOM.host ? (ROOM.pub ? "Anyone can see this game in the public list. Friends can also join with the code." : "Share the code with friends so they can join.") : "Waiting for the host to start…";
+  let h = "<label>Players</label>" + ROOM.seats.map((p, k) => "<div class='seat'><span class='dot' style='background:" + BT.COLS[k] + "'></span>" + tokEm(p.tok) + " " + esc(p.name) + "<small>" + (p.kind === "ai" ? "computer" : k === 0 ? "host" : "") + (p.id === MYID ? " · you" : "") + "</small>" + (ROOM.host && k > 0 ? " <button data-kick='" + k + "'>✕</button>" : "") + "</div>").join("");
+  for (let k = ROOM.seats.length; k < 2; k++) h += "<div class='seat'>Waiting for a player…</div>";
+  $("lobSeats").innerHTML = h;
+  $("lobSeats").querySelectorAll("button[data-kick]").forEach(b => b.onclick = () => { const s = ROOM.seats[+b.dataset.kick]; if (s.id) bc("nope", { to: s.id, why: "The host removed you from the game." }); ROOM.seats.splice(+b.dataset.kick, 1); broadcastLobby(); renderLobby(); });
+  const o = ROOM.opts || S.setup;
+  $("lobOpts").innerHTML = setupHtml(o, { online: true, lock: !ROOM.host });
+  if (ROOM.host) bindSetup($("lobOpts"), ROOM.opts, () => { broadcastLobby(); renderLobby(); });
+  $("lobGo").hidden = !ROOM.host; $("lobAddAI").hidden = !ROOM.host;
+  $("lobGo").disabled = ROOM.seats.length < 2; $("lobAddAI").disabled = ROOM.seats.length >= 6;
+}
+$("lobAddAI").onclick = () => { const used = ROOM.seats.map(x => x.tok); ROOM.seats.push({ id: "", name: AI_NAMES[ROOM.seats.length % 6], tok: BT.TOKENS.find(t => !used.includes(t.id)).id, kind: "ai" }); broadcastLobby(); renderLobby(); A3.sfx("pop"); };
+$("lobLeave").onclick = () => { A3.sfx("click"); if (ROOM.host) ROOM.seats.slice(1).forEach(s => s.id && bc("nope", { to: s.id, why: "The host closed the game." })); leaveRoom(); A3.hide("ovLobby"); A3.show("ovTitle"); titleStats(); };
+$("lobGo").onclick = () => {
+  if (!ROOM.host || ROOM.seats.length < 2) return;
+  A3.sfx("win");
+  const o = ROOM.opts;
+  const g = BT.newGame({ mode: o.mode, lvl: o.lvl, money: o.money, start: o.start, auction: o.auction, parkPot: o.parkPot, rounds: o.rounds,
+    players: ROOM.seats.map(p => ({ name: p.name, tok: p.tok, kind: p.kind === "ai" ? "ai" : p.id === MYID ? "human" : "remote", ai: o.ai, id: p.id })) });
+  ROOM.started = true; broadcastLobby();
+  G = g; NET = { mode: "host" }; mineLocal = [0]; overShown = false; lastSeq = 0;
+  A3.hide("ovLobby"); closeSheet(); syncTokens(true); takeEvents(true); syncProps(); commit();
+  if (G.E && G.E.goldStd) lesson("goldStd");
+};
+let sendT = null;
+function sendState() { if (!CH || !G) return; clearTimeout(sendT); sendT = setTimeout(() => bc("st", { g: G }), 30); }
+function applyState(m) {
+  const g = m.g; if (!g) return;
+  const first = !G;
+  G = g; mineLocal = G.players.map((p, k) => k).filter(k => G.players[k].id === MYID);
+  if (first) { A3.hide("ovLobby"); A3.hide("ovOnline"); closeSheet(); overShown = false; lastSeq = 0; syncTokens(true); takeEvents(true); syncProps(); }
+  else takeEvents(false);
+  renderPlayers(); renderBar();
+  if (sheetKind === "auction") showAuction();
+  if (G.over) setTimeout(showOver, 1200);
+}
+function onRemoteAct(m) {
+  if (!G) return;
+  const k = m.s, p = G.players[k];
+  if (!p || p.id !== m.id || p.kind !== "remote") return;
+  const r = BT.act(G, k, m.a);
+  commit();
+}
+function onPresence() {
+  const st = CH.presenceState(), ids = new Set(Object.keys(st)), now = Date.now();
+  for (const id of present) if (!ids.has(id)) goneAt[id] = now;
+  present = ids; for (const id of ids) delete goneAt[id];
+  if (ROOM.host && !ROOM.started) {
+    const before = ROOM.seats.length; ROOM.seats = ROOM.seats.filter(s => !s.id || s.id === MYID || ids.has(s.id));
+    if (ROOM.seats.length !== before) { broadcastLobby(); renderLobby(); }
+  }
+  if (!ROOM.host) for (const [id, v] of Object.entries(st)) if (v[0] && v[0].host) ROOM.hostId = id;
+}
+function netWatch() {
+  if (!CH || !G) return;
+  const now = Date.now();
+  if (ROOM.host) {
+    G.players.forEach((p, k) => {
+      if (p.kind !== "remote" || p.away || p.out) return;
+      if (!present.has(p.id) && goneAt[p.id] && now - goneAt[p.id] > 6000) { p.away = true; G.log.push({ m: p.name + " dropped out. The computer is playing for them.", w: k }); commit(); }
+    });
+  } else if (ROOM.hostId && !present.has(ROOM.hostId) && goneAt[ROOM.hostId] && now - goneAt[ROOM.hostId] > 9000) {
+    goneAt[ROOM.hostId] = now + 1e9;
+    toast("The host left, so the game ended.", 4000); setTimeout(toTitle, 1500);
+  }
+}
+
+/* ===================================================================
+   FRAME LOOP
+   =================================================================== */
+let uiT = 0;
+// test switches (only used by the automatic tests): bt_speed speeds up animations, bt_norender skips drawing most frames
+let TSPEED = 1, TNORENDER = false, frameN = 0;
+try { TSPEED = +(localStorage.getItem("bt_speed") || 1) || 1; TNORENDER = localStorage.getItem("bt_norender") === "1"; } catch (e) {}
+A3.loop((dt, t) => {
+  dt *= TSPEED;
+  playNext(dt);
+  updateDice(dt); updateTokens(dt);
+  aiTick(dt);
+  for (const i in propObjs) { const o = propObjs[i]; if (o.pop > 0) { o.pop = Math.max(0, o.pop - dt); const s = 1 + Math.sin(o.pop / 0.35 * Math.PI) * 0.4; o.houses.children.forEach(c => c.scale.setScalar(s)); } }
+  // idle tokens bob a little; the player whose go it is glows
+  if (G) tokens.forEach((tk, s) => { if (!tk.anim && G.players[s]) { tk.obj.userData.ring.material = A3.mat(G.players[s].col, s === G.turn ? { emissive: G.players[s].col, glow: 0.6 + Math.sin(t * 5) * 0.3, metal: 0.5 } : { metal: 0.55, rough: 0.32 }); } });
+  if (!G) { cam.focus = -1; cam.yaw += dt * 0.08; }
+  updateCamera(dt);
+  parts.update(dt);
+  if (tickT > 0) { tickT -= dt; if (tickT <= 0) $("ticker").hidden = true; }
+  uiT -= dt; if (uiT <= 0) { uiT = 0.25; if (G) { renderBar(); netWatch(); } lessonTick(); }
+  if (!TNORENDER || (frameN++ % 30) === 0) view.render();
+});
+
+titleStats();
+if (G === null) cam.yaw = 0.6;
+window.__bt = { propObjs, centreOf, tokens, get G() { return G; }, set G(v) { G = v; }, doAct, commit, S, BT, startLocal, get queue() { return queue; }, get busy() { return busy; }, cam, showBank, showEconomy, showTrade, showPlaces };
+if (window.Leaderboard) Leaderboard.mount({ el: "lb", game: "boomtown", dir: "desc", unit: "fortune", title: "Boomtown: biggest winning fortune" });
+})();
+
+</script>
+
+<section class="gh-about" aria-label="About Boomtown" style="max-width:1040px;margin:28px auto 0;padding:20px 22px;border-radius:18px;background:rgba(255,255,255,.05);box-shadow:0 0 0 1px rgba(255,255,255,.1);color:#e9ecf5;font:600 15px/1.55 Nunito,system-ui,-apple-system,Segoe UI,sans-serif;text-align:left;user-select:text;-webkit-user-select:text">
+<style>.gh-about h2{font:400 22px/1.2 "Lilita One",system-ui,sans-serif;margin:0 0 8px;color:#ffcc33}.gh-about h3{font-size:16px;margin:16px 0 6px;color:#fff}.gh-about p{margin:0 0 8px}.gh-about ol{margin:0;padding-left:22px}.gh-about li{margin:3px 0}.gh-about nav{display:flex;flex-wrap:wrap;gap:8px}.gh-about nav a{color:#ffcc33;font-weight:800;text-decoration:none;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.08)}.gh-about nav a:hover{background:rgba(255,255,255,.16)}</style>
+<h2>About Boomtown</h2>
+<p>Boomtown is a 3D property trading board game set in Perth. Buy suburbs from Armadale to Peppermint Grove, build cottages and towers, charge rent and trade your way to a fortune against the computer or friends online.</p>
+<h3>How to play</h3>
+<ol><li>Roll the dice and move round the board, collecting $200 every time you pass Payday.</li><li>Buy streets, train lines and utilities nobody owns, or bid for them at auction.</li><li>Own a whole colour set to double the rent, then build cottages and towers for much more.</li><li>Trade with other players, mortgage places when cash is short, and stay out of the Lock-up.</li><li>Be the last one standing, or the richest when the rounds run out.</li></ol>
+<h3>Economics mode</h3>
+<p>Three levels teach how money works: borrowing and saving with interest and a credit rating; the Reserve Bank, credit supply and property booms and busts; and gold, including the old gold standard where banknotes were gold certificates.</p>
+<p style="margin-top:12px">Boomtown is free to play in your browser on iPad, phone or computer, with nothing to download. Make a free GH Games account to save your progress online, earn PhatCoin and climb the leaderboard.</p>
+<h3>More free games</h3>
+<nav><a href="knights-table.html">Knight's Table</a><a href="patience.html">Patience</a><a href="iron-command.html">Iron Command</a><a href="mega-dropper-tycoon.html">Mega Dropper Tycoon</a><a href="./">All GH Games</a></nav>
+</section>
+</body>
+</html>

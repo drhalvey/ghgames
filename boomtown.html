@@ -646,7 +646,7 @@ var BT = (function () {
   }
   function passStart(G, s) {
     var p = P(G, s);
-    p.cash += 200;
+    p.cash += 200; p.laps = (p.laps || 0) + 1;
     log(G, p.name + " passed Payday and collected $200.", s);
     ev(G, { k: "cash", s: s, d: 200 });
     if (G.E) yearly(G, s);
@@ -677,7 +677,9 @@ var BT = (function () {
       else r = rentOf(G, sq.i, G.lastRoll);
       if (sq.t === "station" && opt.double) r *= 2;
       log(G, p.name + " owes " + P(G, pr.o).name + " " + money(r) + " rent for " + sq.name + ".", s);
+      G.rentSq = sq.i;
       owe(G, s, pr.o, r, "rent");
+      G.rentSq = -1;
       return;
     }
     if (sq.t === "tax") { log(G, p.name + " pays " + money(sq.amt) + " " + sq.name + ".", s); owe(G, s, -1, sq.amt, "tax"); return; }
@@ -731,15 +733,20 @@ var BT = (function () {
     amt = Math.round(amt);
     if (amt <= 0) return;
     if (G.pending && G.pending.t === "debt" && queue) { (G.debtQ = G.debtQ || []).push([s, to, amt, why]); return; }
-    if (p.cash >= amt) { pay(G, s, to, amt, why); return; }
-    G.pending = { t: "debt", s: s, to: to, amt: amt, why: why, back: G.pending };
+    var rsq = why === "rent" && G.rentSq != null ? G.rentSq : -1;
+    if (p.cash >= amt) { pay(G, s, to, amt, why, rsq); return; }
+    G.pending = { t: "debt", s: s, to: to, amt: amt, why: why, back: G.pending, sq: rsq };
+    (p.st.squeeze = p.st.squeeze || []).push(G.round);
     log(G, p.name + " needs " + money(amt) + " but only has " + money(p.cash) + ". Raise the money or go bankrupt.", s);
     ev(G, { k: "debt", s: s, amt: amt });
   }
-  function pay(G, s, to, amt, why) {
+  function pay(G, s, to, amt, why, sq) {
     var p = P(G, s); p.cash -= amt;
     ev(G, { k: "cash", s: s, d: -amt });
-    if (to >= 0) { var q = P(G, to); q.cash += amt; ev(G, { k: "cash", s: to, d: amt }); if (why === "rent") { q.st.rentIn += amt; p.st.rentOut += amt; } }
+    if (to >= 0) {
+      var q = P(G, to); q.cash += amt; ev(G, { k: "cash", s: to, d: amt });
+      if (why === "rent") { q.st.rentIn += amt; p.st.rentOut += amt; if (sq >= 0) { q.st.rentBy = q.st.rentBy || {}; q.st.rentBy[sq] = (q.st.rentBy[sq] || 0) + amt; } }
+    }
     else if (to === -3) {
       var others = G.players.map(function (q2, k) { return k; }).filter(function (k) { return k !== s && !G.players[k].out; });
       var each = Math.round(amt / Math.max(1, others.length));
@@ -752,7 +759,7 @@ var BT = (function () {
     var p = P(G, d.s);
     if (p.cash < d.amt) return false;
     G.pending = d.back || null;
-    pay(G, d.s, d.to, d.amt, d.why);
+    pay(G, d.s, d.to, d.amt, d.why, d.sq);
     log(G, p.name + " paid " + money(d.amt) + ".", d.s);
     drainDebtQueue(G);
     return true;
@@ -898,7 +905,32 @@ var BT = (function () {
 
   /* ---------------- the one way to change the game ---------------- */
   // returns "" when it worked, or a short reason when it did not
+  // money decisions are written down so the end-of-game report can look back at them
+  var DECIDE = { buy: 1, build: 1, borrow: 1, repay: 1, deposit: 1, withdraw: 1, buyGold: 1, sellGold: 1, mortgage: 1 };
   function act(G, s, a) {
+    if (!a || !DECIDE[a.t] || !P(G, s)) return act0(G, s, a);
+    var p = P(G, s), pd = G.pending;
+    var d = { k: a.t, r: G.round, lap: p.laps || 0, cash: p.cash, loan: p.loan, save: p.save, gold: p.gold, worth: netWorth(G, s), raising: !!(pd && pd.t === "debt" && pd.s === s) };
+    if (G.E) { d.rate = G.E.rate; d.gpx = G.E.goldPx; d.mkt = G.E.mkt; d.lrate = loanRate(G, s); d.srate = saveRate(G); }
+    if (a.t === "buy" && pd && pd.t === "buy") { d.sq = pd.i; d.amt = pd.price; d.set = SQ[pd.i].g && GROUP_SQ[SQ[pd.i].g].every(function (j) { return j === pd.i || G.props[j].o === s; }); }
+    if (a.t === "build" || a.t === "mortgage") { d.sq = a.i; d.amt = a.t === "build" ? houseCost(G, a.i) : mortVal(G, a.i); }
+    if (d.sq != null) d.rent0 = (p.st.rentBy || {})[d.sq] || 0;
+    d.avgPre = p.gold ? (p.goldCost || 0) / p.gold : 0;
+    var r = act0(G, s, a);
+    if (r) return r;
+    if (d.amt == null) d.amt = Math.abs((a.t === "buyGold" || a.t === "sellGold") ? (p.gold - d.gold) : a.t === "borrow" ? p.loan - d.loan : a.t === "repay" ? d.loan - p.loan : p.save - d.save);
+    if (a.t === "buyGold") { d.cost = d.cash - p.cash; d.amt = p.gold - d.gold; }
+    if (a.t === "sellGold") { d.got = p.cash - d.cash; d.amt = d.gold - p.gold; d.avg = d.avgPre; }
+    if (a.t === "borrow") { d.left = d.amt; d.paid = []; }
+    if (a.t === "repay") {
+      var left = d.amt, list = (G.dec && G.dec[s]) || [];
+      for (var k = 0; k < list.length && left > 0; k++) { var b = list[k]; if (b.k !== "borrow" || !b.left) continue; var take = Math.min(b.left, left); b.left -= take; left -= take; b.paid.push([take, p.laps || 0]); }
+    }
+    G.dec = G.dec || {}; (G.dec[s] = G.dec[s] || []).push(d);
+    if (G.dec[s].length > 200) G.dec[s].shift();
+    return r;
+  }
+  function act0(G, s, a) {
     if (!a || G.over) return "over";
     var p = P(G, s); if (!p || p.out) return "out";
     var pd = G.pending, t = a.t, myTurn = s === G.turn;
@@ -1309,7 +1341,7 @@ var BT = (function () {
     canBuild: canBuild, canSell: canSell, canMortgage: canMortgage, canUnmortgage: canUnmortgage, liquid: liquid, netWorth: netWorth,
     loanRate: loanRate, saveRate: saveRate, creditLimit: creditLimit, creditAvail: creditAvail, bankCapacity: bankCapacity,
     totalLoans: totalLoans, goldBuy: goldBuy, goldSell: goldSell, tradeOk: tradeOk, tradeText: tradeText, aiTradeValue: aiTradeValue,
-    groupBuilt: groupBuilt, countOwned: countOwned, mkt: mkt
+    groupBuilt: groupBuilt, countOwned: countOwned, mkt: mkt, dangerRent: dangerRent, collateral: collateral, GROUP_OF: function (i) { return SQ[i].g; }
   };
 })();
 if (typeof module !== "undefined") module.exports = BT;
@@ -1333,7 +1365,7 @@ const sqCol = i => SQ[i].g && GROUPS[SQ[i].g] ? GROUPS[SQ[i].g].col : SQ[i].t ==
 /* ---------------- save ---------------- */
 const S = A3.save(SAVE_KEY, {
   stats: { games: 0, wins: 0, best: 0, online: 0 },
-  seen: {}, lessons: true, fast: false, view: "3d",
+  seen: {}, lessons: true, advice: true, fast: false, view: "3d",
   setup: { mode: "classic", lvl: 1, money: "credit", foes: 3, ai: 2, rounds: 0, auction: true, parkPot: false, start: 1500, tok: "roo", name: "" },
   game: null
 });
@@ -1950,7 +1982,7 @@ function showPlaces() {
   if (!myTurnFree) h += "<p class='help'>You can build, sell and mortgage on your own turn.</p>";
   else h += "<div class='tip'>Own every street of a colour to build. Build evenly: one cottage on each street before a second. Four cottages then a tower. Selling gives back half the cost. Mortgaging gives you half the price, but you collect no rent there until you pay it back plus 10%.</div>";
   sheet(h, "places");
-  $("sheetCard").querySelectorAll("button[data-a]").forEach(b => b.onclick = () => { doAct({ t: b.dataset.a, i: +b.dataset.i }); setTimeout(showPlaces, 60); });
+  $("sheetCard").querySelectorAll("button[data-a]").forEach(b => b.onclick = () => { if (doAct({ t: b.dataset.a, i: +b.dataset.i })) setTimeout(showPlaces, 60); });
 }
 
 /* ---- trading ---- */
@@ -2029,7 +2061,7 @@ function showBank() {
     (E.goldStd ? " Your money is gold certificates: every $" + E.goldPx + " can be swapped for 1 oz of real gold at the bank." : "") + "</div>";
   if (!ok) h += "<p class='help'>You can use the bank on your own turn.</p>";
   sheet(h, "bank");
-  $("sheetCard").querySelectorAll("button[data-a]").forEach(b => b.onclick = () => { doAct({ t: b.dataset.a, amt: +b.dataset.n }); setTimeout(showBank, 60); });
+  $("sheetCard").querySelectorAll("button[data-a]").forEach(b => b.onclick = () => { if (doAct({ t: b.dataset.a, amt: +b.dataset.n })) setTimeout(showBank, 60); });
 }
 function showEconomy() {
   if (!G.E) return;
@@ -2078,6 +2110,231 @@ function lessonTick() {
   $("lsOk").onclick = closeSheet; $("lsOff").onclick = () => { S.lessons = false; store(); closeSheet(); };
 }
 
+/* ---- think first: explain a money choice before it happens (Economics) ---- */
+const ADVISE = { borrow: 1, repay: 1, deposit: 1, buyGold: 1, sellGold: 1, buy: 1, build: 1, mortgage: 1 };
+const LAND = 0.14; // roughly how often one player lands on a given square each lap
+function pct(x) { return (Math.round(x * 10) / 10) + "%"; }
+function adviceFor(s, a) {
+  const p = G.players[s], E = G.E, opp = G.players.filter((q, k) => k !== s && !q.out).length;
+  const danger = BT.dangerRent(G, s), pd = G.pending, raising = pd && pd.t === "debt" && pd.s === s;
+  const expect = r => Math.round(r * LAND * opp);
+  const A = { title: "", risk: "low", what: "", nums: [], risks: [], good: "" };
+  const cushion = (after, label) => {
+    if (danger <= 0) return;
+    if (after < danger) { A.risks.push("After this you'd have " + M(after) + " cash, but the biggest rent on the board is " + M(danger) + ". Landing there would mean selling, mortgaging or borrowing in a hurry."); return 2; }
+    if (after < danger * 2) { A.risks.push("You'd keep " + M(after) + " cash. That covers the worst rent (" + M(danger) + ") once, but not twice."); return 1; }
+    A.nums.push("You'd still have " + M(after) + " cash, more than twice the worst rent on the board (" + M(danger) + ")."); return 0;
+  };
+  const lvlRisk = n => { const L = ["low", "medium", "high"]; if (L.indexOf(n) > L.indexOf(A.risk)) A.risk = n; };
+  if (a.t === "borrow") {
+    const n = a.amt, r = BT.loanRate(G, s), per = Math.round(n * r / 100), debt = p.loan + n, coll = BT.collateral(G, s);
+    const lev = debt / Math.max(1, coll + p.cash + n);
+    A.title = "Borrow " + M(n) + "?";
+    A.what = "The bank gives you " + M(n) + " now. You pay it back later, and until then you pay interest every time you pass Payday.";
+    A.nums.push("Interest: " + M(per) + " every lap (" + r + "% a year). Over 5 laps that's " + M(per * 5) + ", and you'd still owe the " + M(n) + ".");
+    A.nums.push("Your total loan would be " + M(debt) + ". You own " + M(coll) + " of places and gold, so you'd be borrowing " + Math.round(lev * 100) + "% of what you have. (That's called leverage.)");
+    // what could it pay for?
+    if (pd && pd.t === "buy" && pd.s === s) {
+      const sq = SQ[pd.i], base = sq.t === "street" ? Math.round(sq.rent[0] * BT.mkt(G)) : sq.t === "station" ? 25 : 28;
+      A.nums.push("It would let you buy " + sq.name + ". Its rent is " + M(base) + " now (more with the whole set or buildings), so expect about " + M(expect(base)) + " a lap from it against " + M(per) + " of interest.");
+    } else {
+      const b = BT.BUYABLE.filter(i => SQ[i].t === "street" && G.props[i].o === s && G.props[i].h < 5 && BT.ownsSet(G, s, SQ[i].g) && !BT.SQ.some(() => false)).sort((x, y) => (SQ[y].rent[3] - SQ[x].rent[3]))[0];
+      if (b != null) {
+        const h = G.props[b].h, extra = Math.round((SQ[b].rent[h + 1] - (h ? SQ[b].rent[h] : SQ[b].rent[0] * 2)) * BT.mkt(G)), c = BT.houseCost(G, b), ci = Math.round(c * r / 100);
+        A.nums.push("Example: a building on " + SQ[b].name + " costs " + M(c) + " and adds " + M(extra) + " rent. Expect about " + M(expect(extra)) + " more a lap, while borrowing " + M(c) + " costs " + M(ci) + " a lap. " + (expect(extra) > ci ? "The rent should beat the interest." : "The interest is bigger than the extra rent, so it may not pay."));
+      } else A.risks.push("You don't have a set to build on, and nothing to buy right now. Money borrowed and just kept in your pocket only costs you interest.");
+    }
+    A.risks.push("If prices fall (a bust), your places are worth less but your loan stays the same size.");
+    if (G.lvl >= 2) A.risks.push("If the Reserve Bank raises rates, your interest goes up too. Right now the bank rate is " + E.rate + "%.");
+    A.risks.push("Miss an interest payment and you lose a credit star, and the interest gets added to the loan (interest on interest).");
+    if (raising) { A.risks.push("You're borrowing to pay a bill. That keeps you in the game, but it doesn't earn anything back."); lvlRisk("medium"); }
+    lvlRisk(lev > 0.65 || r >= 10 ? "high" : lev > 0.35 ? "medium" : "low");
+    A.good = "Borrowing is smart when the money earns more than it costs, like finishing a set or building where lots of people land. It's risky when it pays for things that don't earn.";
+  } else if (a.t === "repay") {
+    const n = a.amt, r = BT.loanRate(G, s), save = Math.round(n * r / 100);
+    A.title = "Pay back " + M(n) + "?";
+    A.what = "Your loan gets smaller, so you pay less interest every lap.";
+    A.nums.push("This saves " + M(save) + " of interest every lap (" + r + "% a year). That's a guaranteed " + r + "% return.");
+    if (cushion(p.cash - n) === 2) lvlRisk("medium");
+    A.good = "Paying off debt is a safe, sure return. Just keep enough cash for a bad landing, or you may have to borrow again, maybe at a higher rate.";
+  } else if (a.t === "deposit") {
+    const n = a.amt, sr = BT.saveRate(G), earn = Math.round(n * sr / 100);
+    A.title = "Save " + M(n) + "?";
+    A.what = "The bank looks after your money and pays you interest each time you pass Payday.";
+    A.nums.push("You'd earn about " + M(earn) + " a lap (" + sr + "% a year).");
+    if (G.lvl >= 2) { const real = sr - E.infl; A.nums.push("Prices are rising " + pct(E.infl) + " a year, so your real gain is about " + pct(real) + (real < 0 ? ". That means your savings are actually losing buying power!" : ".")); }
+    if (p.loan > 0) { A.risks.push("You have a loan costing " + BT.loanRate(G, s) + "% but savings only earn " + sr + "%. Paying the loan off would save you more than saving earns."); lvlRisk("medium"); }
+    cushion(p.cash - n);
+    A.risks.push("You can take savings out when you owe money, so this is low risk. But money in the bank isn't buying places that earn rent.");
+    A.good = "Saving is safe. It's best for spare cash you don't need to buy or build with.";
+  } else if (a.t === "buyGold") {
+    const n = a.amt, cost = n * BT.goldBuy(G), share = cost / Math.max(1, BT.netWorth(G, s));
+    const hs = E.hist.slice(-12).map(h => h.gold), lo = Math.min(...hs), hi = Math.max(...hs);
+    A.title = "Buy " + n + " oz of gold?";
+    A.what = "You swap " + M(cost) + " of cash for real gold. Gold doesn't pay rent or interest. You only make money if you sell it for more than you paid.";
+    if (E.goldStd) {
+      A.nums.push("On the gold standard the price is fixed at " + M(E.goldPx) + " an ounce, so gold won't go up or down.");
+      A.risks.push("Every ounce you take out shrinks the bank's gold. With less gold the bank can lend less, and interest rates may rise for everyone. The bank has " + E.bankGold + " oz left.");
+      A.risks.push("Cash in gold earns nothing, while savings would earn " + BT.saveRate(G) + "%.");
+      lvlRisk("medium");
+    } else {
+      A.nums.push("You buy at " + M(BT.goldBuy(G)) + " and could sell back at " + M(BT.goldSell(G)) + ". The gap means gold must rise about 4% before you break even.");
+      A.nums.push("In the last few rounds gold has been between " + M(lo) + " and " + M(hi) + " an ounce.");
+      A.nums.push("The same " + M(cost) + " in savings would earn about " + M(Math.round(cost * BT.saveRate(G) / 100)) + " a lap instead.");
+      if (E.infl > 3.5) A.nums.push("Prices are rising fast (" + pct(E.infl) + "). Gold often does well when that happens.");
+      if (E.rate >= 6) A.risks.push("Interest rates are high (" + E.rate + "%). When savings pay well, gold often falls out of fashion.");
+      A.risks.push("Gold can fall as well as rise. Nobody knows which way it will go next.");
+    }
+    lvlRisk(share > 0.25 ? "high" : share > 0.1 ? "medium" : A.risk);
+    A.nums.push("This would be " + Math.round(share * 100) + "% of everything you own.");
+    cushion(p.cash - cost);
+    A.good = "Spreading your money across different things (diversifying) means one bad turn can't sink you. A little gold can protect you when things get shaky, but putting everything in one thing is risky.";
+  } else if (a.t === "sellGold") {
+    const n = Math.min(a.amt, p.gold), got = n * BT.goldSell(G), avg = p.gold ? (p.goldCost || 0) / p.gold : 0, gain = Math.round(got - avg * n);
+    A.title = "Sell " + n + " oz of gold?";
+    A.what = "You swap gold back into " + M(got) + " of cash.";
+    A.nums.push("You paid about " + M(Math.round(avg)) + " an ounce. Selling now at " + M(BT.goldSell(G)) + " gives a " + (gain >= 0 ? "profit of " + M(gain) : "loss of " + M(-gain)) + ".");
+    if (gain < 0) A.risks.push("Selling at a loss locks it in. If you don't need the cash, waiting might let the price recover, or it might fall further.");
+    A.good = "Selling to take a profit, or to raise cash instead of borrowing, is often sensible.";
+  } else if (a.t === "buy") {
+    const i = pd.i, sq = SQ[i], price = pd.price;
+    const base = sq.t === "street" ? Math.round(sq.rent[0] * BT.mkt(G)) : sq.t === "station" ? 25 * Math.pow(2, BT.countOwned(G, s, "station")) : 28;
+    const finish = sq.t === "street" && BT.GROUP_SQ[sq.g].every(j => j === i || G.props[j].o === s);
+    A.title = "Buy " + sq.name + " for " + M(price) + "?";
+    A.what = "Property earns rent every time someone lands on it, and you can sell it back to the bank (mortgage) for half if you need cash.";
+    const r = finish ? base * 2 : base, e = expect(r);
+    A.nums.push("Rent would be " + M(r) + (finish ? " (doubled, because it finishes your set!)" : "") + ". With " + opp + " other player" + (opp > 1 ? "s" : "") + " that's about " + M(e) + " a lap, so it would take about " + (e ? Math.ceil(price / e) : "many") + " laps to pay for itself" + (sq.t === "street" ? " (much fewer once you build)." : "."));
+    if (finish) A.nums.push("Finishing a set lets you build cottages, which is where the big rents are.");
+    if (G.lvl >= 2 && E.mkt > 1.3) A.risks.push("Prices are high right now (" + Math.round(E.mkt * 100) + "% of normal). Buying near the top of a boom can mean a loss if a bust comes.");
+    if (G.lvl >= 2 && E.mkt < 0.85) A.nums.push("Prices are low right now (" + Math.round(E.mkt * 100) + "% of normal). Buying in a bust can be a bargain if prices recover.");
+    const c = cushion(p.cash - price); if (c === 2) lvlRisk("high"); else if (c === 1) lvlRisk("medium");
+    A.good = "Places that finish a set, or that lots of people land on, are usually worth it. Just don't spend so much that one bad landing bankrupts you.";
+  } else if (a.t === "build") {
+    const i = a.i, sq = SQ[i], h = G.props[i].h, c = BT.houseCost(G, i);
+    const before = Math.round((h ? sq.rent[h] : sq.rent[0] * 2) * BT.mkt(G)), after = Math.round(sq.rent[h + 1] * BT.mkt(G)), e = expect(after - before);
+    A.title = "Build " + (h === 4 ? "a tower" : "a cottage") + " on " + sq.name + "?";
+    A.what = "Buildings make the rent much bigger. If you need cash later you can sell them back, but only for half what you paid.";
+    A.nums.push("Rent goes from " + M(before) + " to " + M(after) + ". That's about " + M(e) + " more a lap, so it pays for itself in about " + (e ? Math.ceil(c / e) : "many") + " laps.");
+    if (G.opts.rounds && G.opts.rounds - G.round < 6) A.risks.push("Only " + Math.max(0, G.opts.rounds - G.round) + " rounds are left, so it may not have time to pay for itself.");
+    const cc = cushion(p.cash - c); if (cc === 2) lvlRisk("high"); else if (cc === 1) lvlRisk("medium");
+    A.good = "Building is how you win, especially the third cottage, which makes the biggest jump in rent. Build on sets people land on often.";
+  } else if (a.t === "mortgage") {
+    const i = a.i, sq = SQ[i], v = BT.mortVal(G, i), back = BT.unmortCost(G, i);
+    A.title = "Mortgage " + sq.name + "?";
+    A.what = "The bank gives you " + M(v) + " now, but you collect no rent on " + sq.name + " until you pay back " + M(back) + " (10% extra).";
+    if (G.E) A.nums.push("Compare: a bank loan of " + M(v) + " would cost " + M(Math.round(v * BT.loanRate(G, s) / 100)) + " a lap. The mortgage costs a one-off " + M(back - v) + " plus the rent you miss.");
+    if (sq.t === "street" && BT.ownsSet(G, s, sq.g)) { A.risks.push("This breaks the rent on your whole set: no doubled rent and no building until it's paid back."); lvlRisk("medium"); }
+    A.good = "Mortgage places that earn little (ones not in a set) first.";
+  } else return null;
+  return A;
+}
+let advAfter = "";
+function showAdvice(A, yes) {
+  const col = { low: "#5fd36a", medium: "#ffc93c", high: "#ff5d5d" }[A.risk], word = { low: "Low risk", medium: "Some risk", high: "High risk" }[A.risk];
+  const after = sheetKind;
+  let h = "<h3>🤔 " + esc(A.title) + "</h3><p><span style='display:inline-block;background:" + col + ";color:#1b1b1b;border-radius:8px;padding:2px 10px;font-weight:900'>" + word + "</span></p>";
+  h += "<p>" + esc(A.what) + "</p>";
+  if (A.nums.length) h += "<p><b>The numbers</b></p>" + A.nums.map(t => "<p style='font-size:14px'>• " + esc(t) + "</p>").join("");
+  if (A.risks.length) h += "<p><b>Watch out</b></p>" + A.risks.map(t => "<p style='font-size:14px'>⚠️ " + esc(t) + "</p>").join("");
+  if (A.good) h += "<div class='tip'>" + esc(A.good) + "</div>";
+  h += "<div class='row'><button class='btn green small' id='adY'>Do it</button><button class='btn alt small' id='adN'>Not now</button></div><p class='help' style='text-align:center'><label><input type='checkbox' id='adOff'> Stop showing these (turn back on in ☰ Menu)</label></p>";
+  sheet(h, "advice");
+  const back = () => { if (after === "bank") showBank(); else if (after === "places") showPlaces(); };
+  $("adY").onclick = () => { if ($("adOff").checked) { S.advice = false; store(); } closeSheet(); yes(); back(); };
+  $("adN").onclick = () => { if ($("adOff").checked) { S.advice = false; store(); } closeSheet(); back(); };
+}
+
+/* ---- the money report card: looking back at each choice ---- */
+function decisionReport(s) {
+  const p = G.players[s], list = (G.dec && G.dec[s]) || [], rows = [], E = G.E;
+  const laps = p.laps || 0, rentBy = p.st.rentBy || {};
+  const squeezeAfter = d => (p.st.squeeze || []).some(r => r >= d.r && r <= d.r + 3);
+  list.forEach((d0, k) => {
+    let d = d0, v = "", why = "", title = "";
+    const held = Math.max(0, laps - d.lap);
+    if (d.k === "buy") {
+      const rent = (rentBy[d.sq] || 0) - (d.rent0 || 0), own = G.props[d.sq].o === s, now = own ? BT.priceOf(G, d.sq) : 0;
+      title = "Bought " + SQ[d.sq].name + " for " + M(d.amt);
+      if (!own) { v = "mixed"; why = "It earned " + M(rent) + " rent before it left your hands."; }
+      else {
+        const gain = rent + now - d.amt;
+        why = "It earned " + M(rent) + " rent" + (E && Math.abs(now - d.amt) > 5 ? " and is now worth " + M(now) : "") + (d.set ? ". It finished a set." : ".");
+        v = gain >= d.amt * 0.25 || (d.set && rent > 0) ? "good" : gain >= 0 ? "mixed" : "bad";
+        if (v === "bad") why += " Prices fell after you bought, so you'd get less if you sold.";
+      }
+    } else if (d.k === "build") {
+      // all the building on one street counts as one choice
+      if (list.slice(0, k).some(x => x.k === "build" && x.sq === d.sq)) return;
+      const all = list.filter(x => x.k === "build" && x.sq === d.sq), cost = all.reduce((t, x) => t + x.amt, 0);
+      const rent = (rentBy[d.sq] || 0) - (d.rent0 || 0);
+      d = Object.assign({}, d, { amt: cost });
+      title = "Built " + (all.length > 1 ? all.length + " times" : "") + " on " + SQ[d.sq].name + " for " + M(cost);
+      why = "That street brought in " + M(rent) + " rent after you started building.";
+      v = rent >= d.amt ? "good" : rent > 0 ? "mixed" : "bad";
+      if (v === "bad") why += " Nobody landed there in time to pay it back.";
+    } else if (d.k === "borrow") {
+      let interest = 0; (d.paid || []).forEach(x => { interest += x[0] * d.lrate / 100 * Math.max(0, x[1] - d.lap); }); interest += (d.left || 0) * d.lrate / 100 * held; interest = Math.round(interest);
+      const uses = list.slice(k + 1).filter(x => x.r === d.r && (x.k === "buy" || x.k === "build"));
+      const seenSq = {}; let useRent = 0;
+      uses.forEach(x => { if (seenSq[x.sq]) return; seenSq[x.sq] = 1; useRent += (rentBy[x.sq] || 0) - (x.rent0 || 0); });
+      title = "Borrowed " + M(d.amt) + " at " + d.lrate + "%";
+      if (d.raising) { v = "mixed"; why = "You borrowed to pay a bill. It kept you in the game but cost about " + M(interest) + " in interest."; }
+      else if (uses.length) {
+        why = "That turn you spent it on " + uses.map(x => SQ[x.sq].name).filter((n, j, a) => a.indexOf(n) === j).join(", ") + ", which earned " + M(useRent) + " rent while the loan cost about " + M(interest) + " in interest.";
+        v = useRent > interest ? "good" : useRent > interest / 2 ? "mixed" : "bad";
+      } else { why = "You didn't spend it on anything that earns, so it just cost about " + M(interest) + " in interest."; v = interest > 0 ? "bad" : "mixed"; }
+      if (d.left > 0 && !G.players[s].out && (d.left / Math.max(1, d.amt)) > 0.5 && v === "good") why += " You still owe most of it.";
+    } else if (d.k === "repay") {
+      const saved = Math.round(d.amt * (d.lrate || 0) / 100 * held);
+      title = "Paid back " + M(d.amt) + " of loan";
+      why = "That saved about " + M(saved) + " in interest.";
+      v = "good";
+      if (squeezeAfter(d)) { v = "mixed"; why += " But you ran short of cash soon after and had to raise money."; }
+    } else if (d.k === "deposit") {
+      const earned = Math.round(d.amt * (d.srate || 0) / 100 * held);
+      title = "Saved " + M(d.amt) + " at " + (d.srate || 0) + "%";
+      why = "It earned about " + M(earned) + " in interest.";
+      v = "good";
+      if (d.loan > 0) { v = "mixed"; why += " But you had a loan costing " + d.lrate + "% at the time. Paying that off first would have saved more."; }
+      if (G.lvl >= 2 && E && (d.srate || 0) < E.infl) { if (v === "good") v = "mixed"; why += " Prices rose faster than the interest, so it lost buying power."; }
+    } else if (d.k === "buyGold") {
+      const endPx = BT.goldSell(G), value = d.amt * endPx, gain = Math.round(value - d.cost), alt = Math.round(d.cost * (d.srate || 0) / 100 * held);
+      title = "Bought " + d.amt + " oz of gold at " + M(Math.round(d.cost / Math.max(1, d.amt)));
+      why = "Gold is now " + M(endPx) + " an ounce, a " + (gain >= 0 ? "gain of " + M(gain) : "loss of " + M(-gain)) + ". Savings would have earned about " + M(alt) + ".";
+      v = E && E.goldStd ? "mixed" : gain > alt ? "good" : gain >= 0 ? "mixed" : "bad";
+      if (E && E.goldStd) why += " On the gold standard the price can't move, so gold only kept your money safe.";
+    } else if (d.k === "sellGold") {
+      const px = d.got / Math.max(1, d.amt), endPx = BT.goldSell(G), gain = Math.round(d.got - d.avg * d.amt);
+      title = "Sold " + d.amt + " oz of gold at " + M(Math.round(px));
+      why = (gain >= 0 ? "A profit of " + M(gain) + "." : "A loss of " + M(-gain) + ".") + " Gold is now " + M(endPx) + ".";
+      v = endPx <= px * 1.05 ? (gain >= 0 ? "good" : "mixed") : "mixed";
+      if (endPx > px * 1.05) why += " It kept rising after you sold.";
+      else if (endPx < px * 0.95) why += " Good timing: it fell after you sold.";
+    } else if (d.k === "mortgage") {
+      title = "Mortgaged " + SQ[d.sq].name + " for " + M(d.amt);
+      if (d.raising) { v = "good"; why = "Raising cash to pay a bill this way kept you out of bankruptcy."; }
+      else { v = "mixed"; why = "You got cash, but lost the rent from it until it was paid back."; }
+    } else return;
+    rows.push({ r: d.r, title, v, why });
+  });
+  return rows;
+}
+function reportHtml(rows, short) {
+  const ic = { good: "👍", mixed: "🤔", bad: "👎" }, word = { good: "Sound", mixed: "Mixed", bad: "Risky" };
+  const n = k => rows.filter(r => r.v === k).length;
+  let h = "<p><b>" + n("good") + "</b> sound, <b>" + n("mixed") + "</b> mixed, <b>" + n("bad") + "</b> risky choices.</p>";
+  const show = short ? rows.filter(r => r.v !== "good").slice(-3).concat(rows.filter(r => r.v === "good").slice(-2)) : rows;
+  h += show.map(r => "<div class='prow'><span style='font-size:22px'>" + ic[r.v] + "</span><div class='tx'>" + esc(r.title) + " <small style='display:inline'>(round " + r.r + ", " + word[r.v] + ")</small><small>" + esc(r.why) + "</small></div></div>").join("");
+  const bad = rows.filter(r => r.v === "bad");
+  if (rows.length) h += "<div class='tip'>" + (bad.length ? "Biggest lesson: " + esc(bad[bad.length - 1].why) : n("good") >= rows.length * 0.7 ? "Great money sense! Most of your choices paid off." : "Good effort. Look at the mixed ones to see what could have worked better.") + "</div>";
+  return h;
+}
+function showReport() {
+  const s = mineLocal.length ? (mineLocal.includes(actor()) ? actor() : mineLocal[0]) : -1; if (s < 0 || !G) return;
+  const rows = decisionReport(s);
+  sheet("<h3>📋 " + esc(G.players[s].name) + "'s money report card</h3>" + (rows.length ? reportHtml(rows, false) : "<p>No money choices yet. Buy, build, borrow, save or trade gold and they'll show up here.</p>"), "report");
+}
+
 /* ---- game over ---- */
 let overShown = false;
 function showOver() {
@@ -2092,7 +2349,9 @@ function showOver() {
     const st = G.players[ms].st;
     h += "<div class='tip'>You paid " + M(st.intPaid) + " in loan interest and earned " + M(st.intEarned) + " on savings." + (G.lvl >= 3 ? " Gold trading made you " + M(st.goldGain) + "." : "") + " You collected " + M(st.rentIn) + " rent and paid " + M(st.rentOut) + ".</div>";
   } else if (ms >= 0) { const st = G.players[ms].st; h += "<div class='tip'>You collected " + M(st.rentIn) + " in rent and paid " + M(st.rentOut) + ".</div>"; }
+  if (ms >= 0) { const rows = decisionReport(ms); if (rows.length) h += "<p style='margin-top:10px'><b>📋 Your money report card</b></p>" + reportHtml(rows, true) + "<div class='row'><button class='btn alt small' id='ovRep'>See every choice</button></div>"; }
   $("overBox").innerHTML = h;
+  if ($("ovRep")) $("ovRep").onclick = () => { A3.hide("ovOver"); showReport(); const x = $("shX"); x.onclick = () => { closeSheet(); A3.show("ovOver"); }; };
   A3.show("ovOver"); $("bar").hidden = true;
   A3.sfx(iWon ? "win" : "lose");
   // stats, PhatCoin and the leaderboard
@@ -2116,11 +2375,16 @@ function showOver() {
 function doAct(a, seat) {
   if (!G) return;
   const s = seat != null ? seat : (isMine(BT.waitingOn(G)) ? BT.waitingOn(G) : actor());
-  if (!isMine(s)) return;
-  if (NET.mode === "client") { bc("act", { id: MYID, s, a }); return; }
+  if (!isMine(s)) return false;
+  if (G.E && S.advice !== false && ADVISE[a.t] && !a.ok && !(a.t === "build" && G.players[s].st.built > 2) && !(a.t === "buy" && G.players[s].st.bought > 6)) {
+    const A = adviceFor(s, a);
+    if (A) { showAdvice(A, () => doAct(Object.assign({}, a, { ok: true }), s)); return false; }
+  }
+  if (NET.mode === "client") { bc("act", { id: MYID, s, a }); return true; }
   const r = BT.act(G, s, a);
   if (r && r !== "") toast(niceErr(r));
   commit();
+  return !r;
 }
 function niceErr(r) { return { "not enough money": "You don't have enough cash.", "over your limit": "That's more than the bank will lend you.", "can't build": "You can't build there yet.", "not now": "Not right now." }[r] || r; }
 function commit() {
@@ -2258,9 +2522,11 @@ $("bHow").onclick = () => {
 $("bHome").onclick = () => {
   A3.sfx("click");
   if (!G) { toTitle(); return; }
-  sheet("<h3>Menu</h3><div class='row' style='flex-direction:column'><button class='btn small' id='mResume'>Keep playing</button><button class='btn alt small' id='mFast'>" + (S.fast ? "Computer turns: fast" : "Computer turns: normal") + "</button>" + (G.E ? "<button class='btn alt small' id='mTips'>" + (S.lessons ? "Money tips: on" : "Money tips: off") + "</button>" : "") + "<button class='btn pink small' id='mQuit'>" + (NET.mode === "local" ? "Back to the title (your game is saved)" : "Leave the online game") + "</button></div>");
+  sheet("<h3>Menu</h3><div class='row' style='flex-direction:column'><button class='btn small' id='mResume'>Keep playing</button><button class='btn alt small' id='mFast'>" + (S.fast ? "Computer turns: fast" : "Computer turns: normal") + "</button>" + (G.E ? "<button class='btn alt small' id='mTips'>" + (S.lessons ? "Money tips: on" : "Money tips: off") + "</button><button class='btn alt small' id='mAdv'>" + (S.advice !== false ? "Think-first advice: on" : "Think-first advice: off") + "</button>" : "") + "<button class='btn alt small' id='mRep'>📋 My money report card</button>" + "<button class='btn pink small' id='mQuit'>" + (NET.mode === "local" ? "Back to the title (your game is saved)" : "Leave the online game") + "</button></div>");
   $("mResume").onclick = closeSheet;
   $("mFast").onclick = () => { S.fast = !S.fast; store(); $("bHome").onclick(); };
+  if ($("mAdv")) $("mAdv").onclick = () => { S.advice = S.advice === false; store(); $("bHome").onclick(); };
+  $("mRep").onclick = showReport;
   if ($("mTips")) $("mTips").onclick = () => { S.lessons = !S.lessons; if (S.lessons) S.seen = {}; store(); $("bHome").onclick(); };
   $("mQuit").onclick = () => { closeSheet(); toTitle(); };
 };

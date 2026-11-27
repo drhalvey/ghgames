@@ -96,7 +96,10 @@
 .room{display:flex;align-items:center;gap:8px;background:var(--panel2);border-radius:10px;padding:7px 10px;margin:4px 0;font-weight:900;cursor:pointer}
 .room:hover{outline:2px solid var(--gold)}
 .room small{color:var(--muted);margin-left:auto}
-#codeIn{text-transform:uppercase;width:110px!important;letter-spacing:.2em}
+#codeIn{text-transform:uppercase;width:150px!important;letter-spacing:.3em;font-size:24px!important;text-align:center}
+#lobCode{letter-spacing:.18em;color:var(--gold);background:rgba(0,0,0,.25);border-radius:12px;padding:0 10px}
+#lobLink{word-break:break-all;user-select:all;-webkit-user-select:all}
+.bigjoin{font-size:22px!important;padding:12px 26px!important}
 .stars{color:#ffc93c;letter-spacing:.05em}
 .stars i{color:#4b5a86;font-style:normal}
 #ecoChart{width:100%;height:120px;background:#0b1430;border-radius:10px;display:block;margin:6px 0}
@@ -158,6 +161,7 @@
       <h2>BOOMTOWN</h2>
       <p>Buy Perth suburbs, build cottages and towers, charge rent and trade your way to a fortune. Play Classic with the familiar rules, or Economics mode to learn about borrowing, interest rates, credit and gold.</p>
       <div class="row"><button class="btn" id="bSolo">Play the computer</button><button class="btn alt" id="bOnline">Play online</button></div>
+      <div class="row" id="rejoinRow" hidden><button class="btn green" id="bRejoin">Rejoin your online game</button></div>
       <div class="row"><button class="btn green small" id="bCont" hidden>Continue your game</button><button class="btn pink small" id="bLocal">Pass and play</button><button class="btn alt small" id="bHow">How to play</button></div>
       <div class="stats" id="tStats"></div>
     </div>
@@ -171,16 +175,22 @@
 
     <!-- online -->
     <div class="ov" id="ovOnline" hidden>
-      <h2 style="font-size:clamp(28px,6vw,44px)">PLAY ONLINE</h2>
+      <h2 style="font-size:clamp(28px,6vw,44px)" id="onH">PLAY ONLINE</h2>
       <div class="setup">
-        <label>Your name</label><input type="text" id="onName" maxlength="12" autocomplete="off">
+        <label>Your name</label><input type="text" id="onName" maxlength="12" autocomplete="off" enterkeyhint="done">
         <label>Your token</label><div class="toks" id="onToks"></div>
-        <label>Make a game</label>
-        <div class="row" style="justify-content:flex-start"><button class="btn small" id="bMakePub">Public game</button><button class="btn alt small" id="bMakePriv">Private game (code only)</button></div>
-        <label>Join a friend's game</label>
-        <div class="row" style="justify-content:flex-start"><input type="text" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off"><button class="btn small green" id="bJoin">Join</button></div>
+        <div id="onMake">
+        <label>Play with friends</label>
+        <div class="row" style="justify-content:flex-start"><button class="btn small" id="bMakePriv">Make a game for friends</button><button class="btn alt small" id="bMakePub">Make a public game</button></div>
+        <p class="help">You'll get a link to send to your friends. They tap it and they're in.</p>
+        </div>
+        <label id="onJoinL">Got a code from a friend?</label>
+        <div class="row" style="justify-content:flex-start"><input type="text" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go"><button class="btn small green" id="bJoin">Join</button></div>
+        <p class="help" id="onMore" hidden><a href="#" id="onMoreA" style="color:var(--gold)">Or make your own game instead</a></p>
+        <div id="onPub">
         <label>Open public games</label>
         <div id="roomList"><p class="help">Looking for games…</p></div>
+        </div>
         <p class="help" style="margin-top:8px">There is no chat. Only names and moves are shared.</p>
         <p class="help" id="onMsg" style="color:#ff9a9a"></p>
       </div>
@@ -191,6 +201,8 @@
     <div class="ov" id="ovLobby" hidden>
       <h2 style="font-size:clamp(26px,6vw,42px)">ROOM <span id="lobCode">----</span></h2>
       <p id="lobSub">Share the code with friends so they can join.</p>
+      <div class="row" id="lobShare" hidden><button class="btn green small" id="bShare">📤 Send invite</button><button class="btn alt small" id="bCopy">📋 Copy link</button></div>
+      <p class="help" id="lobLink" hidden></p>
       <div class="setup">
         <div id="lobSeats"></div>
         <div id="lobOpts"></div>
@@ -2395,7 +2407,7 @@ function commit() {
   if (sheetKind === "auction") showAuction();
   if (NET.mode === "local" && !G.over) { S.game = G; store(); }
   if (NET.mode === "local" && G.over) { S.game = null; store(); }
-  if (NET.mode === "host") sendState();
+  if (NET.mode === "host") { sendState(); if (G.over) clearNet(); else if (Date.now() - netSaveT > 1500) { netSaveT = Date.now(); saveNet({ g: G, seats: ROOM.seats }); } }
 }
 function aiTick(dt) {
   if (!G || G.over || NET.mode === "client") return;
@@ -2424,9 +2436,12 @@ function titleStats() {
   const st = S.stats;
   $("tStats").innerHTML = "<div>Games <b>" + st.games + "</b></div><div>Wins <b>" + st.wins + "</b></div><div>Biggest win <b>" + M(st.best) + "</b></div>";
   $("bCont").hidden = !(S.game && !S.game.over);
+  const r = (typeof loadNet === "function") ? loadNet() : null;
+  $("rejoinRow").hidden = !r || NET.mode !== "local";
+  if (r) $("bRejoin").textContent = "🔄 Rejoin your online game (" + r.code + ")";
 }
 function toTitle() {
-  if (NET.mode !== "local") leaveRoom();
+  if (NET.mode !== "local") { clearNet(); leaveRoom(); }
   G = null; mineLocal = []; closeSheet();
   ["ovSetup", "ovOnline", "ovLobby", "ovOver"].forEach(A3.hide); A3.show("ovTitle"); $("bar").hidden = true;
   titleStats(); renderSeats0();
@@ -2550,7 +2565,7 @@ $("tLog").onclick = () => { A3.sfx("click"); showLog(); };
    =================================================================== */
 const NET_URL = "https://bpqaeqswtgtbqrczjcrx.supabase.co";
 const NET_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwcWFlcXN3dGd0YnFyY3pqY3J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMzUzOTIsImV4cCI6MjA5NjkxMTM5Mn0.hsEZJ_C4NvySPMb59G9EPPfdJRSNBODbnuo9ij_zxrI";
-let SB = null, CH = null, LOB = null, present = new Set(), goneAt = {};
+let SB = null, CH = null, LOB = null, present = new Set(), goneAt = {}, hostWait = 0;
 const ROOM = { code: "", host: false, pub: false, seats: [], opts: null, hostId: "", started: false };
 function loadSupabase() {
   return new Promise(res => {
@@ -2561,23 +2576,43 @@ function loadSupabase() {
 }
 async function sb() { if (!(await loadSupabase())) return null; if (!SB) SB = window.supabase.createClient(NET_URL, NET_KEY, { auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 20 } } }); return SB; }
 function bc(event, payload) { if (CH) try { CH.send({ type: "broadcast", event, payload }); } catch (e) {} }
-function newCode() { const L = "ABCDEFGHJKLMNPQRSTUVWXYZ"; let s = ""; for (let i = 0; i < 4; i++) s += L[(Math.random() * L.length) | 0]; return s; }
+// no vowels (or Y), so a code can never spell a word
+function newCode() { const L = "BCDFGHJKLMNPQRSTVWXZ"; let s = ""; for (let i = 0; i < 4; i++) s += L[(Math.random() * L.length) | 0]; return s; }
+function inviteUrl(code) { return location.origin + location.pathname + "?join=" + code; }
+// remember the online game on this device so a refresh or a dropped connection can rejoin
+const NETKEY = "boomtown-net";
+function loadNet() { try { const r = JSON.parse(localStorage.getItem(NETKEY) || "null"); if (r && r.code && Date.now() - r.at < 3 * 3600e3) return r; } catch (e) {} return null; }
+function saveNet(extra) { try { const r = Object.assign({ code: ROOM.code, host: ROOM.host, pub: ROOM.pub, opts: ROOM.opts, name: ON.name, tok: ON.tok, id: MYID, at: Date.now() }, extra || {}); localStorage.setItem(NETKEY, JSON.stringify(r)); } catch (e) {} }
+function clearNet() { try { localStorage.removeItem(NETKEY); } catch (e) {} }
+let netSaveT = 0;
 function onMsg(t) { $("onMsg").textContent = t || ""; }
 const ON = { name: "", tok: "roo" };
 
-$("bOnline").onclick = async () => {
+function openOnline(joinCode) {
   A3.sfx("click"); A3.hide("ovTitle"); A3.hide("ovOver"); A3.show("ovOnline"); onMsg("");
   ON.name = ON.name || S.setup.name || defaultName(); ON.tok = ON.tok || S.setup.tok;
   $("onName").value = ON.name;
   const drawToks = () => { $("onToks").innerHTML = BT.TOKENS.map(t => "<button data-t='" + t.id + "' class='" + (ON.tok === t.id ? "on" : "") + "'>" + t.em + "</button>").join(""); $("onToks").querySelectorAll("button").forEach(b => b.onclick = () => { ON.tok = b.dataset.t; drawToks(); }); };
   drawToks();
-  watchLobby();
-};
+  const j = !!joinCode;
+  $("onH").textContent = j ? "JOIN YOUR FRIEND" : "PLAY ONLINE";
+  $("onMake").hidden = j; $("onPub").hidden = j; $("onMore").hidden = !j;
+  $("onJoinL").textContent = j ? "Room code" : "Got a code from a friend?";
+  $("bJoin").textContent = j ? "Join the game!" : "Join";
+  $("bJoin").classList.toggle("bigjoin", j);
+  if (j) $("codeIn").value = joinCode;
+  if (!j) watchLobby();
+}
+$("bOnline").onclick = () => openOnline("");
+$("onMoreA").onclick = e => { e.preventDefault(); openOnline(""); };
 $("onName").oninput = () => { ON.name = $("onName").value; };
+$("onName").onkeydown = e => { if (e.key === "Enter") $("onName").blur(); };
+$("codeIn").oninput = () => { const v = $("codeIn").value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4); if (v !== $("codeIn").value) $("codeIn").value = v; onMsg(""); };
+$("codeIn").onkeydown = e => { if (e.key === "Enter") $("bJoin").onclick(); };
 $("bOnBack").onclick = () => { A3.sfx("click"); unwatchLobby(); A3.hide("ovOnline"); A3.show("ovTitle"); };
 $("bMakePub").onclick = () => makeRoom(true);
 $("bMakePriv").onclick = () => makeRoom(false);
-$("bJoin").onclick = () => { const c = $("codeIn").value.trim().toUpperCase(); if (!/^[A-Z]{4}$/.test(c)) { onMsg("Codes are 4 letters."); return; } joinRoom(c); };
+$("bJoin").onclick = () => { const c = $("codeIn").value.trim().toUpperCase(); if (!/^[A-Z]{4}$/.test(c)) { onMsg("Room codes are 4 letters, like BKTR."); $("codeIn").focus(); return; } joinRoom(c); };
 
 // the public lobby: hosts of public games show up here with presence
 async function watchLobby() {
@@ -2608,9 +2643,18 @@ async function openRoom(code, asHost) {
   if (CH) { try { CH.untrack(); SB.removeChannel(CH); } catch (e) {} }
   ROOM.code = code; ROOM.host = asHost; ROOM.hostId = asHost ? MYID : ""; present = new Set(); goneAt = {};
   CH = c.channel("boomtown-" + code, { config: { broadcast: { self: false }, presence: { key: MYID } } });
-  CH.on("broadcast", { event: "lobby" }, m => { if (!ROOM.host) { Object.assign(ROOM, { seats: m.payload.seats, opts: m.payload.opts, hostId: m.payload.hostId, started: m.payload.started }); renderLobby(); } });
+  CH.on("broadcast", { event: "lobby" }, m => {
+    if (ROOM.host) return;
+    const was = ROOM.seats.some(s => s.id === MYID);
+    Object.assign(ROOM, { seats: m.payload.seats, opts: m.payload.opts, hostId: m.payload.hostId, started: m.payload.started });
+    const inIt = ROOM.seats.some(s => s.id === MYID);
+    // the host may have reloaded and lost us: say hello again
+    if (!inIt && !ROOM.started && Date.now() - helloAt > 1500) sayHello();
+    if (inIt && !was && !G) { A3.sfx("pop"); saveNet(); }
+    renderLobby();
+  });
   CH.on("broadcast", { event: "hello" }, m => { if (ROOM.host) onHello(m.payload); });
-  CH.on("broadcast", { event: "nope" }, m => { if (m.payload.to === MYID) { onMsg(m.payload.why); leaveRoom(); A3.hide("ovLobby"); A3.show("ovOnline"); } });
+  CH.on("broadcast", { event: "nope" }, m => { if (m.payload.to === MYID) { const was = !!G; clearNet(); if (was) { toTitle(); toast(m.payload.why, 4000); return; } leaveRoom(); A3.hide("ovLobby"); openOnline(""); onMsg(m.payload.why); } });
   CH.on("broadcast", { event: "st" }, m => { if (!ROOM.host) applyState(m.payload); });
   CH.on("broadcast", { event: "act" }, m => { if (ROOM.host) onRemoteAct(m.payload); });
   CH.on("broadcast", { event: "want" }, m => { if (ROOM.host && G) sendState(); });
@@ -2618,31 +2662,70 @@ async function openRoom(code, asHost) {
   CH.subscribe(st => {
     if (st !== "SUBSCRIBED") return;
     CH.track({ host: asHost });
-    if (!asHost) bc("hello", { id: MYID, name: cleanName(ON.name), tok: ON.tok });
-    else broadcastLobby();
+    if (!asHost) sayHello();
+    else { broadcastLobby(); if (G) sendState(); }
   });
   return true;
 }
-async function makeRoom(pub) {
+let helloAt = 0, joinTry = 0;
+function sayHello() { helloAt = Date.now(); bc("hello", { id: MYID, name: cleanName(ON.name), tok: ON.tok }); }
+async function makeRoom(pub, code, opts) {
   A3.sfx("click"); ON.name = cleanName($("onName").value || ON.name);
   const o = Object.assign({}, S.setup);
-  ROOM.pub = pub; ROOM.started = false; ROOM.opts = { mode: o.mode, lvl: o.lvl, money: o.money, ai: o.ai, rounds: o.rounds, start: o.start, auction: o.auction, parkPot: o.parkPot };
+  ROOM.pub = pub; ROOM.started = false; ROOM.opts = opts || { mode: o.mode, lvl: o.lvl, money: o.money, ai: o.ai, rounds: o.rounds, start: o.start, auction: o.auction, parkPot: o.parkPot };
   ROOM.seats = [{ id: MYID, name: ON.name, tok: ON.tok, kind: "human" }];
-  if (!(await openRoom(newCode(), true))) return;
-  NET = { mode: "host" };
-  A3.hide("ovOnline"); A3.show("ovLobby"); renderLobby();
+  if (!(await openRoom(code || newCode(), true))) return;
+  NET = { mode: "host" }; saveNet();
+  A3.hide("ovOnline"); A3.hide("ovTitle"); A3.show("ovLobby"); renderLobby();
   if (pub) { await watchLobby(); trackLobby(); }
 }
 async function joinRoom(code) {
   A3.sfx("click"); ON.name = cleanName($("onName").value || ON.name);
   ROOM.pub = false; ROOM.seats = []; ROOM.opts = null; ROOM.started = false;
   if (!(await openRoom(code, false))) return;
-  NET = { mode: "client" };
-  A3.hide("ovOnline"); A3.show("ovLobby"); renderLobby();
-  $("lobMsg").textContent = "Joining room " + code + "…";
-  setTimeout(() => { if (NET.mode === "client" && !ROOM.seats.length && !G) { $("lobMsg").textContent = "No game found with that code. Check the letters and try again."; } }, 6000);
+  NET = { mode: "client" }; saveNet();
+  A3.hide("ovOnline"); A3.hide("ovTitle"); A3.show("ovLobby"); renderLobby();
+  $("lobMsg").textContent = "Finding room " + code + "…";
+  // keep knocking for a few seconds in case the host's device was slow to answer
+  const t = ++joinTry; let n = 0;
+  const knock = () => {
+    if (t !== joinTry || NET.mode !== "client" || ROOM.code !== code || G) return;
+    if (ROOM.seats.some(s => s.id === MYID)) return;
+    if (++n > 5) {
+      if (ROOM.started) return; // the hello handler sends "already started" or the game itself
+      clearNet(); leaveRoom(); A3.hide("ovLobby"); openOnline(code);
+      onMsg("We couldn't find room " + code + ". Check the letters, and make sure your friend is still on the waiting screen.");
+      return;
+    }
+    if (n > 1) sayHello();
+    setTimeout(knock, 2000);
+  };
+  setTimeout(knock, 2000);
 }
+// host comes back after a refresh: same code, same game
+async function rehost(r) {
+  ON.name = r.name || ON.name; ON.tok = r.tok || ON.tok;
+  if (!r.g || r.g.over) { await makeRoom(!!r.pub, r.code, r.opts); return; }
+  ROOM.pub = !!r.pub; ROOM.opts = r.opts; ROOM.started = true; ROOM.seats = r.seats || [];
+  G = r.g; NET = { mode: "host" };
+  if (!(await openRoom(r.code, true))) { G = null; NET = { mode: "local" }; return; }
+  NET = { mode: "host" }; ROOM.started = true;
+  const me = G.players.findIndex(p => p.kind === "human");
+  if (me >= 0) G.players[me].id = MYID;
+  mineLocal = G.players.map((p, k) => k).filter(k => G.players[k].kind === "human");
+  const now = Date.now(); G.players.forEach(p => { if (p.kind === "remote" && p.id) goneAt[p.id] = now; });
+  overShown = false; lastSeq = 0;
+  ["ovTitle", "ovSetup", "ovOnline", "ovLobby", "ovOver"].forEach(A3.hide); closeSheet();
+  syncTokens(true); takeEvents(true); syncProps(); G.log.push({ m: "The host is back. Carry on!", w: -1 }); commit();
+  toast("You're back in your online game!", 3000);
+}
+$("bRejoin").onclick = () => {
+  const r = loadNet(); if (!r) { titleStats(); return; }
+  ON.name = r.name || ON.name; ON.tok = r.tok || ON.tok; $("onName").value = ON.name;
+  if (r.host) rehost(r); else joinRoom(r.code);
+};
 function leaveRoom() {
+  joinTry++;
   if (CH) { try { CH.untrack(); SB.removeChannel(CH); } catch (e) {} CH = null; }
   if (LOB) { try { LOB.untrack(); SB.removeChannel(LOB); } catch (e) {} LOB = null; }
   ROOM.code = ""; ROOM.seats = []; ROOM.host = false; ROOM.started = false;
@@ -2656,21 +2739,30 @@ function onHello(h) {
     if (!s) {
       if (ROOM.seats.length >= 6) { bc("nope", { to: h.id, why: "That game is full (6 players)." }); return; }
       const used = ROOM.seats.map(x => x.tok); let tok = h.tok; if (used.includes(tok)) tok = BT.TOKENS.find(t => !used.includes(t.id)).id;
-      s = { id: h.id, name, tok, kind: "human" }; ROOM.seats.push(s); A3.sfx("pop");
+      s = { id: h.id, name, tok, kind: "human" }; ROOM.seats.push(s); A3.sfx("pop"); toast(name + " joined! 🎉", 2500);
     } else s.name = name;
     broadcastLobby(); renderLobby(); return;
   }
   // a player coming back to a game that already started
   if (!G) return;
   let k = G.players.findIndex(p => p.id === h.id);
-  if (k < 0) k = G.players.findIndex(p => p.away && p.name.toLowerCase() === name.toLowerCase());
+  if (k < 0) k = G.players.findIndex(p => p.kind === "remote" && !p.out && (p.away || !present.has(p.id)) && p.name.toLowerCase() === name.toLowerCase());
   if (k < 0) { bc("nope", { to: h.id, why: "That game has already started." }); return; }
-  const p = G.players[k]; p.id = h.id; p.away = false; p.kind = "remote";
-  G.log.push({ m: p.name + " is back!", w: k }); sendState();
+  const p = G.players[k]; const wasAway = p.away; p.id = h.id; p.away = false; p.kind = "remote";
+  if (wasAway) { G.log.push({ m: p.name + " is back!", w: k }); toast(p.name + " is back!", 2500); }
+  ROOM.seats.forEach(s => { if (s.name.toLowerCase() === p.name.toLowerCase() && s.kind !== "ai") s.id = h.id; });
+  commit();
 }
 function renderLobby() {
   $("lobCode").textContent = ROOM.code;
-  $("lobSub").textContent = ROOM.host ? (ROOM.pub ? "Anyone can see this game in the public list. Friends can also join with the code." : "Share the code with friends so they can join.") : "Waiting for the host to start…";
+  const hostName = (ROOM.seats[0] && ROOM.seats[0].name) || "the host";
+  const inIt = ROOM.seats.some(s => s.id === MYID);
+  $("lobSub").textContent = ROOM.host
+    ? (ROOM.seats.length < 2 ? "Send the invite to your friends. They tap the link and they're in. Or they can type the code " + ROOM.code + "." : "Press Start when everyone's here. You can still send the invite to more friends.") + (ROOM.pub ? " Anyone can also see this game in the public list." : "")
+    : inIt ? "You're in! Waiting for " + hostName + " to start the game." : "Finding the game…";
+  $("lobShare").hidden = !ROOM.host;
+  if (ROOM.host) { $("lobLink").hidden = false; $("lobLink").textContent = inviteUrl(ROOM.code); } else $("lobLink").hidden = true;
+  if (inIt || ROOM.host) $("lobMsg").textContent = "";
   let h = "<label>Players</label>" + ROOM.seats.map((p, k) => "<div class='seat'><span class='dot' style='background:" + BT.COLS[k] + "'></span>" + tokEm(p.tok) + " " + esc(p.name) + "<small>" + (p.kind === "ai" ? "computer" : k === 0 ? "host" : "") + (p.id === MYID ? " · you" : "") + "</small>" + (ROOM.host && k > 0 ? " <button data-kick='" + k + "'>✕</button>" : "") + "</div>").join("");
   for (let k = ROOM.seats.length; k < 2; k++) h += "<div class='seat'>Waiting for a player…</div>";
   $("lobSeats").innerHTML = h;
@@ -2682,7 +2774,21 @@ function renderLobby() {
   $("lobGo").disabled = ROOM.seats.length < 2; $("lobAddAI").disabled = ROOM.seats.length >= 6;
 }
 $("lobAddAI").onclick = () => { const used = ROOM.seats.map(x => x.tok); ROOM.seats.push({ id: "", name: AI_NAMES[ROOM.seats.length % 6], tok: BT.TOKENS.find(t => !used.includes(t.id)).id, kind: "ai" }); broadcastLobby(); renderLobby(); A3.sfx("pop"); };
-$("lobLeave").onclick = () => { A3.sfx("click"); if (ROOM.host) ROOM.seats.slice(1).forEach(s => s.id && bc("nope", { to: s.id, why: "The host closed the game." })); leaveRoom(); A3.hide("ovLobby"); A3.show("ovTitle"); titleStats(); };
+function inviteText() { return "Come and play Boomtown with me on GH Games! Tap the link to join my game (room code " + ROOM.code + "): "; }
+function copyLink() {
+  const url = inviteUrl(ROOM.code);
+  const done = () => toast("Link copied! Paste it into a message to your friend.", 3000);
+  const fallback = () => { const r = document.createRange(); r.selectNodeContents($("lobLink")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); try { if (document.execCommand("copy")) { done(); return; } } catch (e) {} toast("Press and hold the link to copy it.", 3000); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, fallback); else fallback();
+}
+$("bCopy").onclick = () => { A3.sfx("click"); copyLink(); };
+$("bShare").onclick = () => {
+  A3.sfx("click");
+  const url = inviteUrl(ROOM.code);
+  if (navigator.share) navigator.share({ title: "Play Boomtown with me", text: inviteText(), url }).catch(e => { if (!e || e.name !== "AbortError") copyLink(); });
+  else copyLink();
+};
+$("lobLeave").onclick = () => { A3.sfx("click"); clearNet(); if (ROOM.host) ROOM.seats.slice(1).forEach(s => s.id && bc("nope", { to: s.id, why: "The host closed the game." })); leaveRoom(); A3.hide("ovLobby"); A3.show("ovTitle"); titleStats(); };
 $("lobGo").onclick = () => {
   if (!ROOM.host || ROOM.seats.length < 2) return;
   A3.sfx("win");
@@ -2700,6 +2806,8 @@ function applyState(m) {
   const g = m.g; if (!g) return;
   const first = !G;
   G = g; mineLocal = G.players.map((p, k) => k).filter(k => G.players[k].id === MYID);
+  if (G.over) clearNet(); else if (Date.now() - netSaveT > 20000) { netSaveT = Date.now(); saveNet(); }
+  hostWait = 0;
   if (first) { A3.hide("ovLobby"); A3.hide("ovOnline"); closeSheet(); overShown = false; lastSeq = 0; syncTokens(true); takeEvents(true); syncProps(); }
   else takeEvents(false);
   renderPlayers(); renderBar();
@@ -2732,9 +2840,10 @@ function netWatch() {
       if (!present.has(p.id) && goneAt[p.id] && now - goneAt[p.id] > 6000) { p.away = true; G.log.push({ m: p.name + " dropped out. The computer is playing for them.", w: k }); commit(); }
     });
   } else if (ROOM.hostId && !present.has(ROOM.hostId) && goneAt[ROOM.hostId] && now - goneAt[ROOM.hostId] > 9000) {
-    goneAt[ROOM.hostId] = now + 1e9;
-    toast("The host left, so the game ended.", 4000); setTimeout(toTitle, 1500);
-  }
+    const gone = now - goneAt[ROOM.hostId];
+    if (gone > 150000) { goneAt[ROOM.hostId] = now + 1e9; clearNet(); toast("The host didn't come back, so the game ended.", 4000); setTimeout(toTitle, 1500); }
+    else if (now - hostWait > 12000) { hostWait = now; showTicker("📡 Waiting for " + ((G.players[0] && G.players[0].name) || "the host") + " to come back…"); }
+  } else if (hostWait && ROOM.hostId && present.has(ROOM.hostId)) { hostWait = 0; toast("The host is back!", 2500); $("ticker").hidden = true; }
 }
 
 /* ===================================================================
@@ -2762,6 +2871,16 @@ A3.loop((dt, t) => {
 
 titleStats();
 if (G === null) cam.yaw = 0.6;
+// arrived from an invite link: go straight to the join screen
+(() => {
+  let code = ""; try { code = (new URLSearchParams(location.search).get("join") || "").toUpperCase().replace(/[^A-Z]/g, ""); } catch (e) {}
+  if (code.length !== 4) return;
+  try { history.replaceState(null, "", location.pathname); } catch (e) {}
+  const r = loadNet();
+  if (r && r.code === code) { ON.name = r.name || ""; ON.tok = r.tok || ON.tok; $("bRejoin").onclick(); return; }
+  openOnline(code);
+  setTimeout(() => $("bJoin").focus(), 50);
+})();
 window.__bt = { propObjs, centreOf, tokens, get G() { return G; }, set G(v) { G = v; }, doAct, commit, S, BT, startLocal, get queue() { return queue; }, get busy() { return busy; }, cam, showBank, showEconomy, showTrade, showPlaces };
 if (window.Leaderboard) Leaderboard.mount({ el: "lb", game: "boomtown", dir: "desc", unit: "fortune", title: "Boomtown: biggest winning fortune" });
 })();
